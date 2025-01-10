@@ -33,7 +33,6 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressInterval = useRef<NodeJS.Timeout>();
 
-  // 解析歌詞時間軸
   const parsedLyrics: LyricLine[] = song.lyrics
     ? song.lyrics
         .split('\n')
