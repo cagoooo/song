@@ -87,7 +87,6 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
   }, [volume, isMuted]);
 
   useEffect(() => {
-    // 歌詞同步
     const currentLyric = parsedLyrics.findIndex((lyric, index) =>
       currentTime >= lyric.time &&
       (!parsedLyrics[index + 1] || currentTime < parsedLyrics[index + 1].time)
@@ -199,7 +198,7 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
             </Button>
           </div>
 
-          <TooltipProvider>
+          <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -209,7 +208,8 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
                            border-2 border-primary/20 hover:border-primary/30
                            shadow-[0_2px_10px_rgba(var(--primary),0.1)]
                            hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                           transition-all duration-300"
+                           transition-all duration-300
+                           relative z-10"
                 >
                   <a
                     href={generateGoogleLyricsUrl()}
@@ -222,7 +222,10 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
                   </a>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent 
+                side="top" 
+                className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
+              >
                 <p>點擊在 Google 中搜尋「{song.title} - {song.artist}」的歌詞</p>
               </TooltipContent>
             </Tooltip>

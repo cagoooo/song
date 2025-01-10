@@ -3,6 +3,12 @@ import { Trophy, Crown, Award, FileText } from "lucide-react";
 import type { Song } from "@db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface RankingBoardProps {
   songs: Song[];
@@ -105,23 +111,35 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                   <p className="text-xs text-muted-foreground">點播</p>
                 </motion.div>
 
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
-                           shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                           hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                           transition-all duration-300"
-                  asChild
-                >
-                  <a
-                    href={generateGoogleLyricsUrl(song)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <FileText className="w-4 h-4" />
-                  </a>
-                </Button>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
+                                shadow-[0_2px_10px_rgba(var(--primary),0.1)]
+                                hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
+                                transition-all duration-300 relative z-10"
+                        asChild
+                      >
+                        <a
+                          href={generateGoogleLyricsUrl(song)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </a>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      side="top" 
+                      className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
+                    >
+                      <p>點擊在 Google 中搜尋「{song.title} - {song.artist}」的歌詞</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </motion.div>
           ))}
