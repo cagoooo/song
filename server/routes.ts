@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, tags, songTags, songSuggestions, type User } from "@db/schema";
+import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, type User } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
 import multer from "multer";
@@ -90,6 +90,72 @@ export function registerRoutes(app: Express): Server {
   // 提供靜態檔案存取
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+
+  // QR Code scan tracking endpoints
+  app.post("/api/qr-scans", async (req, res) => {
+    try {
+      const { songId } = req.body;
+      const sessionId = req.sessionID || Math.random().toString(36).substring(2);
+      const userAgent = req.headers['user-agent'];
+      const referrer = req.headers.referer || req.headers.referrer;
+
+      const [scan] = await db.insert(qrCodeScans)
+        .values({
+          songId,
+          sessionId,
+          userAgent: userAgent || null,
+          referrer: referrer || null
+        })
+        .returning();
+
+      res.json(scan);
+    } catch (error) {
+      console.error('Failed to record QR code scan:', error);
+      res.status(500).json({ error: "無法記錄QR碼掃描" });
+    }
+  });
+
+  // Get QR code scan statistics (admin only)
+  app.get("/api/qr-scans/stats", requireAdmin, async (req, res) => {
+    try {
+      // Get total scans count
+      const totalScans = await db
+        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .from(qrCodeScans);
+
+      // Get scans by song
+      const scansBySong = await db
+        .select({
+          songId: songs.id,
+          title: songs.title,
+          artist: songs.artist,
+          scanCount: sql<number>`count(${qrCodeScans.id})`.mapWith(Number)
+        })
+        .from(qrCodeScans)
+        .innerJoin(songs, eq(qrCodeScans.songId, songs.id))
+        .groupBy(songs.id, songs.title, songs.artist)
+        .orderBy(sql`count(${qrCodeScans.id}) DESC`);
+
+      // Get scans by date
+      const scansByDate = await db
+        .select({
+          date: sql<string>`date_trunc('day', ${qrCodeScans.createdAt})::text`,
+          count: sql<number>`count(*)`.mapWith(Number)
+        })
+        .from(qrCodeScans)
+        .groupBy(sql`date_trunc('day', ${qrCodeScans.createdAt})`)
+        .orderBy(sql`date_trunc('day', ${qrCodeScans.createdAt}) DESC`);
+
+      res.json({
+        totalScans: totalScans[0].count,
+        scansBySong,
+        scansByDate,
+      });
+    } catch (error) {
+      console.error('Failed to fetch QR code scan statistics:', error);
+      res.status(500).json({ error: "無法取得QR碼掃描統計" });
+    }
+  });
 
   // 標籤相關的 API 路由
   app.get("/api/tags", async (_req, res) => {

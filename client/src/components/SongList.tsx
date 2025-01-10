@@ -280,6 +280,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
           songTitle={selectedSongForShare.title}
           songArtist={selectedSongForShare.artist}
           shareUrl={getShareUrl(selectedSongForShare.id)}
+          songId={selectedSongForShare.id}
         />
       )}
 
