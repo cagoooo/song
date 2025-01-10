@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
 import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
+import { motion } from "framer-motion";
 
 interface SongListProps {
   songs: Song[];
@@ -16,6 +17,7 @@ interface SongListProps {
 export default function SongList({ songs, ws, user }: SongListProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [votingId, setVotingId] = useState<number | null>(null);
 
   // 過濾歌曲列表
   const filteredSongs = useMemo(() => {
@@ -31,7 +33,9 @@ export default function SongList({ songs, ws, user }: SongListProps) {
 
   const voteForSong = (songId: number) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
+      setVotingId(songId);
       ws.send(JSON.stringify({ type: 'VOTE', songId }));
+      setTimeout(() => setVotingId(null), 1000);
     }
   };
 
@@ -82,26 +86,59 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={() => voteForSong(song.id)}
-                    className="flex gap-2"
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    animate={votingId === song.id ? {
+                      scale: [1, 1.2, 1],
+                      rotate: [0, 15, -15, 0],
+                      transition: {
+                        duration: 0.5,
+                        ease: "easeInOut"
+                      }
+                    } : {}}
                   >
-                    <ThumbsUp className="h-4 w-4" />
-                    投票
-                  </Button>
-
-                  {user?.isAdmin && (
-                    <Button
+                    <Button 
                       variant="outline"
                       size="sm"
-                      onClick={() => deleteSong(song.id)}
-                      className="flex gap-2 text-destructive hover:text-destructive"
+                      onClick={() => voteForSong(song.id)}
+                      className={`
+                        flex gap-2 relative overflow-hidden
+                        ${votingId === song.id ? 'border-primary' : ''}
+                      `}
                     >
-                      <Trash2 className="h-4 w-4" />
-                      刪除
+                      {votingId === song.id && (
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-primary/20 to-purple-500/20"
+                          animate={{
+                            x: ["0%", "100%"],
+                          }}
+                          transition={{
+                            duration: 0.5,
+                            ease: "linear",
+                          }}
+                        />
+                      )}
+                      <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
+                      投票
                     </Button>
+                  </motion.div>
+
+                  {user?.isAdmin && (
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteSong(song.id)}
+                        className="flex gap-2 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        刪除
+                      </Button>
+                    </motion.div>
                   )}
                 </div>
               </div>
