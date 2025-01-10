@@ -3,9 +3,21 @@ import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { Share2 } from "lucide-react";
 import { motion } from "framer-motion";
+import {
+  FacebookShareButton,
+  TwitterShareButton,
+  LineShareButton,
+  WhatsappShareButton,
+  FacebookIcon,
+  TwitterIcon,
+  LineIcon,
+  WhatsappIcon
+} from "react-share";
 
 export function ShareButton() {
   const currentUrl = window.location.href;
+  const shareTitle = "來參加線上點歌！";
+  const shareDescription = "快來加入線上點歌系統，一起來點歌吧！";
 
   return (
     <Dialog>
@@ -33,13 +45,15 @@ export function ShareButton() {
           className="flex flex-col items-center justify-center p-6"
         >
           <h2 className="text-xl font-semibold mb-2 bg-gradient-to-r from-primary to-purple-600 
-                         bg-clip-text text-transparent">
+                        bg-clip-text text-transparent">
             分享點歌系統
           </h2>
           <p className="text-sm text-muted-foreground mb-6">
-            掃描QR Code快速進入點歌系統
+            掃描QR Code或透過社群媒體分享
           </p>
-          <div className="relative">
+
+          {/* QR Code Section */}
+          <div className="relative mb-8">
             <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 
                           opacity-30 blur-xl animate-pulse rounded-full" />
             <motion.div
@@ -56,6 +70,39 @@ export function ShareButton() {
               />
             </motion.div>
           </div>
+
+          {/* Social Media Share Buttons */}
+          <div className="w-full space-y-4">
+            <p className="text-sm text-center font-medium text-muted-foreground mb-4">
+              透過社群媒體分享
+            </p>
+            <div className="flex justify-center gap-4">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <FacebookShareButton url={currentUrl} quote={shareTitle} className="outline-none">
+                  <FacebookIcon size={40} round className="shadow-lg hover:shadow-xl transition-shadow" />
+                </FacebookShareButton>
+              </motion.div>
+
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <TwitterShareButton url={currentUrl} title={shareTitle} className="outline-none">
+                  <TwitterIcon size={40} round className="shadow-lg hover:shadow-xl transition-shadow" />
+                </TwitterShareButton>
+              </motion.div>
+
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <LineShareButton url={currentUrl} title={shareTitle} className="outline-none">
+                  <LineIcon size={40} round className="shadow-lg hover:shadow-xl transition-shadow" />
+                </LineShareButton>
+              </motion.div>
+
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <WhatsappShareButton url={currentUrl} title={shareTitle} className="outline-none">
+                  <WhatsappIcon size={40} round className="shadow-lg hover:shadow-xl transition-shadow" />
+                </WhatsappShareButton>
+              </motion.div>
+            </div>
+          </div>
+
           <p className="text-sm text-muted-foreground mt-6 text-center max-w-[280px]">
             分享這個連結給朋友，讓大家一起來點歌！
           </p>
