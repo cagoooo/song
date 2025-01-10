@@ -7,6 +7,7 @@ import type { Song, User } from "@db/schema";
 import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
 import { motion } from "framer-motion";
+import FireworkEffect from "./FireworkEffect";
 
 interface SongListProps {
   songs: Song[];
@@ -35,7 +36,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
     if (ws && ws.readyState === WebSocket.OPEN) {
       setVotingId(songId);
       ws.send(JSON.stringify({ type: 'VOTE', songId }));
-      setTimeout(() => setVotingId(null), 1000);
+      setTimeout(() => setVotingId(null), 800);
     }
   };
 
@@ -89,14 +90,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    animate={votingId === song.id ? {
-                      scale: [1, 1.2, 1],
-                      rotate: [0, 15, -15, 0],
-                      transition: {
-                        duration: 0.5,
-                        ease: "easeInOut"
-                      }
-                    } : {}}
+                    className="relative"
                   >
                     <Button 
                       variant="outline"
@@ -107,21 +101,10 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         ${votingId === song.id ? 'border-primary' : ''}
                       `}
                     >
-                      {votingId === song.id && (
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-primary/20 to-purple-500/20"
-                          animate={{
-                            x: ["0%", "100%"],
-                          }}
-                          transition={{
-                            duration: 0.5,
-                            ease: "linear",
-                          }}
-                        />
-                      )}
                       <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
                       投票
                     </Button>
+                    <FireworkEffect isVisible={votingId === song.id} />
                   </motion.div>
 
                   {user?.isAdmin && (
