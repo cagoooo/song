@@ -23,8 +23,8 @@ export default function SearchBar({ value, onChange }: SearchBarProps) {
                  focus:border-primary/40 
                  focus:shadow-[0_4px_20px_rgba(var(--primary),0.2)]
                  hover:shadow-[0_4px_15px_rgba(var(--primary),0.15)]
-                 placeholder:text-primary/70
-                 placeholder:font-medium
+                 placeholder:text-gray-700
+                 placeholder:font-semibold
                  transition-all duration-300"
       />
       <div className="absolute right-3 top-3.5 text-lg">🎵</div>
