@@ -110,7 +110,10 @@ export default function SongList({ songs, ws, user }: SongListProps) {
             variant="outline"
             size="icon"
             onClick={() => setShowResetDialog(true)}
-            className="w-full sm:w-12 h-12 border-2 border-primary/20"
+            className="w-full sm:w-12 h-12 border-2 border-primary/20 bg-white/80 hover:bg-white/90
+                     shadow-[0_2px_10px_rgba(var(--primary),0.1)]
+                     hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
+                     transition-all duration-300"
           >
             <RotateCcw className="h-5 w-5" />
           </Button>
@@ -120,16 +123,28 @@ export default function SongList({ songs, ws, user }: SongListProps) {
       <ScrollArea className="h-[400px] sm:h-[500px] w-full pr-4">
         <div className="space-y-4">
           {filteredSongs.map((song) => (
-            <div key={song.id} className="flex flex-col gap-4 p-3 sm:p-4 bg-card rounded-lg border">
+            <motion.div
+              key={song.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-4 p-3 sm:p-4 rounded-lg border-2 border-primary/10
+                       bg-gradient-to-br from-white via-primary/5 to-white
+                       hover:from-white hover:via-primary/10 hover:to-white
+                       shadow-[0_4px_12px_rgba(var(--primary),0.1)]
+                       hover:shadow-[0_4px_16px_rgba(var(--primary),0.15)]
+                       transition-all duration-300"
+            >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Music className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="font-semibold">{song.title}</h3>
+                    <Music className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-primary/90">{song.title}</h3>
                   </div>
                   <p className="text-sm text-muted-foreground">{song.artist}</p>
                   {song.key && (
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded mt-1 inline-block">
+                    <span className="text-xs bg-gradient-to-r from-cyan-500/20 to-teal-500/20 text-cyan-700
+                                 px-2 py-1 rounded mt-1 inline-block">
                       Key: {song.key}
                     </span>
                   )}
@@ -147,7 +162,11 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                       onClick={() => voteForSong(song.id)}
                       className={`
                         flex gap-2 relative overflow-hidden w-full sm:w-auto
-                        ${votingId === song.id ? 'border-primary' : ''}
+                        border-2 bg-white/80 hover:bg-white/90
+                        ${votingId === song.id 
+                          ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]' 
+                          : 'border-primary/20 hover:border-primary/40'}
+                        transition-all duration-300
                       `}
                     >
                       <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
@@ -166,7 +185,9 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => deleteSong(song.id)}
-                        className="flex gap-2 text-destructive hover:text-destructive w-full sm:w-auto"
+                        className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
+                                 text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
+                                 hover:border-red-300/50 transition-all duration-300"
                       >
                         <Trash2 className="h-4 w-4" />
                         刪除
@@ -177,7 +198,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
               </div>
 
               <TagSelector song={song} isAdmin={user?.isAdmin ?? false} />
-            </div>
+            </motion.div>
           ))}
         </div>
       </ScrollArea>

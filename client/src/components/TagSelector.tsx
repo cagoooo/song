@@ -21,6 +21,15 @@ interface SongTag extends TagType {
   name: string;
 }
 
+const tagColors = [
+  'from-rose-500/20 to-pink-500/20 text-rose-700',
+  'from-blue-500/20 to-cyan-500/20 text-blue-700',
+  'from-green-500/20 to-emerald-500/20 text-green-700',
+  'from-amber-500/20 to-yellow-500/20 text-amber-700',
+  'from-violet-500/20 to-purple-500/20 text-violet-700',
+  'from-teal-500/20 to-cyan-500/20 text-teal-700',
+];
+
 export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   const [newTag, setNewTag] = useState("");
   const { toast } = useToast();
@@ -115,14 +124,18 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
         layout
         transition={{ duration: 0.2 }}
       >
-        {songTags.map((tag: SongTag) => (
+        {songTags.map((tag: SongTag, index) => (
           <motion.div
             key={tag.id}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 500 }}
           >
-            <Badge variant="secondary">
+            <Badge 
+              variant="outline"
+              className={`bg-gradient-to-r ${tagColors[index % tagColors.length]} border-0
+                       shadow-[0_2px_8px_rgba(0,0,0,0.05)]`}
+            >
               <Hash className="w-3 h-3 mr-1" />
               {tag.name}
             </Badge>
@@ -135,14 +148,18 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   return (
     <motion.div layout transition={{ duration: 0.2 }}>
       <div className="flex flex-wrap gap-2 mb-2">
-        {songTags.map((tag: SongTag) => (
+        {songTags.map((tag: SongTag, index) => (
           <motion.div
             key={tag.id}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 500 }}
           >
-            <Badge variant="secondary" className="pr-1 group">
+            <Badge 
+              variant="outline" 
+              className={`pr-1 group bg-gradient-to-r ${tagColors[index % tagColors.length]} border-0
+                       shadow-[0_2px_8px_rgba(0,0,0,0.05)]`}
+            >
               <Hash className="w-3 h-3 mr-1" />
               {tag.name}
               <button
@@ -158,12 +175,19 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="w-full sm:w-auto">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full sm:w-auto border-2 border-primary/20 bg-white/80 hover:bg-white/90
+                     shadow-[0_2px_10px_rgba(var(--primary),0.1)]
+                     hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
+                     transition-all duration-300"
+          >
             <Tag className="w-4 h-4 mr-2" />
             管理標籤
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[280px] sm:w-[320px]" side="top">
+        <PopoverContent className="w-[280px] sm:w-[320px] border-2 border-primary/20" side="top">
           <div className="space-y-4">
             <div>
               <Label className="text-sm">新增標籤</Label>
@@ -189,7 +213,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
               <Label className="text-sm">現有標籤</Label>
               <ScrollArea className="h-[160px] sm:h-[200px] w-full mt-1.5">
                 <div className="space-y-1">
-                  {tags.map((tag: SongTag) => (
+                  {tags.map((tag: SongTag, index) => (
                     <motion.div
                       key={tag.id}
                       initial={{ opacity: 0, y: 5 }}
@@ -198,7 +222,10 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
                     >
                       <Badge
                         variant="outline"
-                        className="w-full justify-between cursor-pointer hover:bg-secondary transition-colors"
+                        className={`w-full justify-between cursor-pointer
+                                bg-gradient-to-r ${tagColors[index % tagColors.length]} border-0
+                                hover:shadow-[0_2px_8px_rgba(0,0,0,0.1)]
+                                transition-all duration-300`}
                         onClick={() => {
                           if (!songTags.some((t: SongTag) => t.id === tag.id)) {
                             addSongTagMutation.mutate(tag.id);
