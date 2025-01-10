@@ -5,10 +5,21 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Play, Pause, SkipBack, Volume2, VolumeX, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Song } from "@db/schema";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MusicPlayerProps {
   song: Song;
   onClose: () => void;
+}
+
+interface LyricLine {
+  time: number;
+  text: string;
 }
 
 export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
@@ -23,7 +34,7 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
   const progressInterval = useRef<NodeJS.Timeout>();
 
   // 解析歌詞時間軸
-  const parsedLyrics = song.lyrics
+  const parsedLyrics: LyricLine[] = song.lyrics
     ? song.lyrics
         .split('\n')
         .map(line => {
@@ -38,7 +49,7 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
           }
           return null;
         })
-        .filter((item): item is { time: number; text: string } => item !== null)
+        .filter((item): item is LyricLine => item !== null)
         .sort((a, b) => a.time - b.time)
     : [];
 
@@ -78,16 +89,15 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
 
   useEffect(() => {
     // 歌詞同步
-    const currentLyric = parsedLyrics.findIndex(
-      (lyric, index) =>
-        currentTime >= lyric.time &&
-        (!parsedLyrics[index + 1] || currentTime < parsedLyrics[index + 1].time)
+    const currentLyric = parsedLyrics.findIndex((lyric, index) =>
+      currentTime >= lyric.time &&
+      (!parsedLyrics[index + 1] || currentTime < parsedLyrics[index + 1].time)
     );
 
     if (currentLyric !== currentLyricIndex) {
       setCurrentLyricIndex(currentLyric);
     }
-  }, [currentTime, parsedLyrics]);
+  }, [currentTime, parsedLyrics, currentLyricIndex]);
 
   const togglePlay = () => {
     if (audioRef.current) {
@@ -190,26 +200,34 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
             </Button>
           </div>
 
-          <Button
-            variant="outline"
-            asChild
-            className="bg-gradient-to-r from-primary/10 to-purple-500/10 hover:from-primary/20 hover:to-purple-500/20
-                     border-2 border-primary/20 hover:border-primary/30
-                     shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                     hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                     transition-all duration-300"
-          >
-            <a
-              href={generateGoogleLyricsUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="點擊搜尋歌詞"
-              className="flex items-center gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              <span>搜尋歌詞</span>
-            </a>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  asChild
+                  className="bg-gradient-to-r from-primary/10 to-purple-500/10 hover:from-primary/20 hover:to-purple-500/20
+                           border-2 border-primary/20 hover:border-primary/30
+                           shadow-[0_2px_10px_rgba(var(--primary),0.1)]
+                           hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
+                           transition-all duration-300"
+                >
+                  <a
+                    href={generateGoogleLyricsUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>搜尋歌詞</span>
+                  </a>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>點擊在 Google 中搜尋「{song.title} - {song.artist}」的歌詞</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         <div className="space-y-2">
@@ -225,21 +243,25 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
             <span>{formatTime(duration)}</span>
           </div>
         </div>
+
         <ScrollArea className="h-[200px] border rounded-md p-4">
           <div className="space-y-2">
             {parsedLyrics.map((lyric, index) => (
               <p
                 key={index}
                 className={cn(
-                  "text-center transition-all duration-300",
-                  index === currentLyricIndex
-                    ? "text-lg font-semibold text-primary"
-                    : "text-sm text-muted-foreground"
+                  "text-center text-sm text-muted-foreground hover:text-foreground transition-colors duration-200",
+                  index === currentLyricIndex && "text-lg font-semibold text-primary"
                 )}
               >
                 {lyric.text}
               </p>
             ))}
+            {parsedLyrics.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground">
+                這首歌還沒有歌詞...
+              </p>
+            )}
           </div>
         </ScrollArea>
       </div>
