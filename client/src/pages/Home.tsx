@@ -149,7 +149,7 @@ export default function Home() {
             <CardContent>
               {user?.isAdmin && <SongImport />}
               <div className="h-4" />
-              <SongList songs={songs} ws={wsRef.current} user={user} />
+              <SongList songs={songs} ws={wsRef.current} user={user || null} />
             </CardContent>
           </Card>
 

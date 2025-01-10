@@ -1,27 +1,25 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer, type IncomingMessage } from "ws";
+import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, users, type User } from "@db/schema";
+import { songs, votes } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
 
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
+// 需要管理員權限的中間件
+const requireAdmin = (req: Request & { user?: Express.User }, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated() || !req.user?.isAdmin) {
+    return res.status(403).json({ error: "需要管理員權限" });
+  }
+  next();
+};
 
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ 
     server: httpServer, 
     path: '/ws',
-    verifyClient: ({ req }: { req: IncomingMessage }) => {
+    verifyClient: ({ req }) => {
       const protocol = req.headers['sec-websocket-protocol'];
       return protocol !== 'vite-hmr';
     }
@@ -29,34 +27,6 @@ export function registerRoutes(app: Express): Server {
 
   // 設置認證系統
   setupAuth(app);
-
-  // 特殊路由用於設置管理員密碼
-  app.post("/api/admin/setup", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-
-      // 雜湊密碼
-      const hashedPassword = await hashPassword(password);
-
-      // 更新管理員密碼
-      await db.update(users)
-        .set({ password: hashedPassword })
-        .where(eq(users.username, username));
-
-      res.json({ message: "管理員帳號設置成功" });
-    } catch (error) {
-      console.error('Failed to setup admin:', error);
-      res.status(500).json({ error: "設置管理員帳號失敗" });
-    }
-  });
-
-  // 需要管理員權限的中間件
-  const requireAdmin = (req: Request & { user?: User }, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      return res.status(403).json({ error: "需要管理員權限" });
-    }
-    next();
-  };
 
   // REST API routes
   app.post("/api/songs", requireAdmin, async (req, res) => {
@@ -76,6 +46,33 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to add song:', error);
       res.status(500).json({ error: "新增歌曲失敗" });
+    }
+  });
+
+  // 批次匯入歌曲
+  app.post("/api/songs/batch", requireAdmin, async (req, res) => {
+    try {
+      const { songs: songsList } = req.body;
+
+      if (!Array.isArray(songsList)) {
+        return res.status(400).json({ error: "無效的歌曲清單格式" });
+      }
+
+      // 批次插入所有歌曲
+      await db.insert(songs).values(
+        songsList.map(song => ({
+          title: song.title,
+          artist: song.artist,
+          createdBy: req.user?.id,
+          isActive: true
+        }))
+      );
+
+      await sendSongsUpdate(wss);
+      res.json({ message: `成功匯入 ${songsList.length} 首歌曲` });
+    } catch (error) {
+      console.error('Failed to batch import songs:', error);
+      res.status(500).json({ error: "批次匯入失敗" });
     }
   });
 
@@ -102,6 +99,38 @@ export function registerRoutes(app: Express): Server {
       console.error('Failed to fetch songs:', error);
       res.status(500).json({ error: "無法取得歌曲清單" });
     }
+  });
+
+  // WebSocket message handling
+  wss.on('connection', (ws) => {
+    console.log('New WebSocket connection established');
+    const sessionId = Math.random().toString(36).substring(2);
+    sendSongsUpdate(wss);
+
+    ws.on('message', async (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        console.log('Received message:', message);
+
+        if (message.type === 'VOTE') {
+          await db.insert(votes).values({
+            songId: message.songId,
+            sessionId
+          });
+          sendSongsUpdate(wss);
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+        ws.send(JSON.stringify({ 
+          type: 'ERROR', 
+          message: 'Failed to process message' 
+        }));
+      }
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
   });
 
   return httpServer;

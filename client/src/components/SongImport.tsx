@@ -4,18 +4,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Import } from "lucide-react";
+import { Import, List } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function SongImport() {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [key, setKey] = useState("");
   const [notes, setNotes] = useState("");
+  const [batchSongs, setBatchSongs] = useState("");
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSingleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const response = await fetch("/api/songs", {
         method: "POST",
@@ -26,8 +28,8 @@ export default function SongImport() {
       if (!response.ok) throw new Error("Failed to add song");
 
       toast({
-        title: "Success",
-        description: "Song added successfully",
+        title: "成功",
+        description: "歌曲新增成功",
       });
 
       setTitle("");
@@ -36,58 +38,140 @@ export default function SongImport() {
       setNotes("");
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to add song",
+        title: "錯誤",
+        description: "新增歌曲失敗",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleBatchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      // Parse the batch input
+      const songs = batchSongs.split('\n')
+        .map(line => line.trim())
+        .filter(line => line)
+        .map(line => {
+          const match = line.match(/「(.+)」-\s*(.+)/);
+          if (!match) return null;
+          return {
+            title: match[1],
+            artist: match[2].trim(),
+          };
+        })
+        .filter(song => song !== null);
+
+      if (songs.length === 0) {
+        toast({
+          title: "錯誤",
+          description: "請輸入有效的歌曲清單，格式：「歌名」- 歌手",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const response = await fetch("/api/songs/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songs })
+      });
+
+      if (!response.ok) throw new Error("Failed to add songs");
+
+      toast({
+        title: "成功",
+        description: `成功匯入 ${songs.length} 首歌曲`,
+      });
+
+      setBatchSongs("");
+    } catch (error) {
+      toast({
+        title: "錯誤",
+        description: "批次匯入失敗",
         variant: "destructive"
       });
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="title">Song Title</Label>
-        <Input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-      </div>
+    <Tabs defaultValue="single" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="single">單首新增</TabsTrigger>
+        <TabsTrigger value="batch">批次匯入</TabsTrigger>
+      </TabsList>
 
-      <div className="space-y-2">
-        <Label htmlFor="artist">Artist</Label>
-        <Input
-          id="artist"
-          value={artist}
-          onChange={(e) => setArtist(e.target.value)}
-          required
-        />
-      </div>
+      <TabsContent value="single">
+        <form onSubmit={handleSingleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">歌曲名稱</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="key">Key (Optional)</Label>
-        <Input
-          id="key"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-        />
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="artist">歌手</Label>
+            <Input
+              id="artist"
+              value={artist}
+              onChange={(e) => setArtist(e.target.value)}
+              required
+            />
+          </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes (Optional)</Label>
-        <Textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-        />
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="key">調性 (選填)</Label>
+            <Input
+              id="key"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+            />
+          </div>
 
-      <Button type="submit" className="w-full">
-        <Import className="w-4 h-4 mr-2" />
-        Add Song
-      </Button>
-    </form>
+          <div className="space-y-2">
+            <Label htmlFor="notes">備註 (選填)</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <Button type="submit" className="w-full">
+            <Import className="w-4 h-4 mr-2" />
+            新增歌曲
+          </Button>
+        </form>
+      </TabsContent>
+
+      <TabsContent value="batch">
+        <form onSubmit={handleBatchSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="batchSongs">
+              歌曲清單 (每行一首，格式：「歌名」- 歌手)
+            </Label>
+            <Textarea
+              id="batchSongs"
+              value={batchSongs}
+              onChange={(e) => setBatchSongs(e.target.value)}
+              rows={10}
+              placeholder="「範例歌曲」- 範例歌手"
+              required
+            />
+          </div>
+
+          <Button type="submit" className="w-full">
+            <List className="w-4 h-4 mr-2" />
+            批次匯入
+          </Button>
+        </form>
+      </TabsContent>
+    </Tabs>
   );
 }
