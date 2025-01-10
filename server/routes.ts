@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, type IncomingMessage } from "ws";
 import { db } from "@db";
 import { songs, votes, type User } from "@db/schema";
 import { setupAuth } from "./auth";
@@ -11,8 +11,9 @@ export function registerRoutes(app: Express): Server {
   const wss = new WebSocketServer({ 
     server: httpServer, 
     path: '/ws',
-    verifyClient: ({ req }: { req: Request }) => {
-      return req.headers['sec-websocket-protocol'] !== 'vite-hmr';
+    verifyClient: ({ req }: { req: IncomingMessage }) => {
+      const protocol = req.headers['sec-websocket-protocol'];
+      return protocol !== 'vite-hmr';
     }
   });
 
@@ -21,12 +22,14 @@ export function registerRoutes(app: Express): Server {
 
   // WebSocket setup
   wss.on('connection', (ws) => {
+    console.log('New WebSocket connection established');
     const sessionId = Math.random().toString(36).substring(2);
     sendSongsUpdate(wss);
 
     ws.on('message', async (data) => {
       try {
         const message = JSON.parse(data.toString());
+        console.log('Received message:', message);
 
         if (message.type === 'VOTE') {
           await db.insert(votes).values({
@@ -108,7 +111,6 @@ export function registerRoutes(app: Express): Server {
 
 async function getSongsWithVotes() {
   const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
-  const allVotes = await db.select().from(votes);
 
   // 計算每首歌的投票數
   const songVotes = await db.select({

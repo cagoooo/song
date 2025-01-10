@@ -6,10 +6,10 @@ import { useQuery } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut } from "lucide-react";
-import SongList from "@/components/SongList";
-import SongImport from "@/components/SongImport";
-import RankingBoard from "@/components/RankingBoard";
-import LoginForm from "@/components/LoginForm";
+import SongList from "../components/SongList";
+import SongImport from "../components/SongImport";
+import RankingBoard from "../components/RankingBoard";
+import LoginForm from "../components/LoginForm";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -18,58 +18,66 @@ export default function Home() {
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
 
-  const { isLoading } = useQuery<Song[]>({
+  const { isLoading } = useQuery({
     queryKey: ['/api/songs'],
     queryFn: async () => {
       const response = await fetch('/api/songs', {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch songs');
-      return response.json();
-    }
+      const data = await response.json();
+      setSongs(data);
+      return data;
+    },
+    retry: 1
   });
 
   useEffect(() => {
-    // 創建WebSocket連接
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+    function setupWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-    function connect() {
       try {
-        wsRef.current = new WebSocket(wsUrl);
+        console.log('Connecting to WebSocket:', wsUrl);
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
 
-        wsRef.current.onmessage = (event) => {
+        ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
+            console.log('WebSocket message received:', data);
             if (data.type === 'SONGS_UPDATE') {
               setSongs(data.songs);
             }
           } catch (error) {
-            console.error('WebSocket message error:', error);
+            console.error('WebSocket message parsing error:', error);
           }
         };
 
-        wsRef.current.onclose = () => {
+        ws.onopen = () => {
+          console.log('WebSocket connection established');
+        };
+
+        ws.onclose = () => {
+          console.log('WebSocket connection closed');
           toast({
             title: "連線中斷",
             description: "正在嘗試重新連線...",
             variant: "destructive"
           });
-          // 重新連接
-          setTimeout(connect, 3000);
+          setTimeout(setupWebSocket, 3000);
         };
 
-        wsRef.current.onerror = (error) => {
+        ws.onerror = (error) => {
           console.error('WebSocket error:', error);
         };
       } catch (error) {
-        console.error('Failed to connect WebSocket:', error);
-        // 重試連接
-        setTimeout(connect, 3000);
+        console.error('WebSocket connection error:', error);
+        setTimeout(setupWebSocket, 3000);
       }
     }
 
-    connect();
+    setupWebSocket();
 
     return () => {
       if (wsRef.current) {
