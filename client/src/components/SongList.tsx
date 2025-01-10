@@ -26,7 +26,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
 
     const term = searchTerm.toLowerCase();
     return songs.filter(
-      song => 
+      song =>
         song.title.toLowerCase().includes(term) ||
         song.artist.toLowerCase().includes(term)
     );
@@ -68,11 +68,11 @@ export default function SongList({ songs, ws, user }: SongListProps) {
     <div className="space-y-4">
       <SearchBar value={searchTerm} onChange={setSearchTerm} />
 
-      <ScrollArea className="h-[500px] w-full pr-4">
+      <ScrollArea className="h-[400px] sm:h-[500px] w-full pr-4">
         <div className="space-y-4">
           {filteredSongs.map((song) => (
-            <div key={song.id} className="flex flex-col gap-4 p-4 bg-card rounded-lg border">
-              <div className="flex items-center justify-between">
+            <div key={song.id} className="flex flex-col gap-4 p-3 sm:p-4 bg-card rounded-lg border">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
                     <Music className="h-4 w-4 text-muted-foreground" />
@@ -86,18 +86,18 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                   )}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="relative"
                   >
-                    <Button 
+                    <Button
                       variant="outline"
                       size="sm"
                       onClick={() => voteForSong(song.id)}
                       className={`
-                        flex gap-2 relative overflow-hidden
+                        flex gap-2 relative overflow-hidden w-full sm:w-auto
                         ${votingId === song.id ? 'border-primary' : ''}
                       `}
                     >
@@ -111,12 +111,13 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                     <motion.div
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
+                      className="w-full sm:w-auto"
                     >
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => deleteSong(song.id)}
-                        className="flex gap-2 text-destructive hover:text-destructive"
+                        className="flex gap-2 text-destructive hover:text-destructive w-full sm:w-auto"
                       >
                         <Trash2 className="h-4 w-4" />
                         刪除

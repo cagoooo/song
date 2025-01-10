@@ -133,20 +133,21 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-4 sm:py-8 px-4">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex justify-between items-center mb-8"
+          className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 sm:mb-8"
         >
           <div 
             className="relative p-2 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
                      shadow-[0_0_15px_rgba(var(--primary),0.3)]
-                     animate-[shadow-pulse_3s_ease-in-out_infinite]"
+                     animate-[shadow-pulse_3s_ease-in-out_infinite]
+                     w-full sm:w-auto"
           >
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent
-                        px-4 py-2">
+            <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent
+                        px-4 py-2 text-center sm:text-left">
               吉他彈唱點歌系統
             </h1>
             <div className="absolute inset-0 rounded-lg border-2 border-primary/20
@@ -154,7 +155,7 @@ export default function Home() {
           </div>
 
           {user ? (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-end">
               <span className="text-sm px-3 py-1 rounded-full bg-primary/10 text-primary">
                 {user.isAdmin ? '管理員' : '使用者'}: {user.username}
               </span>
@@ -171,7 +172,7 @@ export default function Home() {
           )}
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
