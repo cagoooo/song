@@ -1,7 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { db, sql } from "@db"; // Assuming '@db' exports 'db' and 'sql'
+import { db } from "@db";
+import { sql } from "drizzle-orm";
 
 const app = express();
 app.use(express.json());
@@ -15,7 +16,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(status).json({ message });
 });
 
-// Request logging middleware (mostly unchanged from original)
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

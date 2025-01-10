@@ -1,14 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import SongList from "@/components/SongList";
-import SongImport from "@/components/SongImport";
-import RankingBoard from "@/components/RankingBoard";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { useQuery } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut } from "lucide-react";
+import SongList from "@/components/SongList";
+import SongImport from "@/components/SongImport";
+import RankingBoard from "@/components/RankingBoard";
 import LoginForm from "@/components/LoginForm";
 
 export default function Home() {
@@ -26,49 +26,50 @@ export default function Home() {
       });
       if (!response.ok) throw new Error('Failed to fetch songs');
       return response.json();
-    },
-    onSuccess: (data) => setSongs(data),
-    onError: () => {
-      toast({
-        title: "錯誤",
-        description: "無法載入歌曲清單",
-        variant: "destructive"
-      });
     }
   });
 
   useEffect(() => {
-    // Create WebSocket connection with protocol matching the current page
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    wsRef.current = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    // 創建WebSocket連接
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
 
-    wsRef.current.onmessage = (event) => {
+    function connect() {
       try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'SONGS_UPDATE') {
-          setSongs(data.songs);
-        }
+        wsRef.current = new WebSocket(wsUrl);
+
+        wsRef.current.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'SONGS_UPDATE') {
+              setSongs(data.songs);
+            }
+          } catch (error) {
+            console.error('WebSocket message error:', error);
+          }
+        };
+
+        wsRef.current.onclose = () => {
+          toast({
+            title: "連線中斷",
+            description: "正在嘗試重新連線...",
+            variant: "destructive"
+          });
+          // 重新連接
+          setTimeout(connect, 3000);
+        };
+
+        wsRef.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
       } catch (error) {
-        console.error('WebSocket message error:', error);
+        console.error('Failed to connect WebSocket:', error);
+        // 重試連接
+        setTimeout(connect, 3000);
       }
-    };
+    }
 
-    wsRef.current.onclose = () => {
-      toast({
-        title: "連線中斷",
-        description: "正在嘗試重新連線...",
-        variant: "destructive"
-      });
-    };
-
-    wsRef.current.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      toast({
-        title: "連線錯誤",
-        description: "無法建立即時連線",
-        variant: "destructive"
-      });
-    };
+    connect();
 
     return () => {
       if (wsRef.current) {
@@ -79,7 +80,15 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      const result = await logout();
+      if (!result.ok) {
+        toast({
+          title: "錯誤",
+          description: "登出失敗",
+          variant: "destructive"
+        });
+        return;
+      }
       toast({
         title: "成功",
         description: "已登出",
@@ -92,6 +101,12 @@ export default function Home() {
       });
     }
   };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" />
+    </div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">

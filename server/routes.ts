@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes } from "@db/schema";
+import { songs, votes, type User } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
@@ -11,8 +11,7 @@ export function registerRoutes(app: Express): Server {
   const wss = new WebSocketServer({ 
     server: httpServer, 
     path: '/ws',
-    // 忽略 Vite HMR 的 WebSocket 升級請求
-    verifyClient: ({ req }) => {
+    verifyClient: ({ req }: { req: Request }) => {
       return req.headers['sec-websocket-protocol'] !== 'vite-hmr';
     }
   });
@@ -51,7 +50,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // 需要管理員權限的中間件
-  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const requireAdmin = (req: Request & { user?: User }, res: Response, next: NextFunction) => {
     if (!req.isAuthenticated() || !req.user?.isAdmin) {
       return res.status(403).json({ error: "需要管理員權限" });
     }
