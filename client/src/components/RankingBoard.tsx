@@ -114,23 +114,31 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                 <TooltipProvider delayDuration={200}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
-                                shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                                hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                                transition-all duration-300 relative z-10"
-                        asChild
+                      <motion.div
+                        whileHover={{ 
+                          scale: 1.05,
+                          transition: { duration: 0.2 }
+                        }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <a
-                          href={generateGoogleLyricsUrl(song)}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
+                                  shadow-[0_2px_10px_rgba(var(--primary),0.1)]
+                                  hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
+                                  transition-all duration-300 relative z-10"
+                          asChild
                         >
-                          <FileText className="w-4 h-4" />
-                        </a>
-                      </Button>
+                          <a
+                            href={generateGoogleLyricsUrl(song)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </a>
+                        </Button>
+                      </motion.div>
                     </TooltipTrigger>
                     <TooltipContent 
                       side="top" 

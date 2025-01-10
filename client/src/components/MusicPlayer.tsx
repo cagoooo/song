@@ -11,6 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { motion } from 'framer-motion';
 
 interface MusicPlayerProps {
   song: Song;
@@ -201,26 +202,34 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  asChild
-                  className="bg-gradient-to-r from-primary/10 to-purple-500/10 hover:from-primary/20 hover:to-purple-500/20
-                           border-2 border-primary/20 hover:border-primary/30
-                           shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                           hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                           transition-all duration-300
-                           relative z-10"
+                <motion.div
+                  whileHover={{ 
+                    scale: 1.05,
+                    transition: { duration: 0.2 }
+                  }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <a
-                    href={generateGoogleLyricsUrl()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2"
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="bg-gradient-to-r from-primary/10 to-purple-500/10 hover:from-primary/20 hover:to-purple-500/20
+                             border-2 border-primary/20 hover:border-primary/30
+                             shadow-[0_2px_10px_rgba(var(--primary),0.1)]
+                             hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
+                             transition-all duration-300
+                             relative z-10"
                   >
-                    <FileText className="h-4 w-4" />
-                    <span>搜尋歌詞</span>
-                  </a>
-                </Button>
+                    <a
+                      href={generateGoogleLyricsUrl()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span>搜尋歌詞</span>
+                    </a>
+                  </Button>
+                </motion.div>
               </TooltipTrigger>
               <TooltipContent 
                 side="top" 
