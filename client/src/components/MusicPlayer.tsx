@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Play, Pause, SkipBack, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, SkipBack, Volume2, VolumeX, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Song } from "@db/schema";
 
@@ -18,7 +18,7 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
   const [volume, setVolume] = useState(0.5);
   const [isMuted, setIsMuted] = useState(false);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
-  
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressInterval = useRef<NodeJS.Timeout>();
 
@@ -42,11 +42,16 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
         .sort((a, b) => a.time - b.time)
     : [];
 
+  const generateGoogleLyricsUrl = () => {
+    const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 歌詞`);
+    return `https://www.google.com/search?q=${searchQuery}`;
+  };
+
   useEffect(() => {
     if (song.audioUrl) {
       audioRef.current = new Audio(song.audioUrl);
       audioRef.current.volume = volume;
-      
+
       audioRef.current.addEventListener('loadedmetadata', () => {
         if (audioRef.current) {
           setDuration(audioRef.current.duration);
@@ -78,7 +83,7 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
         currentTime >= lyric.time &&
         (!parsedLyrics[index + 1] || currentTime < parsedLyrics[index + 1].time)
     );
-    
+
     if (currentLyric !== currentLyricIndex) {
       setCurrentLyricIndex(currentLyric);
     }
@@ -181,6 +186,21 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
             ) : (
               <Play className="h-6 w-6 text-primary-foreground ml-1" />
             )}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="w-10 h-10 border-2 border-primary/20 bg-white/80 hover:bg-white/90 shadow-[0_2px_10px_rgba(var(--primary),0.1)] hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)] transition-all duration-300"
+            asChild
+          >
+            <a
+              href={generateGoogleLyricsUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="在 Google 搜尋歌詞"
+            >
+              <FileText className="h-5 w-5" />
+            </a>
           </Button>
         </div>
 
