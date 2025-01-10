@@ -5,12 +5,14 @@ import type { Song } from "@db/schema";
 
 interface SongListProps {
   songs: Song[];
-  ws: WebSocket;
+  ws: WebSocket | null;
 }
 
 export default function SongList({ songs, ws }: SongListProps) {
   const voteForSong = (songId: number) => {
-    ws.send(JSON.stringify({ type: 'VOTE', songId }));
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'VOTE', songId }));
+    }
   };
 
   return (
@@ -25,12 +27,12 @@ export default function SongList({ songs, ws }: SongListProps) {
               </div>
               <p className="text-sm text-muted-foreground">{song.artist}</p>
               {song.key && (
-                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded mt-1 inline-block">
                   Key: {song.key}
                 </span>
               )}
             </div>
-            
+
             <Button 
               variant="outline"
               size="sm"
@@ -38,7 +40,7 @@ export default function SongList({ songs, ws }: SongListProps) {
               className="flex gap-2"
             >
               <ThumbsUp className="h-4 w-4" />
-              Vote
+              投票
             </Button>
           </div>
         ))}
