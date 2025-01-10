@@ -214,26 +214,60 @@ export default function SongSuggestion({ isAdmin = false }) {
               {suggestions.filter(s => s.status === "pending").length} 個待審核建議
             </span>
           </div>
-          {suggestions.map((suggestion) => (
+          {suggestions.map((suggestion, index) => (
             <motion.div
               key={suggestion.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col gap-4 p-3 sm:p-4 rounded-lg border-2 border-primary/10 bg-gradient-to-br from-white via-amber-50/30 to-white shadow-[0_4px_12px_rgba(var(--primary),0.1)]"
+              className={`
+                relative overflow-hidden
+                flex flex-col gap-4 p-4 sm:p-5 rounded-lg
+                border-2 border-primary/10
+                ${index % 2 === 0
+                  ? 'bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50'
+                  : 'bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50'}
+                shadow-[0_4px_12px_rgba(var(--primary),0.1)]
+                hover:shadow-[0_8px_24px_rgba(var(--primary),0.15)]
+                transition-all duration-300
+              `}
             >
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1">
-                  <h4 className="font-medium">{suggestion.title}</h4>
-                  <p className="text-sm text-muted-foreground">{suggestion.artist}</p>
+                  <h4 className={`
+                    text-lg font-semibold mb-1
+                    ${index % 2 === 0
+                      ? 'bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600'
+                      : 'bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600'}
+                    bg-clip-text text-transparent
+                  `}>
+                    {suggestion.title}
+                  </h4>
+                  <p className="text-base font-medium text-muted-foreground">
+                    {suggestion.artist}
+                  </p>
                   {suggestion.suggestedBy && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      推薦者：{suggestion.suggestedBy}
+                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                      推薦者：
+                      <span className="font-medium text-foreground">
+                        {suggestion.suggestedBy}
+                      </span>
                     </p>
                   )}
                   {suggestion.notes && (
-                    <p className="text-sm mt-2 text-muted-foreground bg-amber-50/50 p-2 rounded-md">
+                    <motion.p 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className={`
+                        text-sm mt-3 p-3 rounded-md
+                        ${index % 2 === 0
+                          ? 'bg-gradient-to-r from-rose-100/50 to-pink-100/50'
+                          : 'bg-gradient-to-r from-blue-100/50 to-cyan-100/50'}
+                        border border-primary/5
+                      `}
+                    >
                       {suggestion.notes}
-                    </p>
+                    </motion.p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -301,25 +335,38 @@ export default function SongSuggestion({ isAdmin = false }) {
                 </div>
               </div>
               {suggestion.status !== "pending" && (
-                <span className={`text-xs px-2 py-1 rounded-full ${suggestion.status === "approved"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"}`}
+                <motion.span 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={`
+                    text-sm px-3 py-1.5 rounded-full inline-flex items-center gap-1
+                    ${suggestion.status === "approved"
+                      ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200"
+                      : "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200"}
+                  `}
                 >
                   {suggestion.status === "approved" ? "已採納，即將新增" : "暫時無法採納"}
-                </span>
+                </motion.span>
               )}
               {isAdmin && (
-                <div className="mt-2 flex justify-end">
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-2 flex justify-end"
+                >
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 border-red-200 text-red-600 hover:text-red-700 hover:border-red-300 transition-colors"
                     onClick={() => deleteSuggestionMutation.mutate(suggestion.id)}
+                    className="h-8 bg-gradient-to-r from-red-50 to-rose-50
+                             border-2 border-red-200 text-red-600
+                             hover:text-red-700 hover:border-red-300
+                             transition-all duration-300"
                   >
                     <Trash2 className="w-4 h-4 mr-1" />
                     刪除建議
                   </Button>
-                </div>
+                </motion.div>
               )}
             </motion.div>
           ))}
