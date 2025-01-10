@@ -167,39 +167,47 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={restart}
+              className="w-10 h-10"
+            >
+              <SkipBack className="h-5 w-5" />
+            </Button>
+            <Button
+              onClick={togglePlay}
+              size="icon"
+              className="w-12 h-12 rounded-full bg-primary hover:bg-primary/90"
+            >
+              {isPlaying ? (
+                <Pause className="h-6 w-6 text-primary-foreground" />
+              ) : (
+                <Play className="h-6 w-6 text-primary-foreground ml-1" />
+              )}
+            </Button>
+          </div>
+
           <Button
             variant="outline"
-            size="icon"
-            onClick={restart}
-            className="w-10 h-10"
-          >
-            <SkipBack className="h-5 w-5" />
-          </Button>
-          <Button
-            onClick={togglePlay}
-            size="icon"
-            className="w-12 h-12 rounded-full bg-primary hover:bg-primary/90"
-          >
-            {isPlaying ? (
-              <Pause className="h-6 w-6 text-primary-foreground" />
-            ) : (
-              <Play className="h-6 w-6 text-primary-foreground ml-1" />
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="w-10 h-10 border-2 border-primary/20 bg-white/80 hover:bg-white/90 shadow-[0_2px_10px_rgba(var(--primary),0.1)] hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)] transition-all duration-300"
             asChild
+            className="bg-gradient-to-r from-primary/10 to-purple-500/10 hover:from-primary/20 hover:to-purple-500/20
+                     border-2 border-primary/20 hover:border-primary/30
+                     shadow-[0_2px_10px_rgba(var(--primary),0.1)]
+                     hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
+                     transition-all duration-300"
           >
             <a
               href={generateGoogleLyricsUrl()}
               target="_blank"
               rel="noopener noreferrer"
-              title="在 Google 搜尋歌詞"
+              title="點擊搜尋歌詞"
+              className="flex items-center gap-2"
             >
-              <FileText className="h-5 w-5" />
+              <FileText className="h-4 w-4" />
+              <span>搜尋歌詞</span>
             </a>
           </Button>
         </div>
@@ -217,7 +225,6 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
             <span>{formatTime(duration)}</span>
           </div>
         </div>
-
         <ScrollArea className="h-[200px] border rounded-md p-4">
           <div className="space-y-2">
             {parsedLyrics.map((lyric, index) => (
