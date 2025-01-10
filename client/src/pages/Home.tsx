@@ -11,6 +11,7 @@ import SongImport from "../components/SongImport";
 import RankingBoard from "../components/RankingBoard";
 import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
+import SongSuggestion from "../components/SongSuggestion";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -192,6 +193,8 @@ export default function Home() {
                   {user?.isAdmin && <SongImport />}
                   <div className="h-4" />
                   <SongList songs={songs} ws={wsRef.current} user={user || null} />
+                  <div className="h-4" />
+                  <SongSuggestion isAdmin={user?.isAdmin ?? false} />
                 </CardContent>
               </Card>
             </motion.div>

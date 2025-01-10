@@ -21,6 +21,16 @@ export const songs = pgTable("songs", {
   isActive: boolean("is_active").default(true).notNull()
 });
 
+export const songSuggestions = pgTable("song_suggestions", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  artist: text("artist").notNull(),
+  suggestedBy: text("suggested_by"),
+  status: text("status").default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  notes: text("notes")
+});
+
 export const tags = pgTable("tags", {
   id: serial("id").primaryKey(),
   name: text("name").unique().notNull(),
@@ -101,3 +111,9 @@ export const insertVoteSchema = createInsertSchema(votes);
 export const selectVoteSchema = createSelectSchema(votes);
 export type Vote = typeof votes.$inferSelect;
 export type NewVote = typeof votes.$inferInsert;
+
+// Add new schema and types for song suggestions
+export const insertSongSuggestionSchema = createInsertSchema(songSuggestions);
+export const selectSongSuggestionSchema = createSelectSchema(songSuggestions);
+export type SongSuggestion = typeof songSuggestions.$inferSelect;
+export type NewSongSuggestion = typeof songSuggestions.$inferInsert;

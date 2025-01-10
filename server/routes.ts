@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, tags, songTags, type User } from "@db/schema";
+import { songs, votes, tags, songTags, songSuggestions, type User } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
@@ -205,6 +205,61 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: "無法重置點播次數" });
     }
   });
+
+  // 新增歌曲建議相關的路由
+  app.post("/api/suggestions", async (req, res) => {
+    try {
+      const { title, artist, suggestedBy, notes } = req.body;
+
+      const [newSuggestion] = await db.insert(songSuggestions)
+        .values({
+          title,
+          artist,
+          suggestedBy,
+          notes,
+          status: "pending"
+        })
+        .returning();
+
+      res.json(newSuggestion);
+    } catch (error) {
+      console.error('Failed to add song suggestion:', error);
+      res.status(500).json({ error: "無法新增歌曲建議" });
+    }
+  });
+
+  app.get("/api/suggestions", async (_req, res) => {
+    try {
+      const suggestions = await db
+        .select()
+        .from(songSuggestions)
+        .orderBy(sql`${songSuggestions.createdAt} DESC`);
+
+      res.json(suggestions);
+    } catch (error) {
+      console.error('Failed to fetch song suggestions:', error);
+      res.status(500).json({ error: "無法取得歌曲建議列表" });
+    }
+  });
+
+  app.patch("/api/suggestions/:id/status", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+
+      const [updatedSuggestion] = await db
+        .update(songSuggestions)
+        .set({ status })
+        .where(eq(songSuggestions.id, id))
+        .returning();
+
+      res.json(updatedSuggestion);
+    } catch (error) {
+      console.error('Failed to update suggestion status:', error);
+      res.status(500).json({ error: "無法更新歌曲建議狀態" });
+    }
+  });
+
 
   // WebSocket message handling
   wss.on('connection', (ws) => {
