@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Lightbulb, Plus, Check, X } from "lucide-react";
@@ -54,7 +55,7 @@ export default function SongSuggestion({ isAdmin = false }) {
       setNotes("");
       toast({
         title: "成功",
-        description: "歌曲建議已送出",
+        description: "您的建議已送出，管理員會盡快審核",
       });
     },
     onError: () => {
@@ -104,12 +105,15 @@ export default function SongSuggestion({ isAdmin = false }) {
                      transition-all duration-300"
           >
             <Plus className="w-4 h-4 mr-2" />
-            我想點的歌還沒有...
+            想點的歌還沒有？建議新歌給我們！
           </Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增歌曲建議</DialogTitle>
+            <DialogTitle>建議新歌曲</DialogTitle>
+            <DialogDescription>
+              您的建議將會送交管理員審核。審核通過後，歌曲就會出現在可點播清單中！
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -136,15 +140,16 @@ export default function SongSuggestion({ isAdmin = false }) {
                 id="suggestedBy"
                 value={suggestedBy}
                 onChange={(e) => setSuggestedBy(e.target.value)}
+                placeholder="讓大家知道是誰推薦的好歌！"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="notes">備註 (選填)</Label>
+              <Label htmlFor="notes">為什麼想推薦這首歌？ (選填)</Label>
               <Textarea
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="例如：想聽這首歌的原因..."
+                placeholder="分享一下您喜歡這首歌的原因..."
               />
             </div>
             <Button type="submit" className="w-full">送出建議</Button>
@@ -154,10 +159,15 @@ export default function SongSuggestion({ isAdmin = false }) {
 
       {suggestions.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Lightbulb className="w-5 h-5 text-amber-500" />
-            歌曲建議列表
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-amber-500" />
+              歌曲建議列表
+            </h3>
+            <span className="text-sm text-muted-foreground">
+              {suggestions.filter(s => s.status === "pending").length} 個待審核建議
+            </span>
+          </div>
           {suggestions.map((suggestion) => (
             <motion.div
               key={suggestion.id}
@@ -173,11 +183,13 @@ export default function SongSuggestion({ isAdmin = false }) {
                   <p className="text-sm text-muted-foreground">{suggestion.artist}</p>
                   {suggestion.suggestedBy && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      建議者：{suggestion.suggestedBy}
+                      推薦者：{suggestion.suggestedBy}
                     </p>
                   )}
                   {suggestion.notes && (
-                    <p className="text-sm mt-2 text-muted-foreground">{suggestion.notes}</p>
+                    <p className="text-sm mt-2 text-muted-foreground bg-amber-50/50 p-2 rounded-md">
+                      {suggestion.notes}
+                    </p>
                   )}
                 </div>
                 {isAdmin && suggestion.status === "pending" && (
@@ -214,7 +226,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                       ? "bg-green-100 text-green-700" 
                       : "bg-red-100 text-red-700"}`}
                   >
-                    {suggestion.status === "approved" ? "已採納" : "已婉拒"}
+                    {suggestion.status === "approved" ? "已採納，即將新增" : "暫時無法採納"}
                   </span>
                 )}
               </div>
