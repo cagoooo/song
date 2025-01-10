@@ -194,6 +194,18 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // 新增重置點播次數 API 路由
+  app.post("/api/songs/reset-votes", requireAdmin, async (_req, res) => {
+    try {
+      await db.delete(votes);
+      await sendSongsUpdate(wss);
+      res.json({ message: "所有點播次數已重置" });
+    } catch (error) {
+      console.error('Failed to reset votes:', error);
+      res.status(500).json({ error: "無法重置點播次數" });
+    }
+  });
+
   // WebSocket message handling
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');

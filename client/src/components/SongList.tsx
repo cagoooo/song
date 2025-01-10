@@ -1,7 +1,17 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Music, ThumbsUp, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Music, ThumbsUp, Trash2, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
 import SearchBar from "./SearchBar";
@@ -19,8 +29,8 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [votingId, setVotingId] = useState<number | null>(null);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
-  // 過濾歌曲列表
   const filteredSongs = useMemo(() => {
     if (!searchTerm.trim()) return songs;
 
@@ -64,9 +74,48 @@ export default function SongList({ songs, ws, user }: SongListProps) {
     }
   };
 
+  const resetAllVotes = async () => {
+    try {
+      const response = await fetch('/api/songs/reset-votes', {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reset votes');
+      }
+
+      toast({
+        title: "成功",
+        description: "所有點播次數已歸零",
+      });
+      setShowResetDialog(false);
+    } catch (error) {
+      toast({
+        title: "錯誤",
+        description: "無法重置點播次數",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <SearchBar value={searchTerm} onChange={setSearchTerm} />
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <SearchBar value={searchTerm} onChange={setSearchTerm} />
+        </div>
+        {user?.isAdmin && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowResetDialog(true)}
+            className="w-full sm:w-12 h-12 border-2 border-primary/20"
+          >
+            <RotateCcw className="h-5 w-5" />
+          </Button>
+        )}
+      </div>
 
       <ScrollArea className="h-[400px] sm:h-[500px] w-full pr-4">
         <div className="space-y-4">
@@ -102,7 +151,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                       `}
                     >
                       <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
-                      投票
+                      點播
                     </Button>
                     <FireworkEffect isVisible={votingId === song.id} />
                   </motion.div>
@@ -132,6 +181,21 @@ export default function SongList({ songs, ws, user }: SongListProps) {
           ))}
         </div>
       </ScrollArea>
+
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認重置所有點播次數？</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作將會清除所有歌曲的點播次數。此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={resetAllVotes}>確認重置</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

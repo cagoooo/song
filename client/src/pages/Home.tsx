@@ -164,12 +164,7 @@ export default function Home() {
                 登出
               </Button>
             </div>
-          ) : (
-            <Button variant="outline" size="sm" onClick={() => setShowLoginForm(true)}>
-              <LogIn className="w-4 h-4 mr-2" />
-              登入
-            </Button>
-          )}
+          ) : null}
         </motion.div>
 
         <AnimatePresence>
@@ -190,7 +185,7 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Music2 className="w-6 h-6 text-primary" />
-                    歌曲管理
+                    可選歌單
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -222,6 +217,25 @@ export default function Home() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {!user && (
+        <motion.div 
+          className="fixed bottom-4 right-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowLoginForm(true)}
+            className="bg-white/50 backdrop-blur-sm"
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            管理員登入
+          </Button>
+        </motion.div>
+      )}
 
       {showLoginForm && (
         <LoginForm onClose={() => setShowLoginForm(false)} />
