@@ -140,9 +140,19 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="flex justify-between items-center mb-8"
         >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            吉他彈唱點歌系統
-          </h1>
+          <div 
+            className="relative p-2 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
+                     shadow-[0_0_15px_rgba(var(--primary),0.3)]
+                     animate-[shadow-pulse_3s_ease-in-out_infinite]"
+          >
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent
+                        px-4 py-2">
+              吉他彈唱點歌系統
+            </h1>
+            <div className="absolute inset-0 rounded-lg border-2 border-primary/20
+                        animate-[border-pulse_3s_ease-in-out_infinite_0.5s]" />
+          </div>
+
           {user ? (
             <div className="flex items-center gap-4">
               <span className="text-sm px-3 py-1 rounded-full bg-primary/10 text-primary">
