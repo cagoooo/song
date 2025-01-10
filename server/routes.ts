@@ -2,9 +2,19 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, type IncomingMessage } from "ws";
 import { db } from "@db";
-import { songs, votes, type User } from "@db/schema";
+import { songs, votes, users, type User } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
+import { scrypt, randomBytes } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
+
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
 
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
@@ -20,36 +30,24 @@ export function registerRoutes(app: Express): Server {
   // 設置認證系統
   setupAuth(app);
 
-  // WebSocket setup
-  wss.on('connection', (ws) => {
-    console.log('New WebSocket connection established');
-    const sessionId = Math.random().toString(36).substring(2);
-    sendSongsUpdate(wss);
+  // 特殊路由用於設置管理員密碼
+  app.post("/api/admin/setup", async (req, res) => {
+    try {
+      const { username, password } = req.body;
 
-    ws.on('message', async (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        console.log('Received message:', message);
+      // 雜湊密碼
+      const hashedPassword = await hashPassword(password);
 
-        if (message.type === 'VOTE') {
-          await db.insert(votes).values({
-            songId: message.songId,
-            sessionId
-          });
-          sendSongsUpdate(wss);
-        }
-      } catch (error) {
-        console.error('WebSocket message error:', error);
-        ws.send(JSON.stringify({ 
-          type: 'ERROR', 
-          message: 'Failed to process message' 
-        }));
-      }
-    });
+      // 更新管理員密碼
+      await db.update(users)
+        .set({ password: hashedPassword })
+        .where(eq(users.username, username));
 
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-    });
+      res.json({ message: "管理員帳號設置成功" });
+    } catch (error) {
+      console.error('Failed to setup admin:', error);
+      res.status(500).json({ error: "設置管理員帳號失敗" });
+    }
   });
 
   // 需要管理員權限的中間件
