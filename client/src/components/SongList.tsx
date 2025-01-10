@@ -16,7 +16,7 @@ import {
   DialogContent,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Music, ThumbsUp, Trash2, RotateCcw, PlayCircle } from "lucide-react";
+import { Music, ThumbsUp, Trash2, RotateCcw, PlayCircle, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
 import SearchBar from "./SearchBar";
@@ -24,6 +24,7 @@ import TagSelector from "./TagSelector";
 import { motion } from "framer-motion";
 import FireworkEffect from "./FireworkEffect";
 import { MusicPlayer } from "./MusicPlayer";
+import QRCodeShareModal from "./QRCodeShareModal";
 
 interface SongListProps {
   songs: Song[];
@@ -37,6 +38,8 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   const [votingId, setVotingId] = useState<number | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedSongForShare, setSelectedSongForShare] = useState<Song | null>(null);
 
   const filteredSongs = useMemo(() => {
     if (!searchTerm.trim()) return songs;
@@ -106,6 +109,16 @@ export default function SongList({ songs, ws, user }: SongListProps) {
     }
   };
 
+  const handleShareClick = (song: Song) => {
+    setSelectedSongForShare(song);
+    setQrModalOpen(true);
+  };
+
+  const getShareUrl = (songId: number) => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/songs/${songId}`;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -158,6 +171,25 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="relative w-full sm:w-auto"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleShareClick(song)}
+                      className="flex gap-2 relative overflow-hidden w-full sm:w-auto
+                               bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100
+                               hover:from-indigo-200 hover:via-purple-200 hover:to-pink-200
+                               border-2 border-indigo-500/20 hover:border-indigo-500/40
+                               transition-all duration-300"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      分享
+                    </Button>
+                  </motion.div>
                   {song.audioUrl && (
                     <Dialog>
                       <DialogTrigger asChild>
@@ -176,8 +208,8 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-2xl">
-                        <MusicPlayer 
-                          song={song} 
+                        <MusicPlayer
+                          song={song}
                           onClose={() => setSelectedSong(null)}
                         />
                       </DialogContent>
@@ -198,8 +230,8 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         bg-gradient-to-r from-purple-100 via-pink-100 to-rose-100
                         hover:from-purple-200 hover:via-pink-200 hover:to-rose-200
                         border-2
-                        ${votingId === song.id 
-                          ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]' 
+                        ${votingId === song.id
+                          ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]'
                           : 'border-primary/20 hover:border-primary/40'}
                         transition-all duration-300
                       `}
@@ -237,6 +269,19 @@ export default function SongList({ songs, ws, user }: SongListProps) {
           ))}
         </div>
       </ScrollArea>
+
+      {selectedSongForShare && (
+        <QRCodeShareModal
+          isOpen={qrModalOpen}
+          onClose={() => {
+            setQrModalOpen(false);
+            setSelectedSongForShare(null);
+          }}
+          songTitle={selectedSongForShare.title}
+          songArtist={selectedSongForShare.artist}
+          shareUrl={getShareUrl(selectedSongForShare.id)}
+        />
+      )}
 
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
         <AlertDialogContent className="sm:max-w-[425px]">
