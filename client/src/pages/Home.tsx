@@ -5,7 +5,7 @@ import { useUser } from "@/hooks/use-user";
 import { useQuery } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Music2, Trophy } from "lucide-react";
+import { LogIn, LogOut, Music2, Trophy, Lightbulb } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import RankingBoard from "../components/RankingBoard";
@@ -170,17 +170,38 @@ export default function Home() {
 
         <AnimatePresence>
           <motion.div 
-            className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
+            className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
             layout
             transition={{
               layout: { duration: 0.3 },
             }}
           >
+            {/* 歌曲建議區塊 */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="lg:col-span-3"
+            >
+              <Card className="shadow-lg bg-gradient-to-br from-amber-50/50 via-white to-amber-50/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Lightbulb className="w-6 h-6 text-amber-500" />
+                    想聽的歌還沒有？
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <SongSuggestion isAdmin={user?.isAdmin ?? false} />
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* 歌曲列表區塊 */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              layout
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="lg:col-span-2"
             >
               <Card className="shadow-lg h-full">
                 <CardHeader>
@@ -193,17 +214,16 @@ export default function Home() {
                   {user?.isAdmin && <SongImport />}
                   <div className="h-4" />
                   <SongList songs={songs} ws={wsRef.current} user={user || null} />
-                  <div className="h-4" />
-                  <SongSuggestion isAdmin={user?.isAdmin ?? false} />
                 </CardContent>
               </Card>
             </motion.div>
 
+            {/* 排行榜區塊 */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              layout
+              transition={{ duration: 0.5, delay: 0.6 }}
+              className="lg:col-span-1"
             >
               <Card className="shadow-lg h-full">
                 <CardHeader>
