@@ -139,9 +139,9 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                 <div>
                   <div className="flex items-center gap-2">
                     <Music className="h-4 w-4 text-primary" />
-                    <h3 className="font-semibold text-gray-800">{song.title}</h3>
+                    <h3 className="font-semibold text-gray-800 break-all">{song.title}</h3>
                   </div>
-                  <p className="text-sm text-gray-600">{song.artist}</p>
+                  <p className="text-sm text-gray-600 break-all">{song.artist}</p>
                   {song.key && (
                     <span className="text-xs bg-gradient-to-r from-cyan-500/20 to-teal-500/20 text-cyan-700
                                  px-2 py-1 rounded mt-1 inline-block">
@@ -154,14 +154,14 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="relative"
+                    className="relative w-full sm:w-auto"
                   >
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => voteForSong(song.id)}
                       className={`
-                        flex gap-2 relative overflow-hidden w-full sm:w-auto
+                        flex gap-2 relative overflow-hidden w-full
                         bg-gradient-to-r from-purple-100 via-pink-100 to-rose-100
                         hover:from-purple-200 hover:via-pink-200 hover:to-rose-200
                         border-2
@@ -187,7 +187,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => deleteSong(song.id)}
-                        className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
+                        className="flex gap-2 w-full border-2 border-red-200/50
                                  text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
                                  hover:border-red-300/50 transition-all duration-300"
                       >
@@ -206,7 +206,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
       </ScrollArea>
 
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-[425px]">
           <AlertDialogHeader>
             <AlertDialogTitle>確認重置所有點播次數？</AlertDialogTitle>
             <AlertDialogDescription>

@@ -156,7 +156,7 @@ export default function Home() {
           </div>
 
           {user ? (
-            <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-end">
+            <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-end w-full sm:w-auto">
               <span className="text-sm px-3 py-1 rounded-full bg-primary/10 text-primary">
                 {user.isAdmin ? '管理員' : '使用者'}: {user.username}
               </span>
@@ -185,8 +185,8 @@ export default function Home() {
             >
               <Card className="shadow-lg bg-gradient-to-br from-amber-50/50 via-white to-amber-50/50">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Lightbulb className="w-6 h-6 text-amber-500" />
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
                     想聽的歌還沒有？
                   </CardTitle>
                 </CardHeader>
@@ -205,12 +205,12 @@ export default function Home() {
             >
               <Card className="shadow-lg h-full">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Music2 className="w-6 h-6 text-primary" />
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                     可選歌單
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6">
                   {user?.isAdmin && <SongImport />}
                   <div className="h-4" />
                   <SongList songs={songs} ws={wsRef.current} user={user || null} />
@@ -227,12 +227,12 @@ export default function Home() {
             >
               <Card className="shadow-lg h-full">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="w-6 h-6 text-primary" />
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                     人氣點播排行榜
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6">
                   <RankingBoard songs={songs} />
                 </CardContent>
               </Card>
@@ -243,7 +243,7 @@ export default function Home() {
 
       {!user && (
         <motion.div 
-          className="fixed bottom-4 right-4"
+          className="fixed bottom-4 right-4 z-50"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
