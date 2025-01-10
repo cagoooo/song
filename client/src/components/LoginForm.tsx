@@ -18,7 +18,7 @@ export default function LoginForm({ onClose }: LoginFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const result = await login({ username, password });
       if (!result.ok) {
@@ -46,7 +46,7 @@ export default function LoginForm({ onClose }: LoginFormProps) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="bg-gradient-to-br from-amber-50 via-white to-orange-50 border-2 border-amber-200/30">
         <DialogHeader>
           <DialogTitle>管理員登入</DialogTitle>
         </DialogHeader>
@@ -59,6 +59,7 @@ export default function LoginForm({ onClose }: LoginFormProps) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
+              className="bg-white/70 border-amber-200/50 focus:border-amber-300/60"
             />
           </div>
 
@@ -70,10 +71,14 @@ export default function LoginForm({ onClose }: LoginFormProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="bg-white/70 border-amber-200/50 focus:border-amber-300/60"
             />
           </div>
 
-          <Button type="submit" className="w-full">
+          <Button 
+            type="submit" 
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+          >
             登入
           </Button>
         </form>
