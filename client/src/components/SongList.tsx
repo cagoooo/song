@@ -11,13 +11,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Music, ThumbsUp, Trash2, RotateCcw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger
+} from "@/components/ui/dialog";
+import { Music, ThumbsUp, Trash2, RotateCcw, PlayCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
 import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
 import { motion } from "framer-motion";
 import FireworkEffect from "./FireworkEffect";
+import { MusicPlayer } from "./MusicPlayer";
 
 interface SongListProps {
   songs: Song[];
@@ -30,6 +36,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [votingId, setVotingId] = useState<number | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
   const filteredSongs = useMemo(() => {
     if (!searchTerm.trim()) return songs;
@@ -151,6 +158,32 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                  {song.audioUrl && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedSong(song)}
+                          className="flex gap-2 relative overflow-hidden w-full sm:w-auto
+                                   bg-gradient-to-r from-emerald-100 via-teal-100 to-cyan-100
+                                   hover:from-emerald-200 hover:via-teal-200 hover:to-cyan-200
+                                   border-2 border-emerald-500/20 hover:border-emerald-500/40
+                                   transition-all duration-300"
+                        >
+                          <PlayCircle className="h-4 w-4" />
+                          播放
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-2xl">
+                        <MusicPlayer 
+                          song={song} 
+                          onClose={() => setSelectedSong(null)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  )}
+
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}

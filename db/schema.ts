@@ -16,6 +16,8 @@ export const songs = pgTable("songs", {
   artist: text("artist").notNull(),
   key: text("key"),
   notes: text("notes"),
+  lyrics: text("lyrics"),  // 新增歌詞欄位
+  audioUrl: text("audio_url"),  // 新增音樂檔案URL欄位
   createdAt: timestamp("created_at").defaultNow().notNull(),
   createdBy: integer("created_by").references(() => users.id),
   isActive: boolean("is_active").default(true).notNull()

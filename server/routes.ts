@@ -5,6 +5,10 @@ import { db } from "@db";
 import { songs, votes, tags, songTags, songSuggestions, type User } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import express from "express";
 
 // Express 的 Request 類型擴展
 declare module 'express-serve-static-core' {
@@ -23,8 +27,8 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ 
-    server: httpServer, 
+  const wss = new WebSocketServer({
+    server: httpServer,
     path: '/ws',
     verifyClient: ({ req }) => {
       const protocol = req.headers['sec-websocket-protocol'];
@@ -34,6 +38,58 @@ export function registerRoutes(app: Express): Server {
 
   // 設置認證系統
   setupAuth(app);
+
+  // 設置檔案上傳的儲存位置和檔案名稱
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      const uploadDir = path.join(process.cwd(), 'uploads', 'audio');
+      // 確保目錄存在
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+      // 生成唯一的檔案名稱
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+  });
+
+  const upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+      // 只允許上傳音訊檔案
+      if (file.mimetype.startsWith('audio/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('只允許上傳音訊檔案'));
+      }
+    },
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 限制檔案大小為 10MB
+    }
+  });
+
+  // 處理音樂檔案上傳
+  app.post('/api/upload/audio', requireAdmin, upload.single('audio'), (req, res) => {
+    try {
+      if (!req.file) {
+        throw new Error('No file uploaded');
+      }
+
+      // 返回檔案的URL路徑
+      const fileUrl = `/uploads/audio/${req.file.filename}`;
+      res.json({ url: fileUrl });
+    } catch (error) {
+      console.error('Failed to upload audio file:', error);
+      res.status(500).json({ error: '檔案上傳失敗' });
+    }
+  });
+
+  // 提供靜態檔案存取
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 
   // 標籤相關的 API 路由
   app.get("/api/tags", async (_req, res) => {
@@ -124,12 +180,14 @@ export function registerRoutes(app: Express): Server {
   // REST API routes
   app.post("/api/songs", requireAdmin, async (req, res) => {
     try {
-      const { title, artist, key, notes } = req.body;
+      const { title, artist, key, notes, lyrics, audioUrl } = req.body;
       const [newSong] = await db.insert(songs).values({
         title,
         artist,
         key,
         notes,
+        lyrics,
+        audioUrl,
         createdBy: req.user?.id,
         isActive: true
       }).returning();
@@ -295,9 +353,9 @@ export function registerRoutes(app: Express): Server {
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
-        ws.send(JSON.stringify({ 
-          type: 'ERROR', 
-          message: 'Failed to process message' 
+        ws.send(JSON.stringify({
+          type: 'ERROR',
+          message: 'Failed to process message'
         }));
       }
     });
@@ -318,8 +376,8 @@ async function getSongsWithVotes() {
     songId: votes.songId,
     voteCount: sql<number>`count(*)`.mapWith(Number)
   })
-  .from(votes)
-  .groupBy(votes.songId);
+    .from(votes)
+    .groupBy(votes.songId);
 
   const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
 
@@ -334,9 +392,9 @@ async function sendSongsUpdate(wss: WebSocketServer) {
     const songsList = await getSongsWithVotes();
     wss.clients.forEach(client => {
       if (client.readyState === 1) { // WebSocket.OPEN
-        client.send(JSON.stringify({ 
-          type: 'SONGS_UPDATE', 
-          songs: songsList 
+        client.send(JSON.stringify({
+          type: 'SONGS_UPDATE',
+          songs: songsList
         }));
       }
     });

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Import, List } from "lucide-react";
+import { Import, List, Music } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 
@@ -13,6 +13,8 @@ export default function SongImport() {
   const [artist, setArtist] = useState("");
   const [key, setKey] = useState("");
   const [notes, setNotes] = useState("");
+  const [lyrics, setLyrics] = useState("");
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [batchSongs, setBatchSongs] = useState("");
   const { toast } = useToast();
 
@@ -20,10 +22,37 @@ export default function SongImport() {
     e.preventDefault();
 
     try {
+      // 如果有音樂檔案，先上傳檔案
+      let audioUrl = "";
+      if (audioFile) {
+        const formData = new FormData();
+        formData.append("audio", audioFile);
+
+        const uploadResponse = await fetch("/api/upload/audio", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error("Failed to upload audio file");
+        }
+
+        const uploadResult = await uploadResponse.json();
+        audioUrl = uploadResult.url;
+      }
+
+      // 建立歌曲資料
       const response = await fetch("/api/songs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, artist, key, notes })
+        body: JSON.stringify({ 
+          title, 
+          artist, 
+          key, 
+          notes,
+          lyrics,
+          audioUrl
+        })
       });
 
       if (!response.ok) throw new Error("Failed to add song");
@@ -37,6 +66,8 @@ export default function SongImport() {
       setArtist("");
       setKey("");
       setNotes("");
+      setLyrics("");
+      setAudioFile(null);
     } catch (error) {
       toast({
         title: "錯誤",
@@ -149,6 +180,40 @@ export default function SongImport() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lyrics">歌詞 (選填)</Label>
+              <div className="text-xs text-muted-foreground mb-1">
+                格式：[mm:ss.xx]歌詞內容 (例：[00:01.00]第一句歌詞)
+              </div>
+              <Textarea
+                id="lyrics"
+                value={lyrics}
+                onChange={(e) => setLyrics(e.target.value)}
+                rows={8}
+                className="font-mono"
+                placeholder="[00:00.00]歌詞第一句
+[00:03.45]歌詞第二句"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="audio">音樂檔案 (選填)</Label>
+              <div className="flex items-center gap-4">
+                <Input
+                  id="audio"
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
+                  className="flex-1"
+                />
+                {audioFile && (
+                  <div className="text-sm text-muted-foreground">
+                    已選擇：{audioFile.name}
+                  </div>
+                )}
               </div>
             </div>
 
