@@ -1,19 +1,28 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
 import { songs, votes } from "@db/schema";
+import { setupAuth } from "./auth";
+import { eq, sql } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws',
+    // 忽略 Vite HMR 的 WebSocket 升級請求
+    verifyClient: ({ req }) => {
+      return req.headers['sec-websocket-protocol'] !== 'vite-hmr';
+    }
+  });
+
+  // 設置認證系統
+  setupAuth(app);
 
   // WebSocket setup
   wss.on('connection', (ws) => {
-    // Generate a unique session ID for this connection
     const sessionId = Math.random().toString(36).substring(2);
-
-    // Send initial songs data
     sendSongsUpdate(wss);
 
     ws.on('message', async (data) => {
@@ -21,38 +30,67 @@ export function registerRoutes(app: Express): Server {
         const message = JSON.parse(data.toString());
 
         if (message.type === 'VOTE') {
-          // Record the vote
           await db.insert(votes).values({
             songId: message.songId,
             sessionId
           });
-
-          // Broadcast updated songs to all clients
           sendSongsUpdate(wss);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
+        ws.send(JSON.stringify({ 
+          type: 'ERROR', 
+          message: 'Failed to process message' 
+        }));
       }
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
     });
   });
 
+  // 需要管理員權限的中間件
+  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ error: "需要管理員權限" });
+    }
+    next();
+  };
+
   // REST API routes
-  app.post("/api/songs", async (req, res) => {
+  app.post("/api/songs", requireAdmin, async (req, res) => {
     try {
       const { title, artist, key, notes } = req.body;
-      const [newSong] = await db.insert(songs).values({ title, artist, key, notes }).returning();
+      const [newSong] = await db.insert(songs).values({
+        title,
+        artist,
+        key,
+        notes,
+        createdBy: req.user?.id,
+        isActive: true
+      }).returning();
 
-      const songsList = await getSongsWithVotes();
-      wss.clients.forEach(client => {
-        if (client.readyState === 1) {
-          client.send(JSON.stringify({ type: 'SONGS_UPDATE', songs: songsList }));
-        }
-      });
-
+      await sendSongsUpdate(wss);
       res.json(newSong);
     } catch (error) {
       console.error('Failed to add song:', error);
-      res.status(500).json({ error: "Failed to add song" });
+      res.status(500).json({ error: "新增歌曲失敗" });
+    }
+  });
+
+  app.delete("/api/songs/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.update(songs)
+        .set({ isActive: false })
+        .where(eq(songs.id, id));
+
+      await sendSongsUpdate(wss);
+      res.json({ message: "歌曲已刪除" });
+    } catch (error) {
+      console.error('Failed to delete song:', error);
+      res.status(500).json({ error: "刪除歌曲失敗" });
     }
   });
 
@@ -62,7 +100,7 @@ export function registerRoutes(app: Express): Server {
       res.json(songsList);
     } catch (error) {
       console.error('Failed to fetch songs:', error);
-      res.status(500).json({ error: "Failed to fetch songs" });
+      res.status(500).json({ error: "無法取得歌曲清單" });
     }
   });
 
@@ -70,21 +108,37 @@ export function registerRoutes(app: Express): Server {
 }
 
 async function getSongsWithVotes() {
-  const songsList = await db.query.songs.findMany();
-  const votesList = await db.query.votes.findMany();
+  const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
+  const allVotes = await db.select().from(votes);
 
-  return songsList.map(song => ({
+  // 計算每首歌的投票數
+  const songVotes = await db.select({
+    songId: votes.songId,
+    voteCount: sql<number>`count(*)`.mapWith(Number)
+  })
+  .from(votes)
+  .groupBy(votes.songId);
+
+  const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
+
+  return allSongs.map(song => ({
     ...song,
-    voteCount: votesList.filter(vote => vote.songId === song.id).length
+    voteCount: voteMap.get(song.id) || 0
   }));
 }
 
-function sendSongsUpdate(wss: WebSocketServer) {
-  getSongsWithVotes().then(songsList => {
+async function sendSongsUpdate(wss: WebSocketServer) {
+  try {
+    const songsList = await getSongsWithVotes();
     wss.clients.forEach(client => {
-      if (client.readyState === 1) {
-        client.send(JSON.stringify({ type: 'SONGS_UPDATE', songs: songsList }));
+      if (client.readyState === 1) { // WebSocket.OPEN
+        client.send(JSON.stringify({ 
+          type: 'SONGS_UPDATE', 
+          songs: songsList 
+        }));
       }
     });
-  });
+  } catch (error) {
+    console.error('Failed to send songs update:', error);
+  }
 }
