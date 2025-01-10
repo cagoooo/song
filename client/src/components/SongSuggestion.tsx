@@ -134,7 +134,7 @@ export default function SongSuggestion({ isAdmin = false }) {
             想點的歌還沒有？建議新歌給我們！
           </Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="bg-gradient-to-br from-amber-50 via-white to-orange-50 border-2 border-amber-200/30">
           <DialogHeader>
             <DialogTitle>建議新歌曲</DialogTitle>
             <DialogDescription>
@@ -149,6 +149,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
+                className="bg-white/70 border-amber-200/50 focus:border-amber-300/60"
               />
             </div>
             <div className="space-y-2">
@@ -158,6 +159,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                 value={artist}
                 onChange={(e) => setArtist(e.target.value)}
                 required
+                className="bg-white/70 border-amber-200/50 focus:border-amber-300/60"
               />
             </div>
             <div className="space-y-2">
@@ -167,6 +169,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                 value={suggestedBy}
                 onChange={(e) => setSuggestedBy(e.target.value)}
                 placeholder="讓大家知道是誰推薦的好歌！"
+                className="bg-white/70 border-amber-200/50 focus:border-amber-300/60"
               />
             </div>
             <div className="space-y-2">
@@ -176,9 +179,15 @@ export default function SongSuggestion({ isAdmin = false }) {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="分享一下您喜歡這首歌的原因..."
+                className="bg-white/70 border-amber-200/50 focus:border-amber-300/60 min-h-[100px]"
               />
             </div>
-            <Button type="submit" className="w-full">送出建議</Button>
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+            >
+              送出建議
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
