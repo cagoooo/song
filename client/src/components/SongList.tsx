@@ -129,11 +129,11 @@ export default function SongList({ songs, ws, user }: SongListProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
               className="flex flex-col gap-4 p-3 sm:p-4 rounded-lg border-2 border-primary/10
-                       bg-gradient-to-br from-white via-primary/5 to-white
-                       hover:from-white hover:via-primary/10 hover:to-white
-                       shadow-[0_4px_12px_rgba(var(--primary),0.1)]
-                       hover:shadow-[0_4px_16px_rgba(var(--primary),0.15)]
-                       transition-all duration-300"
+                        bg-gradient-to-br from-white via-primary/5 to-white
+                        hover:from-white hover:via-primary/10 hover:to-white
+                        shadow-[0_4px_12px_rgba(var(--primary),0.1)]
+                        hover:shadow-[0_4px_16px_rgba(var(--primary),0.15)]
+                        transition-all duration-300"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -162,8 +162,8 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                       onClick={() => voteForSong(song.id)}
                       className={`
                         flex gap-2 relative overflow-hidden w-full sm:w-auto
-                        bg-gradient-to-r from-purple-50 to-pink-50
-                        hover:from-purple-100 hover:to-pink-100
+                        bg-gradient-to-r from-purple-100 via-pink-100 to-rose-100
+                        hover:from-purple-200 hover:via-pink-200 hover:to-rose-200
                         border-2
                         ${votingId === song.id 
                           ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]' 
