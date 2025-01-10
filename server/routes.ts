@@ -2,12 +2,16 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, tags, songTags } from "@db/schema";
+import { songs, votes, tags, songTags, type User } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
 // 需要管理員權限的中間件
-const requireAdmin = (req: Request & { user?: Express.User }, res: Response, next: NextFunction) => {
+const requireAdmin = (
+  req: Request & { user?: User },
+  res: Response,
+  next: NextFunction
+) => {
   if (!req.isAuthenticated() || !req.user?.isAdmin) {
     return res.status(403).json({ error: "需要管理員權限" });
   }
@@ -123,7 +127,7 @@ export function registerRoutes(app: Express): Server {
         artist,
         key,
         notes,
-        createdBy: req.user?.id,
+        createdBy: (req.user as User | undefined)?.id,
         isActive: true
       }).returning();
 
@@ -149,7 +153,7 @@ export function registerRoutes(app: Express): Server {
         songsList.map(song => ({
           title: song.title,
           artist: song.artist,
-          createdBy: req.user?.id,
+          createdBy: (req.user as User | undefined)?.id,
           isActive: true
         }))
       );

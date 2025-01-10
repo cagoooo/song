@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,16 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tag, Hash, X, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { Song } from "@db/schema";
+import type { Song, Tag as TagType } from "@db/schema";
 
 interface TagSelectorProps {
   song: Song;
   isAdmin: boolean;
+}
+
+interface SongTag extends TagType {
+  id: number;
+  name: string;
 }
 
 export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
@@ -20,7 +25,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   const { toast } = useToast();
 
   // 獲取所有標籤
-  const { data: tags = [] } = useQuery({
+  const { data: tags = [] } = useQuery<SongTag[]>({
     queryKey: ['/api/tags'],
     queryFn: async () => {
       const response = await fetch('/api/tags');
@@ -30,7 +35,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   });
 
   // 獲取歌曲的標籤
-  const { data: songTags = [] } = useQuery({
+  const { data: songTags = [] } = useQuery<SongTag[]>({
     queryKey: ['/api/songs', song.id, 'tags'],
     queryFn: async () => {
       const response = await fetch(`/api/songs/${song.id}/tags`);
@@ -110,7 +115,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   if (!isAdmin) {
     return (
       <div className="flex flex-wrap gap-2">
-        {songTags.map(tag => (
+        {songTags.map((tag: SongTag) => (
           <Badge key={tag.id} variant="secondary">
             <Hash className="w-3 h-3 mr-1" />
             {tag.name}
@@ -123,7 +128,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-2">
-        {songTags.map(tag => (
+        {songTags.map((tag: SongTag) => (
           <Badge key={tag.id} variant="secondary" className="pr-1">
             <Hash className="w-3 h-3 mr-1" />
             {tag.name}
@@ -168,19 +173,19 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
               <Label>現有標籤</Label>
               <ScrollArea className="h-[200px] w-full">
                 <div className="space-y-2">
-                  {tags.map(tag => (
+                  {tags.map((tag: SongTag) => (
                     <Badge
                       key={tag.id}
                       variant="outline"
                       className="w-full justify-between cursor-pointer hover:bg-secondary"
                       onClick={() => {
-                        if (!songTags.some(t => t.id === tag.id)) {
+                        if (!songTags.some((t: SongTag) => t.id === tag.id)) {
                           addSongTagMutation.mutate(tag.id);
                         }
                       }}
                     >
                       {tag.name}
-                      {songTags.some(t => t.id === tag.id) && (
+                      {songTags.some((t: SongTag) => t.id === tag.id) && (
                         <span className="text-green-500">✓</span>
                       )}
                     </Badge>
