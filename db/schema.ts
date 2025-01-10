@@ -53,6 +53,15 @@ export const votes = pgTable("votes", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
+export const qrCodeScans = pgTable("qr_code_scans", {
+  id: serial("id").primaryKey(),
+  songId: integer("song_id").references(() => songs.id).notNull(),
+  sessionId: text("session_id").notNull(),
+  userAgent: text("user_agent"),
+  referrer: text("referrer"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
 // Define relationships
 export const usersRelations = relations(users, ({ many }) => ({
   songs: many(songs)
@@ -64,7 +73,8 @@ export const songsRelations = relations(songs, ({ one, many }) => ({
     references: [users.id],
   }),
   votes: many(votes),
-  songTags: many(songTags)
+  songTags: many(songTags),
+  qrCodeScans: many(qrCodeScans) // Add relation to QR code scans
 }));
 
 export const tagsRelations = relations(tags, ({ many }) => ({
@@ -85,6 +95,13 @@ export const songTagsRelations = relations(songTags, ({ one }) => ({
 export const votesRelations = relations(votes, ({ one }) => ({
   song: one(songs, {
     fields: [votes.songId],
+    references: [songs.id],
+  })
+}));
+
+export const qrCodeScansRelations = relations(qrCodeScans, ({ one }) => ({
+  song: one(songs, {
+    fields: [qrCodeScans.songId],
     references: [songs.id],
   })
 }));
@@ -114,8 +131,13 @@ export const selectVoteSchema = createSelectSchema(votes);
 export type Vote = typeof votes.$inferSelect;
 export type NewVote = typeof votes.$inferInsert;
 
-// Add new schema and types for song suggestions
 export const insertSongSuggestionSchema = createInsertSchema(songSuggestions);
 export const selectSongSuggestionSchema = createSelectSchema(songSuggestions);
 export type SongSuggestion = typeof songSuggestions.$inferSelect;
 export type NewSongSuggestion = typeof songSuggestions.$inferInsert;
+
+// Add new schema and types for QR code scans
+export const insertQRCodeScanSchema = createInsertSchema(qrCodeScans);
+export const selectQRCodeScanSchema = createSelectSchema(qrCodeScans);
+export type QRCodeScan = typeof qrCodeScans.$inferSelect;
+export type NewQRCodeScan = typeof qrCodeScans.$inferInsert;
