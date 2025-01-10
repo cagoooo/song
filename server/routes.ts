@@ -2,9 +2,9 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, tags, songTags, type User } from "@db/schema";
+import { songs, votes, tags, songTags, comments, users, type User } from "@db/schema"; // Added users import
 import { setupAuth } from "./auth";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 
 // Express 的 Request 類型擴展
 declare module 'express-serve-static-core' {
@@ -23,8 +23,8 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ 
-    server: httpServer, 
+  const wss = new WebSocketServer({
+    server: httpServer,
     path: '/ws',
     verifyClient: ({ req }) => {
       const protocol = req.headers['sec-websocket-protocol'];
@@ -194,6 +194,67 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Add comment routes after existing routes
+  app.post("/api/songs/:songId/comments", async (req, res) => {
+    try {
+      const songId = parseInt(req.params.songId);
+      const { content } = req.body;
+      const userId = req.user?.id;
+
+      const [newComment] = await db.insert(comments)
+        .values({
+          songId,
+          content,
+          createdBy: userId,
+          isActive: true
+        })
+        .returning();
+
+      res.json(newComment);
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+      res.status(500).json({ error: "新增評論失敗" });
+    }
+  });
+
+  app.get("/api/songs/:songId/comments", async (req, res) => {
+    try {
+      const songId = parseInt(req.params.songId);
+      const songComments = await db
+        .select({
+          id: comments.id,
+          content: comments.content,
+          createdAt: comments.createdAt,
+          username: users.username, // Added username selection
+        })
+        .from(comments)
+        .leftJoin(users, eq(comments.createdBy, users.id)) // Added left join with users
+        .where(sql`${comments.songId} = ${songId} AND ${comments.isActive} = true`)
+        .orderBy(desc(comments.createdAt));
+
+      res.json(songComments);
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+      res.status(500).json({ error: "無法取得評論" });
+    }
+  });
+
+  app.delete("/api/songs/:songId/comments/:commentId", requireAdmin, async (req, res) => {
+    try {
+      const commentId = parseInt(req.params.commentId);
+
+      await db.update(comments)
+        .set({ isActive: false })
+        .where(eq(comments.id, commentId));
+
+      res.json({ message: "評論已刪除" });
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
+      res.status(500).json({ error: "刪除評論失敗" });
+    }
+  });
+
+
   // WebSocket message handling
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');
@@ -214,9 +275,9 @@ export function registerRoutes(app: Express): Server {
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
-        ws.send(JSON.stringify({ 
-          type: 'ERROR', 
-          message: 'Failed to process message' 
+        ws.send(JSON.stringify({
+          type: 'ERROR',
+          message: 'Failed to process message'
         }));
       }
     });
@@ -237,8 +298,8 @@ async function getSongsWithVotes() {
     songId: votes.songId,
     voteCount: sql<number>`count(*)`.mapWith(Number)
   })
-  .from(votes)
-  .groupBy(votes.songId);
+    .from(votes)
+    .groupBy(votes.songId);
 
   const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
 
@@ -253,9 +314,9 @@ async function sendSongsUpdate(wss: WebSocketServer) {
     const songsList = await getSongsWithVotes();
     wss.clients.forEach(client => {
       if (client.readyState === 1) { // WebSocket.OPEN
-        client.send(JSON.stringify({ 
-          type: 'SONGS_UPDATE', 
-          songs: songsList 
+        client.send(JSON.stringify({
+          type: 'SONGS_UPDATE',
+          songs: songsList
         }));
       }
     });
