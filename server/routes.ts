@@ -261,6 +261,20 @@ export function registerRoutes(app: Express): Server {
   });
 
 
+  app.delete("/api/suggestions/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+
+      await db.delete(songSuggestions)
+        .where(eq(songSuggestions.id, id));
+
+      res.json({ message: "建議已刪除" });
+    } catch (error) {
+      console.error('Failed to delete suggestion:', error);
+      res.status(500).json({ error: "無法刪除建議" });
+    }
+  });
+
   // WebSocket message handling
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');

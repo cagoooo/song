@@ -13,7 +13,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Lightbulb, Plus, Check, X } from "lucide-react";
+import { Lightbulb, Plus, Check, X, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SongSuggestion } from "@db/schema";
 
@@ -84,6 +84,32 @@ export default function SongSuggestion({ isAdmin = false }) {
       toast({
         title: "成功",
         description: "建議狀態已更新",
+      });
+    }
+  });
+
+  const deleteSuggestionMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/suggestions/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) throw new Error('Failed to delete suggestion');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
+      toast({
+        title: "成功",
+        description: "建議已刪除",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "錯誤",
+        description: "無法刪除建議",
+        variant: "destructive"
       });
     }
   });
@@ -230,6 +256,20 @@ export default function SongSuggestion({ isAdmin = false }) {
                   </span>
                 )}
               </div>
+              {isAdmin && (
+                <div className="mt-2 flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 border-red-200 text-red-600 hover:text-red-700
+                             hover:border-red-300 transition-colors"
+                    onClick={() => deleteSuggestionMutation.mutate(suggestion.id)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    刪除建議
+                  </Button>
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
