@@ -27,11 +27,14 @@ export default function CommentSection({ song, user }: CommentSectionProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: comments = [] } = useQuery<Comment[]>({
+  const { data: comments = [], isError, error } = useQuery<Comment[]>({
     queryKey: ['/api/songs', song.id, 'comments'],
     queryFn: async () => {
       const response = await fetch(`/api/songs/${song.id}/comments`);
-      if (!response.ok) throw new Error('Failed to fetch comments');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
       return response.json();
     }
   });
@@ -44,7 +47,12 @@ export default function CommentSection({ song, user }: CommentSectionProps) {
         body: JSON.stringify({ content }),
         credentials: 'include'
       });
-      if (!response.ok) throw new Error('Failed to add comment');
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+
       return response.json();
     },
     onSuccess: () => {
@@ -55,10 +63,10 @@ export default function CommentSection({ song, user }: CommentSectionProps) {
         description: "評論已新增",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "錯誤",
-        description: "新增評論失敗",
+        description: error.message || "新增評論失敗",
         variant: "destructive"
       });
     }
@@ -70,7 +78,12 @@ export default function CommentSection({ song, user }: CommentSectionProps) {
         method: 'DELETE',
         credentials: 'include'
       });
-      if (!response.ok) throw new Error('Failed to delete comment');
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+
       return response.json();
     },
     onSuccess: () => {
@@ -80,14 +93,22 @@ export default function CommentSection({ song, user }: CommentSectionProps) {
         description: "評論已刪除",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "錯誤",
-        description: "刪除評論失敗",
+        description: error.message || "刪除評論失敗",
         variant: "destructive"
       });
     }
   });
+
+  if (isError) {
+    return (
+      <div className="text-sm text-destructive">
+        {(error as Error).message || "載入評論失敗"}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -114,22 +135,23 @@ export default function CommentSection({ song, user }: CommentSectionProps) {
           />
           <Button 
             type="submit" 
-            disabled={!content.trim()} 
+            disabled={!content.trim() || addCommentMutation.isPending} 
             size="sm"
           >
-            新增評論
+            {addCommentMutation.isPending ? "新增中..." : "新增評論"}
           </Button>
         </form>
       )}
 
       <ScrollArea className="h-[200px]">
-        <AnimatePresence>
+        <AnimatePresence mode="popLayout">
           {comments.map((comment) => (
             <motion.div
               key={comment.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.2 }}
               className="p-3 mb-2 rounded-lg bg-muted/50"
             >
               <div className="flex justify-between items-start">
@@ -147,6 +169,7 @@ export default function CommentSection({ song, user }: CommentSectionProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => deleteCommentMutation.mutate(comment.id)}
+                    disabled={deleteCommentMutation.isPending}
                     className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
