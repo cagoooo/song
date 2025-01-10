@@ -10,7 +10,7 @@ import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import RankingBoard from "../components/RankingBoard";
 import LoginForm from "../components/LoginForm";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -172,45 +172,55 @@ export default function Home() {
           )}
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+        <AnimatePresence>
+          <motion.div 
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
+            layout
+            transition={{
+              layout: { duration: 0.3 },
+            }}
           >
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Music2 className="w-6 h-6 text-primary" />
-                  歌曲管理
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {user?.isAdmin && <SongImport />}
-                <div className="h-4" />
-                <SongList songs={songs} ws={wsRef.current} user={user || null} />
-              </CardContent>
-            </Card>
-          </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              layout
+            >
+              <Card className="shadow-lg h-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Music2 className="w-6 h-6 text-primary" />
+                    歌曲管理
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {user?.isAdmin && <SongImport />}
+                  <div className="h-4" />
+                  <SongList songs={songs} ws={wsRef.current} user={user || null} />
+                </CardContent>
+              </Card>
+            </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="w-6 h-6 text-primary" />
-                  實時排名
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RankingBoard songs={songs} />
-              </CardContent>
-            </Card>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              layout
+            >
+              <Card className="shadow-lg h-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="w-6 h-6 text-primary" />
+                    實時排名
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RankingBoard songs={songs} />
+                </CardContent>
+              </Card>
+            </motion.div>
           </motion.div>
-        </div>
+        </AnimatePresence>
       </div>
 
       {showLoginForm && (

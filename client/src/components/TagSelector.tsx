@@ -8,6 +8,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tag, Hash, X, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
 import type { Song, Tag as TagType } from "@db/schema";
 
 interface TagSelectorProps {
@@ -24,7 +25,6 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   const [newTag, setNewTag] = useState("");
   const { toast } = useToast();
 
-  // 獲取所有標籤
   const { data: tags = [] } = useQuery<SongTag[]>({
     queryKey: ['/api/tags'],
     queryFn: async () => {
@@ -34,7 +34,6 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
     }
   });
 
-  // 獲取歌曲的標籤
   const { data: songTags = [] } = useQuery<SongTag[]>({
     queryKey: ['/api/songs', song.id, 'tags'],
     queryFn: async () => {
@@ -44,7 +43,6 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
     }
   });
 
-  // 新增標籤
   const addTagMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/tags', {
@@ -72,7 +70,6 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
     }
   });
 
-  // 為歌曲新增標籤
   const addSongTagMutation = useMutation({
     mutationFn: async (tagId: number) => {
       const response = await fetch(`/api/songs/${song.id}/tags`, {
@@ -93,7 +90,6 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
     }
   });
 
-  // 移除歌曲標籤
   const removeSongTagMutation = useMutation({
     mutationFn: async (tagId: number) => {
       const response = await fetch(`/api/songs/${song.id}/tags/${tagId}`, {
@@ -114,55 +110,75 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
 
   if (!isAdmin) {
     return (
-      <div className="flex flex-wrap gap-2">
+      <motion.div 
+        className="flex flex-wrap gap-2"
+        layout
+        transition={{ duration: 0.2 }}
+      >
         {songTags.map((tag: SongTag) => (
-          <Badge key={tag.id} variant="secondary">
-            <Hash className="w-3 h-3 mr-1" />
-            {tag.name}
-          </Badge>
+          <motion.div
+            key={tag.id}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 500 }}
+          >
+            <Badge variant="secondary">
+              <Hash className="w-3 h-3 mr-1" />
+              {tag.name}
+            </Badge>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div>
+    <motion.div layout transition={{ duration: 0.2 }}>
       <div className="flex flex-wrap gap-2 mb-2">
         {songTags.map((tag: SongTag) => (
-          <Badge key={tag.id} variant="secondary" className="pr-1">
-            <Hash className="w-3 h-3 mr-1" />
-            {tag.name}
-            <button
-              onClick={() => removeSongTagMutation.mutate(tag.id)}
-              className="ml-1 hover:text-destructive"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </Badge>
+          <motion.div
+            key={tag.id}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 500 }}
+          >
+            <Badge variant="secondary" className="pr-1 group">
+              <Hash className="w-3 h-3 mr-1" />
+              {tag.name}
+              <button
+                onClick={() => removeSongTagMutation.mutate(tag.id)}
+                className="ml-1 opacity-50 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          </motion.div>
         ))}
       </div>
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto">
             <Tag className="w-4 h-4 mr-2" />
             管理標籤
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80">
+        <PopoverContent className="w-[280px] sm:w-[320px]" side="top">
           <div className="space-y-4">
             <div>
-              <Label>新增標籤</Label>
-              <div className="flex gap-2">
+              <Label className="text-sm">新增標籤</Label>
+              <div className="flex gap-2 mt-1.5">
                 <Input
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   placeholder="輸入標籤名稱..."
+                  className="h-8 text-sm"
                 />
                 <Button
                   size="sm"
                   onClick={() => addTagMutation.mutate()}
                   disabled={!newTag.trim()}
+                  className="h-8 px-2"
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
@@ -170,25 +186,31 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
             </div>
 
             <div>
-              <Label>現有標籤</Label>
-              <ScrollArea className="h-[200px] w-full">
-                <div className="space-y-2">
+              <Label className="text-sm">現有標籤</Label>
+              <ScrollArea className="h-[160px] sm:h-[200px] w-full mt-1.5">
+                <div className="space-y-1">
                   {tags.map((tag: SongTag) => (
-                    <Badge
+                    <motion.div
                       key={tag.id}
-                      variant="outline"
-                      className="w-full justify-between cursor-pointer hover:bg-secondary"
-                      onClick={() => {
-                        if (!songTags.some((t: SongTag) => t.id === tag.id)) {
-                          addSongTagMutation.mutate(tag.id);
-                        }
-                      }}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      {tag.name}
-                      {songTags.some((t: SongTag) => t.id === tag.id) && (
-                        <span className="text-green-500">✓</span>
-                      )}
-                    </Badge>
+                      <Badge
+                        variant="outline"
+                        className="w-full justify-between cursor-pointer hover:bg-secondary transition-colors"
+                        onClick={() => {
+                          if (!songTags.some((t: SongTag) => t.id === tag.id)) {
+                            addSongTagMutation.mutate(tag.id);
+                          }
+                        }}
+                      >
+                        {tag.name}
+                        {songTags.some((t: SongTag) => t.id === tag.id) && (
+                          <span className="text-green-500">✓</span>
+                        )}
+                      </Badge>
+                    </motion.div>
                   ))}
                 </div>
               </ScrollArea>
@@ -196,6 +218,6 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
           </div>
         </PopoverContent>
       </Popover>
-    </div>
+    </motion.div>
   );
 }

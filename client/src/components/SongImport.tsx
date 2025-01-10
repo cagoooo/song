@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Import, List } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
 
 export default function SongImport() {
   const [title, setTitle] = useState("");
@@ -96,82 +97,105 @@ export default function SongImport() {
   };
 
   return (
-    <Tabs defaultValue="single" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="single">單首新增</TabsTrigger>
-        <TabsTrigger value="batch">批次匯入</TabsTrigger>
-      </TabsList>
+    <motion.div
+      layout
+      transition={{ duration: 0.3 }}
+      className="w-full"
+    >
+      <Tabs defaultValue="single" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="single" className="text-sm sm:text-base">單首新增</TabsTrigger>
+          <TabsTrigger value="batch" className="text-sm sm:text-base">批次匯入</TabsTrigger>
+        </TabsList>
 
-      <TabsContent value="single">
-        <form onSubmit={handleSingleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">歌曲名稱</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-          </div>
+        <TabsContent value="single">
+          <form onSubmit={handleSingleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">歌曲名稱</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="artist">歌手</Label>
-            <Input
-              id="artist"
-              value={artist}
-              onChange={(e) => setArtist(e.target.value)}
-              required
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="artist">歌手</Label>
+                <Input
+                  id="artist"
+                  value={artist}
+                  onChange={(e) => setArtist(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="key">調性 (選填)</Label>
-            <Input
-              id="key"
-              value={key}
-              onChange={(e) => setKey(e.target.value)}
-            />
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="key">調性 (選填)</Label>
+                <Input
+                  id="key"
+                  value={key}
+                  onChange={(e) => setKey(e.target.value)}
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">備註 (選填)</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">備註 (選填)</Label>
+                <Input
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+            </div>
 
-          <Button type="submit" className="w-full">
-            <Import className="w-4 h-4 mr-2" />
-            新增歌曲
-          </Button>
-        </form>
-      </TabsContent>
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              <Button type="submit" className="w-full">
+                <Import className="w-4 h-4 mr-2" />
+                新增歌曲
+              </Button>
+            </motion.div>
+          </form>
+        </TabsContent>
 
-      <TabsContent value="batch">
-        <form onSubmit={handleBatchSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="batchSongs">
-              歌曲清單 (每行一首，格式：「歌名」- 歌手)
-            </Label>
-            <Textarea
-              id="batchSongs"
-              value={batchSongs}
-              onChange={(e) => setBatchSongs(e.target.value)}
-              rows={10}
-              placeholder="「範例歌曲」- 範例歌手"
-              required
-            />
-          </div>
+        <TabsContent value="batch">
+          <form onSubmit={handleBatchSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="batchSongs" className="flex items-center gap-2">
+                歌曲清單
+                <span className="text-xs text-muted-foreground">
+                  (每行一首，格式：「歌名」- 歌手)
+                </span>
+              </Label>
+              <Textarea
+                id="batchSongs"
+                value={batchSongs}
+                onChange={(e) => setBatchSongs(e.target.value)}
+                rows={8}
+                className="min-h-[120px] sm:min-h-[200px]"
+                placeholder="「範例歌曲」- 範例歌手"
+                required
+              />
+            </div>
 
-          <Button type="submit" className="w-full">
-            <List className="w-4 h-4 mr-2" />
-            批次匯入
-          </Button>
-        </form>
-      </TabsContent>
-    </Tabs>
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              <Button type="submit" className="w-full">
+                <List className="w-4 h-4 mr-2" />
+                批次匯入
+              </Button>
+            </motion.div>
+          </form>
+        </TabsContent>
+      </Tabs>
+    </motion.div>
   );
 }
