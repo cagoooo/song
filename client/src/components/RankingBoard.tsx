@@ -126,52 +126,52 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                     <p className="text-xs text-muted-foreground">點播</p>
                   </motion.div>
 
-                  {song.lyrics && (
-                    <Dialog onOpenChange={(open) => !open && setSelectedSong(null)}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setSelectedSong(song)}
-                          className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
-                                   shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                                   hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                                   transition-all duration-300"
-                        >
-                          <FileText className="w-4 h-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-lg">
-                        <DialogHeader>
-                          <DialogTitle className="flex items-center gap-2 text-lg">
-                            <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                              {selectedSong?.title}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              - {selectedSong?.artist}
-                            </span>
-                          </DialogTitle>
-                        </DialogHeader>
-                        <ScrollArea className="h-[400px] w-full mt-4">
-                          <div className="space-y-2 px-4">
-                            {parsedLyrics.map((line, index) => (
-                              <p
-                                key={index}
-                                className="text-center text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
-                              >
-                                {line}
-                              </p>
-                            ))}
-                            {parsedLyrics.length === 0 && (
-                              <p className="text-center text-sm text-muted-foreground">
-                                這首歌還沒有歌詞...
-                              </p>
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </DialogContent>
-                    </Dialog>
-                  )}
+                  <Dialog onOpenChange={(open) => !open && setSelectedSong(null)}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setSelectedSong(song)}
+                        className={`w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
+                                 shadow-[0_2px_10px_rgba(var(--primary),0.1)]
+                                 hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
+                                 transition-all duration-300
+                                 ${!song.lyrics && 'opacity-50 cursor-not-allowed'}`}
+                        disabled={!song.lyrics}
+                      >
+                        <FileText className="w-4 h-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-lg">
+                          <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                            {selectedSong?.title}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            - {selectedSong?.artist}
+                          </span>
+                        </DialogTitle>
+                      </DialogHeader>
+                      <ScrollArea className="h-[400px] w-full mt-4">
+                        <div className="space-y-2 px-4">
+                          {parsedLyrics.map((line, index) => (
+                            <p
+                              key={index}
+                              className="text-center text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
+                            >
+                              {line}
+                            </p>
+                          ))}
+                          {parsedLyrics.length === 0 && (
+                            <p className="text-center text-sm text-muted-foreground">
+                              這首歌還沒有歌詞...
+                            </p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </motion.div>
             ))}
