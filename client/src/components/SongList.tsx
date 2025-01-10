@@ -16,7 +16,7 @@ import {
   DialogContent,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Music, ThumbsUp, Trash2, RotateCcw, PlayCircle, Share2 } from "lucide-react";
+import { Music, ThumbsUp, Trash2, RotateCcw, PlayCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
 import SearchBar from "./SearchBar";
@@ -171,25 +171,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="relative w-full sm:w-auto"
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleShareClick(song)}
-                      className="flex gap-2 relative overflow-hidden w-full sm:w-auto
-                               bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100
-                               hover:from-indigo-200 hover:via-purple-200 hover:to-pink-200
-                               border-2 border-indigo-500/20 hover:border-indigo-500/40
-                               transition-all duration-300"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      分享
-                    </Button>
-                  </motion.div>
                   {song.audioUrl && (
                     <Dialog>
                       <DialogTrigger asChild>
