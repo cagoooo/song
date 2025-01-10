@@ -12,6 +12,7 @@ import RankingBoard from "../components/RankingBoard";
 import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
+import { ShareButton } from "../components/ShareButton";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -141,18 +142,21 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 sm:mb-8"
         >
-          <div 
-            className="relative p-2 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
-                     shadow-[0_0_15px_rgba(var(--primary),0.3)]
-                     animate-[shadow-pulse_3s_ease-in-out_infinite]
-                     w-full sm:w-auto"
-          >
-            <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent
-                        px-4 py-2 text-center sm:text-left">
-              吉他彈唱點歌系統
-            </h1>
-            <div className="absolute inset-0 rounded-lg border-2 border-primary/20
-                        animate-[border-pulse_3s_ease-in-out_infinite_0.5s]" />
+          <div className="flex items-center gap-4">
+            <div 
+              className="relative p-2 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
+                       shadow-[0_0_15px_rgba(var(--primary),0.3)]
+                       animate-[shadow-pulse_3s_ease-in-out_infinite]
+                       w-full sm:w-auto"
+            >
+              <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent
+                          px-4 py-2 text-center sm:text-left">
+                吉他彈唱點歌系統
+              </h1>
+              <div className="absolute inset-0 rounded-lg border-2 border-primary/20
+                          animate-[border-pulse_3s_ease-in-out_infinite_0.5s]" />
+            </div>
+            <ShareButton />
           </div>
 
           {user ? (
@@ -176,7 +180,6 @@ export default function Home() {
               layout: { duration: 0.3 },
             }}
           >
-            {/* 歌曲建議區塊 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -196,7 +199,6 @@ export default function Home() {
               </Card>
             </motion.div>
 
-            {/* 歌曲列表區塊 */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -218,7 +220,6 @@ export default function Home() {
               </Card>
             </motion.div>
 
-            {/* 排行榜區塊 */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
