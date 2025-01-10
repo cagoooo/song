@@ -139,9 +139,9 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                 <div>
                   <div className="flex items-center gap-2">
                     <Music className="h-4 w-4 text-primary" />
-                    <h3 className="font-semibold text-primary/90">{song.title}</h3>
+                    <h3 className="font-semibold text-gray-800">{song.title}</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground">{song.artist}</p>
+                  <p className="text-sm text-gray-600">{song.artist}</p>
                   {song.key && (
                     <span className="text-xs bg-gradient-to-r from-cyan-500/20 to-teal-500/20 text-cyan-700
                                  px-2 py-1 rounded mt-1 inline-block">
@@ -162,7 +162,9 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                       onClick={() => voteForSong(song.id)}
                       className={`
                         flex gap-2 relative overflow-hidden w-full sm:w-auto
-                        border-2 bg-white/80 hover:bg-white/90
+                        bg-gradient-to-r from-purple-50 to-pink-50
+                        hover:from-purple-100 hover:to-pink-100
+                        border-2
                         ${votingId === song.id 
                           ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]' 
                           : 'border-primary/20 hover:border-primary/40'}
