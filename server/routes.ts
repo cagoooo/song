@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes } from "@db/schema";
+import { songs, votes, tags, songTags } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
@@ -27,6 +27,92 @@ export function registerRoutes(app: Express): Server {
 
   // 設置認證系統
   setupAuth(app);
+
+  // 標籤相關的 API 路由
+  app.get("/api/tags", async (_req, res) => {
+    try {
+      const allTags = await db.select().from(tags);
+      res.json(allTags);
+    } catch (error) {
+      console.error('Failed to fetch tags:', error);
+      res.status(500).json({ error: "無法取得標籤列表" });
+    }
+  });
+
+  app.post("/api/tags", requireAdmin, async (req, res) => {
+    try {
+      const { name } = req.body;
+      const [newTag] = await db.insert(tags)
+        .values({ name })
+        .returning();
+      res.json(newTag);
+    } catch (error) {
+      console.error('Failed to create tag:', error);
+      res.status(500).json({ error: "無法創建標籤" });
+    }
+  });
+
+  app.get("/api/songs/:songId/tags", async (req, res) => {
+    try {
+      const songId = parseInt(req.params.songId);
+      const songTagsList = await db
+        .select({
+          id: tags.id,
+          name: tags.name
+        })
+        .from(songTags)
+        .innerJoin(tags, eq(songTags.tagId, tags.id))
+        .where(eq(songTags.songId, songId));
+      res.json(songTagsList);
+    } catch (error) {
+      console.error('Failed to fetch song tags:', error);
+      res.status(500).json({ error: "無法取得歌曲標籤" });
+    }
+  });
+
+  app.post("/api/songs/:songId/tags", requireAdmin, async (req, res) => {
+    try {
+      const songId = parseInt(req.params.songId);
+      const { tagId } = req.body;
+
+      // 檢查標籤是否已經存在
+      const existingTag = await db
+        .select()
+        .from(songTags)
+        .where(sql`${songTags.songId} = ${songId} AND ${songTags.tagId} = ${tagId}`)
+        .limit(1);
+
+      if (existingTag.length > 0) {
+        return res.status(400).json({ error: "標籤已存在" });
+      }
+
+      // 新增標籤關聯
+      await db.insert(songTags)
+        .values({ songId, tagId });
+
+      await sendSongsUpdate(wss);
+      res.json({ message: "標籤新增成功" });
+    } catch (error) {
+      console.error('Failed to add song tag:', error);
+      res.status(500).json({ error: "無法新增歌曲標籤" });
+    }
+  });
+
+  app.delete("/api/songs/:songId/tags/:tagId", requireAdmin, async (req, res) => {
+    try {
+      const songId = parseInt(req.params.songId);
+      const tagId = parseInt(req.params.tagId);
+
+      await db.delete(songTags)
+        .where(sql`${songTags.songId} = ${songId} AND ${songTags.tagId} = ${tagId}`);
+
+      await sendSongsUpdate(wss);
+      res.json({ message: "標籤移除成功" });
+    } catch (error) {
+      console.error('Failed to remove song tag:', error);
+      res.status(500).json({ error: "無法移除歌曲標籤" });
+    }
+  });
 
   // REST API routes
   app.post("/api/songs", requireAdmin, async (req, res) => {

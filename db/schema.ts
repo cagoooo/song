@@ -21,6 +21,19 @@ export const songs = pgTable("songs", {
   isActive: boolean("is_active").default(true).notNull()
 });
 
+export const tags = pgTable("tags", {
+  id: serial("id").primaryKey(),
+  name: text("name").unique().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const songTags = pgTable("song_tags", {
+  id: serial("id").primaryKey(),
+  songId: integer("song_id").references(() => songs.id).notNull(),
+  tagId: integer("tag_id").references(() => tags.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const votes = pgTable("votes", {
   id: serial("id").primaryKey(),
   songId: integer("song_id").references(() => songs.id).notNull(),
@@ -38,7 +51,23 @@ export const songsRelations = relations(songs, ({ one, many }) => ({
     fields: [songs.createdBy],
     references: [users.id],
   }),
-  votes: many(votes)
+  votes: many(votes),
+  songTags: many(songTags)
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  songTags: many(songTags)
+}));
+
+export const songTagsRelations = relations(songTags, ({ one }) => ({
+  song: one(songs, {
+    fields: [songTags.songId],
+    references: [songs.id],
+  }),
+  tag: one(tags, {
+    fields: [songTags.tagId],
+    references: [tags.id],
+  })
 }));
 
 export const votesRelations = relations(votes, ({ one }) => ({
@@ -57,6 +86,16 @@ export const insertSongSchema = createInsertSchema(songs);
 export const selectSongSchema = createSelectSchema(songs);
 export type Song = typeof songs.$inferSelect;
 export type NewSong = typeof songs.$inferInsert;
+
+export const insertTagSchema = createInsertSchema(tags);
+export const selectTagSchema = createSelectSchema(tags);
+export type Tag = typeof tags.$inferSelect;
+export type NewTag = typeof tags.$inferInsert;
+
+export const insertSongTagSchema = createInsertSchema(songTags);
+export const selectSongTagSchema = createSelectSchema(songTags);
+export type SongTag = typeof songTags.$inferSelect;
+export type NewSongTag = typeof songTags.$inferInsert;
 
 export const insertVoteSchema = createInsertSchema(votes);
 export const selectVoteSchema = createSelectSchema(votes);

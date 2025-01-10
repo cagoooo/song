@@ -5,6 +5,7 @@ import { Music, ThumbsUp, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
 import SearchBar from "./SearchBar";
+import TagSelector from "./TagSelector";
 
 interface SongListProps {
   songs: Song[];
@@ -65,43 +66,47 @@ export default function SongList({ songs, ws, user }: SongListProps) {
       <ScrollArea className="h-[500px] w-full pr-4">
         <div className="space-y-4">
           {filteredSongs.map((song) => (
-            <div key={song.id} className="flex items-center justify-between p-4 bg-card rounded-lg border">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Music className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="font-semibold">{song.title}</h3>
+            <div key={song.id} className="flex flex-col gap-4 p-4 bg-card rounded-lg border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Music className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="font-semibold">{song.title}</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{song.artist}</p>
+                  {song.key && (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded mt-1 inline-block">
+                      Key: {song.key}
+                    </span>
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground">{song.artist}</p>
-                {song.key && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded mt-1 inline-block">
-                    Key: {song.key}
-                  </span>
-                )}
-              </div>
 
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={() => voteForSong(song.id)}
-                  className="flex gap-2"
-                >
-                  <ThumbsUp className="h-4 w-4" />
-                  投票
-                </Button>
-
-                {user?.isAdmin && (
-                  <Button
+                <div className="flex gap-2">
+                  <Button 
                     variant="outline"
                     size="sm"
-                    onClick={() => deleteSong(song.id)}
-                    className="flex gap-2 text-destructive hover:text-destructive"
+                    onClick={() => voteForSong(song.id)}
+                    className="flex gap-2"
                   >
-                    <Trash2 className="h-4 w-4" />
-                    刪除
+                    <ThumbsUp className="h-4 w-4" />
+                    投票
                   </Button>
-                )}
+
+                  {user?.isAdmin && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteSong(song.id)}
+                      className="flex gap-2 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      刪除
+                    </Button>
+                  )}
+                </div>
               </div>
+
+              <TagSelector song={song} isAdmin={user?.isAdmin ?? false} />
             </div>
           ))}
         </div>
