@@ -2,19 +2,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Import, List, Music } from "lucide-react";
+import { Import, List } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 
 export default function SongImport() {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
-  const [key, setKey] = useState("");
   const [notes, setNotes] = useState("");
-  const [lyrics, setLyrics] = useState("");
-  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [batchSongs, setBatchSongs] = useState("");
   const { toast } = useToast();
 
@@ -22,25 +18,6 @@ export default function SongImport() {
     e.preventDefault();
 
     try {
-      // 如果有音樂檔案，先上傳檔案
-      let audioUrl = "";
-      if (audioFile) {
-        const formData = new FormData();
-        formData.append("audio", audioFile);
-
-        const uploadResponse = await fetch("/api/upload/audio", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error("Failed to upload audio file");
-        }
-
-        const uploadResult = await uploadResponse.json();
-        audioUrl = uploadResult.url;
-      }
-
       // 建立歌曲資料
       const response = await fetch("/api/songs", {
         method: "POST",
@@ -48,10 +25,7 @@ export default function SongImport() {
         body: JSON.stringify({ 
           title, 
           artist, 
-          key, 
           notes,
-          lyrics,
-          audioUrl
         })
       });
 
@@ -64,10 +38,7 @@ export default function SongImport() {
 
       setTitle("");
       setArtist("");
-      setKey("");
       setNotes("");
-      setLyrics("");
-      setAudioFile(null);
     } catch (error) {
       toast({
         title: "錯誤",
@@ -163,58 +134,13 @@ export default function SongImport() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="key">調性 (選填)</Label>
-                <Input
-                  id="key"
-                  value={key}
-                  onChange={(e) => setKey(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">備註 (選填)</Label>
-                <Input
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </div>
-            </div>
-
             <div className="space-y-2">
-              <Label htmlFor="lyrics">歌詞 (選填)</Label>
-              <div className="text-xs text-muted-foreground mb-1">
-                格式：[mm:ss.xx]歌詞內容 (例：[00:01.00]第一句歌詞)
-              </div>
-              <Textarea
-                id="lyrics"
-                value={lyrics}
-                onChange={(e) => setLyrics(e.target.value)}
-                rows={8}
-                className="font-mono"
-                placeholder="[00:00.00]歌詞第一句
-[00:03.45]歌詞第二句"
+              <Label htmlFor="notes">備註 (選填)</Label>
+              <Input
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="audio">音樂檔案 (選填)</Label>
-              <div className="flex items-center gap-4">
-                <Input
-                  id="audio"
-                  type="file"
-                  accept="audio/*"
-                  onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-                  className="flex-1"
-                />
-                {audioFile && (
-                  <div className="text-sm text-muted-foreground">
-                    已選擇：{audioFile.name}
-                  </div>
-                )}
-              </div>
             </div>
 
             <motion.div
@@ -238,12 +164,12 @@ export default function SongImport() {
                   (每行一首，格式：「歌名」- 歌手)
                 </span>
               </Label>
-              <Textarea
+              <textarea
                 id="batchSongs"
                 value={batchSongs}
                 onChange={(e) => setBatchSongs(e.target.value)}
                 rows={8}
-                className="min-h-[120px] sm:min-h-[200px]"
+                className="min-h-[120px] sm:min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="「範例歌曲」- 範例歌手"
                 required
               />
