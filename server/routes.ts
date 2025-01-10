@@ -6,12 +6,15 @@ import { songs, votes, tags, songTags, type User } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
+// Express 的 Request 類型擴展
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: User;
+  }
+}
+
 // 需要管理員權限的中間件
-const requireAdmin = (
-  req: Request & { user?: User },
-  res: Response,
-  next: NextFunction
-) => {
+const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated() || !req.user?.isAdmin) {
     return res.status(403).json({ error: "需要管理員權限" });
   }
@@ -127,7 +130,7 @@ export function registerRoutes(app: Express): Server {
         artist,
         key,
         notes,
-        createdBy: (req.user as User | undefined)?.id,
+        createdBy: req.user?.id,
         isActive: true
       }).returning();
 
@@ -153,7 +156,7 @@ export function registerRoutes(app: Express): Server {
         songsList.map(song => ({
           title: song.title,
           artist: song.artist,
-          createdBy: (req.user as User | undefined)?.id,
+          createdBy: req.user?.id,
           isActive: true
         }))
       );

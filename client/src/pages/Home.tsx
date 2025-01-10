@@ -5,11 +5,12 @@ import { useUser } from "@/hooks/use-user";
 import { useQuery } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, Music2, Trophy } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import RankingBoard from "../components/RankingBoard";
 import LoginForm from "../components/LoginForm";
+import { motion } from "framer-motion";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -111,21 +112,40 @@ export default function Home() {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" />
-    </div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <motion.div
+          animate={{
+            rotate: 360,
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        >
+          <Music2 className="w-12 h-12 text-primary" />
+        </motion.div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-8">
-        <div className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
+      <div className="container mx-auto py-8 px-4">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex justify-between items-center mb-8"
+        >
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
             吉他彈唱點歌系統
           </h1>
           {user ? (
             <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm px-3 py-1 rounded-full bg-primary/10 text-primary">
                 {user.isAdmin ? '管理員' : '使用者'}: {user.username}
               </span>
               <Button variant="outline" size="sm" onClick={handleLogout}>
@@ -139,28 +159,46 @@ export default function Home() {
               登入
             </Button>
           )}
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>歌曲管理</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {user?.isAdmin && <SongImport />}
-              <div className="h-4" />
-              <SongList songs={songs} ws={wsRef.current} user={user || null} />
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Music2 className="w-6 h-6 text-primary" />
+                  歌曲管理
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {user?.isAdmin && <SongImport />}
+                <div className="h-4" />
+                <SongList songs={songs} ws={wsRef.current} user={user || null} />
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>實時排名</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RankingBoard songs={songs} />
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-6 h-6 text-primary" />
+                  實時排名
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RankingBoard songs={songs} />
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
 
