@@ -229,7 +229,7 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Trophy className="w-6 h-6 text-primary" />
-                    實時排名
+                    人氣點播排行榜
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -252,7 +252,9 @@ export default function Home() {
             variant="outline" 
             size="sm" 
             onClick={() => setShowLoginForm(true)}
-            className="bg-white/50 backdrop-blur-sm"
+            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 
+                      backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40
+                      transition-all duration-300"
           >
             <LogIn className="w-4 h-4 mr-2" />
             管理員登入

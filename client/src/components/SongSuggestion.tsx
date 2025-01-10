@@ -123,7 +123,7 @@ export default function SongSuggestion({ isAdmin = false }) {
     <div className="space-y-4">
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <Button 
+          <Button
             variant="outline"
             className="w-full border-2 border-primary/20 bg-white/80 hover:bg-white/90
                      shadow-[0_2px_10px_rgba(var(--primary),0.1)]
@@ -199,9 +199,7 @@ export default function SongSuggestion({ isAdmin = false }) {
               key={suggestion.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-4 rounded-lg border-2 border-primary/10
-                       bg-gradient-to-br from-white via-amber-50/30 to-white
-                       shadow-[0_4px_12px_rgba(var(--primary),0.1)]"
+              className="flex flex-col gap-4 p-3 sm:p-4 rounded-lg border-2 border-primary/10 bg-gradient-to-br from-white via-amber-50/30 to-white shadow-[0_4px_12px_rgba(var(--primary),0.1)]"
             >
               <div className="flex justify-between items-start gap-4">
                 <div>
@@ -223,11 +221,10 @@ export default function SongSuggestion({ isAdmin = false }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8 border-green-200 text-green-600 hover:text-green-700
-                               hover:border-green-300 transition-colors"
-                      onClick={() => updateStatusMutation.mutate({ 
-                        id: suggestion.id, 
-                        status: "approved" 
+                      className="h-8 border-green-200 text-green-600 hover:text-green-700 hover:border-green-300 transition-colors"
+                      onClick={() => updateStatusMutation.mutate({
+                        id: suggestion.id,
+                        status: "approved"
                       })}
                     >
                       <Check className="w-4 h-4" />
@@ -235,11 +232,10 @@ export default function SongSuggestion({ isAdmin = false }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8 border-red-200 text-red-600 hover:text-red-700
-                               hover:border-red-300 transition-colors"
-                      onClick={() => updateStatusMutation.mutate({ 
-                        id: suggestion.id, 
-                        status: "rejected" 
+                      className="h-8 border-red-200 text-red-600 hover:text-red-700 hover:border-red-300 transition-colors"
+                      onClick={() => updateStatusMutation.mutate({
+                        id: suggestion.id,
+                        status: "rejected"
                       })}
                     >
                       <X className="w-4 h-4" />
@@ -247,10 +243,9 @@ export default function SongSuggestion({ isAdmin = false }) {
                   </div>
                 )}
                 {suggestion.status !== "pending" && (
-                  <span className={`text-xs px-2 py-1 rounded-full
-                    ${suggestion.status === "approved" 
-                      ? "bg-green-100 text-green-700" 
-                      : "bg-red-100 text-red-700"}`}
+                  <span className={`text-xs px-2 py-1 rounded-full ${suggestion.status === "approved"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"}`}
                   >
                     {suggestion.status === "approved" ? "已採納，即將新增" : "暫時無法採納"}
                   </span>
@@ -261,8 +256,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 border-red-200 text-red-600 hover:text-red-700
-                             hover:border-red-300 transition-colors"
+                    className="h-8 border-red-200 text-red-600 hover:text-red-700 hover:border-red-300 transition-colors"
                     onClick={() => deleteSuggestionMutation.mutate(suggestion.id)}
                   >
                     <Trash2 className="w-4 h-4 mr-1" />
