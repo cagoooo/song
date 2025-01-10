@@ -8,7 +8,6 @@ import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
 import { motion } from "framer-motion";
 import FireworkEffect from "./FireworkEffect";
-import CommentSection from "./CommentSection";
 
 interface SongListProps {
   songs: Song[];
@@ -128,10 +127,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
               </div>
 
               <TagSelector song={song} isAdmin={user?.isAdmin ?? false} />
-
-              <div className="pt-4 border-t">
-                <CommentSection song={song} user={user} />
-              </div>
             </div>
           ))}
         </div>

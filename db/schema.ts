@@ -41,15 +41,7 @@ export const votes = pgTable("votes", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const comments = pgTable("comments", {
-  id: serial("id").primaryKey(),
-  songId: integer("song_id").references(() => songs.id).notNull(),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: integer("created_by").references(() => users.id),
-  isActive: boolean("is_active").default(true).notNull()
-});
-
+// Define relationships
 export const usersRelations = relations(users, ({ many }) => ({
   songs: many(songs)
 }));
@@ -60,8 +52,7 @@ export const songsRelations = relations(songs, ({ one, many }) => ({
     references: [users.id],
   }),
   votes: many(votes),
-  songTags: many(songTags),
-  comments: many(comments)
+  songTags: many(songTags)
 }));
 
 export const tagsRelations = relations(tags, ({ many }) => ({
@@ -83,17 +74,6 @@ export const votesRelations = relations(votes, ({ one }) => ({
   song: one(songs, {
     fields: [votes.songId],
     references: [songs.id],
-  })
-}));
-
-export const commentsRelations = relations(comments, ({ one }) => ({
-  song: one(songs, {
-    fields: [comments.songId],
-    references: [songs.id],
-  }),
-  creator: one(users, {
-    fields: [comments.createdBy],
-    references: [users.id],
   })
 }));
 
@@ -121,8 +101,3 @@ export const insertVoteSchema = createInsertSchema(votes);
 export const selectVoteSchema = createSelectSchema(votes);
 export type Vote = typeof votes.$inferSelect;
 export type NewVote = typeof votes.$inferInsert;
-
-export const insertCommentSchema = createInsertSchema(comments);
-export const selectCommentSchema = createSelectSchema(comments);
-export type Comment = typeof comments.$inferSelect;
-export type NewComment = typeof comments.$inferInsert;

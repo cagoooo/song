@@ -2,9 +2,9 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, tags, songTags, comments, users, type User } from "@db/schema";
+import { songs, votes, tags, songTags, type User } from "@db/schema";
 import { setupAuth } from "./auth";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 // Express 的 Request 類型擴展
 declare module 'express-serve-static-core' {
@@ -23,8 +23,8 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({
-    server: httpServer,
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
     path: '/ws',
     verifyClient: ({ req }) => {
       const protocol = req.headers['sec-websocket-protocol'];
@@ -34,81 +34,6 @@ export function registerRoutes(app: Express): Server {
 
   // 設置認證系統
   setupAuth(app);
-
-  // 評論相關的路由
-  app.post("/api/songs/:songId/comments", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "請先登入" });
-    }
-
-    try {
-      const songId = parseInt(req.params.songId);
-      const { content } = req.body;
-
-      const [newComment] = await db.insert(comments)
-        .values({
-          songId,
-          content,
-          createdBy: req.user!.id,
-          isActive: true
-        })
-        .returning();
-
-      // 查询新建的评论的完整信息，包括用户名
-      const [commentWithUser] = await db
-        .select({
-          id: comments.id,
-          content: comments.content,
-          createdAt: comments.createdAt,
-          username: users.username,
-        })
-        .from(comments)
-        .leftJoin(users, eq(comments.createdBy, users.id))
-        .where(eq(comments.id, newComment.id));
-
-      res.json(commentWithUser);
-    } catch (error) {
-      console.error('Failed to add comment:', error);
-      res.status(500).json({ error: "新增評論失敗" });
-    }
-  });
-
-  app.get("/api/songs/:songId/comments", async (req, res) => {
-    try {
-      const songId = parseInt(req.params.songId);
-      const songComments = await db
-        .select({
-          id: comments.id,
-          content: comments.content,
-          createdAt: comments.createdAt,
-          username: users.username,
-        })
-        .from(comments)
-        .leftJoin(users, eq(comments.createdBy, users.id))
-        .where(sql`${comments.songId} = ${songId} AND ${comments.isActive} = true`)
-        .orderBy(desc(comments.createdAt));
-
-      res.json(songComments);
-    } catch (error) {
-      console.error('Failed to fetch comments:', error);
-      res.status(500).json({ error: "無法取得評論" });
-    }
-  });
-
-  app.delete("/api/songs/:songId/comments/:commentId", requireAdmin, async (req, res) => {
-    try {
-      const commentId = parseInt(req.params.commentId);
-
-      await db.update(comments)
-        .set({ isActive: false })
-        .where(eq(comments.id, commentId));
-
-      res.json({ message: "評論已刪除" });
-    } catch (error) {
-      console.error('Failed to delete comment:', error);
-      res.status(500).json({ error: "刪除評論失敗" });
-    }
-  });
 
   // 標籤相關的 API 路由
   app.get("/api/tags", async (_req, res) => {
@@ -269,7 +194,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
   // WebSocket message handling
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');
@@ -290,9 +214,9 @@ export function registerRoutes(app: Express): Server {
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
-        ws.send(JSON.stringify({
-          type: 'ERROR',
-          message: 'Failed to process message'
+        ws.send(JSON.stringify({ 
+          type: 'ERROR', 
+          message: 'Failed to process message' 
         }));
       }
     });
@@ -308,12 +232,13 @@ export function registerRoutes(app: Express): Server {
 async function getSongsWithVotes() {
   const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
 
+  // 計算每首歌的投票數
   const songVotes = await db.select({
     songId: votes.songId,
     voteCount: sql<number>`count(*)`.mapWith(Number)
   })
-    .from(votes)
-    .groupBy(votes.songId);
+  .from(votes)
+  .groupBy(votes.songId);
 
   const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
 
@@ -328,9 +253,9 @@ async function sendSongsUpdate(wss: WebSocketServer) {
     const songsList = await getSongsWithVotes();
     wss.clients.forEach(client => {
       if (client.readyState === 1) { // WebSocket.OPEN
-        client.send(JSON.stringify({
-          type: 'SONGS_UPDATE',
-          songs: songsList
+        client.send(JSON.stringify({ 
+          type: 'SONGS_UPDATE', 
+          songs: songsList 
         }));
       }
     });
