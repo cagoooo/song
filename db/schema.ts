@@ -1,7 +1,6 @@
 import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
-import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -36,7 +35,7 @@ export const songSuggestions = pgTable("song_suggestions", {
   title: text("title").notNull(),
   artist: text("artist").notNull(),
   suggestedBy: text("suggested_by"),
-  status: text("status", { enum: ["pending", "approved", "rejected", "added"] }).default("pending").notNull(),
+  status: text("status").default("pending").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   notes: text("notes")
 });
@@ -141,12 +140,8 @@ export const selectTagSchema = createSelectSchema(tags);
 export const insertSongTagSchema = createInsertSchema(songTags);
 export const selectSongTagSchema = createSelectSchema(songTags);
 
-export const insertSongSuggestionSchema = createInsertSchema(songSuggestions, {
-  status: z.enum(["pending", "approved", "rejected", "added"]).default("pending"),
-});
-export const selectSongSuggestionSchema = createSelectSchema(songSuggestions, {
-  status: z.enum(["pending", "approved", "rejected", "added"]),
-});
+export const insertSongSuggestionSchema = createInsertSchema(songSuggestions);
+export const selectSongSuggestionSchema = createSelectSchema(songSuggestions);
 
 export const insertQRCodeScanSchema = createInsertSchema(qrCodeScans);
 export const selectQRCodeScanSchema = createSelectSchema(qrCodeScans);

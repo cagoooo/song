@@ -43,10 +43,10 @@ export function registerRoutes(app: Express): Server {
 
       const [scan] = await db.insert(qrCodeScans)
         .values({
-          songId: songId,
-          sessionId: sessionId,
-          userAgent: userAgent || undefined,
-          referrer: referrer || undefined
+          songId,
+          sessionId,
+          userAgent: userAgent || null,
+          referrer: referrer || null
         })
         .returning();
 
@@ -313,20 +313,11 @@ export function registerRoutes(app: Express): Server {
       const id = parseInt(req.params.id);
       const { status } = req.body;
 
-      // 驗證狀態值
-      if (!["pending", "approved", "rejected", "added"].includes(status)) {
-        return res.status(400).json({ error: "無效的狀態值" });
-      }
-
       const [updatedSuggestion] = await db
         .update(songSuggestions)
         .set({ status })
         .where(eq(songSuggestions.id, id))
         .returning();
-
-      if (!updatedSuggestion) {
-        return res.status(404).json({ error: "找不到該建議" });
-      }
 
       res.json(updatedSuggestion);
     } catch (error) {
@@ -350,50 +341,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add new route for adding approved suggestions to songs list
-  app.post("/api/suggestions/:id/add-to-songs", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-
-      // Get suggestion details
-      const suggestions = await db
-        .select()
-        .from(songSuggestions)
-        .where(eq(songSuggestions.id, id))
-        .limit(1);
-
-      if (suggestions.length === 0) {
-        return res.status(404).json({ error: "找不到該建議" });
-      }
-
-      const suggestion = suggestions[0];
-
-      // Add to songs list
-      const [newSong] = await db.insert(songs)
-        .values({
-          title: suggestion.title,
-          artist: suggestion.artist,
-          notes: suggestion.notes || undefined,
-          createdBy: req.user?.id,
-          isActive: true
-        })
-        .returning();
-
-      // Update suggestion status
-      await db.update(songSuggestions)
-        .set({ status: "added" })
-        .where(eq(songSuggestions.id, id));
-
-      // Notify all clients about the songs list update
-      await sendSongsUpdate(wss);
-
-      res.json(newSong);
-    } catch (error) {
-      console.error('Failed to add suggestion to songs:', error);
-      res.status(500).json({ error: "無法將建議加入歌單" });
-    }
-  });
-
+  // Add new route for updating song information
   app.patch("/api/songs/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
