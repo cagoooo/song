@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { db } from "@db";
-import { songs, votes, type User, type Song } from "@db/schema";
+import { songs, votes, songSuggestions, type User, type Song } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
@@ -17,6 +17,25 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
     return res.status(403).json({ message: "需要管理員權限" });
   }
   next();
+};
+
+// 錯誤處理中間件
+const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('API Error:', err);
+
+  // 處理特定的錯誤類型
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ message: err.message || '輸入資料格式不正確' });
+  }
+
+  if (err.code === '23505') { // PostgreSQL 唯一約束違反
+    return res.status(409).json({ message: '此歌曲建議已存在' });
+  }
+
+  // 預設錯誤回應
+  const statusCode = err.statusCode || 500;
+  const message = err.message || '伺服器內部錯誤';
+  res.status(statusCode).json({ message });
 };
 
 export function registerRoutes(app: Express): Server {
@@ -140,8 +159,128 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // 歌曲建議相關的路由
+  app.get('/api/suggestions', async (req, res, next) => {
+    try {
+      const allSuggestions = await db
+        .select()
+        .from(songSuggestions)
+        .orderBy(sql`created_at DESC`);
+      res.json(allSuggestions);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post('/api/suggestions', async (req, res, next) => {
+    try {
+      const { title, artist, suggestedBy, notes } = req.body;
+
+      // 基本驗證
+      if (!title || !artist) {
+        return res.status(400).json({
+          message: '歌曲名稱和歌手名稱為必填項目'
+        });
+      }
+
+      // 檢查是否重複建議（相同歌曲名稱和歌手）
+      const existingSuggestion = await db
+        .select()
+        .from(songSuggestions)
+        .where(sql`LOWER(title) = LOWER(${title}) AND LOWER(artist) = LOWER(${artist})`);
+
+      if (existingSuggestion.length > 0) {
+        return res.status(409).json({
+          message: '此歌曲已經被建議過了'
+        });
+      }
+
+      // 限制單一用戶的建議次數（每小時最多5次）
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const recentSuggestions = await db
+        .select()
+        .from(songSuggestions)
+        .where(sql`created_at > ${oneHourAgo}`);
+
+      if (recentSuggestions.length >= 5) {
+        return res.status(429).json({
+          message: '您的建議次數過多，請稍後再試'
+        });
+      }
+
+      // 創建新的建議
+      const newSuggestion = await db.insert(songSuggestions).values({
+        title,
+        artist,
+        suggestedBy: suggestedBy || null,
+        notes: notes || null,
+        status: 'pending',
+        createdAt: new Date()
+      }).returning();
+
+      res.status(201).json(newSuggestion[0]);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // 更新建議狀態（需要管理員權限）
+  app.patch('/api/suggestions/:id/status', requireAdmin, async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!['pending', 'approved', 'rejected'].includes(status)) {
+        return res.status(400).json({
+          message: '無效的狀態值'
+        });
+      }
+
+      const updatedSuggestion = await db
+        .update(songSuggestions)
+        .set({ status })
+        .where(eq(songSuggestions.id, parseInt(id)))
+        .returning();
+
+      if (updatedSuggestion.length === 0) {
+        return res.status(404).json({
+          message: '找不到此建議'
+        });
+      }
+
+      res.json(updatedSuggestion[0]);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // 刪除建議（需要管理員權限）
+  app.delete('/api/suggestions/:id', requireAdmin, async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      const deletedSuggestion = await db
+        .delete(songSuggestions)
+        .where(eq(songSuggestions.id, parseInt(id)))
+        .returning();
+
+      if (deletedSuggestion.length === 0) {
+        return res.status(404).json({
+          message: '找不到此建議'
+        });
+      }
+
+      res.json({ message: '建議已成功刪除' });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Setup authentication
   setupAuth(app);
+
+  // 註冊錯誤處理中間件
+  app.use(errorHandler);
 
   return httpServer;
 }

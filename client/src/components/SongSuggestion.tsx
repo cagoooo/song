@@ -43,14 +43,37 @@ export default function SongSuggestion({ isAdmin = false }) {
 
   const addSuggestionMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/suggestions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, artist, suggestedBy, notes })
-      });
+      try {
+        const response = await fetch('/api/suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, artist, suggestedBy, notes }),
+          credentials: 'include'
+        });
 
-      if (!response.ok) throw new Error('Failed to add suggestion');
-      return response.json();
+        const data = await response.json();
+
+        if (!response.ok) {
+          // 處理特定的錯誤情況
+          if (response.status === 400) {
+            throw new Error(data.message || '請檢查輸入的資料是否正確');
+          } else if (response.status === 401) {
+            throw new Error('請先登入後再試');
+          } else if (response.status === 429) {
+            throw new Error('請稍後再試，暫時無法送出更多建議');
+          } else {
+            throw new Error(data.message || '無法送出歌曲建議，請稍後再試');
+          }
+        }
+
+        return data;
+      } catch (error: any) {
+        // 如果是網路錯誤
+        if (!error.response) {
+          throw new Error('網路連線異常，請確認網路狀態後再試');
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
@@ -64,10 +87,10 @@ export default function SongSuggestion({ isAdmin = false }) {
         description: "您的建議已送出，管理員會盡快審核",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "錯誤",
-        description: "無法送出歌曲建議",
+        description: error.message || "無法送出歌曲建議，請稍後再試",
         variant: "destructive"
       });
     }
