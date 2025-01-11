@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "./ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
-import { QrCode } from "lucide-react";
+import { Share2 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   FacebookShareButton,
@@ -24,24 +24,16 @@ export function ShareButton() {
       <DialogTrigger asChild>
         <Button 
           variant="outline" 
-          size="default" 
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50
-                    border-2 border-blue-200/50 hover:border-blue-300/60
-                    shadow-[0_2px_10px_rgba(59,130,246,0.2)]
-                    hover:shadow-[0_4px_20px_rgba(59,130,246,0.3)]
+          size="icon" 
+          className="w-10 h-10 border-2 border-primary/20 bg-white/80 hover:bg-white/90
+                    shadow-[0_2px_10px_rgba(var(--primary),0.1)]
+                    hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
                     transition-all duration-300"
         >
-          <QrCode className="h-5 w-5 text-blue-600" />
-          <span className="text-blue-700 font-medium hidden sm:inline">分享點歌</span>
+          <Share2 className="h-5 w-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md border-2 border-blue-200/50">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-center bg-gradient-to-r from-blue-600 to-indigo-600 
-                                bg-clip-text text-transparent">
-            分享點歌系統
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-md border-2 border-primary/20">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -52,18 +44,22 @@ export function ShareButton() {
           }}
           className="flex flex-col items-center justify-center p-6"
         >
+          <h2 className="text-xl font-semibold mb-2 bg-gradient-to-r from-primary to-purple-600 
+                        bg-clip-text text-transparent">
+            分享點歌系統
+          </h2>
           <p className="text-sm text-muted-foreground mb-6">
             掃描QR Code或透過社群媒體分享
           </p>
 
           {/* QR Code Section */}
           <div className="relative mb-8">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 
                           opacity-30 blur-xl animate-pulse rounded-full" />
             <motion.div
               whileHover={{ scale: 1.02 }}
-              className="relative p-4 bg-white rounded-xl shadow-[0_8px_32px_rgba(59,130,246,0.2)]
-                        border-2 border-blue-200/50"
+              className="relative p-4 bg-white rounded-xl shadow-[0_8px_32px_rgba(var(--primary),0.2)]
+                       border-2 border-primary/10"
             >
               <QRCodeSVG 
                 value={currentUrl} 
@@ -82,12 +78,7 @@ export function ShareButton() {
             </p>
             <div className="flex justify-center gap-4">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <FacebookShareButton 
-                  url={currentUrl} 
-                  title={shareTitle}
-                  hashtag="#吉他彈唱"
-                  className="outline-none"
-                >
+                <FacebookShareButton url={currentUrl} quote={shareTitle} className="outline-none">
                   <FacebookIcon size={40} round className="shadow-lg hover:shadow-xl transition-shadow" />
                 </FacebookShareButton>
               </motion.div>
