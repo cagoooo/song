@@ -13,24 +13,21 @@ import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
+import { io, Socket } from "socket.io-client";
 
-type WebSocketMessage = {
-  type: 'SONGS_UPDATE';
-  songs: Song[];
-} | {
-  type: 'ERROR';
-  message: string;
+type SocketEvent = {
+  songs_update: Song[];
+  error: { message: string };
 };
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const { toast } = useToast();
-  const wsRef = useRef<WebSocket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const { user, logout } = useUser();
-  const [wsStatus, setWsStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
+  const [socketStatus, setSocketStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
   const reconnectAttempts = useRef(0);
-  const maxReconnectDelay = 30000; // Maximum delay of 30 seconds
 
   const { isLoading } = useQuery({
     queryKey: ['/api/songs'],
@@ -46,132 +43,116 @@ export default function Home() {
     retry: 1
   });
 
-  const setupWebSocket = useCallback(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-
+  const setupSocket = useCallback(() => {
     try {
-      console.log('Connecting to WebSocket:', wsUrl);
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
+      if (socketRef.current?.connected) {
+        console.log('Socket is already connected, skipping setup');
+        return;
+      }
 
-      ws.onopen = () => {
-        console.log('WebSocket connection established');
-        setWsStatus('connected');
+      console.log('Setting up new socket connection');
+      setSocketStatus('connecting');
+
+      // Initialize socket connection
+      const socket = io(window.location.origin, {
+        path: '/ws',
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
+        forceNew: true,
+      });
+
+      // Connection event handlers
+      socket.on('connect', () => {
+        console.log('Socket.IO connection established');
+        setSocketStatus('connected');
         reconnectAttempts.current = 0;
+
         toast({
           title: "連線成功",
           description: "即時更新已啟用",
         });
-      };
+      });
 
-      ws.onclose = (event) => {
-        // Don't attempt to reconnect if the closure was clean
-        if (event.wasClean) {
-          console.log('WebSocket closed cleanly', event);
-          setWsStatus('disconnected');
-          return;
-        }
+      socket.on('disconnect', (reason) => {
+        console.log('Socket.IO disconnected:', reason);
+        setSocketStatus('disconnected');
 
-        console.log('WebSocket connection closed', event);
-        setWsStatus('disconnected');
-
-        // Calculate reconnection delay with exponential backoff
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), maxReconnectDelay);
-        reconnectAttempts.current++;
-
-        console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current})`);
-
-        // Only show toast for abnormal closures
-        if (!event.wasClean) {
+        // Only show toast for non-intentional disconnects
+        if (reason !== 'io client disconnect' && reason !== 'transport close') {
           toast({
             title: "連線中斷",
             description: "正在嘗試重新連線...",
             variant: "destructive"
           });
         }
+      });
 
-        // Clear existing reconnection timeout if any
-        if ((window as any).wsReconnectTimeout) {
-          clearTimeout((window as any).wsReconnectTimeout);
-        }
+      socket.on('connect_error', (error) => {
+        console.error('Socket.IO connection error:', error);
+        setSocketStatus('disconnected');
+        reconnectAttempts.current++;
 
-        // Set new reconnection timeout
-        (window as any).wsReconnectTimeout = setTimeout(() => {
-          if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-            setupWebSocket();
-          }
-        }, delay);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data) as WebSocketMessage;
-          console.log('WebSocket message received:', data);
-
-          switch (data.type) {
-            case 'SONGS_UPDATE':
-              setSongs(data.songs);
-              break;
-            case 'ERROR':
-              toast({
-                title: "錯誤",
-                description: data.message,
-                variant: "destructive"
-              });
-              break;
-          }
-        } catch (error) {
-          console.error('WebSocket message parsing error:', error);
-          toast({
-            title: "訊息處理錯誤",
-            description: "正在嘗試重新建立連線...",
-            variant: "destructive"
-          });
-
-          // Force reconnection on parse error
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.close();
-          }
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        // Only show error toast if we're not already disconnected
-        if (wsStatus !== 'disconnected') {
+        // Show error toast only on first attempt
+        if (reconnectAttempts.current === 1) {
           toast({
             title: "連線錯誤",
             description: "正在嘗試重新連線...",
             variant: "destructive"
           });
         }
+      });
+
+      // Handle songs update
+      socket.on('songs_update', (updatedSongs: Song[]) => {
+        console.log('Received songs update:', updatedSongs);
+        setSongs(updatedSongs);
+      });
+
+      // Handle errors
+      socket.on('error', (error: { message: string }) => {
+        console.error('Socket.IO error:', error);
+        toast({
+          title: "錯誤",
+          description: error.message,
+          variant: "destructive"
+        });
+      });
+
+      socketRef.current = socket;
+
+      return () => {
+        console.log('Cleaning up socket connection');
+        if (socket.connected) {
+          socket.disconnect();
+        }
+        socketRef.current = null;
       };
-
     } catch (error) {
-      console.error('WebSocket connection error:', error);
-      setWsStatus('disconnected');
+      console.error('Socket setup error:', error);
+      setSocketStatus('disconnected');
 
-      // Attempt to reconnect after a delay
-      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), maxReconnectDelay);
-      setTimeout(setupWebSocket, delay);
+      // Show error toast only on first attempt
+      if (reconnectAttempts.current === 0) {
+        toast({
+          title: "連線錯誤",
+          description: "無法建立即時連線",
+          variant: "destructive"
+        });
+      }
+      return undefined;
     }
-  }, [toast, wsStatus]);
+  }, [toast]);
 
   useEffect(() => {
-    setupWebSocket();
-
-    // Cleanup function
+    const cleanup = setupSocket();
     return () => {
-      if (wsRef.current) {
-        // Perform clean closure
-        wsRef.current.close(1000, "Component unmounting");
-      }
-      if ((window as any).wsReconnectTimeout) {
-        clearTimeout((window as any).wsReconnectTimeout);
-      }
+      cleanup?.();
     };
-  }, [setupWebSocket]);
+  }, [setupSocket]);
 
   const handleLogout = async () => {
     try {
@@ -299,7 +280,7 @@ export default function Home() {
                 <CardContent className="p-3 sm:p-6">
                   {user?.isAdmin && <SongImport />}
                   <div className="h-4" />
-                  <SongList songs={songs} ws={wsRef.current} user={user || null} />
+                  <SongList songs={songs} socket={socketRef.current} user={user || null} />
                 </CardContent>
               </Card>
             </motion.div>

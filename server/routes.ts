@@ -1,45 +1,10 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer, WebSocket } from "ws";
+import { Server as SocketIOServer } from "socket.io";
 import { db } from "@db";
 import { songs, votes, type User, type Song } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
-import type { IncomingMessage } from "http";
-
-// Define WebSocket message types
-interface VoteMessage {
-  type: 'VOTE';
-  songId: number;
-}
-
-interface ErrorMessage {
-  type: 'ERROR';
-  message: string;
-}
-
-interface SongsUpdateMessage {
-  type: 'SONGS_UPDATE';
-  songs: Array<Song & { voteCount: number }>;
-}
-
-type WebSocketMessage = VoteMessage | ErrorMessage | SongsUpdateMessage;
-
-interface WebSocketWithState extends WebSocket {
-  isAlive: boolean;
-  sessionId: string;
-}
-
-interface ExtendedIncomingMessage extends IncomingMessage {
-  headers: {
-    'sec-websocket-protocol'?: string;
-    'sec-websocket-key'?: string;
-    'sec-websocket-version'?: string;
-    upgrade?: string;
-    connection?: string;
-    origin?: string;
-  };
-}
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -57,178 +22,128 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
 
-  // WebSocket server configuration
-  const wss = new WebSocketServer({
-    noServer: true, // Important: Use noServer mode for better control
-    clientTracking: true,
+  // Initialize Socket.IO with CORS and path configuration
+  const io = new SocketIOServer(httpServer, {
+    path: '/ws',
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    },
+    transports: ['websocket'],
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    connectTimeout: 5000,
+    maxHttpBufferSize: 1e6,
+    serveClient: false,
   });
 
-  // Handle WebSocket upgrade requests
-  httpServer.on('upgrade', (request: ExtendedIncomingMessage, socket, head) => {
-    try {
-      // Ignore vite-hmr requests
-      if (request.headers['sec-websocket-protocol']?.includes('vite-hmr') ||
-          request.headers.origin?.includes('vite')) {
-        socket.destroy();
-        return;
-      }
+  // Handle WebSocket upgrade
+  httpServer.on('upgrade', (request, socket, head) => {
+    // Skip Vite HMR connections
+    if (request.headers['sec-websocket-protocol']?.includes('vite-hmr')) {
+      socket.destroy();
+      return;
+    }
 
-      // Validate WebSocket connection
-      if (!request.headers.upgrade?.toLowerCase().includes('websocket') ||
-          !request.headers.connection?.toLowerCase().includes('upgrade') ||
-          !request.headers['sec-websocket-key'] ||
-          !request.headers['sec-websocket-version']) {
-        socket.destroy();
-        return;
-      }
-
-      // Handle WebSocket path
-      const url = new URL(request.url || '', `http://${request.headers.host}`);
-      if (url.pathname !== '/ws') {
-        socket.destroy();
-        return;
-      }
-
-      // Upgrade the connection
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
-      });
-    } catch (error) {
-      console.error('Error in upgrade handling:', error);
+    // Handle Socket.IO upgrades
+    if (request.url?.startsWith('/ws')) {
+      io.engine.handleUpgrade(request, socket as any, head);
+    } else {
       socket.destroy();
     }
   });
 
-  // Connection tracker
+  // Connection counter
   let activeConnections = 0;
 
-  // Heartbeat mechanism
-  const heartbeat = function(this: WebSocketWithState) {
-    this.isAlive = true;
-  };
-
-  // Connection cleanup interval
-  const cleanupInterval = setInterval(() => {
-    wss.clients.forEach((ws) => {
-      const client = ws as WebSocketWithState;
-      if (!client.isAlive) {
-        console.log('Terminating inactive client:', client.sessionId);
-        return client.terminate();
-      }
-      client.isAlive = false;
-      client.ping();
-    });
-  }, 30000);
-
-  // WebSocket connection handler
-  wss.on('connection', async (ws: WebSocket, request: IncomingMessage) => {
+  // Socket.IO connection handler
+  io.on('connection', async (socket) => {
     try {
-      const client = ws as WebSocketWithState;
-      client.sessionId = Math.random().toString(36).substring(2);
-      client.isAlive = true;
+      // Skip vite-hmr connections
+      if (socket.handshake.headers['sec-websocket-protocol']?.includes('vite-hmr')) {
+        socket.disconnect();
+        return;
+      }
+
+      // Generate session ID
+      const sessionId = Math.random().toString(36).substring(2);
       activeConnections++;
 
-      console.log('New WebSocket connection established', {
-        ip: request.socket.remoteAddress,
-        userAgent: request.headers['user-agent'],
-        sessionId: client.sessionId,
-        activeConnections
+      console.log('New Socket.IO connection established', {
+        id: socket.id,
+        sessionId,
+        activeConnections,
+        protocol: socket.handshake.headers['sec-websocket-protocol']
       });
 
-      // Setup heartbeat
-      client.on('pong', heartbeat.bind(client));
-
-      // Initial data sync
+      // Send initial songs data
       try {
         const songsList = await getSongsWithVotes();
-        const message: SongsUpdateMessage = {
-          type: 'SONGS_UPDATE',
-          songs: songsList
-        };
-        client.send(JSON.stringify(message));
+        socket.emit('songs_update', songsList);
       } catch (error) {
         console.error('Error in initial data sync:', error);
-        const errorMsg: ErrorMessage = {
-          type: 'ERROR',
-          message: '無法載入歌曲列表'
-        };
-        client.send(JSON.stringify(errorMsg));
+        socket.emit('error', { message: '無法載入歌曲列表' });
       }
 
-      // Message handler
-      client.on('message', async (data) => {
+      // Handle vote events
+      socket.on('vote', async (songId: number) => {
         try {
-          const message = JSON.parse(data.toString()) as WebSocketMessage;
+          await db.insert(votes).values({
+            songId,
+            sessionId,
+            createdAt: new Date()
+          });
 
-          if (message.type === 'VOTE') {
-            try {
-              await db.insert(votes).values({
-                songId: message.songId,
-                sessionId: client.sessionId,
-                createdAt: new Date()
-              });
-
-              // Broadcast update to all clients
-              const updatedSongs = await getSongsWithVotes();
-              const updateMsg: SongsUpdateMessage = {
-                type: 'SONGS_UPDATE',
-                songs: updatedSongs
-              };
-
-              const broadcastData = JSON.stringify(updateMsg);
-              wss.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                  client.send(broadcastData);
-                }
-              });
-            } catch (error) {
-              console.error('Vote processing error:', error);
-              const errorMsg: ErrorMessage = {
-                type: 'ERROR',
-                message: '處理投票時發生錯誤'
-              };
-              client.send(JSON.stringify(errorMsg));
-            }
-          }
+          // Broadcast updated songs to all clients
+          const updatedSongs = await getSongsWithVotes();
+          io.emit('songs_update', updatedSongs);
         } catch (error) {
-          console.error('Message parsing error:', error);
-          const errorMsg: ErrorMessage = {
-            type: 'ERROR',
-            message: '訊息格式錯誤'
-          };
-          client.send(JSON.stringify(errorMsg));
+          console.error('Vote processing error:', error);
+          socket.emit('error', { message: '處理投票時發生錯誤' });
         }
       });
 
-      // Error handler
-      client.on('error', (error) => {
-        console.error('WebSocket client error:', error, { sessionId: client.sessionId });
-      });
-
-      // Close handler
-      client.on('close', () => {
+      // Handle disconnection
+      socket.on('disconnect', (reason) => {
         activeConnections--;
-        client.isAlive = false;
-        console.log('WebSocket connection closed', {
-          sessionId: client.sessionId,
+        console.log('Socket.IO connection closed', {
+          id: socket.id,
+          sessionId,
+          reason,
           activeConnections
         });
       });
 
+      // Handle errors
+      socket.on('error', (error) => {
+        console.error('Socket.IO error:', error, { id: socket.id, sessionId });
+      });
+
     } catch (error) {
       console.error('Connection setup error:', error);
-      ws.terminate();
+      socket.disconnect(true);
     }
   });
 
-  // Server shutdown cleanup
-  httpServer.on('close', () => {
-    clearInterval(cleanupInterval);
-    wss.close();
+  // Handle server errors
+  io.engine.on('connection_error', (error) => {
+    console.error('Socket.IO server error:', error);
+  });
+
+  // Setup HTTP routes
+  app.get('/api/songs', async (_req, res) => {
+    try {
+      const songsList = await getSongsWithVotes();
+      res.json(songsList);
+    } catch (error) {
+      console.error('Error fetching songs:', error);
+      res.status(500).json({ message: '無法取得歌曲列表' });
+    }
   });
 
   // Setup authentication
   setupAuth(app);
+
   return httpServer;
 }
 
