@@ -13,15 +13,17 @@ import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
+import FireworkEffect from "../components/FireworkEffect";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
 
-  const { isLoading } = useQuery({
+  const { isLoading: queryLoading } = useQuery({
     queryKey: ['/api/songs'],
     queryFn: async () => {
       const response = await fetch('/api/songs', {
@@ -30,6 +32,7 @@ export default function Home() {
       if (!response.ok) throw new Error('Failed to fetch songs');
       const data = await response.json();
       setSongs(data);
+      setIsLoading(false);
       return data;
     },
     retry: 1
@@ -113,22 +116,44 @@ export default function Home() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || queryLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <motion.div
-          animate={{
-            rotate: 360,
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        >
-          <Music2 className="w-12 h-12 text-primary" />
-        </motion.div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-background to-primary/5">
+        <div className="relative">
+          <motion.div
+            animate={{
+              rotate: 360,
+              scale: [1, 1.2, 1],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+            className="relative z-10"
+          >
+            <Music2 className="w-16 h-16 text-primary animate-pulse" />
+          </motion.div>
+          <motion.div
+            className="absolute inset-0 bg-gradient-radial from-primary/20 via-primary/10 to-transparent rounded-full"
+            animate={{
+              scale: [1, 1.5, 1],
+              opacity: [0.3, 0.6, 0.3],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            style={{
+              width: '120px',
+              height: '120px',
+              top: '-28px',
+              left: '-28px',
+            }}
+          />
+          <FireworkEffect isVisible={true} />
+        </div>
       </div>
     );
   }
@@ -143,7 +168,7 @@ export default function Home() {
           className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 sm:mb-8"
         >
           <div className="flex items-center gap-4">
-            <div 
+            <div
               className="relative p-2 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
                        shadow-[0_0_15px_rgba(var(--primary),0.3)]
                        animate-[shadow-pulse_3s_ease-in-out_infinite]
@@ -173,7 +198,7 @@ export default function Home() {
         </motion.div>
 
         <AnimatePresence>
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
             layout
             transition={{
@@ -243,17 +268,17 @@ export default function Home() {
       </div>
 
       {!user && (
-        <motion.div 
+        <motion.div
           className="fixed bottom-4 right-4 z-50"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setShowLoginForm(true)}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 
+            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100
                       backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40
                       transition-all duration-300"
           >

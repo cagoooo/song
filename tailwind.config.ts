@@ -10,6 +10,9 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -88,13 +91,18 @@ export default {
             borderColor: "rgba(var(--primary), 0.4)",
             transform: "scale(1.02)"
           }
+        },
+        "firework-spin": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" }
         }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "shadow-pulse": "shadow-pulse 3s ease-in-out infinite",
-        "border-pulse": "border-pulse 3s ease-in-out infinite"
+        "border-pulse": "border-pulse 3s ease-in-out infinite",
+        "firework-spin": "firework-spin 3s linear infinite"
       },
     },
   },
