@@ -43,10 +43,11 @@ export function registerRoutes(app: Express): Server {
 
       const [scan] = await db.insert(qrCodeScans)
         .values({
-          songId,
-          sessionId,
+          songId: songId,
+          sessionId: sessionId,
           userAgent: userAgent || null,
-          referrer: referrer || null
+          referrer: referrer || null,
+          createdAt: new Date()
         })
         .returning();
 

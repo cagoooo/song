@@ -10,7 +10,6 @@ import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import RankingBoard from "../components/RankingBoard";
 import LoginForm from "../components/LoginForm";
-import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 
@@ -121,57 +120,32 @@ export default function Home() {
 
   const handleImportSongInfo = (songInfo: ImportSongInfo) => {
     setImportSongInfo(songInfo);
+    toast({
+      title: "成功",
+      description: "歌曲資訊已匯入",
+    });
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <motion.div
-          animate={{
-            rotate: 360,
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        >
-          <Music2 className="w-12 h-12 text-primary" />
-        </motion.div>
+        <Music2 className="w-12 h-12 text-primary animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto py-4 sm:py-8 px-4">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 sm:mb-8"
-        >
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <div 
-              className="relative p-2 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
-                        shadow-[0_0_15px_rgba(var(--primary),0.3)]
-                        animate-[shadow-pulse_3s_ease-in-out_infinite]
-                        w-full sm:w-auto"
-            >
-              <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent
-                          px-4 py-2 text-center sm:text-left">
-                吉他彈唱點歌系統
-              </h1>
-              <div className="absolute inset-0 rounded-lg border-2 border-primary/20
-                          animate-[border-pulse_3s_ease-in-out_infinite_0.5s]" />
-            </div>
+            <h1 className="text-2xl sm:text-4xl font-bold">吉他彈唱點歌系統</h1>
             <ShareButton />
           </div>
 
-          {user ? (
-            <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-end w-full sm:w-auto">
-              <span className="text-sm px-3 py-1 rounded-full bg-primary/10 text-primary">
+          {user && (
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">
                 {user.isAdmin ? '管理員' : '使用者'}: {user.username}
               </span>
               <Button variant="outline" size="sm" onClick={handleLogout}>
@@ -179,103 +153,68 @@ export default function Home() {
                 登出
               </Button>
             </div>
-          ) : null}
-        </motion.div>
+          )}
+        </div>
 
-        <AnimatePresence>
-          <motion.div 
-            className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
-            layout
-            transition={{
-              layout: { duration: 0.3 },
-            }}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="lg:col-span-3"
-            >
-              <Card className="shadow-lg bg-gradient-to-br from-amber-50/50 via-white to-amber-50/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
-                    想聽的歌還沒有？
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <SongSuggestion 
-                    isAdmin={user?.isAdmin ?? false} 
-                    onImportSongInfo={handleImportSongInfo}
-                  />
-                </CardContent>
-              </Card>
-            </motion.div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5 text-amber-500" />
+                  想聽的歌還沒有？
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SongSuggestion 
+                  isAdmin={user?.isAdmin ?? false} 
+                  onImportSongInfo={handleImportSongInfo}
+                />
+              </CardContent>
+            </Card>
+          </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="lg:col-span-2"
-            >
-              <Card className="shadow-lg h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                    可選歌單
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 sm:p-6">
-                  {user?.isAdmin && (
-                    <SongImport importSongInfo={importSongInfo} />
-                  )}
-                  <div className="h-4" />
-                  <SongList songs={songs} ws={wsRef.current} user={user || null} />
-                </CardContent>
-              </Card>
-            </motion.div>
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Music2 className="w-5 h-5 text-primary" />
+                  可選歌單
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {user?.isAdmin && (
+                  <SongImport importSongInfo={importSongInfo} />
+                )}
+                <div className="h-4" />
+                <SongList songs={songs} ws={wsRef.current} user={user || null} />
+              </CardContent>
+            </Card>
+          </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className="lg:col-span-1"
-            >
-              <Card className="shadow-lg h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                    人氣點播排行榜
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 sm:p-6">
-                  <RankingBoard songs={songs} />
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
-        </AnimatePresence>
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-primary" />
+                  人氣點播排行榜
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RankingBoard songs={songs} />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
 
       {!user && (
-        <motion.div 
-          className="fixed bottom-4 right-4 z-50"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setShowLoginForm(true)}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 
-                      backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40
-                      transition-all duration-300"
-          >
+        <div className="fixed bottom-4 right-4">
+          <Button variant="outline" size="sm" onClick={() => setShowLoginForm(true)}>
             <LogIn className="w-4 h-4 mr-2" />
             管理員登入
           </Button>
-        </motion.div>
+        </div>
       )}
 
       {showLoginForm && (
