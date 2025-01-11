@@ -41,13 +41,14 @@ export function registerRoutes(app: Express): Server {
       const userAgent = req.headers['user-agent'];
       const referrer = req.headers.referer || req.headers.referrer;
 
-      const [scan] = await db.insert(qrCodeScans).values({
-        songId: songId,
-        sessionId: sessionId,
-        userAgent: userAgent || null,
-        referrer: referrer || null,
-        createdAt: new Date()
-      }).returning();
+      const [scan] = await db.insert(qrCodeScans)
+        .values({
+          songId,
+          sessionId,
+          userAgent: userAgent || null,
+          referrer: referrer || null
+        })
+        .returning();
 
       res.json(scan);
     } catch (error) {
@@ -337,6 +338,35 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to delete suggestion:', error);
       res.status(500).json({ error: "無法刪除建議" });
+    }
+  });
+
+  // Add new route for updating song information
+  app.patch("/api/songs/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { title, artist, notes } = req.body;
+
+      // 更新歌曲資訊
+      const [updatedSong] = await db.update(songs)
+        .set({
+          title: title || undefined,
+          artist: artist || undefined,
+          notes: notes || undefined,
+        })
+        .where(eq(songs.id, id))
+        .returning();
+
+      if (!updatedSong) {
+        return res.status(404).json({ error: "找不到歌曲" });
+      }
+
+      // 通知所有客戶端歌曲資訊已更新
+      await sendSongsUpdate(wss);
+      res.json(updatedSong);
+    } catch (error) {
+      console.error('Failed to update song:', error);
+      res.status(500).json({ error: "更新歌曲失敗" });
     }
   });
 

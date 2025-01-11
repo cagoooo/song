@@ -13,11 +13,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
-import { Music, ThumbsUp, Trash2, RotateCcw } from "lucide-react";
+import { Music, ThumbsUp, Trash2, RotateCcw, Pencil } from "lucide-react";
 import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
 import { AnimatePresence, motion } from "framer-motion";
 import QRCodeShareModal from "./QRCodeShareModal";
+import { EditSongDialog } from "./EditSongDialog";
 
 interface SongListProps {
   songs: Song[];
@@ -35,6 +36,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   const [clickCount, setClickCount] = useState<{ [key: number]: number }>({});
   const [isTouch, setIsTouch] = useState(false);
   const [lastVoteTime, setLastVoteTime] = useState<{ [key: number]: number }>({});
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
 
   // 觸控事件檢測
   useEffect(() => {
@@ -380,23 +382,42 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                   </motion.div>
 
                   {user?.isAdmin && (
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="w-full sm:w-auto"
-                    >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteSong(song.id)}
-                        className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
+                    <>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-full sm:w-auto"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingSong(song)}
+                          className="flex gap-2 w-full sm:w-auto border-2 border-primary/20
+                                  bg-white/80 hover:bg-white/90"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          編輯
+                        </Button>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-full sm:w-auto"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteSong(song.id)}
+                          className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
                                   text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
                                   hover:border-red-300/50 transition-all duration-300"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        刪除
-                      </Button>
-                    </motion.div>
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          刪除
+                        </Button>
+                      </motion.div>
+                    </>
                   )}
                 </div>
               </div>
@@ -435,6 +456,13 @@ export default function SongList({ songs, ws, user }: SongListProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {editingSong && (
+        <EditSongDialog
+          song={editingSong}
+          isOpen={Boolean(editingSong)}
+          onClose={() => setEditingSong(null)}
+        />
+      )}
     </div>
   );
 }
