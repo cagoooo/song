@@ -97,18 +97,16 @@ export function registerRoutes(app: Express): Server {
     try {
       const { songId } = req.body;
       const sessionId = req.sessionID || Math.random().toString(36).substring(2);
-      const userAgent = req.headers['user-agent'] || null;
-      const referrer = req.headers.referer || req.headers.referrer || null;
+      const userAgent = req.headers['user-agent'];
+      const referrer = req.headers.referer || req.headers.referrer;
 
-      const [scan] = await db
-        .insert(qrCodeScans)
-        .values({
-          songId: Number(songId),
-          sessionId: sessionId,
-          userAgent: userAgent,
-          referrer: referrer
-        })
-        .returning();
+      const [scan] = await db.insert(qrCodeScans).values({
+        songId,
+        sessionId,
+        userAgent: userAgent || null,
+        referrer: referrer || null,
+        createdAt: new Date()
+      }).returning();
 
       res.json(scan);
     } catch (error) {
