@@ -1,5 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trophy, Crown, Award, FileText } from "lucide-react";
+import { Trophy, Crown, Award, FileText, Music2 } from "lucide-react";
 import type { Song } from "@db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,11 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
 
   const generateGoogleLyricsUrl = (song: Song) => {
     const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 歌詞`);
+    return `https://www.google.com/search?q=${searchQuery}`;
+  };
+
+  const generateGuitarTabUrl = (song: Song) => {
+    const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 吉他譜`);
     return `https://www.google.com/search?q=${searchQuery}`;
   };
 
@@ -111,43 +116,87 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                   <p className="text-xs text-muted-foreground">點播</p>
                 </motion.div>
 
-                <TooltipProvider delayDuration={200}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <motion.div
-                        whileHover={{ 
-                          scale: 1.05,
-                          transition: { duration: 0.2 }
-                        }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
-                                  shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                                  hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                                  transition-all duration-300 relative z-10"
-                          asChild
+                <div className="flex gap-2">
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <motion.div
+                          whileHover={{ 
+                            scale: 1.05,
+                            transition: { duration: 0.2 }
+                          }}
+                          whileTap={{ scale: 0.95 }}
                         >
-                          <a
-                            href={generateGoogleLyricsUrl(song)}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
+                                    shadow-[0_2px_10px_rgba(var(--primary),0.1)]
+                                    hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
+                                    transition-all duration-300 relative group"
+                            asChild
                           >
-                            <FileText className="w-4 h-4" />
-                          </a>
-                        </Button>
-                      </motion.div>
-                    </TooltipTrigger>
-                    <TooltipContent 
-                      side="top" 
-                      className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
-                    >
-                      <p>點擊在 Google 中搜尋「{song.title} - {song.artist}」的歌詞</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                            <a
+                              href={generateGuitarTabUrl(song)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center"
+                            >
+                              <Music2 className="w-4 h-4 transition-transform group-hover:scale-110" />
+                              <span className="sr-only">搜尋吉他譜</span>
+                            </a>
+                          </Button>
+                        </motion.div>
+                      </TooltipTrigger>
+                      <TooltipContent 
+                        side="top" 
+                        className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
+                      >
+                        <p>點擊在 Google 中搜尋「{song.title} - {song.artist}」的吉他譜</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <motion.div
+                          whileHover={{ 
+                            scale: 1.05,
+                            transition: { duration: 0.2 }
+                          }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
+                                    shadow-[0_2px_10px_rgba(var(--primary),0.1)]
+                                    hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
+                                    transition-all duration-300 relative group"
+                            asChild
+                          >
+                            <a
+                              href={generateGoogleLyricsUrl(song)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center"
+                            >
+                              <FileText className="w-4 h-4 transition-transform group-hover:scale-110" />
+                              <span className="sr-only">搜尋歌詞</span>
+                            </a>
+                          </Button>
+                        </motion.div>
+                      </TooltipTrigger>
+                      <TooltipContent 
+                        side="top" 
+                        className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
+                      >
+                        <p>點擊在 Google 中搜尋「{song.title} - {song.artist}」的歌詞</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
             </motion.div>
           ))}

@@ -11,14 +11,12 @@ import fs from "fs";
 import express from "express";
 import type { IncomingMessage } from "http";
 
-// Express 的 Request 類型擴展
 declare module 'express-serve-static-core' {
   interface Request {
     user?: User;
   }
 }
 
-// 需要管理員權限的中間件
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated() || !req.user?.isAdmin) {
     return res.status(403).json({ error: "需要管理員權限" });
@@ -37,21 +35,17 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 設置認證系統
   setupAuth(app);
 
-  // 設置檔案上傳的儲存位置和檔案名稱
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
       const uploadDir = path.join(process.cwd(), 'uploads', 'audio');
-      // 確保目錄存在
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
       cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-      // 生成唯一的檔案名稱
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
       cb(null, uniqueSuffix + path.extname(file.originalname));
     }
@@ -60,7 +54,6 @@ export function registerRoutes(app: Express): Server {
   const upload = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
-      // 只允許上傳音訊檔案
       if (file.mimetype.startsWith('audio/')) {
         cb(null, true);
       } else {
@@ -68,18 +61,15 @@ export function registerRoutes(app: Express): Server {
       }
     },
     limits: {
-      fileSize: 10 * 1024 * 1024, // 限制檔案大小為 10MB
+      fileSize: 10 * 1024 * 1024,
     }
   });
 
-  // 處理音樂檔案上傳
   app.post('/api/upload/audio', requireAdmin, upload.single('audio'), (req, res) => {
     try {
       if (!req.file) {
         throw new Error('No file uploaded');
       }
-
-      // 返回檔案的URL路徑
       const fileUrl = `/uploads/audio/${req.file.filename}`;
       res.json({ url: fileUrl });
     } catch (error) {
@@ -88,11 +78,9 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 提供靜態檔案存取
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-
-  // QR Code scan tracking endpoints
+  // 修復 QR Code scan tracking endpoints
   app.post("/api/qr-scans", async (req, res) => {
     try {
       const { songId } = req.body;
@@ -100,30 +88,27 @@ export function registerRoutes(app: Express): Server {
       const userAgent = req.headers['user-agent'];
       const referrer = req.headers.referer || req.headers.referrer;
 
-      const [scan] = await db.insert(qrCodeScans).values({
-        songId,
-        sessionId,
-        userAgent: userAgent || null,
+      // 修改為正確的插入操作
+      const result = await db.insert(qrCodeScans).values({
+        song_id: songId,
+        session_id: sessionId,
+        user_agent: userAgent || null,
         referrer: referrer || null,
-        createdAt: new Date()
       }).returning();
 
-      res.json(scan);
+      res.json(result[0]);
     } catch (error) {
       console.error('Failed to record QR code scan:', error);
       res.status(500).json({ error: "無法記錄QR碼掃描" });
     }
   });
 
-  // Get QR code scan statistics (admin only)
   app.get("/api/qr-scans/stats", requireAdmin, async (req, res) => {
     try {
-      // Get total scans count
       const totalScans = await db
         .select({ count: sql<number>`count(*)`.mapWith(Number) })
         .from(qrCodeScans);
 
-      // Get scans by song
       const scansBySong = await db
         .select({
           songId: songs.id,
@@ -136,7 +121,6 @@ export function registerRoutes(app: Express): Server {
         .groupBy(songs.id, songs.title, songs.artist)
         .orderBy(sql`count(${qrCodeScans.id}) DESC`);
 
-      // Get scans by date
       const scansByDate = await db
         .select({
           date: sql<string>`date_trunc('day', ${qrCodeScans.createdAt})::text`,
@@ -157,7 +141,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 標籤相關的 API 路由
   app.get("/api/tags", async (_req, res) => {
     try {
       const allTags = await db.select().from(tags);
@@ -204,7 +187,6 @@ export function registerRoutes(app: Express): Server {
       const songId = parseInt(req.params.songId);
       const { tagId } = req.body;
 
-      // 檢查標籤是否已經存在
       const existingTag = await db
         .select()
         .from(songTags)
@@ -215,7 +197,6 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "標籤已存在" });
       }
 
-      // 新增標籤關聯
       await db.insert(songTags)
         .values({ songId, tagId });
 
@@ -243,7 +224,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // REST API routes
   app.post("/api/songs", requireAdmin, async (req, res) => {
     try {
       const { title, artist, key, notes, lyrics, audioUrl } = req.body;
@@ -266,7 +246,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 批次匯入歌曲
   app.post("/api/songs/batch", requireAdmin, async (req, res) => {
     try {
       const { songs: songsList } = req.body;
@@ -275,7 +254,6 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "無效的歌曲清單格式" });
       }
 
-      // 批次插入所有歌曲
       await db.insert(songs).values(
         songsList.map(song => ({
           title: song.title,
@@ -318,7 +296,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 新增重置點播次數 API 路由
   app.post("/api/songs/reset-votes", requireAdmin, async (_req, res) => {
     try {
       await db.delete(votes);
@@ -330,7 +307,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 新增歌曲建議相關的路由
   app.post("/api/suggestions", async (req, res) => {
     try {
       const { title, artist, suggestedBy, notes } = req.body;
@@ -384,7 +360,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
   app.delete("/api/suggestions/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -399,7 +374,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // WebSocket message handling
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');
     const sessionId = Math.random().toString(36).substring(2);
@@ -437,7 +411,6 @@ export function registerRoutes(app: Express): Server {
 async function getSongsWithVotes() {
   const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
 
-  // 計算每首歌的投票數
   const songVotes = await db.select({
     songId: votes.songId,
     voteCount: sql<number>`count(*)`.mapWith(Number)
@@ -457,7 +430,7 @@ async function sendSongsUpdate(wss: WebSocketServer) {
   try {
     const songsList = await getSongsWithVotes();
     wss.clients.forEach(client => {
-      if (client.readyState === 1) { // WebSocket.OPEN
+      if (client.readyState === 1) {
         client.send(JSON.stringify({
           type: 'SONGS_UPDATE',
           songs: songsList
