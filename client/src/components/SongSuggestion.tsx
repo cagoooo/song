@@ -13,7 +13,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText } from "lucide-react";
+import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText, ListMusic } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SongSuggestion } from "@db/schema";
 import {
@@ -115,6 +115,33 @@ export default function SongSuggestion({ isAdmin = false }) {
       toast({
         title: "錯誤",
         description: "無法刪除建議",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const addToPlaylistMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/suggestions/${id}/add-to-playlist`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!response.ok) throw new Error('Failed to add to playlist');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/songs'] });
+      toast({
+        title: "成功",
+        description: "歌曲已成功加入歌單",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "錯誤",
+        description: "無法將歌曲加入歌單",
         variant: "destructive"
       });
     }
@@ -375,6 +402,30 @@ export default function SongSuggestion({ isAdmin = false }) {
                       >
                         <X className="w-4 h-4" />
                       </Button>
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 bg-gradient-to-r from-purple-50 to-indigo-50 
+                                        border-2 border-primary/20 text-primary
+                                        hover:text-primary/80 hover:border-primary/30
+                                        transition-all duration-300"
+                              onClick={() => addToPlaylistMutation.mutate(suggestion.id)}
+                              disabled={addToPlaylistMutation.isPending}
+                            >
+                              <ListMusic className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="top"
+                            className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
+                          >
+                            <p>加入歌單</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </>
                   )}
                 </div>

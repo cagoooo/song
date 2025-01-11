@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, type User } from "@db/schema";
+import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, type User, type NewQRCodeScan } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
 import type { IncomingMessage } from "http";
@@ -41,13 +41,16 @@ export function registerRoutes(app: Express): Server {
       const userAgent = req.headers['user-agent'];
       const referrer = req.headers.referer || req.headers.referrer;
 
+      const newScan: NewQRCodeScan = {
+        songId,
+        sessionId,
+        userAgent: userAgent || null,
+        referrer: referrer || null,
+        createdAt: new Date()
+      };
+
       const [scan] = await db.insert(qrCodeScans)
-        .values({
-          songId,
-          sessionId,
-          userAgent: userAgent || null,
-          referrer: referrer || null
-        })
+        .values(newScan)
         .returning();
 
       res.json(scan);
@@ -197,7 +200,8 @@ export function registerRoutes(app: Express): Server {
         lyrics,
         audioUrl,
         createdBy: req.user?.id,
-        isActive: true
+        isActive: true,
+        createdAt: new Date()
       }).returning();
 
       await sendSongsUpdate(wss);
@@ -223,7 +227,8 @@ export function registerRoutes(app: Express): Server {
           title: song.title,
           artist: song.artist,
           createdBy: req.user?.id,
-          isActive: true
+          isActive: true,
+          createdAt: new Date()
         }))
       );
 
@@ -283,7 +288,8 @@ export function registerRoutes(app: Express): Server {
           artist,
           suggestedBy,
           notes,
-          status: "pending"
+          status: "pending",
+          createdAt: new Date()
         })
         .returning();
 
@@ -326,6 +332,52 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // New endpoint to add song suggestion to playlist
+  app.post("/api/suggestions/:id/add-to-playlist", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+
+      // 獲取建議的歌曲資訊
+      const [suggestion] = await db
+        .select()
+        .from(songSuggestions)
+        .where(eq(songSuggestions.id, id))
+        .limit(1);
+
+      if (!suggestion) {
+        return res.status(404).json({ error: "找不到歌曲建議" });
+      }
+
+      // 新增歌曲到可選歌單
+      const [newSong] = await db.insert(songs)
+        .values({
+          title: suggestion.title,
+          artist: suggestion.artist,
+          createdBy: req.user?.id,
+          isActive: true,
+          notes: suggestion.notes || undefined,
+          createdAt: new Date()
+        })
+        .returning();
+
+      // 更新建議狀態為已採納
+      await db
+        .update(songSuggestions)
+        .set({ status: "approved" })
+        .where(eq(songSuggestions.id, id));
+
+      // 通知 WebSocket 客戶端歌單已更新
+      await sendSongsUpdate(wss);
+
+      res.json({
+        message: "歌曲已成功加入歌單",
+        song: newSong
+      });
+    } catch (error) {
+      console.error('Failed to add suggestion to playlist:', error);
+      res.status(500).json({ error: "無法將建議加入歌單" });
+    }
+  });
 
   app.delete("/api/suggestions/:id", requireAdmin, async (req, res) => {
     try {
@@ -341,41 +393,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add new route for updating song information
-  app.patch("/api/songs/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const { title, artist, notes } = req.body;
-
-      // 更新歌曲資訊
-      const [updatedSong] = await db.update(songs)
-        .set({
-          title: title || undefined,
-          artist: artist || undefined,
-          notes: notes || undefined,
-        })
-        .where(eq(songs.id, id))
-        .returning();
-
-      if (!updatedSong) {
-        return res.status(404).json({ error: "找不到歌曲" });
-      }
-
-      // 通知所有客戶端歌曲資訊已更新
-      await sendSongsUpdate(wss);
-      res.json(updatedSong);
-    } catch (error) {
-      console.error('Failed to update song:', error);
-      res.status(500).json({ error: "更新歌曲失敗" });
-    }
-  });
-
   // WebSocket message handling
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');
     const sessionId = Math.random().toString(36).substring(2);
-    let lastVoteTime: { [key: number]: number } = {};
-    let voteCount: { [key: number]: number } = {};
 
     // Send initial songs data
     sendSongsUpdate(wss);
@@ -386,26 +407,14 @@ export function registerRoutes(app: Express): Server {
         console.log('Received message:', message);
 
         if (message.type === 'VOTE') {
-          const now = Date.now();
-          const songId = message.songId;
-          const lastTime = lastVoteTime[songId] || 0;
-          const timeDiff = now - lastTime;
+          await db.insert(votes).values({
+            songId: message.songId,
+            sessionId: sessionId,
+            createdAt: new Date()
+          });
 
-          // Reduced minimum time between votes from 100ms to 50ms
-          if (timeDiff > 50) {
-            await db.insert(votes).values({
-              songId: message.songId,
-              sessionId: sessionId,
-              createdAt: new Date()
-            });
-
-            // Update vote tracking
-            lastVoteTime[songId] = now;
-            voteCount[songId] = (voteCount[songId] || 0) + 1;
-
-            // Send immediate update
-            sendSongsUpdate(wss);
-          }
+          // Send immediate update
+          sendSongsUpdate(wss);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -418,13 +427,6 @@ export function registerRoutes(app: Express): Server {
 
     ws.on('error', (error) => {
       console.error('WebSocket error:', error);
-    });
-
-    // Clean up on connection close
-    ws.on('close', () => {
-      console.log('WebSocket connection closed');
-      lastVoteTime = {};
-      voteCount = {};
     });
   });
 
