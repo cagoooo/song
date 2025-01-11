@@ -3,17 +3,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import Home from "@/pages/Home";
 import { Toaster } from "@/components/ui/toaster";
-import { SongImportProvider } from "@/lib/songImportContext";
 
 function App() {
   return (
-    <SongImportProvider>
+    <>
       <Switch>
         <Route path="/" component={Home} />
         <Route component={NotFound} />
       </Switch>
       <Toaster />
-    </SongImportProvider>
+    </>
   );
 }
 

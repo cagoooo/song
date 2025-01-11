@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,7 +6,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Import, List } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
-import { useSongImport } from "@/lib/songImportContext";
 
 export default function SongImport() {
   const [title, setTitle] = useState("");
@@ -14,21 +13,12 @@ export default function SongImport() {
   const [notes, setNotes] = useState("");
   const [batchSongs, setBatchSongs] = useState("");
   const { toast } = useToast();
-  const { importedSong } = useSongImport();
-
-  // 監聽從 Context 傳來的歌曲資訊
-  useEffect(() => {
-    if (importedSong) {
-      setTitle(importedSong.title);
-      setArtist(importedSong.artist);
-      if (importedSong.notes) setNotes(importedSong.notes);
-    }
-  }, [importedSong]);
 
   const handleSingleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
+      // 建立歌曲資料
       const response = await fetch("/api/songs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -74,7 +64,7 @@ export default function SongImport() {
             artist: match[2].trim(),
           };
         })
-        .filter((song): song is { title: string; artist: string } => song !== null);
+        .filter(song => song !== null);
 
       if (songs.length === 0) {
         toast({

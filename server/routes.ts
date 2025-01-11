@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { db } from "@db";
-import { songs, votes, songSuggestions, type User, type Song } from "@db/schema";
+import { songs, votes, type User, type Song } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
 
@@ -26,9 +26,7 @@ export function registerRoutes(app: Express): Server {
   const io = new SocketIOServer(httpServer, {
     path: '/ws',
     cors: {
-      origin: process.env.NODE_ENV === 'development' 
-        ? ['http://localhost:5000', 'http://0.0.0.0:5000'] 
-        : true,
+      origin: true,
       methods: ["GET", "POST"],
       credentials: true
     },
@@ -95,6 +93,11 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
+      // Handle client pong responses
+      socket.on('pong', () => {
+        console.log(`Received pong from client ${socket.id}`);
+      });
+
       // Handle disconnection
       socket.on('disconnect', (reason) => {
         activeConnections--;
@@ -137,71 +140,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 建議歌曲相關的 API 路由
-  app.get('/api/suggestions', async (_req, res) => {
-    try {
-      const suggestions = await db.select().from(songSuggestions).orderBy(songSuggestions.createdAt);
-      res.json(suggestions);
-    } catch (error) {
-      console.error('Error fetching suggestions:', error);
-      res.status(500).json({ message: '無法取得建議列表' });
-    }
-  });
-
-  app.post('/api/suggestions', async (req, res) => {
-    try {
-      const { title, artist, suggestedBy, notes } = req.body;
-      const [suggestion] = await db.insert(songSuggestions)
-        .values({ title, artist, suggestedBy, notes, status: 'pending' })
-        .returning();
-      res.json(suggestion);
-    } catch (error) {
-      console.error('Error creating suggestion:', error);
-      res.status(500).json({ message: '無法新增建議' });
-    }
-  });
-
-  app.patch('/api/suggestions/:id/status', requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
-      const [suggestion] = await db
-        .update(songSuggestions)
-        .set({ status })
-        .where(eq(songSuggestions.id, parseInt(id)))
-        .returning();
-      res.json(suggestion);
-    } catch (error) {
-      console.error('Error updating suggestion status:', error);
-      res.status(500).json({ message: '無法更新建議狀態' });
-    }
-  });
-
-  app.delete('/api/suggestions/:id', async (req, res) => {
-    try {
-      const { id } = req.params;
-
-      // 檢查建議是否存在
-      const suggestion = await db
-        .select()
-        .from(songSuggestions)
-        .where(eq(songSuggestions.id, parseInt(id)))
-        .limit(1);
-
-      if (!suggestion || suggestion.length === 0) {
-        return res.status(404).json({ message: '找不到指定的建議' });
-      }
-
-      await db
-        .delete(songSuggestions)
-        .where(eq(songSuggestions.id, parseInt(id)));
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error deleting suggestion:', error);
-      res.status(500).json({ message: '無法刪除建議' });
-    }
-  });
+  // Setup authentication
+  setupAuth(app);
 
   return httpServer;
 }

@@ -13,7 +13,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText, Import } from "lucide-react";
+import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SongSuggestion } from "@db/schema";
 import {
@@ -22,7 +22,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useSongImport } from "@/lib/songImportContext";
 
 export default function SongSuggestion({ isAdmin = false }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -136,21 +135,6 @@ export default function SongSuggestion({ isAdmin = false }) {
     return `https://www.google.com/search?q=${searchQuery}`;
   };
 
-  const { setImportedSong } = useSongImport();
-
-  const handleImportSong = (suggestion: SongSuggestion) => {
-    setImportedSong({
-      title: suggestion.title,
-      artist: suggestion.artist,
-      notes: suggestion.notes || ""
-    });
-
-    toast({
-      title: "已帶入資訊",
-      description: "歌曲資訊已複製到新增表單中",
-    });
-  };
-
   return (
     <div className="space-y-4">
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -235,7 +219,7 @@ export default function SongSuggestion({ isAdmin = false }) {
               {suggestions.filter(s => s.status === "pending").length} 個待審核建議
             </span>
           </div>
-          {suggestions.map((suggestion) => (
+          {suggestions.map((suggestion, index) => (
             <motion.div
               key={suggestion.id}
               initial={{ opacity: 0, y: 20 }}
@@ -244,7 +228,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                 relative overflow-hidden
                 flex flex-col gap-4 p-4 sm:p-5 rounded-lg
                 border-2 border-primary/10
-                ${(suggestions.indexOf(suggestion)) % 2 === 0
+                ${index % 2 === 0
                   ? 'bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50'
                   : 'bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50'}
                 shadow-[0_4px_12px_rgba(var(--primary),0.1)]
@@ -256,7 +240,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                 <div className="flex-1">
                   <h4 className={`
                     text-lg font-semibold mb-1
-                    ${(suggestions.indexOf(suggestion)) % 2 === 0
+                    ${index % 2 === 0
                       ? 'bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600'
                       : 'bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600'}
                     bg-clip-text text-transparent
@@ -281,7 +265,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                       transition={{ delay: 0.2 }}
                       className={`
                         text-sm mt-3 p-3 rounded-md
-                        ${(suggestions.indexOf(suggestion)) % 2 === 0
+                        ${index % 2 === 0
                           ? 'bg-gradient-to-r from-rose-100/50 to-pink-100/50'
                           : 'bg-gradient-to-r from-blue-100/50 to-cyan-100/50'}
                         border border-primary/5
@@ -369,34 +353,6 @@ export default function SongSuggestion({ isAdmin = false }) {
 
                   {isAdmin && suggestion.status === "pending" && (
                     <>
-                      <TooltipProvider delayDuration={200}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleImportSong(suggestion)}
-                                className="w-8 h-8 border-2 border-blue-200 text-blue-600 
-                                         hover:text-blue-700 hover:border-blue-300 
-                                         transition-all duration-300"
-                              >
-                                <Import className="w-4 h-4" />
-                              </Button>
-                            </motion.div>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side="top"
-                            className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
-                          >
-                            <p>將歌曲資訊帶入到新增表單</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
                       <Button
                         size="sm"
                         variant="outline"
