@@ -10,53 +10,49 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import type { Song } from "@db/schema";
 import { useState } from "react";
 
-export interface EditSongDialogProps {
+interface EditSongDialogProps {
+  song: Song;
   isOpen: boolean;
   onClose: () => void;
-  defaultValues?: {
-    title: string;
-    artist: string;
-    notes?: string | null;
-  };
 }
 
-export function EditSongDialog({ isOpen, onClose, defaultValues }: EditSongDialogProps) {
-  const [title, setTitle] = useState(defaultValues?.title ?? "");
-  const [artist, setArtist] = useState(defaultValues?.artist ?? "");
-  const [notes, setNotes] = useState(defaultValues?.notes ?? "");
+export function EditSongDialog({ song, isOpen, onClose }: EditSongDialogProps) {
+  const [title, setTitle] = useState(song.title);
+  const [artist, setArtist] = useState(song.artist);
+  const [notes, setNotes] = useState(song.notes || "");
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  const songMutation = useMutation({
+  const updateSongMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/songs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`/api/songs/${song.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, artist, notes }),
-        credentials: 'include'
+        credentials: "include",
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const error = await response.text();
+        throw new Error(error);
       }
 
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/songs'] });
       toast({
         title: "成功",
-        description: "歌曲已新增到清單中",
+        description: "歌曲資訊已更新",
       });
       onClose();
     },
     onError: () => {
       toast({
         title: "錯誤",
-        description: "新增歌曲失敗",
+        description: "更新歌曲失敗",
         variant: "destructive",
       });
     },
@@ -64,25 +60,17 @@ export function EditSongDialog({ isOpen, onClose, defaultValues }: EditSongDialo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !artist.trim()) {
-      toast({
-        title: "錯誤",
-        description: "請填寫歌曲名稱和歌手名稱",
-        variant: "destructive",
-      });
-      return;
-    }
-    songMutation.mutate();
+    updateSongMutation.mutate();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>新增歌曲</DialogTitle>
+            <DialogTitle>編輯歌曲資訊</DialogTitle>
             <DialogDescription>
-              將歌曲新增至可點播清單。請確認資訊正確性。
+              修改歌曲名稱或歌手名稱。請確認資訊正確性。
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -126,10 +114,10 @@ export function EditSongDialog({ isOpen, onClose, defaultValues }: EditSongDialo
           <DialogFooter>
             <Button
               type="submit"
-              disabled={songMutation.isPending}
+              disabled={updateSongMutation.isPending}
               className="w-full sm:w-auto"
             >
-              {songMutation.isPending ? "新增中..." : "確認新增"}
+              {updateSongMutation.isPending ? "更新中..." : "確認更新"}
             </Button>
           </DialogFooter>
         </form>
