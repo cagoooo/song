@@ -120,7 +120,7 @@ export default function SongSuggestion({ isAdmin = false }) {
     }
   });
 
-  // 新增：將建議加入歌單的 mutation
+  // 新增加入歌單的 mutation
   const addToSongListMutation = useMutation({
     mutationFn: async (suggestion: SongSuggestion) => {
       const response = await fetch('/api/songs', {
@@ -134,7 +134,7 @@ export default function SongSuggestion({ isAdmin = false }) {
         credentials: 'include'
       });
 
-      if (!response.ok) throw new Error('Failed to add song to list');
+      if (!response.ok) throw new Error('無法加入歌單');
       return response.json();
     },
     onSuccess: async (_, suggestion) => {
@@ -144,6 +144,7 @@ export default function SongSuggestion({ isAdmin = false }) {
         status: "approved"
       });
 
+      // 更新查詢快取
       queryClient.invalidateQueries({ queryKey: ['/api/songs'] });
       toast({
         title: "成功",
@@ -354,10 +355,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <motion.div
-                          whileHover={{
-                            scale: 1.05,
-                            transition: { duration: 0.2 }
-                          }}
+                          whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
                           <Button
@@ -366,17 +364,15 @@ export default function SongSuggestion({ isAdmin = false }) {
                             className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
                                     shadow-[0_2px_10px_rgba(var(--primary),0.1)]
                                     hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                                    transition-all duration-300 relative group"
+                                    transition-all duration-300"
                             asChild
                           >
                             <a
                               href={generateLyricsUrl(suggestion)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center justify-center"
                             >
-                              <FileText className="w-4 h-4 transition-transform group-hover:scale-110" />
-                              <span className="sr-only">搜尋歌詞</span>
+                              <FileText className="w-4 h-4" />
                             </a>
                           </Button>
                         </motion.div>
@@ -391,49 +387,49 @@ export default function SongSuggestion({ isAdmin = false }) {
                   </TooltipProvider>
 
                   {isAdmin && suggestion.status === "pending" && (
-                    <>
-                      <TooltipProvider delayDuration={200}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 border-emerald-200 text-emerald-600 hover:text-emerald-700 
-                                         hover:border-emerald-300 transition-colors bg-white"
-                                onClick={() => addToSongListMutation.mutate(suggestion)}
-                              >
-                                <PlayCircle className="w-4 h-4" />
-                              </Button>
-                            </motion.div>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side="top"
-                            className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
-                          >
-                            <p>加入歌單</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-red-200 text-red-600 hover:text-red-700 hover:border-red-300 transition-colors"
-                        onClick={() => updateStatusMutation.mutate({
-                          id: suggestion.id,
-                          status: "rejected"
-                        })}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 border-emerald-200 text-emerald-600 hover:text-emerald-700 hover:border-emerald-300 transition-colors"
+                      onClick={() => addToSongListMutation.mutate(suggestion)}
+                    >
+                      <PlayCircle className="w-4 h-4 mr-1" />
+                      加入歌單
+                    </Button>
                   )}
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className={`h-8 border-red-200 text-red-600 hover:text-red-700 hover:border-red-300 transition-colors ${updateStatusMutation.isPending ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : ''} `}
+                    onClick={() => updateStatusMutation.mutate({
+                      id: suggestion.id,
+                      status: "rejected"
+                    })}
+                    disabled={updateStatusMutation.isPending}
+                  >
+                    {updateStatusMutation.isPending ? (
+                      <motion.svg
+                        className="animate-spin h-5 w-5 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        />
+                      </motion.svg>
+                    ) : (
+                      <X className="w-4 h-4" />
+                    )}
+                  </Button>
                 </div>
               </div>
+
               {suggestion.status !== "pending" && (
                 <motion.span
                   initial={{ opacity: 0, x: -20 }}
@@ -445,9 +441,21 @@ export default function SongSuggestion({ isAdmin = false }) {
                       : "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200"}
                   `}
                 >
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    {suggestion.status === "approved" ? (
+                      <Check className="w-4 h-4 mr-1" />
+                    ) : (
+                      <X className="w-4 h-4 mr-1" />
+                    )}
+                  </motion.span>
                   {suggestion.status === "approved" ? "已採納，即將新增" : "暫時無法採納"}
                 </motion.span>
               )}
+
               {isAdmin && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -458,13 +466,30 @@ export default function SongSuggestion({ isAdmin = false }) {
                     size="sm"
                     variant="outline"
                     onClick={() => deleteSuggestionMutation.mutate(suggestion.id)}
-                    className="h-8 bg-gradient-to-r from-red-50 to-rose-50
-                             border-2 border-red-200 text-red-600
-                             hover:text-red-700 hover:border-red-300
-                             transition-all duration-300"
+                    disabled={deleteSuggestionMutation.isPending}
+                    className={`h-8 bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 text-red-600 hover:text-red-700 hover:border-red-300 transition-all duration-300 ${deleteSuggestionMutation.isPending ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : ''}`}
                   >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    刪除建議
+                    {deleteSuggestionMutation.isPending ? (
+                      <motion.svg
+                        className="animate-spin h-5 w-5 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        />
+                      </motion.svg>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        刪除建議
+                      </>
+                    )}
                   </Button>
                 </motion.div>
               )}
