@@ -220,11 +220,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                       <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
                       點播
                     </Button>
-                    <FireworkEffect 
-                      isVisible={votingId === song.id}
-                      position="absolute"
-                      zIndex={10}
-                    />
+                    <FireworkEffect isVisible={votingId === song.id} />
                   </motion.div>
 
                   {user?.isAdmin && (

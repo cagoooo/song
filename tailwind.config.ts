@@ -88,24 +88,13 @@ export default {
             borderColor: "rgba(var(--primary), 0.4)",
             transform: "scale(1.02)"
           }
-        },
-        "firework-scale": {
-          "0%": { transform: "scale(0)", opacity: "1" },
-          "50%": { transform: "scale(1.5)", opacity: "0.8" },
-          "100%": { transform: "scale(2)", opacity: "0" }
-        },
-        "sparkle": {
-          "0%, 100%": { transform: "scale(1)", opacity: "1" },
-          "50%": { transform: "scale(1.5)", opacity: "0.5" }
         }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "shadow-pulse": "shadow-pulse 3s ease-in-out infinite",
-        "border-pulse": "border-pulse 3s ease-in-out infinite",
-        "firework-scale": "firework-scale 1.2s ease-out forwards",
-        "sparkle": "sparkle 1s ease-in-out infinite"
+        "border-pulse": "border-pulse 3s ease-in-out infinite"
       },
     },
   },
