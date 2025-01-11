@@ -20,6 +20,13 @@ interface VoteMessage {
 
 type WebSocketMessage = VoteMessage;
 
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "需要登入" });
+  }
+  next();
+};
+
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated() || !req.user?.isAdmin) {
     return res.status(403).json({ error: "需要管理員權限" });
@@ -128,6 +135,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Song tags endpoints
   app.get("/api/songs/:songId/tags", async (req: Request, res: Response) => {
     try {
       const songId = parseInt(req.params.songId);
@@ -193,6 +201,16 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Songs related endpoints
+  app.get("/api/songs", async (_req: Request, res: Response) => {
+    try {
+      const songsList = await getSongsWithVotes();
+      res.json(songsList);
+    } catch (error) {
+      console.error('Failed to fetch songs:', error);
+      res.status(500).json({ error: "無法取得歌曲清單" });
+    }
+  });
+
   app.post("/api/songs", requireAdmin, async (req: Request, res: Response) => {
     try {
       const { title, artist, key, notes } = req.body;
@@ -219,16 +237,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/songs", async (_req: Request, res: Response) => {
-    try {
-      const songsList = await getSongsWithVotes();
-      res.json(songsList);
-    } catch (error) {
-      console.error('Failed to fetch songs:', error);
-      res.status(500).json({ error: "無法取得歌曲清單" });
-    }
-  });
-
+  // Song suggestions endpoints
   app.get("/api/suggestions", async (_req: Request, res: Response) => {
     try {
       const suggestions = await db.select().from(songSuggestions);
@@ -317,6 +326,7 @@ export function registerRoutes(app: Express): Server {
   return httpServer;
 }
 
+// Helper functions
 async function getSongsWithVotes() {
   const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
   const songVotes = await db
