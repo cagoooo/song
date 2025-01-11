@@ -14,18 +14,16 @@ export default function SongImport() {
   const [notes, setNotes] = useState("");
   const [batchSongs, setBatchSongs] = useState("");
   const { toast } = useToast();
-  const { setImportedSong } = useSongImport();
+  const { importedSong } = useSongImport();
 
   // 監聽從 Context 傳來的歌曲資訊
   useEffect(() => {
-    const handleImportedSong = (song: { title: string; artist: string; notes?: string }) => {
-      setTitle(song.title);
-      setArtist(song.artist);
-      if (song.notes) setNotes(song.notes);
-    };
-
-    setImportedSong(handleImportedSong);
-  }, [setImportedSong]);
+    if (importedSong) {
+      setTitle(importedSong.title);
+      setArtist(importedSong.artist);
+      if (importedSong.notes) setNotes(importedSong.notes);
+    }
+  }, [importedSong]);
 
   const handleSingleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

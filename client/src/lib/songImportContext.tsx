@@ -7,20 +7,17 @@ interface ImportedSong {
 }
 
 interface SongImportContextType {
+  importedSong: ImportedSong | null;
   setImportedSong: (song: ImportedSong) => void;
 }
 
 const SongImportContext = createContext<SongImportContextType | null>(null);
 
 export function SongImportProvider({ children }: { children: React.ReactNode }) {
-  const [, setImportedSong] = useState<ImportedSong | null>(null);
-
-  const handleSetImportedSong = (song: ImportedSong) => {
-    setImportedSong(song);
-  };
+  const [importedSong, setImportedSong] = useState<ImportedSong | null>(null);
 
   return (
-    <SongImportContext.Provider value={{ setImportedSong: handleSetImportedSong }}>
+    <SongImportContext.Provider value={{ importedSong, setImportedSong }}>
       {children}
     </SongImportContext.Provider>
   );
