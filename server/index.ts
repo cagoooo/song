@@ -8,14 +8,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Added error handling middleware
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('Error:', err);
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  res.status(status).json({ message });
-});
-
 // Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
@@ -55,6 +47,14 @@ app.use((req, res, next) => {
 
     const server = registerRoutes(app);
 
+    // Error handling middleware (after routes)
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error('Error:', err);
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
+    });
+
     // Setup Vite in development environment
     if (app.get("env") === "development") {
       await setupVite(app, server);
@@ -62,8 +62,9 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Start the server with a numeric port
-    const PORT = Number(process.env.PORT || 80);
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client
+    const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server running on port ${PORT}`);
       log(`Production mode: ${app.get("env") === "production"}`);

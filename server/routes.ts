@@ -38,19 +38,19 @@ export function registerRoutes(app: Express): Server {
     try {
       const { songId } = req.body;
       const sessionId = req.sessionID || Math.random().toString(36).substring(2);
-      const userAgent = req.headers['user-agent'];
-      const referrer = req.headers.referer || req.headers.referrer;
-
-      const newScan: NewQRCodeScan = {
-        songId,
-        sessionId,
-        userAgent: userAgent || null,
-        referrer: referrer || null,
-        createdAt: new Date()
-      };
+      const userAgent = req.headers['user-agent'] || null;
+      const referrer = Array.isArray(req.headers.referer)
+        ? req.headers.referer[0]
+        : (req.headers.referer || req.headers.referrer || null);
 
       const [scan] = await db.insert(qrCodeScans)
-        .values(newScan)
+        .values({
+          songId,
+          sessionId,
+          userAgent,
+          referrer,
+          createdAt: new Date()
+        })
         .returning();
 
       res.json(scan);
@@ -101,6 +101,7 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: "無法取得QR碼掃描統計" });
     }
   });
+
 
   // 標籤相關的 API 路由
   app.get("/api/tags", async (_req, res) => {
@@ -188,7 +189,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // REST API routes
+  // REST API routes from edited snippet
   app.post("/api/songs", requireAdmin, async (req, res) => {
     try {
       const { title, artist, key, notes, lyrics, audioUrl } = req.body;
@@ -209,34 +210,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to add song:', error);
       res.status(500).json({ error: "新增歌曲失敗" });
-    }
-  });
-
-  // 批次匯入歌曲
-  app.post("/api/songs/batch", requireAdmin, async (req, res) => {
-    try {
-      const { songs: songsList } = req.body;
-
-      if (!Array.isArray(songsList)) {
-        return res.status(400).json({ error: "無效的歌曲清單格式" });
-      }
-
-      // 批次插入所有歌曲
-      await db.insert(songs).values(
-        songsList.map(song => ({
-          title: song.title,
-          artist: song.artist,
-          createdBy: req.user?.id,
-          isActive: true,
-          createdAt: new Date()
-        }))
-      );
-
-      await sendSongsUpdate(wss);
-      res.json({ message: `成功匯入 ${songsList.length} 首歌曲` });
-    } catch (error) {
-      console.error('Failed to batch import songs:', error);
-      res.status(500).json({ error: "批次匯入失敗" });
     }
   });
 
@@ -277,7 +250,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 新增歌曲建議相關的路由
+  // 歌曲建議相關的路由 (from edited snippet)
   app.post("/api/suggestions", async (req, res) => {
     try {
       const { title, artist, suggestedBy, notes } = req.body;
@@ -332,7 +305,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // New endpoint to add song suggestion to playlist
+  // 加入歌單的路由 (from edited snippet)
   app.post("/api/suggestions/:id/add-to-playlist", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -399,43 +372,33 @@ export function registerRoutes(app: Express): Server {
     const sessionId = Math.random().toString(36).substring(2);
 
     // Send initial songs data
-    sendSongsUpdate(wss);
+    sendSongsUpdate(wss).catch(error => {
+      console.error('Failed to send initial songs update:', error);
+    });
 
     ws.on('message', async (data) => {
       try {
         const message = JSON.parse(data.toString());
-        console.log('Received message:', message);
-
-        if (message.type === 'VOTE') {
+        if (message.type === 'VOTE' && message.songId) {
           await db.insert(votes).values({
             songId: message.songId,
-            sessionId: sessionId,
+            sessionId,
             createdAt: new Date()
           });
-
-          // Send immediate update
-          sendSongsUpdate(wss);
+          await sendSongsUpdate(wss);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
-        ws.send(JSON.stringify({
-          type: 'ERROR',
-          message: 'Failed to process message'
-        }));
       }
-    });
-
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
     });
   });
 
   return httpServer;
 }
 
+// 輔助函數：獲取包含投票數的歌曲列表
 async function getSongsWithVotes() {
   const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
-
   const songVotes = await db.select({
     songId: votes.songId,
     voteCount: sql<number>`count(*)`.mapWith(Number)
@@ -444,13 +407,13 @@ async function getSongsWithVotes() {
     .groupBy(votes.songId);
 
   const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
-
   return allSongs.map(song => ({
     ...song,
     voteCount: voteMap.get(song.id) || 0
   }));
 }
 
+// 輔助函數：向所有WebSocket客戶端發送歌曲更新
 async function sendSongsUpdate(wss: WebSocketServer) {
   try {
     const songsList = await getSongsWithVotes();
