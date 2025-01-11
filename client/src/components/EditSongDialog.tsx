@@ -10,49 +10,62 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface EditSongDialogProps {
-  song: Song;
+  song: Partial<Song> | null;
   isOpen: boolean;
   onClose: () => void;
+  mode?: 'edit' | 'create';
 }
 
-export function EditSongDialog({ song, isOpen, onClose }: EditSongDialogProps) {
-  const [title, setTitle] = useState(song.title);
-  const [artist, setArtist] = useState(song.artist);
-  const [notes, setNotes] = useState(song.notes || "");
+export function EditSongDialog({ song, isOpen, onClose, mode = 'edit' }: EditSongDialogProps) {
+  const [title, setTitle] = useState("");
+  const [artist, setArtist] = useState("");
+  const [notes, setNotes] = useState("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const updateSongMutation = useMutation({
+  useEffect(() => {
+    if (song) {
+      setTitle(song.title || "");
+      setArtist(song.artist || "");
+      setNotes(song.notes || "");
+    }
+  }, [song]);
+
+  const songMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/songs/${song.id}`, {
-        method: "PATCH",
+      const endpoint = mode === 'edit' && song?.id ? `/api/songs/${song.id}` : '/api/songs';
+      const method = mode === 'edit' ? 'PATCH' : 'POST';
+
+      const response = await fetch(endpoint, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, artist, notes }),
         credentials: "include",
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error);
+        throw new Error(await response.text());
       }
 
       return response.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/songs'] });
       toast({
         title: "成功",
-        description: "歌曲資訊已更新",
+        description: mode === 'edit' ? "歌曲資訊已更新" : "歌曲已新增",
       });
       onClose();
     },
     onError: () => {
       toast({
         title: "錯誤",
-        description: "更新歌曲失敗",
+        description: mode === 'edit' ? "更新歌曲失敗" : "新增歌曲失敗",
         variant: "destructive",
       });
     },
@@ -60,17 +73,28 @@ export function EditSongDialog({ song, isOpen, onClose }: EditSongDialogProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateSongMutation.mutate();
+    if (!title.trim() || !artist.trim()) {
+      toast({
+        title: "錯誤",
+        description: "請填寫歌曲名稱和歌手名稱",
+        variant: "destructive",
+      });
+      return;
+    }
+    songMutation.mutate();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>編輯歌曲資訊</DialogTitle>
+            <DialogTitle>{mode === 'edit' ? '編輯歌曲資訊' : '新增歌曲'}</DialogTitle>
             <DialogDescription>
-              修改歌曲名稱或歌手名稱。請確認資訊正確性。
+              {mode === 'edit' 
+                ? '修改歌曲名稱或歌手名稱。請確認資訊正確性。'
+                : '新增歌曲至可點播清單。請確認資訊正確性。'
+              }
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -114,10 +138,13 @@ export function EditSongDialog({ song, isOpen, onClose }: EditSongDialogProps) {
           <DialogFooter>
             <Button
               type="submit"
-              disabled={updateSongMutation.isPending}
+              disabled={songMutation.isPending}
               className="w-full sm:w-auto"
             >
-              {updateSongMutation.isPending ? "更新中..." : "確認更新"}
+              {songMutation.isPending 
+                ? (mode === 'edit' ? "更新中..." : "新增中...") 
+                : (mode === 'edit' ? "確認更新" : "確認新增")
+              }
             </Button>
           </DialogFooter>
         </form>

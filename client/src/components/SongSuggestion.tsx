@@ -13,7 +13,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText } from "lucide-react";
+import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText, Copy } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SongSuggestion } from "@db/schema";
 import {
@@ -22,6 +22,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { EditSongDialog } from "./EditSongDialog";
+
+type EditingSongType = {
+  title: string;
+  artist: string;
+  notes?: string | null;
+} | null;
 
 export default function SongSuggestion({ isAdmin = false }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,6 +38,7 @@ export default function SongSuggestion({ isAdmin = false }) {
   const [notes, setNotes] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [editingSong, setEditingSong] = useState<EditingSongType>(null);
 
   const { data: suggestions = [] } = useQuery<SongSuggestion[]>({
     queryKey: ['/api/suggestions'],
@@ -208,6 +216,13 @@ export default function SongSuggestion({ isAdmin = false }) {
         </DialogContent>
       </Dialog>
 
+      <EditSongDialog
+        song={editingSong}
+        isOpen={Boolean(editingSong)}
+        onClose={() => setEditingSong(null)}
+        mode="create"
+      />
+
       {suggestions.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -219,7 +234,7 @@ export default function SongSuggestion({ isAdmin = false }) {
               {suggestions.filter(s => s.status === "pending").length} 個待審核建議
             </span>
           </div>
-          {suggestions.map((suggestion, index) => (
+          {suggestions.map((suggestion) => (
             <motion.div
               key={suggestion.id}
               initial={{ opacity: 0, y: 20 }}
@@ -228,7 +243,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                 relative overflow-hidden
                 flex flex-col gap-4 p-4 sm:p-5 rounded-lg
                 border-2 border-primary/10
-                ${index % 2 === 0
+                ${suggestion.id % 2 === 0
                   ? 'bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50'
                   : 'bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50'}
                 shadow-[0_4px_12px_rgba(var(--primary),0.1)]
@@ -240,7 +255,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                 <div className="flex-1">
                   <h4 className={`
                     text-lg font-semibold mb-1
-                    ${index % 2 === 0
+                    ${suggestion.id % 2 === 0
                       ? 'bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600'
                       : 'bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600'}
                     bg-clip-text text-transparent
@@ -265,7 +280,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                       transition={{ delay: 0.2 }}
                       className={`
                         text-sm mt-3 p-3 rounded-md
-                        ${index % 2 === 0
+                        ${suggestion.id % 2 === 0
                           ? 'bg-gradient-to-r from-rose-100/50 to-pink-100/50'
                           : 'bg-gradient-to-r from-blue-100/50 to-cyan-100/50'}
                         border border-primary/5
@@ -276,7 +291,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <TooltipProvider delayDuration={200}>
+                  <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <motion.div
@@ -286,10 +301,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                           <Button
                             variant="outline"
                             size="icon"
-                            className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
-                                    shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                                    hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                                    transition-all duration-300"
+                            className="w-8 h-8"
                             asChild
                           >
                             <a
@@ -302,50 +314,36 @@ export default function SongSuggestion({ isAdmin = false }) {
                           </Button>
                         </motion.div>
                       </TooltipTrigger>
-                      <TooltipContent
-                        side="top"
-                        className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
-                      >
+                      <TooltipContent side="top">
                         <p>點擊在 Google 中搜尋「{suggestion.title} - {suggestion.artist}」的吉他譜</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
 
-                  <TooltipProvider delayDuration={200}>
+                  <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <motion.div
-                          whileHover={{
-                            scale: 1.05,
-                            transition: { duration: 0.2 }
-                          }}
+                          whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >
                           <Button
                             variant="outline"
                             size="icon"
-                            className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
-                                    shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                                    hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                                    transition-all duration-300 relative group"
+                            className="w-8 h-8"
                             asChild
                           >
                             <a
                               href={generateLyricsUrl(suggestion)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center justify-center"
                             >
-                              <FileText className="w-4 h-4 transition-transform group-hover:scale-110" />
-                              <span className="sr-only">搜尋歌詞</span>
+                              <FileText className="w-4 h-4" />
                             </a>
                           </Button>
                         </motion.div>
                       </TooltipTrigger>
-                      <TooltipContent
-                        side="top"
-                        className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
-                      >
+                      <TooltipContent side="top">
                         <p>點擊在 Google 中搜尋「{suggestion.title} - {suggestion.artist}」的歌詞</p>
                       </TooltipContent>
                     </Tooltip>
@@ -394,24 +392,47 @@ export default function SongSuggestion({ isAdmin = false }) {
                 </motion.span>
               )}
               {isAdmin && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 flex justify-end"
-                >
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => deleteSuggestionMutation.mutate(suggestion.id)}
-                    className="h-8 bg-gradient-to-r from-red-50 to-rose-50
-                             border-2 border-red-200 text-red-600
-                             hover:text-red-700 hover:border-red-300
-                             transition-all duration-300"
+                <div className="flex items-center gap-2 mt-2">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-full sm:w-auto"
                   >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    刪除建議
-                  </Button>
-                </motion.div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingSong({
+                        title: suggestion.title,
+                        artist: suggestion.artist,
+                        notes: suggestion.notes
+                      })}
+                      className="flex gap-2 w-full sm:w-auto border-2 border-emerald-200/50
+                              text-emerald-600 hover:text-emerald-700 bg-white/80 hover:bg-white/90
+                              hover:border-emerald-300/50 transition-all duration-300"
+                    >
+                      <Copy className="h-4 w-4" />
+                      帶入歌曲資訊
+                    </Button>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-full sm:w-auto"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteSuggestionMutation.mutate(suggestion.id)}
+                      className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
+                              text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
+                              hover:border-red-300/50 transition-all duration-300"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      刪除建議
+                    </Button>
+                  </motion.div>
+                </div>
               )}
             </motion.div>
           ))}
