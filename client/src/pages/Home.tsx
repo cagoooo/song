@@ -14,9 +14,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 
+interface ImportSongInfo {
+  title: string;
+  artist: string;
+}
+
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
+  const [importSongInfo, setImportSongInfo] = useState<ImportSongInfo | null>(null);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
@@ -113,6 +119,10 @@ export default function Home() {
     }
   };
 
+  const handleImportSongInfo = (songInfo: ImportSongInfo) => {
+    setImportSongInfo(songInfo);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -145,9 +155,9 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <div 
               className="relative p-2 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
-                       shadow-[0_0_15px_rgba(var(--primary),0.3)]
-                       animate-[shadow-pulse_3s_ease-in-out_infinite]
-                       w-full sm:w-auto"
+                        shadow-[0_0_15px_rgba(var(--primary),0.3)]
+                        animate-[shadow-pulse_3s_ease-in-out_infinite]
+                        w-full sm:w-auto"
             >
               <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent
                           px-4 py-2 text-center sm:text-left">
@@ -194,7 +204,10 @@ export default function Home() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <SongSuggestion isAdmin={user?.isAdmin ?? false} />
+                  <SongSuggestion 
+                    isAdmin={user?.isAdmin ?? false} 
+                    onImportSongInfo={handleImportSongInfo}
+                  />
                 </CardContent>
               </Card>
             </motion.div>
@@ -213,7 +226,9 @@ export default function Home() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3 sm:p-6">
-                  {user?.isAdmin && <SongImport />}
+                  {user?.isAdmin && (
+                    <SongImport importSongInfo={importSongInfo} />
+                  )}
                   <div className="h-4" />
                   <SongList songs={songs} ws={wsRef.current} user={user || null} />
                 </CardContent>

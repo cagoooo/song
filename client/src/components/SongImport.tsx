@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,21 +7,38 @@ import { Import, List } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 
-export default function SongImport() {
+interface ImportSongInfo {
+  title: string;
+  artist: string;
+}
+
+interface SongImportProps {
+  importSongInfo?: ImportSongInfo | null;
+}
+
+export default function SongImport({ importSongInfo }: SongImportProps) {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [notes, setNotes] = useState("");
   const [batchSongs, setBatchSongs] = useState("");
   const { toast } = useToast();
 
+  // 監聽 importSongInfo 的變化，當有新的導入資訊時更新表單
+  useEffect(() => {
+    if (importSongInfo) {
+      setTitle(importSongInfo.title);
+      setArtist(importSongInfo.artist);
+    }
+  }, [importSongInfo]);
+
   const handleSingleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      // 建立歌曲資料
       const response = await fetch("/api/songs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ 
           title, 
           artist, 
@@ -64,7 +81,7 @@ export default function SongImport() {
             artist: match[2].trim(),
           };
         })
-        .filter(song => song !== null);
+        .filter((song): song is NonNullable<typeof song> => song !== null);
 
       if (songs.length === 0) {
         toast({
@@ -78,6 +95,7 @@ export default function SongImport() {
       const response = await fetch("/api/songs/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ songs })
       });
 

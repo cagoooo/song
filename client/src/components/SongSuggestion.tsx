@@ -13,7 +13,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText } from "lucide-react";
+import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText, CopyCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SongSuggestion } from "@db/schema";
 import {
@@ -23,7 +23,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export default function SongSuggestion({ isAdmin = false }) {
+interface SongSuggestionProps {
+  isAdmin?: boolean;
+  onImportSongInfo?: (songInfo: { title: string; artist: string }) => void;
+}
+
+export default function SongSuggestion({ isAdmin = false, onImportSongInfo }: SongSuggestionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
@@ -133,6 +138,19 @@ export default function SongSuggestion({ isAdmin = false }) {
   const generateLyricsUrl = (song: SongSuggestion) => {
     const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 歌詞`);
     return `https://www.google.com/search?q=${searchQuery}`;
+  };
+
+  const handleImportSongInfo = (suggestion: SongSuggestion) => {
+    if (onImportSongInfo) {
+      onImportSongInfo({
+        title: suggestion.title,
+        artist: suggestion.artist
+      });
+      toast({
+        title: "成功",
+        description: "歌曲資訊已匯入",
+      });
+    }
   };
 
   return (
@@ -276,6 +294,39 @@ export default function SongSuggestion({ isAdmin = false }) {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleImportSongInfo(suggestion)}
+                              className="w-8 h-8 border-2 border-emerald-200 text-emerald-600
+                                     hover:text-emerald-700 hover:border-emerald-300
+                                     bg-white/80 hover:bg-white/90
+                                     shadow-[0_2px_10px_rgba(16,185,129,0.1)]
+                                     hover:shadow-[0_2px_20px_rgba(16,185,129,0.2)]
+                                     transition-all duration-300"
+                            >
+                              <CopyCheck className="w-4 h-4" />
+                            </Button>
+                          </motion.div>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="top"
+                          className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
+                        >
+                          <p>帶入「{suggestion.title} - {suggestion.artist}」的資訊到新增歌曲表單</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+
                   <TooltipProvider delayDuration={200}>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -404,9 +455,9 @@ export default function SongSuggestion({ isAdmin = false }) {
                     variant="outline"
                     onClick={() => deleteSuggestionMutation.mutate(suggestion.id)}
                     className="h-8 bg-gradient-to-r from-red-50 to-rose-50
-                             border-2 border-red-200 text-red-600
-                             hover:text-red-700 hover:border-red-300
-                             transition-all duration-300"
+                              border-2 border-red-200 text-red-600
+                              hover:text-red-700 hover:border-red-300
+                              transition-all duration-300"
                   >
                     <Trash2 className="w-4 h-4 mr-1" />
                     刪除建議
