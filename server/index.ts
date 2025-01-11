@@ -1,8 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { db } from "@db";
-import { sql } from "drizzle-orm";
+import { db, validateDbConnection } from "@db";
 
 const app = express();
 app.use(express.json());
@@ -27,9 +26,11 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
+
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
+
       log(logLine);
     }
   });
@@ -48,15 +49,15 @@ process.on('uncaughtException', (error) => {
 
 (async () => {
   try {
-    // Test database connection
-    const result = await db.execute(sql`SELECT 1`);
-    if (result) {
+    // Test database connection before starting the server
+    const isDbConnected = await validateDbConnection();
+    if (isDbConnected) {
       log('Database connection successful');
     }
 
     const server = registerRoutes(app);
 
-    // Added error handling middleware
+    // Enhanced error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Error:', err);
       const status = err.status || err.statusCode || 500;
@@ -71,7 +72,8 @@ process.on('uncaughtException', (error) => {
       serveStatic(app);
     }
 
-    const PORT = parseInt(process.env.PORT || "3000", 10);
+    // Always serve the app on port 5000
+    const PORT = 5000;
 
     // Start server
     server.listen(PORT, "0.0.0.0", () => {

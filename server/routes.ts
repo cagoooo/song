@@ -1,10 +1,10 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
-import { db } from "@db";
+import { db, sql } from "@db";
 import { songs, votes, type User, type Song } from "@db/schema";
 import { setupAuth } from "./auth";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -13,7 +13,10 @@ declare module 'express-serve-static-core' {
 }
 
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated() || !req.user?.isAdmin) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "請先登入" });
+  }
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: "需要管理員權限" });
   }
   next();
@@ -43,25 +46,21 @@ async function getSongsWithVotes(): Promise<Array<Song & { voteCount: number }>>
 }
 
 export function registerRoutes(app: Express): Server {
-  // Create HTTP server first
+  // Create HTTP server
   const httpServer = createServer(app);
 
-  // Setup authentication before other routes
-  setupAuth(app);
-
-  // Setup Socket.IO after auth but before routes
+  // Setup Socket.IO with minimal configuration
   const io = new SocketIOServer(httpServer, {
-    path: '/ws',
     cors: {
       origin: true,
-      methods: ["GET", "POST"],
       credentials: true
-    },
-    allowEIO3: true,
-    transports: ['websocket', 'polling']
+    }
   });
 
-  // Setup HTTP routes
+  // Setup authentication
+  setupAuth(app);
+
+  // Get all songs
   app.get('/api/songs', async (_req, res) => {
     try {
       const songsList = await getSongsWithVotes();
@@ -72,7 +71,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 更新歌曲資訊
+  // Update song information
   app.patch('/api/songs/:id', requireAdmin, async (req, res) => {
     try {
       const songId = parseInt(req.params.id);
@@ -80,6 +79,10 @@ export function registerRoutes(app: Express): Server {
 
       if (!songId || isNaN(songId)) {
         return res.status(400).json({ message: "無效的歌曲ID" });
+      }
+
+      if (!title?.trim() || !artist?.trim()) {
+        return res.status(400).json({ message: "歌名和歌手名稱不能為空" });
       }
 
       const [existingSong] = await db
@@ -92,29 +95,35 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "找不到指定的歌曲" });
       }
 
-      await db
+      const [updatedSong] = await db
         .update(songs)
-        .set({ title, artist, notes })
-        .where(eq(songs.id, songId));
+        .set({ 
+          title: title.trim(), 
+          artist: artist.trim(), 
+          notes: notes?.trim() || null 
+        })
+        .where(eq(songs.id, songId))
+        .returning();
 
       const updatedSongs = await getSongsWithVotes();
       io.emit('songs_update', updatedSongs);
 
-      res.json({ message: "歌曲更新成功" });
+      res.json({ 
+        message: "歌曲更新成功",
+        song: updatedSong
+      });
     } catch (error) {
       console.error('Error updating song:', error);
       res.status(500).json({ message: "更新歌曲失敗" });
     }
   });
 
-  // 重置所有點播次數
-  app.post('/api/songs/reset-votes', requireAdmin, async (_req, res) => {
+  // Reset all vote counts
+  app.post('/api/songs/reset-votes', requireAdmin, async (req, res) => {
     try {
-      await db.delete(votes);
-
+      await db.delete(votes).execute();
       const updatedSongs = await getSongsWithVotes();
       io.emit('songs_update', updatedSongs);
-
       res.json({ message: "點播次數已重置" });
     } catch (error) {
       console.error('Error resetting votes:', error);
@@ -122,60 +131,45 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Setup Socket.IO connection handler
-  io.on('connection', async (socket) => {
-    try {
-      const sessionId = Math.random().toString(36).substring(2);
-      console.log('Socket.IO connection established:', {
-        id: socket.id,
-        sessionId
-      });
+  // Socket.IO connection handler
+  io.on('connection', (socket) => {
+    const sessionId = Math.random().toString(36).substring(2);
+    console.log('Socket connected:', socket.id);
 
-      // Send initial songs data
-      try {
-        const songsList = await getSongsWithVotes();
+    // Send initial songs data
+    getSongsWithVotes()
+      .then(songsList => {
         socket.emit('songs_update', songsList);
-      } catch (error) {
+      })
+      .catch(error => {
         console.error('Error in initial data sync:', error);
         socket.emit('error', { message: '無法載入歌曲列表' });
-      }
-
-      // Handle vote events
-      socket.on('vote', async (songId: number) => {
-        try {
-          await db.insert(votes).values({
-            songId,
-            sessionId,
-            createdAt: new Date()
-          });
-
-          const updatedSongs = await getSongsWithVotes();
-          io.emit('songs_update', updatedSongs);
-        } catch (error) {
-          console.error('Vote processing error:', error);
-          socket.emit('error', { message: '處理投票時發生錯誤' });
-        }
       });
 
-      socket.on('disconnect', (reason) => {
-        console.log('Socket.IO connection closed:', {
-          id: socket.id,
+    // Handle vote events
+    socket.on('vote', async (songId: number) => {
+      try {
+        await db.insert(votes).values({
+          songId,
           sessionId,
-          reason
+          createdAt: new Date()
         });
-      });
 
-      socket.on('error', (error) => {
-        console.error('Socket.IO error:', error, {
-          id: socket.id,
-          sessionId
-        });
-      });
+        const updatedSongs = await getSongsWithVotes();
+        io.emit('songs_update', updatedSongs);
+      } catch (error) {
+        console.error('Vote processing error:', error);
+        socket.emit('error', { message: '處理投票時發生錯誤' });
+      }
+    });
 
-    } catch (error) {
-      console.error('Connection setup error:', error);
-      socket.disconnect(true);
-    }
+    socket.on('disconnect', () => {
+      console.log('Socket disconnected:', socket.id);
+    });
+
+    socket.on('error', (error) => {
+      console.error('Socket error:', error);
+    });
   });
 
   return httpServer;
