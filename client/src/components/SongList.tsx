@@ -64,10 +64,33 @@ export default function SongList({ songs, ws, user }: SongListProps) {
         [songId]: (prev[songId] || 0) + 1
       }));
 
-      // Reset voting status after a shorter delay (100ms instead of 300ms)
+      // Reset voting status after a shorter delay (50ms)
       setTimeout(() => {
         setVotingId(null);
-      }, 100);
+      }, 50);
+
+      // Reset click count after 2 seconds of inactivity with a smooth transition
+      const currentCount = clickCount[songId] || 0;
+      setTimeout(() => {
+        setClickCount(prev => ({
+          ...prev,
+          [songId]: Math.max((prev[songId] || 0) - Math.ceil(currentCount / 3), 0)
+        }));
+
+        // Continue decreasing if still above 0
+        const decreaseInterval = setInterval(() => {
+          setClickCount(prev => {
+            const newCount = Math.max((prev[songId] || 0) - Math.ceil(currentCount / 3), 0);
+            if (newCount === 0) {
+              clearInterval(decreaseInterval);
+            }
+            return {
+              ...prev,
+              [songId]: newCount
+            };
+          });
+        }, 100);
+      }, 2000);
     }
   };
 
@@ -223,7 +246,11 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         hover:from-purple-200 hover:via-pink-200 hover:to-rose-200
                         border-2
                         ${votingId === song.id
-                          ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.5)] bg-gradient-to-r from-purple-300 via-pink-300 to-rose-300'
+                          ? `border-primary shadow-[0_0_${Math.min(15 + (clickCount[song.id] || 0) * 5, 30)}px_rgba(var(--primary),${Math.min(0.3 + (clickCount[song.id] || 0) * 0.1, 0.8)})]
+                              bg-gradient-to-r 
+                              ${clickCount[song.id] >= 10 ? 'from-purple-500 via-pink-500 to-rose-500' :
+                                clickCount[song.id] >= 5 ? 'from-purple-400 via-pink-400 to-rose-400' :
+                                'from-purple-300 via-pink-300 to-rose-300'}`
                           : 'border-primary/20 hover:border-primary/40'}
                         transition-all duration-150
                       `}
@@ -256,7 +283,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                                 }}
                                 className="absolute font-bold text-primary"
                                 style={{
-                                  textShadow: "0 0 10px rgba(var(--primary), 0.3)"
+                                  textShadow: `0 0 ${Math.min(10 + clickCount[song.id] * 2, 20)}px rgba(var(--primary), ${Math.min(0.3 + clickCount[song.id] * 0.1, 0.8)})`
                                 }}
                               >
                                 +{clickCount[song.id]}
@@ -265,15 +292,25 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                               <motion.div
                                 initial={{ opacity: 0, scale: 0 }}
                                 animate={{
-                                  opacity: [0, 0.8, 0],
-                                  scale: [0.5, 1.5],
-                                  y: [-10, -40]
+                                  opacity: [0, Math.min(0.8 + (clickCount[song.id] * 0.05), 1), 0],
+                                  scale: [0.5, Math.min(1.5 + (clickCount[song.id] * 0.1), 3)],
+                                  y: [-10, Math.min(-40 - (clickCount[song.id] * 2), -80)]
                                 }}
                                 transition={{ duration: 0.5 }}
                                 className="absolute left-1/2 -translate-x-1/2 bottom-0"
                               >
-                                <div className="w-6 h-8 bg-gradient-to-t from-orange-500 via-yellow-400 to-transparent
-                                  rounded-full blur-sm animate-pulse" />
+                                <div
+                                  className={`
+                                    w-6 h-8 bg-gradient-to-t from-orange-500 via-yellow-400 to-transparent
+                                    rounded-full blur-sm animate-pulse
+                                    ${clickCount[song.id] >= 10 ? 'opacity-100 scale-150' :
+                                      clickCount[song.id] >= 5 ? 'opacity-90 scale-125' :
+                                      'opacity-80'}
+                                  `}
+                                  style={{
+                                    animation: `pulse ${Math.max(1.5 - (clickCount[song.id] * 0.1), 0.5)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`
+                                  }}
+                                />
                               </motion.div>
                             </motion.div>
                           )}
