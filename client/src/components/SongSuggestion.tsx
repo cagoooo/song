@@ -29,60 +29,28 @@ export default function SongSuggestion({ isAdmin = false }) {
   const [artist, setArtist] = useState("");
   const [suggestedBy, setSuggestedBy] = useState("");
   const [notes, setNotes] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: suggestions = [], isError: isFetchError } = useQuery<SongSuggestion[]>({
+  const { data: suggestions = [] } = useQuery<SongSuggestion[]>({
     queryKey: ['/api/suggestions'],
     queryFn: async () => {
-      try {
-        const response = await fetch('/api/suggestions');
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || '無法獲取建議列表');
-        }
-        return response.json();
-      } catch (error) {
-        console.error('獲取建議列表失敗:', error);
-        throw error;
-      }
+      const response = await fetch('/api/suggestions');
+      if (!response.ok) throw new Error('Failed to fetch suggestions');
+      return response.json();
     }
   });
 
   const addSuggestionMutation = useMutation({
     mutationFn: async () => {
-      if (!title.trim() || !artist.trim()) {
-        throw new Error('歌曲名稱和歌手名稱為必填項目');
-      }
+      const response = await fetch('/api/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, artist, suggestedBy, notes })
+      });
 
-      setIsSubmitting(true);
-      try {
-        const response = await fetch('/api/suggestions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            title: title.trim(), 
-            artist: artist.trim(), 
-            suggestedBy: suggestedBy.trim(), 
-            notes: notes.trim() 
-          })
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || '送出建議時發生錯誤');
-        }
-
-        return response.json();
-      } catch (error) {
-        if (error instanceof Error) {
-          throw error;
-        }
-        throw new Error('送出建議時發生未知錯誤');
-      } finally {
-        setIsSubmitting(false);
-      }
+      if (!response.ok) throw new Error('Failed to add suggestion');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
@@ -96,11 +64,10 @@ export default function SongSuggestion({ isAdmin = false }) {
         description: "您的建議已送出，管理員會盡快審核",
       });
     },
-    onError: (error: Error) => {
-      console.error('建議送出失敗:', error);
+    onError: () => {
       toast({
         title: "錯誤",
-        description: error.message || "無法送出歌曲建議，請稍後再試",
+        description: "無法送出歌曲建議",
         variant: "destructive"
       });
     }
@@ -115,43 +82,14 @@ export default function SongSuggestion({ isAdmin = false }) {
         credentials: 'include'
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to update status');
-      }
+      if (!response.ok) throw new Error('Failed to update status');
       return response.json();
     },
-    onMutate: async ({ id, status }) => {
-      await queryClient.cancelQueries({ queryKey: ['/api/suggestions'] });
-
-      const previousSuggestions = queryClient.getQueryData<SongSuggestion[]>(['/api/suggestions']);
-
-      if (previousSuggestions) {
-        queryClient.setQueryData<SongSuggestion[]>(['/api/suggestions'], 
-          previousSuggestions.map(suggestion => 
-            suggestion.id === id ? { ...suggestion, status } : suggestion
-          )
-        );
-      }
-
-      return { previousSuggestions };
-    },
-    onError: (error: Error, _variables, context) => {
-      if (context?.previousSuggestions) {
-        queryClient.setQueryData(['/api/suggestions'], context.previousSuggestions);
-      }
-
-      toast({
-        title: "錯誤",
-        description: error.message || "無法更新建議狀態",
-        variant: "destructive"
-      });
-    },
-    onSuccess: (_data, { status }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
       toast({
         title: "成功",
-        description: status === 'approved' ? "建議已核准" : "建議已拒絕",
+        description: "建議狀態已更新",
       });
     }
   });
@@ -163,10 +101,7 @@ export default function SongSuggestion({ isAdmin = false }) {
         credentials: 'include'
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to delete suggestion');
-      }
+      if (!response.ok) throw new Error('Failed to delete suggestion');
       return response.json();
     },
     onSuccess: () => {
@@ -176,24 +111,18 @@ export default function SongSuggestion({ isAdmin = false }) {
         description: "建議已刪除",
       });
     },
-    onError: (error: Error) => {
+    onError: () => {
       toast({
         title: "錯誤",
-        description: error.message || "無法刪除建議",
+        description: "無法刪除建議",
         variant: "destructive"
       });
     }
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
-
-    try {
-      await addSuggestionMutation.mutateAsync();
-    } catch (error) {
-      console.error('Form submission failed:', error);
-    }
+    addSuggestionMutation.mutate();
   };
 
   const generateGuitarTabsUrl = (song: SongSuggestion) => {

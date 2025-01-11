@@ -7,8 +7,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { users } from "@db/schema";
-import "./types";
+import { users, type User } from "@db/schema";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -29,15 +28,20 @@ const crypto = {
   },
 };
 
+// extend express user object with our schema
+declare global {
+  namespace Express {
+    interface User extends User { }
+  }
+}
+
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
   const sessionSettings: session.SessionOptions = {
     secret: process.env.REPL_ID || "guitar-song-vote-system",
     resave: false,
     saveUninitialized: false,
-    cookie: {
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
+    cookie: {},
     store: new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
     }),
@@ -46,9 +50,7 @@ export function setupAuth(app: Express) {
   if (app.get("env") === "production") {
     app.set("trust proxy", 1);
     sessionSettings.cookie = {
-      ...sessionSettings.cookie,
       secure: true,
-      sameSite: 'lax'
     };
   }
 
@@ -59,60 +61,39 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        if (!username?.trim() || !password?.trim()) {
-          return done(null, false, { message: "帳號和密碼為必填項目" });
-        }
-
         const [user] = await db
           .select()
           .from(users)
-          .where(eq(users.username, username.trim()))
+          .where(eq(users.username, username))
           .limit(1);
 
         if (!user) {
           return done(null, false, { message: "帳號或密碼錯誤" });
         }
-
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "帳號或密碼錯誤" });
         }
-
-        return done(null, {
-          id: user.id,
-          username: user.username,
-          isAdmin: user.isAdmin
-        });
+        return done(null, user);
       } catch (err) {
-        console.error('Authentication error:', err);
         return done(err);
       }
     })
   );
 
-  passport.serializeUser((user: Express.User, done) => {
+  passport.serializeUser((user, done) => {
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
       const [user] = await db
-        .select({
-          id: users.id,
-          username: users.username,
-          isAdmin: users.isAdmin
-        })
+        .select()
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
-
-      if (!user) {
-        return done(null, false);
-      }
-
       done(null, user);
     } catch (err) {
-      console.error('Deserialization error:', err);
       done(err);
     }
   });
@@ -121,56 +102,53 @@ export function setupAuth(app: Express) {
     try {
       const { username, password } = req.body;
 
-      if (!username?.trim() || !password?.trim()) {
-        return res.status(400).send("帳號和密碼為必填項目");
-      }
-
+      // Check if user already exists
       const [existingUser] = await db
         .select()
         .from(users)
-        .where(eq(users.username, username.trim()))
+        .where(eq(users.username, username))
         .limit(1);
 
       if (existingUser) {
         return res.status(400).send("使用者名稱已存在");
       }
 
+      // Hash the password
       const hashedPassword = await crypto.hash(password);
 
+      // Create the new user
       const [newUser] = await db
         .insert(users)
         .values({
-          username: username.trim(),
+          username,
           password: hashedPassword,
-          isAdmin: false,
+          isAdmin: false // 預設為非管理員
         })
         .returning();
 
-      const sessionUser: Express.User = {
-        id: newUser.id,
-        username: newUser.username,
-        isAdmin: newUser.isAdmin
-      };
-
-      req.login(sessionUser, (err) => {
+      // Log the user in after registration
+      req.login(newUser, (err) => {
         if (err) {
           return next(err);
         }
         return res.json({
           message: "註冊成功",
-          user: sessionUser,
+          user: { id: newUser.id, username: newUser.username, isAdmin: newUser.isAdmin },
         });
       });
     } catch (error) {
-      console.error('Registration error:', error);
       next(error);
     }
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).send("請輸入帳號和密碼");
+    }
+
+    const cb = (err: any, user: Express.User, info: IVerifyOptions) => {
       if (err) {
-        console.error('Login error:', err);
         return next(err);
       }
 
@@ -180,41 +158,33 @@ export function setupAuth(app: Express) {
 
       req.logIn(user, (err) => {
         if (err) {
-          console.error('Login session error:', err);
           return next(err);
         }
 
         return res.json({
           message: "登入成功",
-          user: {
-            id: user.id,
-            username: user.username,
-            isAdmin: user.isAdmin
-          },
+          user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
         });
       });
-    })(req, res, next);
+    };
+    passport.authenticate("local", cb)(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {
     req.logout((err) => {
       if (err) {
-        console.error('Logout error:', err);
         return res.status(500).send("登出失敗");
       }
+
       res.json({ message: "登出成功" });
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).send("未登入");
+    if (req.isAuthenticated()) {
+      return res.json(req.user);
     }
 
-    res.json({
-      id: req.user.id,
-      username: req.user.username,
-      isAdmin: req.user.isAdmin
-    });
+    res.status(401).send("未登入");
   });
 }
