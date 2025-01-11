@@ -142,21 +142,25 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 sm:mb-8"
         >
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
             <div 
-              className="relative p-2 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
-                       shadow-[0_0_15px_rgba(var(--primary),0.3)]
-                       animate-[shadow-pulse_3s_ease-in-out_infinite]
+              className="relative p-2 rounded-lg bg-white/50 backdrop-blur-sm
+                       shadow-[0_0_15px_rgba(0,0,0,0.1)]
+                       hover:shadow-[0_0_25px_rgba(0,0,0,0.15)]
+                       transition-all duration-300
                        w-full sm:w-auto"
             >
-              <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent
-                          px-4 py-2 text-center sm:text-left">
+              <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 
+                          bg-clip-text text-transparent text-center
+                          px-4 py-2">
                 吉他彈唱點歌系統
               </h1>
-              <div className="absolute inset-0 rounded-lg border-2 border-primary/20
+              <div className="absolute inset-0 rounded-lg border-2 border-slate-200/20
                           animate-[border-pulse_3s_ease-in-out_infinite_0.5s]" />
             </div>
-            <ShareButton />
+            <div className="w-full sm:w-auto flex justify-center">
+              <ShareButton />
+            </div>
           </div>
 
           {user ? (
