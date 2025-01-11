@@ -11,19 +11,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger
-} from "@/components/ui/dialog";
-import { Music, ThumbsUp, Trash2, RotateCcw, PlayCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
+import { Music, ThumbsUp, Trash2, RotateCcw } from "lucide-react";
 import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
 import { AnimatePresence, motion } from "framer-motion";
-import FireworkEffect from "./FireworkEffect";
-import { MusicPlayer } from "./MusicPlayer";
 import QRCodeShareModal from "./QRCodeShareModal";
 
 interface SongListProps {
@@ -37,7 +30,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [votingId, setVotingId] = useState<number | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
-  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedSongForShare, setSelectedSongForShare] = useState<Song | null>(null);
   const [clickCount, setClickCount] = useState<{ [key: number]: number }>({});
@@ -200,41 +192,9 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                     <h3 className="font-semibold text-gray-800 break-all">{song.title}</h3>
                   </div>
                   <p className="text-sm text-gray-600 break-all">{song.artist}</p>
-                  {song.key && (
-                    <span className="text-xs bg-gradient-to-r from-cyan-500/20 to-teal-500/20 text-cyan-700
-                                 px-2 py-1 rounded mt-1 inline-block">
-                      Key: {song.key}
-                    </span>
-                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {song.audioUrl && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedSong(song)}
-                          className="flex gap-2 relative overflow-hidden w-full sm:w-auto
-                                   bg-gradient-to-r from-emerald-100 via-teal-100 to-cyan-100
-                                   hover:from-emerald-200 hover:via-teal-200 hover:to-cyan-200
-                                   border-2 border-emerald-500/20 hover:border-emerald-500/40
-                                   transition-all duration-300"
-                        >
-                          <PlayCircle className="h-4 w-4" />
-                          播放
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-2xl">
-                        <MusicPlayer
-                          song={song}
-                          onClose={() => setSelectedSong(null)}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  )}
-
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -249,7 +209,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         bg-gradient-to-r from-purple-100 via-pink-100 to-rose-100
                         hover:from-purple-200 hover:via-pink-200 hover:to-rose-200
                         border-2
-                        ${votingId === song.id
+                        ${votingId === song.id || clickCount[song.id] > 0
                           ? `border-primary shadow-[0_0_${Math.min(15 + (clickCount[song.id] || 0) * 5, 30)}px_rgba(var(--primary),${Math.min(0.3 + (clickCount[song.id] || 0) * 0.1, 0.8)})]
                               bg-gradient-to-r 
                               ${clickCount[song.id] >= 10 ? 'from-purple-500 via-pink-500 to-rose-500 text-white' :
@@ -257,8 +217,12 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                                 'from-purple-300 via-pink-300 to-rose-300'}`
                           : 'border-primary/20 hover:border-primary/40'}
                         transition-all duration-150
+                        transform-gpu
                         ${clickCount[song.id] > 0 ? 'scale-105' : 'scale-100'}
                       `}
+                      style={{
+                        transform: `scale(${Math.min(1 + (clickCount[song.id] || 0) * 0.05, 1.2)})`,
+                      }}
                     >
                       <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
                       <span className="relative">
@@ -372,7 +336,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         </AnimatePresence>
                       </span>
                     </Button>
-                    <FireworkEffect isVisible={votingId === song.id} />
                   </motion.div>
 
                   {user?.isAdmin && (
@@ -385,7 +348,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => deleteSong(song.id)}
-                        className="flex gap-2 w-full border-2 border-red-200/50
+                        className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
                                  text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
                                  hover:border-red-300/50 transition-all duration-300"
                       >
