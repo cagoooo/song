@@ -203,9 +203,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Setup authentication
-  setupAuth(app);
-
   return httpServer;
 }
 
