@@ -177,12 +177,25 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.delete('/api/suggestions/:id', requireAdmin, async (req, res) => {
+  app.delete('/api/suggestions/:id', async (req, res) => {
     try {
       const { id } = req.params;
+
+      // 檢查建議是否存在
+      const suggestion = await db
+        .select()
+        .from(songSuggestions)
+        .where(eq(songSuggestions.id, parseInt(id)))
+        .limit(1);
+
+      if (!suggestion || suggestion.length === 0) {
+        return res.status(404).json({ message: '找不到指定的建議' });
+      }
+
       await db
         .delete(songSuggestions)
         .where(eq(songSuggestions.id, parseInt(id)));
+
       res.json({ success: true });
     } catch (error) {
       console.error('Error deleting suggestion:', error);
