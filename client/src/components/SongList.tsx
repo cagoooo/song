@@ -272,7 +272,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                               <motion.span
                                 key={`count-${clickCount[song.id]}`}
                                 initial={{ opacity: 0, y: 10, scale: 0.5 }}
-                                animate={{ 
+                                animate={{
                                   opacity: [0, 1, 0],
                                   y: [-10, -30],
                                   scale: Math.min(1 + (clickCount[song.id] * 0.3), 2.5),
@@ -304,6 +304,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                                 transition={{ duration: 0.5 }}
                                 className="absolute left-1/2 -translate-x-1/2 bottom-0"
                               >
+                                {/* Main fire */}
                                 <div
                                   className={`
                                     w-6 h-8 bg-gradient-to-t from-orange-500 via-yellow-400 to-transparent
@@ -316,6 +317,53 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                                     animation: `pulse ${Math.max(1.5 - (clickCount[song.id] * 0.1), 0.5)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
                                     transform: `scale(${Math.min(1 + (clickCount[song.id] * 0.1), 2)})`,
                                     filter: `blur(${Math.min(3 + (clickCount[song.id] * 0.2), 8)}px)`
+                                  }}
+                                />
+                                {/* Inner fire core */}
+                                <div
+                                  className={`
+                                    absolute inset-0 w-4 h-6 bg-gradient-to-t from-yellow-500 via-yellow-300 to-transparent
+                                    rounded-full blur-sm animate-pulse
+                                    ${clickCount[song.id] >= 10 ? 'opacity-100 scale-150' :
+                                      clickCount[song.id] >= 5 ? 'opacity-90 scale-125' :
+                                      'opacity-80'}
+                                  `}
+                                  style={{
+                                    animation: `pulse ${Math.max(1.2 - (clickCount[song.id] * 0.1), 0.3)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
+                                    transform: `scale(${Math.min(1 + (clickCount[song.id] * 0.15), 2.2)})`,
+                                    filter: `blur(${Math.min(2 + (clickCount[song.id] * 0.15), 6)}px)`
+                                  }}
+                                />
+                                {/* Sparks */}
+                                {Array.from({ length: Math.min(3 + Math.floor(clickCount[song.id] / 3), 8) }).map((_, index) => (
+                                  <motion.div
+                                    key={index}
+                                    className="absolute w-1 h-1 bg-yellow-300 rounded-full"
+                                    initial={{ opacity: 0, scale: 0 }}
+                                    animate={{
+                                      opacity: [0, 0.8, 0],
+                                      scale: [0, 1, 0],
+                                      x: [0, (Math.random() - 0.5) * 30 * (1 + clickCount[song.id] * 0.2)],
+                                      y: [0, -20 - Math.random() * 20 * (1 + clickCount[song.id] * 0.1)]
+                                    }}
+                                    transition={{
+                                      duration: 0.5 + Math.random() * 0.3,
+                                      repeat: Infinity,
+                                      repeatDelay: Math.random() * 0.2
+                                    }}
+                                    style={{
+                                      left: '50%',
+                                      bottom: '100%',
+                                    }}
+                                  />
+                                ))}
+                                {/* Glow effect */}
+                                <div
+                                  className="absolute inset-0 rounded-full"
+                                  style={{
+                                    background: `radial-gradient(circle, rgba(255,166,0,${Math.min(0.2 + clickCount[song.id] * 0.05, 0.6)}) 0%, transparent 70%)`,
+                                    transform: `scale(${Math.min(1.5 + clickCount[song.id] * 0.1, 3)})`,
+                                    filter: `blur(${Math.min(5 + clickCount[song.id] * 0.5, 15)}px)`
                                   }}
                                 />
                               </motion.div>
