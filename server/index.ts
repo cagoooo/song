@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { db } from "@db";
 import { sql } from "drizzle-orm";
+import { createServer } from "http";
 
 const app = express();
 app.use(express.json());
@@ -44,17 +45,22 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
+  // Give the server time to finish handling current requests
+  setTimeout(() => {
+    process.exit(1);
+  }, 1000);
 });
 
-(async () => {
+async function startServer(port: number, retries = 3): Promise<void> {
   try {
-    // Test database connection
+    // Test database connection first
     const result = await db.execute(sql`SELECT 1`);
     if (result) {
       log('Database connection successful');
     }
 
-    const server = registerRoutes(app);
+    const server = createServer(app);
+    registerRoutes(app);
 
     // Added error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -71,33 +77,52 @@ process.on('uncaughtException', (error) => {
       serveStatic(app);
     }
 
-    const PORT = 5000;
+    return new Promise((resolve, reject) => {
+      server.listen(port, "0.0.0.0")
+        .once('listening', () => {
+          log(`Server started successfully on port ${port}`);
+          log(`Development mode: ${app.get("env") === "development"}`);
+          resolve();
+        })
+        .once('error', (err: NodeJS.ErrnoException) => {
+          if (err.code === 'EADDRINUSE') {
+            if (retries > 0) {
+              log(`Port ${port} in use, trying port ${port + 1}`);
+              server.close();
+              startServer(port + 1, retries - 1).then(resolve).catch(reject);
+            } else {
+              reject(new Error('No available ports found after retries'));
+            }
+          } else {
+            reject(err);
+          }
+        });
 
-    // Start server
-    server.listen(PORT, "0.0.0.0", () => {
-      log(`Server started successfully on port ${PORT}`);
-      log(`Development mode: ${app.get("env") === "development"}`);
+      // Graceful shutdown handler
+      const shutdown = () => {
+        server.close(() => {
+          log('Server shutdown complete');
+          process.exit(0);
+        });
+
+        // Force close if graceful shutdown fails
+        setTimeout(() => {
+          log('Server force shutdown');
+          process.exit(1);
+        }, 10000);
+      };
+
+      process.on('SIGTERM', shutdown);
+      process.on('SIGINT', shutdown);
     });
-
-    // Graceful shutdown handler
-    const shutdown = () => {
-      server.close(() => {
-        log('Server shutdown complete');
-        process.exit(0);
-      });
-
-      // Force close if graceful shutdown fails
-      setTimeout(() => {
-        log('Server force shutdown');
-        process.exit(1);
-      }, 10000);
-    };
-
-    process.on('SIGTERM', shutdown);
-    process.on('SIGINT', shutdown);
-
   } catch (error) {
     console.error('Failed to start server:', error);
-    process.exit(1);
+    throw error;
   }
-})();
+}
+
+// Start the server with initial port 5000
+startServer(5000).catch((error) => {
+  console.error('Server startup failed:', error);
+  process.exit(1);
+});
