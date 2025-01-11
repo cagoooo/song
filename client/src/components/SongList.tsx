@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
 import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import FireworkEffect from "./FireworkEffect";
 import { MusicPlayer } from "./MusicPlayer";
 import QRCodeShareModal from "./QRCodeShareModal";
@@ -64,17 +64,10 @@ export default function SongList({ songs, ws, user }: SongListProps) {
         [songId]: (prev[songId] || 0) + 1
       }));
 
-      // Reset voting status after a shorter delay (300ms instead of 800ms)
+      // Reset voting status after a shorter delay (100ms instead of 300ms)
       setTimeout(() => {
         setVotingId(null);
-        // Reset click count after 1 second of inactivity
-        setTimeout(() => {
-          setClickCount(prev => ({
-            ...prev,
-            [songId]: 0
-          }));
-        }, 1000);
-      }, 300);
+      }, 100);
     }
   };
 
@@ -230,9 +223,9 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         hover:from-purple-200 hover:via-pink-200 hover:to-rose-200
                         border-2
                         ${votingId === song.id
-                          ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]'
+                          ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.5)] bg-gradient-to-r from-purple-300 via-pink-300 to-rose-300'
                           : 'border-primary/20 hover:border-primary/40'}
-                        transition-all duration-300
+                        transition-all duration-150
                       `}
                     >
                       <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
@@ -240,23 +233,49 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         點播
                         <AnimatePresence>
                           {clickCount[song.id] > 0 && (
-                            <motion.span
-                              key={`count-${clickCount[song.id]}`}
-                              initial={{ opacity: 0, y: 10, scale: 0.5 }}
-                              animate={{ 
-                                opacity: 1, 
-                                y: -20, 
-                                scale: Math.min(1 + (clickCount[song.id] * 0.2), 2),
-                                transition: {
-                                  duration: 0.3,
-                                  ease: "easeOut"
-                                }
-                              }}
-                              exit={{ opacity: 0, scale: 0 }}
-                              className="absolute left-1/2 -translate-x-1/2 text-primary font-bold"
+                            <motion.div
+                              className="absolute -top-1 left-1/2 -translate-x-1/2"
+                              style={{ pointerEvents: "none" }}
                             >
-                              +{clickCount[song.id]}
-                            </motion.span>
+                              <motion.span
+                                key={`count-${clickCount[song.id]}`}
+                                initial={{ opacity: 0, y: 10, scale: 0.5 }}
+                                animate={{ 
+                                  opacity: [0, 1, 0],
+                                  y: [-10, -30],
+                                  scale: Math.min(1 + (clickCount[song.id] * 0.3), 2.5),
+                                  color: [
+                                    "rgb(var(--primary))",
+                                    "rgb(239, 68, 68)",
+                                    "rgb(234, 179, 8)"
+                                  ]
+                                }}
+                                transition={{
+                                  duration: 0.5,
+                                  ease: "easeOut"
+                                }}
+                                className="absolute font-bold text-primary"
+                                style={{
+                                  textShadow: "0 0 10px rgba(var(--primary), 0.3)"
+                                }}
+                              >
+                                +{clickCount[song.id]}
+                              </motion.span>
+                              {/* Fire effect */}
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0 }}
+                                animate={{
+                                  opacity: [0, 0.8, 0],
+                                  scale: [0.5, 1.5],
+                                  y: [-10, -40]
+                                }}
+                                transition={{ duration: 0.5 }}
+                                className="absolute left-1/2 -translate-x-1/2 bottom-0"
+                              >
+                                <div className="w-6 h-8 bg-gradient-to-t from-orange-500 via-yellow-400 to-transparent
+                                  rounded-full blur-sm animate-pulse" />
+                              </motion.div>
+                            </motion.div>
                           )}
                         </AnimatePresence>
                       </span>

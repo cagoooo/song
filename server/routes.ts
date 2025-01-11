@@ -5,10 +5,6 @@ import { db } from "@db";
 import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, type User } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-import express from "express";
 import type { IncomingMessage } from "http";
 
 declare module 'express-serve-static-core' {
@@ -365,11 +361,12 @@ export function registerRoutes(app: Express): Server {
           const lastTime = lastVoteTime[songId] || 0;
           const timeDiff = now - lastTime;
 
-          // Only process vote if more than 100ms has passed since last vote
-          if (timeDiff > 100) {
+          // Reduced minimum time between votes from 100ms to 50ms
+          if (timeDiff > 50) {
             await db.insert(votes).values({
               songId: message.songId,
-              sessionId
+              sessionId: sessionId,
+              createdAt: new Date()
             });
 
             // Update vote tracking
@@ -407,7 +404,6 @@ export function registerRoutes(app: Express): Server {
 async function getSongsWithVotes() {
   const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
 
-  // 計算每首歌的投票數
   const songVotes = await db.select({
     songId: votes.songId,
     voteCount: sql<number>`count(*)`.mapWith(Number)
