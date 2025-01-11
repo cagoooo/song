@@ -63,11 +63,27 @@ app.use((req, res, next) => {
     }
 
     // Start the server with a numeric port
-    const PORT = Number(process.env.PORT || 80);
+    const PORT = Number(process.env.PORT || 5000);
+    if (isNaN(PORT) || PORT < 0 || PORT > 65535) {
+      throw new Error(`Invalid port number: ${PORT}`);
+    }
+
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server running on port ${PORT}`);
-      log(`Production mode: ${app.get("env") === "production"}`);
+      log(`Development mode: ${app.get("env") === "development"}`);
     });
+
+    // Handle server errors
+    server.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'EADDRINUSE') {
+        log(`Port ${PORT} is already in use`);
+        process.exit(1);
+      } else {
+        console.error('Server error:', error);
+        process.exit(1);
+      }
+    });
+
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
