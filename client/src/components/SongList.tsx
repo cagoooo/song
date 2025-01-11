@@ -69,20 +69,24 @@ export default function SongList({ songs, ws, user }: SongListProps) {
         setVotingId(null);
       }, 50);
 
-      // Reset click count after 2 seconds of inactivity with a smooth transition
-      const currentCount = clickCount[songId] || 0;
-      setTimeout(() => {
-        setClickCount(prev => ({
-          ...prev,
-          [songId]: Math.max((prev[songId] || 0) - Math.ceil(currentCount / 3), 0)
-        }));
+      // Clear any existing timeout for this song
+      const timeoutKey = `timeout_${songId}`;
+      if ((window as any)[timeoutKey]) {
+        clearTimeout((window as any)[timeoutKey]);
+        clearInterval((window as any)[`interval_${songId}`]);
+      }
 
-        // Continue decreasing if still above 0
-        const decreaseInterval = setInterval(() => {
+      // Set a new timeout for smooth recovery
+      (window as any)[timeoutKey] = setTimeout(() => {
+        const currentCount = clickCount[songId] || 0;
+        const steps = 10; // Number of steps for smooth transition
+        const decrementPerStep = Math.ceil(currentCount / steps);
+
+        (window as any)[`interval_${songId}`] = setInterval(() => {
           setClickCount(prev => {
-            const newCount = Math.max((prev[songId] || 0) - Math.ceil(currentCount / 3), 0);
+            const newCount = Math.max((prev[songId] || 0) - decrementPerStep, 0);
             if (newCount === 0) {
-              clearInterval(decreaseInterval);
+              clearInterval((window as any)[`interval_${songId}`]);
             }
             return {
               ...prev,
@@ -241,18 +245,19 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                       size="sm"
                       onClick={() => voteForSong(song.id)}
                       className={`
-                        flex gap-2 relative overflow-hidden w-full
+                        flex gap-2 relative overflow-hidden w-full sm:w-auto
                         bg-gradient-to-r from-purple-100 via-pink-100 to-rose-100
                         hover:from-purple-200 hover:via-pink-200 hover:to-rose-200
                         border-2
                         ${votingId === song.id
                           ? `border-primary shadow-[0_0_${Math.min(15 + (clickCount[song.id] || 0) * 5, 30)}px_rgba(var(--primary),${Math.min(0.3 + (clickCount[song.id] || 0) * 0.1, 0.8)})]
                               bg-gradient-to-r 
-                              ${clickCount[song.id] >= 10 ? 'from-purple-500 via-pink-500 to-rose-500' :
+                              ${clickCount[song.id] >= 10 ? 'from-purple-500 via-pink-500 to-rose-500 text-white' :
                                 clickCount[song.id] >= 5 ? 'from-purple-400 via-pink-400 to-rose-400' :
                                 'from-purple-300 via-pink-300 to-rose-300'}`
                           : 'border-primary/20 hover:border-primary/40'}
                         transition-all duration-150
+                        ${clickCount[song.id] > 0 ? 'scale-105' : 'scale-100'}
                       `}
                     >
                       <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
@@ -308,7 +313,9 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                                       'opacity-80'}
                                   `}
                                   style={{
-                                    animation: `pulse ${Math.max(1.5 - (clickCount[song.id] * 0.1), 0.5)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`
+                                    animation: `pulse ${Math.max(1.5 - (clickCount[song.id] * 0.1), 0.5)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
+                                    transform: `scale(${Math.min(1 + (clickCount[song.id] * 0.1), 2)})`,
+                                    filter: `blur(${Math.min(3 + (clickCount[song.id] * 0.2), 8)}px)`
                                   }}
                                 />
                               </motion.div>
