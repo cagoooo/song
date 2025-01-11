@@ -115,20 +115,34 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <motion.div
-          animate={{
-            rotate: 360,
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        >
-          <Music2 className="w-12 h-12 text-primary" />
-        </motion.div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background to-primary/5">
+        <div className="relative">
+          <motion.div
+            className="absolute inset-0 w-40 h-40 bg-primary/20 rounded-full filter blur-xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.7, 0.3]
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div
+            className="relative z-10"
+            animate={{
+              rotate: 360
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          >
+            <Music2 className="w-32 h-32 text-primary" />
+          </motion.div>
+        </div>
       </div>
     );
   }
@@ -172,74 +186,66 @@ export default function Home() {
           ) : null}
         </motion.div>
 
-        <AnimatePresence>
-          <motion.div 
-            className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
-            layout
-            transition={{
-              layout: { duration: 0.3 },
-            }}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="lg:col-span-3"
           >
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="lg:col-span-3"
-            >
-              <Card className="shadow-lg bg-gradient-to-br from-amber-50/50 via-white to-amber-50/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
-                    想聽的歌還沒有？
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <SongSuggestion isAdmin={user?.isAdmin ?? false} />
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="lg:col-span-2"
-            >
-              <Card className="shadow-lg h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                    可選歌單
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 sm:p-6">
-                  {user?.isAdmin && <SongImport />}
-                  <div className="h-4" />
-                  <SongList songs={songs} ws={wsRef.current} user={user || null} />
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className="lg:col-span-1"
-            >
-              <Card className="shadow-lg h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                    人氣點播排行榜
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 sm:p-6">
-                  <RankingBoard songs={songs} />
-                </CardContent>
-              </Card>
-            </motion.div>
+            <Card className="shadow-lg bg-gradient-to-br from-amber-50/50 via-white to-amber-50/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
+                  想聽的歌還沒有？
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SongSuggestion isAdmin={user?.isAdmin ?? false} />
+              </CardContent>
+            </Card>
           </motion.div>
-        </AnimatePresence>
+
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="lg:col-span-2"
+          >
+            <Card className="shadow-lg h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                  可選歌單
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6">
+                {user?.isAdmin && <SongImport />}
+                <div className="h-4" />
+                <SongList songs={songs} ws={wsRef.current} user={user || null} />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            className="lg:col-span-1"
+          >
+            <Card className="shadow-lg h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                  人氣點播排行榜
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6">
+                <RankingBoard songs={songs} />
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
       </div>
 
       {!user && (
