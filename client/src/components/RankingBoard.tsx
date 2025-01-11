@@ -9,15 +9,58 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useEffect, useState, useRef } from "react";
 
 interface RankingBoardProps {
   songs: Song[];
 }
 
 export default function RankingBoard({ songs }: RankingBoardProps) {
-  const sortedSongs = [...songs].sort((a, b) =>
+  const [prevRanks, setPrevRanks] = useState<{[key: number]: number}>({});
+  const [showRankChange, setShowRankChange] = useState<{[key: number]: 'up' | 'down' | null}>({});
+  const rankChangeTimeoutRef = useRef<{[key: number]: NodeJS.Timeout}>({});
+
+  // 排序歌曲並追蹤排名變化
+  const sortedSongs = [...songs].sort((a, b) => 
     ((b as any).voteCount || 0) - ((a as any).voteCount || 0)
   );
+
+  useEffect(() => {
+    const newRanks: {[key: number]: number} = {};
+    const newRankChanges: {[key: number]: 'up' | 'down' | null} = {};
+
+    sortedSongs.forEach((song, index) => {
+      const prevRank = prevRanks[song.id] ?? index;
+      newRanks[song.id] = index;
+
+      if (prevRank !== index) {
+        newRankChanges[song.id] = prevRank > index ? 'up' : 'down';
+
+        // Clear existing timeout
+        if (rankChangeTimeoutRef.current[song.id]) {
+          clearTimeout(rankChangeTimeoutRef.current[song.id]);
+        }
+
+        // Set new timeout to clear rank change indicator
+        rankChangeTimeoutRef.current[song.id] = setTimeout(() => {
+          setShowRankChange(prev => ({
+            ...prev,
+            [song.id]: null
+          }));
+        }, 2000);
+      }
+    });
+
+    setPrevRanks(newRanks);
+    setShowRankChange(newRankChanges);
+
+    // Cleanup timeouts
+    return () => {
+      Object.values(rankChangeTimeoutRef.current).forEach(timeout => {
+        clearTimeout(timeout);
+      });
+    };
+  }, [songs]);
 
   const generateGuitarTabsUrl = (song: Song) => {
     const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 吉他譜 tab`);
@@ -32,41 +75,91 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
   return (
     <ScrollArea className="h-[500px] w-full pr-4">
       <div className="space-y-4">
-        <AnimatePresence>
+        <AnimatePresence mode="popLayout">
           {sortedSongs.map((song, index) => (
             <motion.div
               key={song.id}
+              layout
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.3 }}
+              transition={{ 
+                duration: 0.5,
+                layout: { duration: 0.3 }
+              }}
               className={`
                 flex items-center gap-4 p-4 rounded-lg border
                 ${index === 0 ? 'bg-gradient-to-r from-amber-50 to-yellow-100 border-yellow-300' :
                   index === 1 ? 'bg-gradient-to-r from-slate-50 to-gray-100 border-gray-300' :
                   index === 2 ? 'bg-gradient-to-r from-orange-50 to-rose-100 border-orange-300' :
-                  'bg-gradient-to-r from-white to-gray-50'}
+                  'bg-gradient-to-r from-white to-gray-50 border-gray-200'}
+                transform transition-all duration-300
+                ${showRankChange[song.id] === 'up' ? 'shadow-lg shadow-green-100' : 
+                  showRankChange[song.id] === 'down' ? 'shadow-lg shadow-red-100' : ''}
               `}
             >
               <div className="relative flex items-center justify-center w-10 h-10">
-                {index === 0 && <Crown className="w-5 h-5 text-amber-500" />}
+                {index === 0 && (
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      rotate: [0, 10, -10, 0]
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Crown className="w-6 h-6 text-amber-500" />
+                  </motion.div>
+                )}
                 {index === 1 && <Award className="w-5 h-5 text-gray-500" />}
                 {index === 2 && <Trophy className="w-5 h-5 text-orange-500" />}
-                {index > 2 && <span className="text-sm font-medium text-gray-600">{index + 1}</span>}
+                {index > 2 && (
+                  <motion.span 
+                    className="text-sm font-medium text-gray-600"
+                    animate={{ scale: showRankChange[song.id] ? [1, 1.2, 1] : 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {index + 1}
+                  </motion.span>
+                )}
+
+                {/* 排名變化指示器 */}
+                {showRankChange[song.id] && (
+                  <motion.div
+                    initial={{ opacity: 0, x: showRankChange[song.id] === 'up' ? -20 : 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    className={`
+                      absolute -left-6 text-sm font-bold
+                      ${showRankChange[song.id] === 'up' ? 'text-green-500' : 'text-red-500'}
+                    `}
+                  >
+                    {showRankChange[song.id] === 'up' ? '↑' : '↓'}
+                  </motion.div>
+                )}
               </div>
 
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900">{song.title}</h3>
-                <p className="text-sm text-muted-foreground">{song.artist}</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-gray-900 truncate">{song.title}</h3>
+                <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="text-right">
+                <motion.div 
+                  className="text-right"
+                  animate={{ 
+                    scale: (song as any).voteCount > (songs.find(s => s.id === song.id) as any)?.prevVoteCount ? [1, 1.2, 1] : 1
+                  }}
+                  transition={{ duration: 0.3 }}
+                >
                   <span className="text-lg font-bold text-primary">
                     {(song as any).voteCount || 0}
                   </span>
                   <p className="text-xs text-muted-foreground">點播</p>
-                </div>
+                </motion.div>
 
                 <TooltipProvider>
                   <Tooltip>
