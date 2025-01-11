@@ -327,7 +327,9 @@ export default function SongSuggestion({ isAdmin = false }) {
                             className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
                                     shadow-[0_2px_10px_rgba(var(--primary),0.1)]
                                     hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                                    transition-all duration-300 relative group"
+                                    transition-all duration-300 relative group
+                                    bg-gradient-to-r from-blue-50 to-cyan-50
+                                    hover:from-blue-100 hover:to-cyan-100"
                             asChild
                           >
                             <a
@@ -336,7 +338,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                               rel="noopener noreferrer"
                               className="flex items-center justify-center"
                             >
-                              <FileText className="w-4 h-4 transition-transform group-hover:scale-110" />
+                              <FileText className="w-4 h-4 transition-transform group-hover:scale-110 text-blue-600" />
                               <span className="sr-only">搜尋歌詞</span>
                             </a>
                           </Button>
@@ -346,7 +348,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                         side="top"
                         className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
                       >
-                        <p>點擊在 Google 中搜尋「{suggestion.title} - {suggestion.artist}」的歌詞</p>
+                        <p>點擊搜尋「{suggestion.title} - {suggestion.artist}」的歌詞</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
