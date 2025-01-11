@@ -115,14 +115,47 @@ export default function SongSuggestion({ isAdmin = false }) {
         credentials: 'include'
       });
 
-      if (!response.ok) throw new Error('Failed to update status');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to update status');
+      }
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async ({ id, status }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['/api/suggestions'] });
+
+      // Snapshot the previous value
+      const previousSuggestions = queryClient.getQueryData<SongSuggestion[]>(['/api/suggestions']);
+
+      // Optimistically update to the new value
+      if (previousSuggestions) {
+        queryClient.setQueryData<SongSuggestion[]>(['/api/suggestions'], 
+          previousSuggestions.map(suggestion => 
+            suggestion.id === id ? { ...suggestion, status } : suggestion
+          )
+        );
+      }
+
+      return { previousSuggestions };
+    },
+    onError: (error: Error, _variables, context) => {
+      // Rollback to the previous value
+      if (context?.previousSuggestions) {
+        queryClient.setQueryData(['/api/suggestions'], context.previousSuggestions);
+      }
+
+      toast({
+        title: "錯誤",
+        description: error.message || "無法更新建議狀態",
+        variant: "destructive"
+      });
+    },
+    onSuccess: (_data, { status }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
       toast({
         title: "成功",
-        description: "建議狀態已更新",
+        description: status === 'approved' ? "建議已核准" : "建議已拒絕",
       });
     }
   });
