@@ -1,17 +1,24 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer } from "ws";
+import WebSocket, { WebSocketServer } from "ws";
 import { db } from "@db";
 import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, type User } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
-import type { IncomingMessage } from "http";
 
+// Type declarations
 declare module 'express-serve-static-core' {
   interface Request {
     user?: User;
   }
 }
+
+interface VoteMessage {
+  type: 'VOTE';
+  songId: number;
+}
+
+type WebSocketMessage = VoteMessage;
 
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated() || !req.user?.isAdmin) {
@@ -24,31 +31,29 @@ export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
   const wss = new WebSocketServer({
     server: httpServer,
-    path: '/ws',
-    verifyClient: ({ req }: { req: IncomingMessage }) => {
-      const protocol = req.headers['sec-websocket-protocol'];
-      return protocol !== 'vite-hmr';
-    }
+    path: '/ws'
   });
 
   setupAuth(app);
 
   // QR Code scan tracking endpoints
-  app.post("/api/qr-scans", async (req, res) => {
+  app.post("/api/qr-scans", async (req: Request, res: Response) => {
     try {
       const { songId } = req.body;
-      if (!songId) {
-        return res.status(400).json({ error: "需要提供 songId" });
+      if (!songId || typeof songId !== 'number') {
+        return res.status(400).json({ error: "需要提供有效的 songId" });
       }
 
-      const scan = await db.insert(qrCodeScans).values({
-        songId,
-        sessionId: req.sessionID || Math.random().toString(36).substring(2),
-        userAgent: req.headers['user-agent'] || null,
-        referrer: req.headers.referer || req.headers.referrer || null
-      }).returning();
+      const [scan] = await db.insert(qrCodeScans)
+        .values({
+          songId,
+          sessionId: req.sessionID || Math.random().toString(36).substring(2),
+          userAgent: req.headers['user-agent'] || null,
+          referrer: req.headers.referer || null
+        })
+        .returning();
 
-      res.json(scan[0]);
+      res.json(scan);
     } catch (error) {
       console.error('Failed to record QR code scan:', error);
       res.status(500).json({ error: "無法記錄QR碼掃描" });
@@ -56,7 +61,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get QR code scan statistics (admin only)
-  app.get("/api/qr-scans/stats", requireAdmin, async (req, res) => {
+  app.get("/api/qr-scans/stats", requireAdmin, async (_req: Request, res: Response) => {
     try {
       const totalScans = await db
         .select({ count: sql<number>`count(*)` })
@@ -95,7 +100,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Tags related endpoints
-  app.get("/api/tags", async (_req, res) => {
+  app.get("/api/tags", async (_req: Request, res: Response) => {
     try {
       const allTags = await db.select().from(tags);
       res.json(allTags);
@@ -105,11 +110,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/tags", requireAdmin, async (req, res) => {
+  app.post("/api/tags", requireAdmin, async (req: Request, res: Response) => {
     try {
       const { name } = req.body;
-      if (!name) {
-        return res.status(400).json({ error: "需要提供標籤名稱" });
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ error: "需要提供有效的標籤名稱" });
       }
 
       const [newTag] = await db.insert(tags)
@@ -123,7 +128,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/songs/:songId/tags", async (req, res) => {
+  app.get("/api/songs/:songId/tags", async (req: Request, res: Response) => {
     try {
       const songId = parseInt(req.params.songId);
       const songTagsList = await db
@@ -142,12 +147,12 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/songs/:songId/tags", requireAdmin, async (req, res) => {
+  app.post("/api/songs/:songId/tags", requireAdmin, async (req: Request, res: Response) => {
     try {
       const songId = parseInt(req.params.songId);
       const { tagId } = req.body;
-      if (!tagId) {
-        return res.status(400).json({ error: "需要提供標籤ID" });
+      if (!tagId || typeof tagId !== 'number') {
+        return res.status(400).json({ error: "需要提供有效的標籤ID" });
       }
 
       const existingTag = await db
@@ -171,7 +176,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.delete("/api/songs/:songId/tags/:tagId", requireAdmin, async (req, res) => {
+  app.delete("/api/songs/:songId/tags/:tagId", requireAdmin, async (req: Request, res: Response) => {
     try {
       const songId = parseInt(req.params.songId);
       const tagId = parseInt(req.params.tagId);
@@ -188,23 +193,23 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Songs related endpoints
-  app.post("/api/songs", requireAdmin, async (req, res) => {
+  app.post("/api/songs", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const { title, artist, key, notes, lyrics, audioUrl } = req.body;
-      if (!title || !artist) {
-        return res.status(400).json({ error: "需要提供歌曲名稱和歌手" });
+      const { title, artist, key, notes } = req.body;
+      if (!title || !artist || typeof title !== 'string' || typeof artist !== 'string') {
+        return res.status(400).json({ error: "需要提供有效的歌曲資訊" });
       }
 
-      const [newSong] = await db.insert(songs).values({
-        title,
-        artist,
-        key,
-        notes,
-        lyrics,
-        audioUrl,
-        createdBy: req.user?.id,
-        isActive: true
-      }).returning();
+      const [newSong] = await db.insert(songs)
+        .values({
+          title,
+          artist,
+          key: key || null,
+          notes: notes || null,
+          createdBy: req.user?.id,
+          isActive: true
+        })
+        .returning();
 
       await sendSongsUpdate(wss);
       res.json(newSong);
@@ -214,7 +219,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/songs", async (_req, res) => {
+  app.get("/api/songs", async (_req: Request, res: Response) => {
     try {
       const songsList = await getSongsWithVotes();
       res.json(songsList);
@@ -224,31 +229,64 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Vote related endpoints and WebSocket handling
-  wss.on('connection', (ws) => {
+  app.get("/api/suggestions", async (_req: Request, res: Response) => {
+    try {
+      const suggestions = await db.select().from(songSuggestions);
+      res.json(suggestions);
+    } catch (error) {
+      console.error('Failed to fetch suggestions:', error);
+      res.status(500).json({ error: "無法取得建議列表" });
+    }
+  });
+
+  app.post("/api/suggestions", async (req: Request, res: Response) => {
+    try {
+      const { title, artist, suggestedBy, notes } = req.body;
+      if (!title || !artist || typeof title !== 'string' || typeof artist !== 'string') {
+        return res.status(400).json({ error: "需要提供有效的歌曲資訊" });
+      }
+
+      const [newSuggestion] = await db.insert(songSuggestions)
+        .values({
+          title,
+          artist,
+          suggestedBy: suggestedBy || null,
+          notes: notes || null,
+          status: "pending"
+        })
+        .returning();
+
+      res.json(newSuggestion);
+    } catch (error) {
+      console.error('Failed to create suggestion:', error);
+      res.status(500).json({ error: "無法建立建議" });
+    }
+  });
+
+  // WebSocket vote handling
+  wss.on('connection', (ws: WebSocket) => {
     console.log('New WebSocket connection established');
     const sessionId = Math.random().toString(36).substring(2);
-    let lastVoteTime: { [key: number]: number } = {};
-    let voteCount: { [key: number]: number } = {};
+    let lastVoteTime: Record<number, number> = {};
 
-    ws.on('message', async (data) => {
+    ws.on('message', async (data: Buffer) => {
       try {
-        const message = JSON.parse(data.toString());
-        if (message.type === 'VOTE') {
+        const message = JSON.parse(data.toString()) as WebSocketMessage;
+
+        if (message.type === 'VOTE' && typeof message.songId === 'number') {
           const now = Date.now();
           const songId = message.songId;
           const lastTime = lastVoteTime[songId] || 0;
           const timeDiff = now - lastTime;
 
           if (timeDiff > 50) {
-            await db.insert(votes).values({
-              songId: message.songId,
-              sessionId: sessionId
-            });
+            await db.insert(votes)
+              .values({
+                songId,
+                sessionId
+              });
 
             lastVoteTime[songId] = now;
-            voteCount[songId] = (voteCount[songId] || 0) + 1;
-
             await sendSongsUpdate(wss);
           }
         }
@@ -261,14 +299,13 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => {
       console.error('WebSocket error:', error);
     });
 
     ws.on('close', () => {
       console.log('WebSocket connection closed');
       lastVoteTime = {};
-      voteCount = {};
     });
 
     // Send initial songs data
@@ -307,7 +344,7 @@ async function sendSongsUpdate(wss: WebSocketServer) {
     });
 
     wss.clients.forEach(client => {
-      if (client.readyState === 1) { // WebSocket.OPEN
+      if (client.readyState === WebSocket.OPEN) {
         client.send(data);
       }
     });

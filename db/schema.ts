@@ -43,14 +43,14 @@ export const songSuggestions = pgTable("song_suggestions", {
 export const tags = pgTable("tags", {
   id: serial("id").primaryKey(),
   name: text("name").unique().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
 export const songTags = pgTable("song_tags", {
   id: serial("id").primaryKey(),
   songId: integer("song_id").references(() => songs.id).notNull(),
   tagId: integer("tag_id").references(() => tags.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
 export const qrCodeScans = pgTable("qr_code_scans", {
@@ -62,11 +62,11 @@ export const qrCodeScans = pgTable("qr_code_scans", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-// Define relationships
+// Relations
 export const songsRelations = relations(songs, ({ one, many }) => ({
   creator: one(users, {
     fields: [songs.createdBy],
-    references: [users.id],
+    references: [users.id]
   }),
   votes: many(votes),
   songTags: many(songTags),
@@ -76,7 +76,7 @@ export const songsRelations = relations(songs, ({ one, many }) => ({
 export const votesRelations = relations(votes, ({ one }) => ({
   song: one(songs, {
     fields: [votes.songId],
-    references: [songs.id],
+    references: [songs.id]
   })
 }));
 
@@ -87,22 +87,22 @@ export const tagsRelations = relations(tags, ({ many }) => ({
 export const songTagsRelations = relations(songTags, ({ one }) => ({
   song: one(songs, {
     fields: [songTags.songId],
-    references: [songs.id],
+    references: [songs.id]
   }),
   tag: one(tags, {
     fields: [songTags.tagId],
-    references: [tags.id],
+    references: [tags.id]
   })
 }));
 
 export const qrCodeScansRelations = relations(qrCodeScans, ({ one }) => ({
   song: one(songs, {
     fields: [qrCodeScans.songId],
-    references: [songs.id],
+    references: [songs.id]
   })
 }));
 
-// Schema types
+// Types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
@@ -124,7 +124,7 @@ export type NewSongSuggestion = typeof songSuggestions.$inferInsert;
 export type QRCodeScan = typeof qrCodeScans.$inferSelect;
 export type NewQRCodeScan = typeof qrCodeScans.$inferInsert;
 
-// Zod schemas for validation
+// Zod schemas
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 

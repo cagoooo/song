@@ -8,15 +8,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Added error handling middleware
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('Error:', err);
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  res.status(status).json({ message });
-});
-
-// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -45,31 +36,48 @@ app.use((req, res, next) => {
   next();
 });
 
+// Added error handling middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Error:', err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ message });
+});
+
 (async () => {
   try {
     // Test database connection
+    log('Attempting database connection...');
     const result = await db.execute(sql`SELECT 1`);
     if (result) {
       log('Database connection successful');
     }
 
     const server = registerRoutes(app);
+    if (!server) {
+      throw new Error('Failed to register routes');
+    }
 
     // Setup Vite in development environment
     if (app.get("env") === "development") {
+      log('Setting up Vite for development...');
       await setupVite(app, server);
+      log('Vite setup completed');
     } else {
+      log('Production mode: Setting up static serving...');
       serveStatic(app);
     }
 
     // Start the server with a numeric port
-    const PORT = Number(process.env.PORT || 80);
+    const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server running on port ${PORT}`);
-      log(`Production mode: ${app.get("env") === "production"}`);
+      log(`Environment: ${app.get("env")}`);
+      log(`Database URL: ${process.env.DATABASE_URL ? 'Set' : 'Not set'}`);
     });
+
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('Server startup error:', error);
     process.exit(1);
   }
 })();
