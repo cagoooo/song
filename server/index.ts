@@ -71,7 +71,7 @@ process.on('uncaughtException', (error) => {
       serveStatic(app);
     }
 
-    const PORT = 5000;
+    const PORT = process.env.PORT || 5000;
 
     // Start server
     server.listen(PORT, "0.0.0.0", () => {
