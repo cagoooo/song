@@ -198,8 +198,8 @@ export default function SongSuggestion({ isAdmin = false }) {
                 className="bg-white/70 border-amber-200/50 focus:border-amber-300/60 min-h-[100px]"
               />
             </div>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
             >
               送出建議
@@ -259,7 +259,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                     </p>
                   )}
                   {suggestion.notes && (
-                    <motion.p 
+                    <motion.p
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
@@ -302,8 +302,8 @@ export default function SongSuggestion({ isAdmin = false }) {
                           </Button>
                         </motion.div>
                       </TooltipTrigger>
-                      <TooltipContent 
-                        side="top" 
+                      <TooltipContent
+                        side="top"
                         className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
                       >
                         <p>點擊在 Google 中搜尋「{suggestion.title} - {suggestion.artist}」的吉他譜</p>
@@ -315,7 +315,10 @@ export default function SongSuggestion({ isAdmin = false }) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <motion.div
-                          whileHover={{ scale: 1.05 }}
+                          whileHover={{
+                            scale: 1.05,
+                            transition: { duration: 0.2 }
+                          }}
                           whileTap={{ scale: 0.95 }}
                         >
                           <Button
@@ -324,21 +327,23 @@ export default function SongSuggestion({ isAdmin = false }) {
                             className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
                                     shadow-[0_2px_10px_rgba(var(--primary),0.1)]
                                     hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                                    transition-all duration-300"
+                                    transition-all duration-300 relative group"
                             asChild
                           >
                             <a
                               href={generateLyricsUrl(suggestion)}
                               target="_blank"
                               rel="noopener noreferrer"
+                              className="flex items-center justify-center"
                             >
-                              <FileText className="w-4 h-4" />
+                              <FileText className="w-4 h-4 transition-transform group-hover:scale-110" />
+                              <span className="sr-only">搜尋歌詞</span>
                             </a>
                           </Button>
                         </motion.div>
                       </TooltipTrigger>
-                      <TooltipContent 
-                        side="top" 
+                      <TooltipContent
+                        side="top"
                         className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
                       >
                         <p>點擊在 Google 中搜尋「{suggestion.title} - {suggestion.artist}」的歌詞</p>
@@ -375,7 +380,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                 </div>
               </div>
               {suggestion.status !== "pending" && (
-                <motion.span 
+                <motion.span
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   className={`
@@ -389,7 +394,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                 </motion.span>
               )}
               {isAdmin && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-2 flex justify-end"
