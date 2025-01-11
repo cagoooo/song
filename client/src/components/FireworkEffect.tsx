@@ -28,7 +28,7 @@ export default function FireworkEffect({ isVisible }: FireworkEffectProps) {
             y: [0, Math.sin(i * 22.5 * Math.PI / 180) * 60],
           }}
           transition={{
-            duration: 0.7,
+            duration: 0.5,
             ease: "easeOut",
             times: [0, 1],
           }}
@@ -45,7 +45,7 @@ export default function FireworkEffect({ isVisible }: FireworkEffectProps) {
         className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 rounded-lg"
         initial={{ opacity: 0 }}
         animate={{ opacity: [0, 0.3, 0] }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.3 }}
       />
     </div>
   );
