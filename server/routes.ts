@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, type User } from "@db/schema";
+import { songs, votes, tags, songTags, songSuggestions, qrCodeScans } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
 import multer from "multer";
@@ -13,7 +13,7 @@ import express from "express";
 // Express 的 Request 類型擴展
 declare module 'express-serve-static-core' {
   interface Request {
-    user?: User;
+    user?: Express.User;
   }
 }
 
@@ -90,7 +90,6 @@ export function registerRoutes(app: Express): Server {
   // 提供靜態檔案存取
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-
   // QR Code scan tracking endpoints
   app.post("/api/qr-scans", async (req, res) => {
     try {
@@ -103,8 +102,9 @@ export function registerRoutes(app: Express): Server {
         .values({
           songId,
           sessionId,
-          userAgent: userAgent || null,
-          referrer: referrer || null
+          userAgent: userAgent ?? null,
+          referrer: referrer ?? null,
+          createdAt: new Date()
         })
         .returning();
 

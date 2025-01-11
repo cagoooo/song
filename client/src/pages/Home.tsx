@@ -122,37 +122,102 @@ export default function Home() {
         <div className="relative">
           <motion.div
             animate={{
-              rotate: 360,
-              scale: [1, 1.2, 1],
+              rotate: [0, 360],
+              scale: [1, 1.3, 1],
             }}
             transition={{
-              duration: 2,
+              duration: 3,
               repeat: Infinity,
-              ease: "linear",
+              ease: [0.4, 0, 0.2, 1],
+              times: [0, 0.5, 1],
             }}
             className="relative z-10"
           >
-            <Music2 className="w-16 h-16 text-primary animate-pulse" />
+            <Music2 className="w-24 h-24 text-primary/80 drop-shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
           </motion.div>
+
+          {/* 光暈效果 */}
           <motion.div
-            className="absolute inset-0 bg-gradient-radial from-primary/20 via-primary/10 to-transparent rounded-full"
+            className="absolute inset-0 bg-gradient-radial from-primary/30 via-primary/20 to-transparent rounded-full"
             animate={{
-              scale: [1, 1.5, 1],
-              opacity: [0.3, 0.6, 0.3],
+              scale: [1, 1.8, 1],
+              opacity: [0.3, 0.7, 0.3],
             }}
             transition={{
-              duration: 2,
+              duration: 3,
               repeat: Infinity,
               ease: "easeInOut",
             }}
             style={{
-              width: '120px',
-              height: '120px',
-              top: '-28px',
-              left: '-28px',
+              width: '180px',
+              height: '180px',
+              top: '-42px',
+              left: '-42px',
             }}
           />
+
+          {/* 旋轉光環 */}
+          <motion.div
+            className="absolute inset-0"
+            animate={{ rotate: 360 }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+            style={{
+              width: '240px',
+              height: '240px',
+              top: '-72px',
+              left: '-72px',
+            }}
+          >
+            {[...Array(6)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-full h-full origin-center"
+                style={{ transform: `rotate(${i * 60}deg)` }}
+              >
+                <div
+                  className="absolute top-0 left-1/2 w-4 h-4 -ml-2 rounded-full
+                           bg-gradient-to-r from-primary/30 to-primary/10
+                           blur-[2px]"
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* 煙火效果 */}
           <FireworkEffect isVisible={true} />
+
+          {/* 音符飄動效果 */}
+          {[...Array(4)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute"
+              initial={{ 
+                x: Math.random() * 200 - 100,
+                y: Math.random() * 200 - 100,
+                opacity: 0,
+                scale: 0
+              }}
+              animate={{
+                x: Math.random() * 300 - 150,
+                y: Math.random() * 300 - 150,
+                opacity: [0, 1, 0],
+                scale: [0, 1.2, 0],
+                rotate: Math.random() * 360
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                delay: i * 0.8,
+                ease: "easeInOut",
+              }}
+            >
+              <Music2 className="w-8 h-8 text-primary/40" />
+            </motion.div>
+          ))}
         </div>
       </div>
     );

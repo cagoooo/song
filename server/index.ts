@@ -8,14 +8,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Added error handling middleware
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('Error:', err);
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  res.status(status).json({ message });
-});
-
 // Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
@@ -45,20 +37,34 @@ app.use((req, res, next) => {
   next();
 });
 
+
 (async () => {
   try {
     // Test database connection
+    log('Testing database connection...');
     const result = await db.execute(sql`SELECT 1`);
     if (result) {
       log('Database connection successful');
     }
 
+    // Initialize routes and get HTTP server
+    log('Initializing routes...');
     const server = registerRoutes(app);
+
+    // Error handling middleware
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error('Error:', err);
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
+    });
 
     // Setup Vite in development environment
     if (app.get("env") === "development") {
+      log('Setting up Vite development server...');
       await setupVite(app, server);
     } else {
+      log('Setting up static file serving...');
       serveStatic(app);
     }
 

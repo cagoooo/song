@@ -95,6 +95,26 @@ export default {
         "firework-spin": {
           "0%": { transform: "rotate(0deg)" },
           "100%": { transform: "rotate(360deg)" }
+        },
+        "music-float": {
+          "0%, 100%": { 
+            transform: "translateY(0px) rotate(0deg)",
+            opacity: "0"
+          },
+          "50%": { 
+            transform: "translateY(-20px) rotate(180deg)",
+            opacity: "1"
+          }
+        },
+        "vote-bounce": {
+          "0%, 100%": { 
+            transform: "scale(1)",
+            boxShadow: "0 0 0 rgba(var(--primary), 0.3)"
+          },
+          "50%": { 
+            transform: "scale(1.1)",
+            boxShadow: "0 0 20px rgba(var(--primary), 0.5)"
+          }
         }
       },
       animation: {
@@ -102,7 +122,9 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "shadow-pulse": "shadow-pulse 3s ease-in-out infinite",
         "border-pulse": "border-pulse 3s ease-in-out infinite",
-        "firework-spin": "firework-spin 3s linear infinite"
+        "firework-spin": "firework-spin 3s linear infinite",
+        "music-float": "music-float 2s ease-in-out infinite",
+        "vote-bounce": "vote-bounce 0.3s ease-in-out"
       },
     },
   },

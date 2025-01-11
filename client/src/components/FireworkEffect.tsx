@@ -18,30 +18,31 @@ export default function FireworkEffect({ isVisible }: FireworkEffectProps) {
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      {[...Array(20)].map((_, i) => (
+      {/* 主要煙火效果 */}
+      {[...Array(24)].map((_, i) => (
         <motion.div
           key={i}
           className="absolute left-1/2 top-1/2"
           initial={{ scale: 0, opacity: 1 }}
           animate={{
-            scale: [0, 2.5],
+            scale: [0, 3],
             opacity: [1, 0],
-            x: [0, Math.cos(i * 18 * Math.PI / 180) * 120],
-            y: [0, Math.sin(i * 18 * Math.PI / 180) * 120],
+            x: [0, Math.cos(i * 15 * Math.PI / 180) * 160],
+            y: [0, Math.sin(i * 15 * Math.PI / 180) * 160],
           }}
           transition={{
-            duration: 1,
+            duration: 1.5,
             ease: "easeOut",
             times: [0, 1],
             repeat: Infinity,
-            repeatDelay: 0.5
+            repeatDelay: Math.random() * 0.5,
           }}
         >
           <div 
             className={`h-4 w-4 rounded-full bg-gradient-to-r ${colors[i % colors.length]}`}
             style={{
-              boxShadow: '0 0 15px 6px rgba(255, 255, 255, 0.5)',
-              transform: `rotate(${i * 18}deg)`
+              boxShadow: '0 0 20px 8px rgba(255, 255, 255, 0.6)',
+              transform: `rotate(${i * 15}deg)`
             }}
           />
         </motion.div>
@@ -52,14 +53,14 @@ export default function FireworkEffect({ isVisible }: FireworkEffectProps) {
         className="absolute inset-0 bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ 
-          opacity: [0, 0.3, 0],
-          scale: [0.8, 1.2, 1]
+          opacity: [0, 0.4, 0],
+          scale: [0.8, 1.3, 1.5]
         }}
         transition={{ 
-          duration: 1.2,
+          duration: 1.5,
           times: [0, 0.5, 1],
           repeat: Infinity,
-          repeatDelay: 0.3
+          repeatDelay: 0.2
         }}
       />
 
@@ -68,16 +69,48 @@ export default function FireworkEffect({ isVisible }: FireworkEffectProps) {
         className="absolute inset-0 bg-gradient-radial from-white/40 via-transparent to-transparent"
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ 
-          opacity: [0, 0.5, 0],
-          scale: [0.5, 1.3, 1.6]
+          opacity: [0, 0.6, 0],
+          scale: [0.5, 1.4, 1.8]
         }}
         transition={{ 
-          duration: 1.5,
+          duration: 2,
           times: [0, 0.4, 1],
           repeat: Infinity,
-          repeatDelay: 0.2
+          repeatDelay: 0.1
         }}
       />
+
+      {/* 螺旋動畫效果 */}
+      <motion.div
+        className="absolute inset-0"
+        animate={{ rotate: 360 }}
+        transition={{
+          duration: 4,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+      >
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute top-1/2 left-1/2"
+            style={{
+              transform: `rotate(${i * 45}deg) translateY(-100px)`
+            }}
+            animate={{
+              scale: [1, 1.5, 1],
+              opacity: [0.3, 0.7, 0.3],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              delay: i * 0.2,
+            }}
+          >
+            <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${colors[i % colors.length]}`} />
+          </motion.div>
+        ))}
+      </motion.div>
     </div>
   );
 }
