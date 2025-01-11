@@ -3,20 +3,17 @@ import { sql } from "drizzle-orm";
 import ws from "ws";
 import * as schema from "@db/schema";
 
-if (!process.env.DATABASE_URL) {
+const dbUrl = process.env.DATABASE_URL || process.env.REPL_DB_URL;
+if (!dbUrl) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "DATABASE_URL or REPL_DB_URL must be set. Did you forget to provision a database?",
   );
 }
 
-console.log('Initializing database connection...');
-
-const db = drizzle({
-  connection: process.env.DATABASE_URL,
+export const db = drizzle({
+  connection: dbUrl,
   schema,
   ws: ws,
 });
 
-console.log('Database connection initialized successfully');
-
-export { db, sql };
+export { sql };
