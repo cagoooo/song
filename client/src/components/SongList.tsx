@@ -306,7 +306,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                           y: clickCount[song.id] > 0 ? [0, Math.min(-30 - (clickCount[song.id] * 2), -60)] : 0
                         }}
                         transition={{ duration: 0.5 }}
-                        className="absolute left-1/2 -translate-x-1/2 bottom-0"
+                        className="absolute left-1/2 -translate-x-1/2 -bottom-4"
                         style={{
                           zIndex: -1,
                           pointerEvents: 'none',
@@ -390,8 +390,8 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         size="sm"
                         onClick={() => deleteSong(song.id)}
                         className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
-                                 text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
-                                 hover:border-red-300/50 transition-all duration-300"
+                                  text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
+                                  hover:border-red-300/50 transition-all duration-300"
                       >
                         <Trash2 className="h-4 w-4" />
                         刪除
