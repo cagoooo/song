@@ -8,6 +8,14 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Added error handling middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Error:', err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ message });
+});
+
 // Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
@@ -40,19 +48,12 @@ app.use((req, res, next) => {
 (async () => {
   try {
     // Test database connection
-    await db.execute(sql`SELECT 1`);
-    log('Database connection successful');
+    const result = await db.execute(sql`SELECT 1`);
+    if (result) {
+      log('Database connection successful');
+    }
 
-    // Register routes first
     const server = registerRoutes(app);
-
-    // Then add error handling middleware
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      console.error('Error:', err);
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
-    });
 
     // Setup Vite in development environment
     if (app.get("env") === "development") {
@@ -62,7 +63,7 @@ app.use((req, res, next) => {
     }
 
     // Start the server
-    const PORT = parseInt(process.env.PORT || '5000');
+    const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server running on port ${PORT}`);
     });

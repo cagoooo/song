@@ -4,7 +4,7 @@ import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull(),
+  username: text("username").unique().notNull(),
   password: text("password").notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
@@ -16,8 +16,8 @@ export const songs = pgTable("songs", {
   artist: text("artist").notNull(),
   key: text("key"),
   notes: text("notes"),
-  lyrics: text("lyrics"),
-  audioUrl: text("audio_url"),
+  lyrics: text("lyrics"),  // 新增歌詞欄位
+  audioUrl: text("audio_url"),  // 新增音樂檔案URL欄位
   createdAt: timestamp("created_at").defaultNow().notNull(),
   createdBy: integer("created_by").references(() => users.id),
   isActive: boolean("is_active").default(true).notNull()
@@ -35,7 +35,7 @@ export const songSuggestions = pgTable("song_suggestions", {
 
 export const tags = pgTable("tags", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
+  name: text("name").unique().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -62,19 +62,9 @@ export const qrCodeScans = pgTable("qr_code_scans", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const comments = pgTable("comments", {
-  id: serial("id").primaryKey(),
-  songId: integer("song_id").references(() => songs.id).notNull(),
-  createdBy: integer("created_by").references(() => users.id),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  isActive: boolean("is_active").default(true).notNull()
-});
-
 // Define relationships
 export const usersRelations = relations(users, ({ many }) => ({
-  songs: many(songs),
-  comments: many(comments)
+  songs: many(songs)
 }));
 
 export const songsRelations = relations(songs, ({ one, many }) => ({
@@ -84,19 +74,7 @@ export const songsRelations = relations(songs, ({ one, many }) => ({
   }),
   votes: many(votes),
   songTags: many(songTags),
-  qrCodeScans: many(qrCodeScans),
-  comments: many(comments)
-}));
-
-export const commentsRelations = relations(comments, ({ one }) => ({
-  song: one(songs, {
-    fields: [comments.songId],
-    references: [songs.id],
-  }),
-  user: one(users, {
-    fields: [comments.createdBy],
-    references: [users.id],
-  })
+  qrCodeScans: many(qrCodeScans) // Add relation to QR code scans
 }));
 
 export const tagsRelations = relations(tags, ({ many }) => ({
@@ -128,7 +106,6 @@ export const qrCodeScansRelations = relations(qrCodeScans, ({ one }) => ({
   })
 }));
 
-// Schema types
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export type User = typeof users.$inferSelect;
@@ -159,12 +136,8 @@ export const selectSongSuggestionSchema = createSelectSchema(songSuggestions);
 export type SongSuggestion = typeof songSuggestions.$inferSelect;
 export type NewSongSuggestion = typeof songSuggestions.$inferInsert;
 
+// Add new schema and types for QR code scans
 export const insertQRCodeScanSchema = createInsertSchema(qrCodeScans);
 export const selectQRCodeScanSchema = createSelectSchema(qrCodeScans);
 export type QRCodeScan = typeof qrCodeScans.$inferSelect;
 export type NewQRCodeScan = typeof qrCodeScans.$inferInsert;
-
-export const insertCommentSchema = createInsertSchema(comments);
-export const selectCommentSchema = createSelectSchema(comments);
-export type Comment = typeof comments.$inferSelect;
-export type NewComment = typeof comments.$inferInsert;
