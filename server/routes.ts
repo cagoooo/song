@@ -9,6 +9,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import express from "express";
+import type { IncomingMessage } from "http";
 
 // Express 的 Request 類型擴展
 declare module 'express-serve-static-core' {
@@ -30,7 +31,7 @@ export function registerRoutes(app: Express): Server {
   const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws',
-    verifyClient: ({ req }) => {
+    verifyClient: ({ req }: { req: IncomingMessage }) => {
       const protocol = req.headers['sec-websocket-protocol'];
       return protocol !== 'vite-hmr';
     }
@@ -99,14 +100,13 @@ export function registerRoutes(app: Express): Server {
       const userAgent = req.headers['user-agent'];
       const referrer = req.headers.referer || req.headers.referrer;
 
-      const [scan] = await db.insert(qrCodeScans)
-        .values({
-          songId,
-          sessionId,
-          userAgent: userAgent || null,
-          referrer: referrer || null
-        })
-        .returning();
+      const [scan] = await db.insert(qrCodeScans).values({
+        songId,
+        sessionId,
+        userAgent: userAgent || null,
+        referrer: referrer || null,
+        createdAt: new Date()
+      }).returning();
 
       res.json(scan);
     } catch (error) {
