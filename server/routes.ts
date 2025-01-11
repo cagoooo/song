@@ -2,42 +2,55 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { db } from "@db";
-import { songs, votes, songSuggestions, type User, type Song, type SongSuggestion } from "@db/schema";
+import { songs, votes, songSuggestions, users } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
+import "./types";
 
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: User;
-  }
-}
+const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "請先登入" });
+    }
 
-const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated() || !req.user?.isAdmin) {
-    return res.status(403).json({ message: "需要管理員權限" });
+    const [user] = await db
+      .select({
+        id: users.id,
+        isAdmin: users.isAdmin
+      })
+      .from(users)
+      .where(eq(users.id, req.user.id))
+      .limit(1);
+
+    if (!user) {
+      return res.status(401).json({ message: "找不到使用者資訊" });
+    }
+
+    if (!user.isAdmin) {
+      return res.status(403).json({ message: "需要管理員權限" });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Admin authorization error:', error);
+    res.status(500).json({ message: "授權驗證發生錯誤" });
   }
-  next();
 };
 
 export function registerRoutes(app: Express): Server {
+  // Setup authentication first
+  setupAuth(app);
+
   const httpServer = createServer(app);
 
-  // Initialize Socket.IO with strict configuration
+  // Initialize Socket.IO
   const io = new SocketIOServer(httpServer, {
     path: '/ws',
     cors: {
       origin: true,
       methods: ["GET", "POST"],
       credentials: true
-    },
-    allowEIO3: true,
-    transports: ['websocket', 'polling'],
-    connectTimeout: 45000,
-    maxHttpBufferSize: 1e6,
-    pingTimeout: 30000,
-    pingInterval: 25000,
-    upgradeTimeout: 10000,
-    serveClient: false,
+    }
   });
 
   // Socket.IO connection handler
@@ -53,8 +66,7 @@ export function registerRoutes(app: Express): Server {
       console.log('Socket.IO connection established:', {
         id: socket.id,
         sessionId,
-        activeConnections,
-        transport: socket.conn.transport.name
+        activeConnections
       });
 
       // Send initial songs data
@@ -65,15 +77,6 @@ export function registerRoutes(app: Express): Server {
         console.error('Error in initial data sync:', error);
         socket.emit('error', { message: '無法載入歌曲列表' });
       }
-
-      // Keep-alive mechanism
-      const pingInterval = setInterval(() => {
-        if (socket.connected) {
-          socket.emit('ping');
-        } else {
-          clearInterval(pingInterval);
-        }
-      }, 25000);
 
       // Handle vote events
       socket.on('vote', async (songId: number) => {
@@ -92,40 +95,21 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      // Handle client pong responses
-      socket.on('pong', () => {
-        console.log(`Received pong from client ${socket.id}`);
-      });
-
       // Handle disconnection
       socket.on('disconnect', (reason) => {
         activeConnections--;
         connectedSockets.delete(socket.id);
-        clearInterval(pingInterval);
-
         console.log('Socket.IO connection closed:', {
           id: socket.id,
-          sessionId,
           reason,
-          activeConnections,
-          remainingConnections: Array.from(connectedSockets)
+          activeConnections
         });
-      });
-
-      // Handle errors
-      socket.on('error', (error) => {
-        console.error('Socket.IO error:', error, { id: socket.id, sessionId });
       });
 
     } catch (error) {
       console.error('Connection setup error:', error);
       socket.disconnect(true);
     }
-  });
-
-  // Error handling for Socket.IO server
-  io.engine.on('connection_error', (error) => {
-    console.error('Socket.IO server error:', error);
   });
 
   // Setup HTTP routes
@@ -143,7 +127,8 @@ export function registerRoutes(app: Express): Server {
   // 取得所有建議
   app.get('/api/suggestions', async (_req, res) => {
     try {
-      const suggestions = await db.select().from(songSuggestions)
+      const suggestions = await db.select()
+        .from(songSuggestions)
         .orderBy(sql`${songSuggestions.createdAt} DESC`);
       res.json(suggestions);
     } catch (error) {
@@ -201,14 +186,19 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: '無效的狀態值' });
       }
 
+      const [existingSuggestion] = await db.select()
+        .from(songSuggestions)
+        .where(eq(songSuggestions.id, parseInt(id)))
+        .limit(1);
+
+      if (!existingSuggestion) {
+        return res.status(404).json({ message: '找不到此建議' });
+      }
+
       const [updatedSuggestion] = await db.update(songSuggestions)
         .set({ status })
         .where(eq(songSuggestions.id, parseInt(id)))
         .returning();
-
-      if (!updatedSuggestion) {
-        return res.status(404).json({ message: '找不到此建議' });
-      }
 
       res.json(updatedSuggestion);
     } catch (error) {
@@ -222,13 +212,18 @@ export function registerRoutes(app: Express): Server {
     try {
       const { id } = req.params;
 
-      const [deletedSuggestion] = await db.delete(songSuggestions)
+      const [existingSuggestion] = await db.select()
+        .from(songSuggestions)
         .where(eq(songSuggestions.id, parseInt(id)))
-        .returning();
+        .limit(1);
 
-      if (!deletedSuggestion) {
+      if (!existingSuggestion) {
         return res.status(404).json({ message: '找不到此建議' });
       }
+
+      await db.delete(songSuggestions)
+        .where(eq(songSuggestions.id, parseInt(id)))
+        .execute();
 
       res.json({ message: '建議已成功刪除' });
     } catch (error) {
@@ -237,14 +232,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Setup authentication
-  setupAuth(app);
-
   return httpServer;
 }
 
 // Helper function for getting songs with votes
-async function getSongsWithVotes(): Promise<Array<Song & { voteCount: number }>> {
+async function getSongsWithVotes() {
   try {
     const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
     const songVotes = await db.select({

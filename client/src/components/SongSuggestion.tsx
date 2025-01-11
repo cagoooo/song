@@ -33,7 +33,7 @@ export default function SongSuggestion({ isAdmin = false }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: suggestions = [] } = useQuery<SongSuggestion[]>({
+  const { data: suggestions = [], isError: isFetchError } = useQuery<SongSuggestion[]>({
     queryKey: ['/api/suggestions'],
     queryFn: async () => {
       try {
@@ -122,13 +122,10 @@ export default function SongSuggestion({ isAdmin = false }) {
       return response.json();
     },
     onMutate: async ({ id, status }) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['/api/suggestions'] });
 
-      // Snapshot the previous value
       const previousSuggestions = queryClient.getQueryData<SongSuggestion[]>(['/api/suggestions']);
 
-      // Optimistically update to the new value
       if (previousSuggestions) {
         queryClient.setQueryData<SongSuggestion[]>(['/api/suggestions'], 
           previousSuggestions.map(suggestion => 
@@ -140,7 +137,6 @@ export default function SongSuggestion({ isAdmin = false }) {
       return { previousSuggestions };
     },
     onError: (error: Error, _variables, context) => {
-      // Rollback to the previous value
       if (context?.previousSuggestions) {
         queryClient.setQueryData(['/api/suggestions'], context.previousSuggestions);
       }
@@ -167,7 +163,10 @@ export default function SongSuggestion({ isAdmin = false }) {
         credentials: 'include'
       });
 
-      if (!response.ok) throw new Error('Failed to delete suggestion');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to delete suggestion');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -177,10 +176,10 @@ export default function SongSuggestion({ isAdmin = false }) {
         description: "建議已刪除",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "錯誤",
-        description: "無法刪除建議",
+        description: error.message || "無法刪除建議",
         variant: "destructive"
       });
     }
@@ -193,7 +192,6 @@ export default function SongSuggestion({ isAdmin = false }) {
     try {
       await addSuggestionMutation.mutateAsync();
     } catch (error) {
-      // Error is already handled in mutation's onError
       console.error('Form submission failed:', error);
     }
   };
