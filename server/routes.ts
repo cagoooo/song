@@ -19,133 +19,6 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-export function registerRoutes(app: Express): Server {
-  const httpServer = createServer(app);
-
-  // Initialize Socket.IO with strict configuration
-  const io = new SocketIOServer(httpServer, {
-    path: '/ws',
-    cors: {
-      origin: true,
-      methods: ["GET", "POST"],
-      credentials: true
-    },
-    allowEIO3: true,
-    transports: ['websocket', 'polling'],
-    connectTimeout: 45000,
-    maxHttpBufferSize: 1e6,
-    pingTimeout: 30000,
-    pingInterval: 25000,
-    upgradeTimeout: 10000,
-    serveClient: false,
-  });
-
-  // Connection counter and management
-  let activeConnections = 0;
-  const connectedSockets = new Set<string>();
-
-  // Socket.IO connection handler
-  io.on('connection', async (socket) => {
-    try {
-      const sessionId = Math.random().toString(36).substring(2);
-      activeConnections++;
-      connectedSockets.add(socket.id);
-
-      console.log('Socket.IO connection established:', {
-        id: socket.id,
-        sessionId,
-        activeConnections,
-        transport: socket.conn.transport.name
-      });
-
-      // Send initial songs data
-      try {
-        const songsList = await getSongsWithVotes();
-        socket.emit('songs_update', songsList);
-      } catch (error) {
-        console.error('Error in initial data sync:', error);
-        socket.emit('error', { message: '無法載入歌曲列表' });
-      }
-
-      // Keep-alive mechanism
-      const pingInterval = setInterval(() => {
-        if (socket.connected) {
-          socket.emit('ping');
-        } else {
-          clearInterval(pingInterval);
-        }
-      }, 25000);
-
-      // Handle vote events
-      socket.on('vote', async (songId: number) => {
-        try {
-          await db.insert(votes).values({
-            songId,
-            sessionId,
-            createdAt: new Date()
-          });
-
-          const updatedSongs = await getSongsWithVotes();
-          io.emit('songs_update', updatedSongs);
-        } catch (error) {
-          console.error('Vote processing error:', error);
-          socket.emit('error', { message: '處理投票時發生錯誤' });
-        }
-      });
-
-      // Handle client pong responses
-      socket.on('pong', () => {
-        console.log(`Received pong from client ${socket.id}`);
-      });
-
-      // Handle disconnection
-      socket.on('disconnect', (reason) => {
-        activeConnections--;
-        connectedSockets.delete(socket.id);
-        clearInterval(pingInterval);
-
-        console.log('Socket.IO connection closed:', {
-          id: socket.id,
-          sessionId,
-          reason,
-          activeConnections,
-          remainingConnections: Array.from(connectedSockets)
-        });
-      });
-
-      // Handle errors
-      socket.on('error', (error) => {
-        console.error('Socket.IO error:', error, { id: socket.id, sessionId });
-      });
-
-    } catch (error) {
-      console.error('Connection setup error:', error);
-      socket.disconnect(true);
-    }
-  });
-
-  // Error handling for Socket.IO server
-  io.engine.on('connection_error', (error) => {
-    console.error('Socket.IO server error:', error);
-  });
-
-  // Setup HTTP routes
-  app.get('/api/songs', async (_req, res) => {
-    try {
-      const songsList = await getSongsWithVotes();
-      res.json(songsList);
-    } catch (error) {
-      console.error('Error fetching songs:', error);
-      res.status(500).json({ message: '無法取得歌曲列表' });
-    }
-  });
-
-  // Setup authentication
-  setupAuth(app);
-
-  return httpServer;
-}
-
 // Helper function for getting songs with votes
 async function getSongsWithVotes(): Promise<Array<Song & { voteCount: number }>> {
   try {
@@ -167,4 +40,143 @@ async function getSongsWithVotes(): Promise<Array<Song & { voteCount: number }>>
     console.error('Error fetching songs with votes:', error);
     throw error;
   }
+}
+
+export function registerRoutes(app: Express): Server {
+  // Create HTTP server first
+  const httpServer = createServer(app);
+
+  // Setup authentication before other routes
+  setupAuth(app);
+
+  // Setup Socket.IO after auth but before routes
+  const io = new SocketIOServer(httpServer, {
+    path: '/ws',
+    cors: {
+      origin: true,
+      methods: ["GET", "POST"],
+      credentials: true
+    },
+    allowEIO3: true,
+    transports: ['websocket', 'polling']
+  });
+
+  // Setup HTTP routes
+  app.get('/api/songs', async (_req, res) => {
+    try {
+      const songsList = await getSongsWithVotes();
+      res.json(songsList);
+    } catch (error) {
+      console.error('Error fetching songs:', error);
+      res.status(500).json({ message: '無法取得歌曲列表' });
+    }
+  });
+
+  // 更新歌曲資訊
+  app.patch('/api/songs/:id', requireAdmin, async (req, res) => {
+    try {
+      const songId = parseInt(req.params.id);
+      const { title, artist, notes } = req.body;
+
+      if (!songId || isNaN(songId)) {
+        return res.status(400).json({ message: "無效的歌曲ID" });
+      }
+
+      const [existingSong] = await db
+        .select()
+        .from(songs)
+        .where(eq(songs.id, songId))
+        .limit(1);
+
+      if (!existingSong) {
+        return res.status(404).json({ message: "找不到指定的歌曲" });
+      }
+
+      await db
+        .update(songs)
+        .set({ title, artist, notes })
+        .where(eq(songs.id, songId));
+
+      const updatedSongs = await getSongsWithVotes();
+      io.emit('songs_update', updatedSongs);
+
+      res.json({ message: "歌曲更新成功" });
+    } catch (error) {
+      console.error('Error updating song:', error);
+      res.status(500).json({ message: "更新歌曲失敗" });
+    }
+  });
+
+  // 重置所有點播次數
+  app.post('/api/songs/reset-votes', requireAdmin, async (_req, res) => {
+    try {
+      await db.delete(votes);
+
+      const updatedSongs = await getSongsWithVotes();
+      io.emit('songs_update', updatedSongs);
+
+      res.json({ message: "點播次數已重置" });
+    } catch (error) {
+      console.error('Error resetting votes:', error);
+      res.status(500).json({ message: "重置點播次數失敗" });
+    }
+  });
+
+  // Setup Socket.IO connection handler
+  io.on('connection', async (socket) => {
+    try {
+      const sessionId = Math.random().toString(36).substring(2);
+      console.log('Socket.IO connection established:', {
+        id: socket.id,
+        sessionId
+      });
+
+      // Send initial songs data
+      try {
+        const songsList = await getSongsWithVotes();
+        socket.emit('songs_update', songsList);
+      } catch (error) {
+        console.error('Error in initial data sync:', error);
+        socket.emit('error', { message: '無法載入歌曲列表' });
+      }
+
+      // Handle vote events
+      socket.on('vote', async (songId: number) => {
+        try {
+          await db.insert(votes).values({
+            songId,
+            sessionId,
+            createdAt: new Date()
+          });
+
+          const updatedSongs = await getSongsWithVotes();
+          io.emit('songs_update', updatedSongs);
+        } catch (error) {
+          console.error('Vote processing error:', error);
+          socket.emit('error', { message: '處理投票時發生錯誤' });
+        }
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.log('Socket.IO connection closed:', {
+          id: socket.id,
+          sessionId,
+          reason
+        });
+      });
+
+      socket.on('error', (error) => {
+        console.error('Socket.IO error:', error, {
+          id: socket.id,
+          sessionId
+        });
+      });
+
+    } catch (error) {
+      console.error('Connection setup error:', error);
+      socket.disconnect(true);
+    }
+  });
+
+  return httpServer;
 }

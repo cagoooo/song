@@ -7,7 +7,8 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { users, type User } from "@db/schema";
+import { users } from "@db/schema";
+import type { User } from "@db/schema";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -31,7 +32,7 @@ const crypto = {
 // extend express user object with our schema
 declare global {
   namespace Express {
-    interface User extends User { }
+    interface User extends Omit<User, "password"> {}
   }
 }
 
@@ -81,7 +82,7 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user, done) => {
+  passport.serializeUser((user: User, done) => {
     done(null, user.id);
   });
 
@@ -147,13 +148,13 @@ export function setupAuth(app: Express) {
       return res.status(400).send("請輸入帳號和密碼");
     }
 
-    const cb = (err: any, user: Express.User, info: IVerifyOptions) => {
+    const cb = (err: any, user: User | false, info?: IVerifyOptions) => {
       if (err) {
         return next(err);
       }
 
       if (!user) {
-        return res.status(400).send(info.message ?? "登入失敗");
+        return res.status(400).send(info?.message ?? "登入失敗");
       }
 
       req.logIn(user, (err) => {
