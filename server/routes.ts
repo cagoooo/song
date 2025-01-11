@@ -350,11 +350,12 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Add new route for adding approved suggestions to songs list
   app.post("/api/suggestions/:id/add-to-songs", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
 
-      // 先取得建議的詳細資訊
+      // Get suggestion details
       const suggestions = await db
         .select()
         .from(songSuggestions)
@@ -367,11 +368,7 @@ export function registerRoutes(app: Express): Server {
 
       const suggestion = suggestions[0];
 
-      if (suggestion.status !== "approved") {
-        return res.status(400).json({ error: "只有已採納的建議才能加入歌單" });
-      }
-
-      // 建立新歌曲
+      // Add to songs list
       const [newSong] = await db.insert(songs)
         .values({
           title: suggestion.title,
@@ -382,12 +379,12 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
-      // 更新建議狀態
+      // Update suggestion status
       await db.update(songSuggestions)
         .set({ status: "added" })
         .where(eq(songSuggestions.id, id));
 
-      // 通知所有客戶端歌曲清單已更新
+      // Notify all clients about the songs list update
       await sendSongsUpdate(wss);
 
       res.json(newSong);
@@ -397,7 +394,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add new route for updating song information
   app.patch("/api/songs/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
