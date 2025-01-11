@@ -80,7 +80,6 @@ export function registerRoutes(app: Express): Server {
 
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-  // 修復 QR Code scan tracking endpoints
   app.post("/api/qr-scans", async (req, res) => {
     try {
       const { songId } = req.body;
@@ -88,15 +87,16 @@ export function registerRoutes(app: Express): Server {
       const userAgent = req.headers['user-agent'];
       const referrer = req.headers.referer || req.headers.referrer;
 
-      // 修改為正確的插入操作
-      const result = await db.insert(qrCodeScans).values({
-        song_id: songId,
-        session_id: sessionId,
-        user_agent: userAgent || null,
-        referrer: referrer || null,
-      }).returning();
+      const [scan] = await db.insert(qrCodeScans)
+        .values({
+          songId: Number(songId),
+          sessionId,
+          userAgent: userAgent || undefined,
+          referrer: referrer || undefined,
+        })
+        .returning();
 
-      res.json(result[0]);
+      res.json(scan);
     } catch (error) {
       console.error('Failed to record QR code scan:', error);
       res.status(500).json({ error: "無法記錄QR碼掃描" });
