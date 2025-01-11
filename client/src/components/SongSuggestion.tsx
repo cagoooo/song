@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,67 +20,27 @@ interface SongSuggestion {
   title: string;
   artist: string;
   suggestedBy: string | null;
-  status: string;
   notes: string | null;
-  createdAt: string;
 }
 
-interface SongSuggestionProps {
+interface Props {
   isAdmin: boolean;
-  onImportSongInfo?: (songInfo: { title: string; artist: string }) => void;
+  onImportSong: (songInfo: { title: string; artist: string }) => void;
 }
 
-export default function SongSuggestion({ isAdmin = false, onImportSongInfo }: SongSuggestionProps) {
+export default function SongSuggestion({ isAdmin, onImportSong }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [suggestedBy, setSuggestedBy] = useState("");
   const [notes, setNotes] = useState("");
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const { data: suggestions = [] } = useQuery<SongSuggestion[]>({
     queryKey: ['/api/suggestions'],
-    queryFn: async () => {
-      const response = await fetch('/api/suggestions');
-      if (!response.ok) throw new Error('Failed to fetch suggestions');
-      return response.json();
-    }
   });
 
-  const addSuggestionMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/suggestions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, artist, suggestedBy, notes })
-      });
-
-      if (!response.ok) throw new Error('Failed to add suggestion');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
-      setIsOpen(false);
-      setTitle("");
-      setArtist("");
-      setSuggestedBy("");
-      setNotes("");
-      toast({
-        title: "成功",
-        description: "您的建議已送出，管理員會盡快審核",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "錯誤",
-        description: "無法送出建議，請稍後再試",
-        variant: "destructive"
-      });
-    }
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !artist) {
       toast({
@@ -90,16 +50,44 @@ export default function SongSuggestion({ isAdmin = false, onImportSongInfo }: So
       });
       return;
     }
-    addSuggestionMutation.mutate();
+
+    try {
+      const response = await fetch('/api/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, artist, suggestedBy, notes })
+      });
+
+      if (!response.ok) throw new Error();
+
+      setIsOpen(false);
+      setTitle("");
+      setArtist("");
+      setSuggestedBy("");
+      setNotes("");
+
+      toast({
+        title: "成功",
+        description: "您的建議已送出，管理員會盡快審核",
+      });
+    } catch {
+      toast({
+        title: "錯誤",
+        description: "無法送出建議，請稍後再試",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleImportSongInfo = (suggestion: SongSuggestion) => {
-    if (onImportSongInfo) {
-      onImportSongInfo({
-        title: suggestion.title,
-        artist: suggestion.artist
-      });
-    }
+    onImportSong({
+      title: suggestion.title,
+      artist: suggestion.artist
+    });
+    toast({
+      title: "成功",
+      description: "歌曲資訊已匯入到表單",
+    });
   };
 
   return (
@@ -125,8 +113,8 @@ export default function SongSuggestion({ isAdmin = false, onImportSongInfo }: So
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                required
                 placeholder="請輸入歌曲名稱"
+                required
               />
             </div>
             <div className="space-y-2">
@@ -135,8 +123,8 @@ export default function SongSuggestion({ isAdmin = false, onImportSongInfo }: So
                 id="artist"
                 value={artist}
                 onChange={(e) => setArtist(e.target.value)}
-                required
                 placeholder="請輸入歌手名稱"
+                required
               />
             </div>
             <div className="space-y-2">
@@ -157,9 +145,7 @@ export default function SongSuggestion({ isAdmin = false, onImportSongInfo }: So
                 placeholder="新增備註"
               />
             </div>
-            <Button type="submit" disabled={addSuggestionMutation.isPending}>
-              {addSuggestionMutation.isPending ? "處理中..." : "送出建議"}
-            </Button>
+            <Button type="submit">送出建議</Button>
           </form>
         </DialogContent>
       </Dialog>
@@ -178,7 +164,9 @@ export default function SongSuggestion({ isAdmin = false, onImportSongInfo }: So
                     <h4 className="font-medium">{suggestion.title}</h4>
                     <p className="text-sm text-muted-foreground">{suggestion.artist}</p>
                     {suggestion.suggestedBy && (
-                      <p className="text-sm text-muted-foreground">推薦者：{suggestion.suggestedBy}</p>
+                      <p className="text-sm text-muted-foreground">
+                        推薦者：{suggestion.suggestedBy}
+                      </p>
                     )}
                     {suggestion.notes && (
                       <p className="mt-2 text-sm">{suggestion.notes}</p>

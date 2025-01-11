@@ -5,22 +5,21 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Import } from "lucide-react";
 
-interface ImportSongInfo {
+interface SongInfo {
   title: string;
   artist: string;
 }
 
-interface SongImportProps {
-  importSongInfo?: ImportSongInfo | null;
+interface Props {
+  importSongInfo: SongInfo | null;
 }
 
-export default function SongImport({ importSongInfo }: SongImportProps) {
+export default function SongImport({ importSongInfo }: Props) {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [notes, setNotes] = useState("");
   const { toast } = useToast();
 
-  // 當 importSongInfo 變更時更新表單
   useEffect(() => {
     if (importSongInfo) {
       setTitle(importSongInfo.title);
@@ -51,14 +50,13 @@ export default function SongImport({ importSongInfo }: SongImportProps) {
         })
       });
 
-      if (!response.ok) throw new Error("新增歌曲失敗");
+      if (!response.ok) throw new Error();
 
       toast({
         title: "成功",
         description: "歌曲新增成功",
       });
 
-      // 清空表單
       setTitle("");
       setArtist("");
       setNotes("");
@@ -68,7 +66,6 @@ export default function SongImport({ importSongInfo }: SongImportProps) {
         description: "新增歌曲失敗",
         variant: "destructive"
       });
-      console.error('Failed to add song:', error);
     }
   };
 
@@ -81,8 +78,8 @@ export default function SongImport({ importSongInfo }: SongImportProps) {
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            required
             placeholder="請輸入歌曲名稱"
+            required
           />
         </div>
 
@@ -92,8 +89,8 @@ export default function SongImport({ importSongInfo }: SongImportProps) {
             id="artist"
             value={artist}
             onChange={(e) => setArtist(e.target.value)}
-            required
             placeholder="請輸入歌手名稱"
+            required
           />
         </div>
       </div>

@@ -13,7 +13,7 @@ import LoginForm from "../components/LoginForm";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 
-interface ImportSongInfo {
+interface SongInfo {
   title: string;
   artist: string;
 }
@@ -21,7 +21,7 @@ interface ImportSongInfo {
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
-  const [importSongInfo, setImportSongInfo] = useState<ImportSongInfo | null>(null);
+  const [importSongInfo, setImportSongInfo] = useState<SongInfo | null>(null);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
@@ -118,12 +118,8 @@ export default function Home() {
     }
   };
 
-  const handleImportSongInfo = (songInfo: ImportSongInfo) => {
+  const handleImportSong = (songInfo: SongInfo) => {
     setImportSongInfo(songInfo);
-    toast({
-      title: "成功",
-      description: "歌曲資訊已匯入",
-    });
   };
 
   if (isLoading) {
@@ -168,7 +164,7 @@ export default function Home() {
               <CardContent>
                 <SongSuggestion 
                   isAdmin={user?.isAdmin ?? false} 
-                  onImportSongInfo={handleImportSongInfo}
+                  onImportSong={handleImportSong}
                 />
               </CardContent>
             </Card>
@@ -183,9 +179,7 @@ export default function Home() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {user?.isAdmin && (
-                  <SongImport importSongInfo={importSongInfo} />
-                )}
+                {user?.isAdmin && <SongImport importSongInfo={importSongInfo} />}
                 <div className="h-4" />
                 <SongList songs={songs} ws={wsRef.current} user={user || null} />
               </CardContent>
