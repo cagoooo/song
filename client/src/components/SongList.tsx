@@ -8,6 +8,18 @@ import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
 import { AnimatePresence, motion } from "framer-motion";
 import { Socket } from "socket.io-client";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { QRCodeShareModal } from "./QRCodeShareModal";
+import { EditSongDialog } from "./EditSongDialog";
 
 interface SongListProps {
   songs: Song[];

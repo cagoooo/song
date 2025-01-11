@@ -9,10 +9,10 @@ interface QRCodeShareModalProps {
   songTitle: string;
   songArtist: string;
   shareUrl: string;
-  songId: number;  // Add songId prop
+  songId: number;
 }
 
-export default function QRCodeShareModal({
+export function QRCodeShareModal({
   isOpen,
   onClose,
   songTitle,

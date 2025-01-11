@@ -59,7 +59,7 @@ export function ShareButton() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               className="relative p-4 bg-white rounded-xl shadow-[0_8px_32px_rgba(var(--primary),0.2)]
-                       border-2 border-primary/10"
+                        border-2 border-primary/10"
             >
               <QRCodeSVG 
                 value={currentUrl} 
@@ -78,7 +78,7 @@ export function ShareButton() {
             </p>
             <div className="flex justify-center gap-4">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <FacebookShareButton url={currentUrl} quote={shareTitle} className="outline-none">
+                <FacebookShareButton url={currentUrl} hashtag="#線上點歌系統" className="outline-none">
                   <FacebookIcon size={40} round className="shadow-lg hover:shadow-xl transition-shadow" />
                 </FacebookShareButton>
               </motion.div>

@@ -5,6 +5,8 @@ import { db } from "@db";
 import { songs, votes, type User, type Song } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
+import type { IncomingMessage } from "http";
+import type { Socket } from "net";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -38,19 +40,42 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Handle WebSocket upgrade
-  httpServer.on('upgrade', (request, socket, head) => {
-    // Skip Vite HMR connections
-    if (request.headers['sec-websocket-protocol']?.includes('vite-hmr')) {
-      socket.destroy();
-      return;
-    }
+  httpServer.on('upgrade', (request: IncomingMessage, socket: Socket, head: Buffer) => {
+    try {
+      // Skip Vite HMR connections
+      if (request.headers['sec-websocket-protocol']?.includes('vite-hmr')) {
+        console.log('Skipping Vite HMR connection');
+        socket.destroy();
+        return;
+      }
 
-    // Handle Socket.IO upgrades
-    if (request.url?.startsWith('/ws')) {
-      io.engine.handleUpgrade(request, socket as any, head);
-    } else {
+      // Handle Socket.IO upgrades
+      if (request.url?.startsWith('/ws')) {
+        // Check if the socket is already being upgraded
+        const isUpgrading = (socket as any)._isUpgrading;
+        if (isUpgrading) {
+          console.log('Socket is already being upgraded, skipping');
+          return;
+        }
+        (socket as any)._isUpgrading = true;
+
+        // Add required properties for Socket.IO Engine
+        const engineRequest = request as any;
+        engineRequest._query = {};
+
+        io.engine.handleUpgrade(engineRequest, socket, head);
+      } else {
+        socket.destroy();
+      }
+    } catch (error) {
+      console.error('WebSocket upgrade error:', error);
       socket.destroy();
     }
+  });
+
+  // Handle server errors
+  io.engine.on('connection_error', (error) => {
+    console.error('Socket.IO server error:', error);
   });
 
   // Connection counter
@@ -61,6 +86,7 @@ export function registerRoutes(app: Express): Server {
     try {
       // Skip vite-hmr connections
       if (socket.handshake.headers['sec-websocket-protocol']?.includes('vite-hmr')) {
+        console.log('Closing Vite HMR connection');
         socket.disconnect();
         return;
       }
@@ -123,11 +149,6 @@ export function registerRoutes(app: Express): Server {
       console.error('Connection setup error:', error);
       socket.disconnect(true);
     }
-  });
-
-  // Handle server errors
-  io.engine.on('connection_error', (error) => {
-    console.error('Socket.IO server error:', error);
   });
 
   // Setup HTTP routes
