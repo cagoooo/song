@@ -36,8 +36,8 @@ export const songSuggestions = pgTable("song_suggestions", {
   artist: text("artist").notNull(),
   suggestedBy: text("suggested_by"),
   status: text("status").default("pending").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  notes: text("notes")
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
 export const qrCodeScans = pgTable("qr_code_scans", {

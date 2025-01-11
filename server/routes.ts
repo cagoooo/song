@@ -2,23 +2,19 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, songSuggestions, qrCodeScans } from "@db/schema";
+import { songs, votes, songSuggestions } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
 import type { IncomingMessage } from "http";
 
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: {
-      id: number;
-      username: string;
-      isAdmin: boolean;
-      createdAt: Date;
-    };
-  }
-}
+// Express 請求處理器的類型定義
+type RequestHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => void;
 
-const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+const requireAdmin: RequestHandler = (req, res, next) => {
   if (!req.isAuthenticated() || !req.user?.isAdmin) {
     return res.status(403).json({ error: "需要管理員權限" });
   }
@@ -38,30 +34,6 @@ export function registerRoutes(app: Express): Server {
 
   setupAuth(app);
 
-  // QR Code scan tracking endpoints
-  app.post("/api/qr-scans", async (req, res) => {
-    try {
-      const { songId } = req.body;
-      const sessionId = req.sessionID || Math.random().toString(36).substring(2);
-      const userAgent = req.headers['user-agent'];
-      const referrer = req.headers.referer || req.headers.referrer;
-
-      const [scan] = await db.insert(qrCodeScans)
-        .values({
-          songId,
-          sessionId,
-          userAgent: userAgent || null,
-          referrer: referrer || null,
-        })
-        .returning();
-
-      res.json(scan);
-    } catch (error) {
-      console.error('Failed to record QR code scan:', error);
-      res.status(500).json({ error: "無法記錄QR碼掃描" });
-    }
-  });
-
   app.get("/api/songs", async (_req, res) => {
     try {
       const songsList = await getSongsWithVotes();
@@ -75,37 +47,24 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/songs", requireAdmin, async (req, res) => {
     try {
       const { title, artist, key, notes, lyrics, audioUrl } = req.body;
-      const [newSong] = await db.insert(songs).values({
-        title,
-        artist,
-        key,
-        notes,
-        lyrics,
-        audioUrl,
-        createdBy: req.user?.id,
-        isActive: true
-      }).returning();
+      const [newSong] = await db.insert(songs)
+        .values({
+          title,
+          artist,
+          key,
+          notes,
+          lyrics,
+          audioUrl,
+          createdBy: req.user?.id,
+          isActive: true
+        })
+        .returning();
 
       await sendSongsUpdate(wss);
       res.json(newSong);
     } catch (error) {
       console.error('Failed to add song:', error);
       res.status(500).json({ error: "新增歌曲失敗" });
-    }
-  });
-
-  app.delete("/api/songs/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await db.update(songs)
-        .set({ isActive: false })
-        .where(eq(songs.id, id));
-
-      await sendSongsUpdate(wss);
-      res.json({ message: "歌曲已刪除" });
-    } catch (error) {
-      console.error('Failed to delete song:', error);
-      res.status(500).json({ error: "刪除歌曲失敗" });
     }
   });
 
@@ -169,25 +128,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.delete("/api/suggestions/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const [deletedSuggestion] = await db
-        .delete(songSuggestions)
-        .where(eq(songSuggestions.id, id))
-        .returning();
-
-      if (!deletedSuggestion) {
-        return res.status(404).json({ error: "找不到此建議" });
-      }
-
-      res.json({ message: "建議已刪除" });
-    } catch (error) {
-      console.error('Failed to delete suggestion:', error);
-      res.status(500).json({ error: "無法刪除建議" });
-    }
-  });
-
   // WebSocket message handling
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');
@@ -212,7 +152,6 @@ export function registerRoutes(app: Express): Server {
             await db.insert(votes).values({
               songId: message.songId,
               sessionId: sessionId,
-              createdAt: new Date()
             });
 
             lastVoteTime[songId] = now;
