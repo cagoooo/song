@@ -80,12 +80,22 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
             <motion.div
               key={song.id}
               layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ 
-                duration: 0.5,
-                layout: { duration: 0.3 }
+              layoutId={`song-${song.id}`}
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ 
+                opacity: 1, 
+                y: 0, 
+                scale: 1,
+                transition: {
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 25
+                }
+              }}
+              exit={{ 
+                opacity: 0, 
+                scale: 0.8,
+                transition: { duration: 0.2 }
               }}
               className={`
                 flex items-center gap-4 p-4 rounded-lg border
@@ -94,11 +104,15 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                   index === 2 ? 'bg-gradient-to-r from-orange-50 to-rose-100 border-orange-300' :
                   'bg-gradient-to-r from-white to-gray-50 border-gray-200'}
                 transform transition-all duration-300
-                ${showRankChange[song.id] === 'up' ? 'shadow-lg shadow-green-100' : 
-                  showRankChange[song.id] === 'down' ? 'shadow-lg shadow-red-100' : ''}
+                ${showRankChange[song.id] === 'up' ? 'shadow-lg shadow-green-100 scale-[1.02]' : 
+                  showRankChange[song.id] === 'down' ? 'shadow-lg shadow-red-100 scale-[0.98]' : ''}
               `}
             >
-              <div className="relative flex items-center justify-center w-10 h-10">
+              <motion.div 
+                className="relative flex items-center justify-center w-10 h-10"
+                animate={{ scale: showRankChange[song.id] ? [1, 1.1, 1] : 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 {index === 0 && (
                   <motion.div
                     animate={{ 
@@ -114,12 +128,43 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                     <Crown className="w-6 h-6 text-amber-500" />
                   </motion.div>
                 )}
-                {index === 1 && <Award className="w-5 h-5 text-gray-500" />}
-                {index === 2 && <Trophy className="w-5 h-5 text-orange-500" />}
+                {index === 1 && (
+                  <motion.div
+                    animate={{ 
+                      y: [0, -2, 0],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Award className="w-5 h-5 text-gray-500" />
+                  </motion.div>
+                )}
+                {index === 2 && (
+                  <motion.div
+                    animate={{ 
+                      rotate: [0, 5, -5, 0],
+                      scale: [1, 1.05, 1]
+                    }}
+                    transition={{
+                      duration: 2.5,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Trophy className="w-5 h-5 text-orange-500" />
+                  </motion.div>
+                )}
                 {index > 2 && (
                   <motion.span 
                     className="text-sm font-medium text-gray-600"
-                    animate={{ scale: showRankChange[song.id] ? [1, 1.2, 1] : 1 }}
+                    animate={{ 
+                      scale: showRankChange[song.id] ? [1, 1.2, 1] : 1,
+                      y: showRankChange[song.id] ? [-2, 0] : 0
+                    }}
                     transition={{ duration: 0.3 }}
                   >
                     {index + 1}
@@ -129,21 +174,38 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                 {/* 排名變化指示器 */}
                 {showRankChange[song.id] && (
                   <motion.div
-                    initial={{ opacity: 0, x: showRankChange[song.id] === 'up' ? -20 : 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, x: showRankChange[song.id] === 'up' ? -20 : 20, scale: 0.5 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 500,
+                      damping: 25
+                    }}
                     className={`
                       absolute -left-6 text-sm font-bold
-                      ${showRankChange[song.id] === 'up' ? 'text-green-500' : 'text-red-500'}
+                      ${showRankChange[song.id] === 'up' 
+                        ? 'text-green-500 bg-green-100/50 px-1.5 py-0.5 rounded-full' 
+                        : 'text-red-500 bg-red-100/50 px-1.5 py-0.5 rounded-full'}
                     `}
                   >
                     {showRankChange[song.id] === 'up' ? '↑' : '↓'}
                   </motion.div>
                 )}
-              </div>
+              </motion.div>
 
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-900 truncate">{song.title}</h3>
+                <motion.h3 
+                  className="font-semibold text-gray-900 truncate"
+                  animate={{ 
+                    scale: showRankChange[song.id] ? [1, 1.02, 1] : 1,
+                    color: showRankChange[song.id] === 'up' ? ['#111827', '#059669', '#111827'] : 
+                           showRankChange[song.id] === 'down' ? ['#111827', '#DC2626', '#111827'] : '#111827'
+                  }}
+                  transition={{ duration: 0.5 }}
+                >
+                  {song.title}
+                </motion.h3>
                 <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
               </div>
 
@@ -153,31 +215,55 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                   animate={{ 
                     scale: (song as any).voteCount > (songs.find(s => s.id === song.id) as any)?.prevVoteCount ? [1, 1.2, 1] : 1
                   }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ 
+                    duration: 0.3,
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 10
+                  }}
                 >
-                  <span className="text-lg font-bold text-primary">
+                  <motion.span 
+                    className="text-lg font-bold text-primary block"
+                    animate={{ 
+                      y: showRankChange[song.id] ? [-4, 0] : 0
+                    }}
+                    transition={{ duration: 0.3 }}
+                  >
                     {(song as any).voteCount || 0}
-                  </span>
-                  <p className="text-xs text-muted-foreground">點播</p>
+                  </motion.span>
+                  <motion.p 
+                    className="text-xs text-muted-foreground"
+                    animate={{ 
+                      y: showRankChange[song.id] ? [-2, 0] : 0
+                    }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                  >
+                    點播
+                  </motion.p>
                 </motion.div>
 
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="w-8 h-8"
-                        asChild
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <a
-                          href={generateGuitarTabsUrl(song)}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="w-8 h-8"
+                          asChild
                         >
-                          <Music2 className="w-4 h-4" />
-                        </a>
-                      </Button>
+                          <a
+                            href={generateGuitarTabsUrl(song)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Music2 className="w-4 h-4" />
+                          </a>
+                        </Button>
+                      </motion.div>
                     </TooltipTrigger>
                     <TooltipContent side="top">
                       <p>搜尋「{song.title} - {song.artist}」的吉他譜</p>
@@ -188,20 +274,25 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="w-8 h-8"
-                        asChild
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <a
-                          href={generateLyricsUrl(song)}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="w-8 h-8"
+                          asChild
                         >
-                          <FileText className="w-4 h-4" />
-                        </a>
-                      </Button>
+                          <a
+                            href={generateLyricsUrl(song)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </a>
+                        </Button>
+                      </motion.div>
                     </TooltipTrigger>
                     <TooltipContent side="top">
                       <p>搜尋「{song.title} - {song.artist}」的歌詞</p>
