@@ -6,13 +6,13 @@ import { useQuery } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, Music2, Trophy, Lightbulb } from "lucide-react";
-import SongList from "../components/SongList";
-import SongImport from "../components/SongImport";
-import RankingBoard from "../components/RankingBoard";
-import LoginForm from "../components/LoginForm";
+import SongList from "@/components/SongList";
+import SongImport from "@/components/SongImport";
+import RankingBoard from "@/components/RankingBoard";
+import LoginForm from "@/components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
-import SongSuggestion from "../components/SongSuggestion";
-import { ShareButton } from "../components/ShareButton";
+import SongSuggestion from "@/components/SongSuggestion";
+import { ShareButton } from "@/components/ShareButton";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -209,7 +209,7 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                     <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                    可選歌單
+                    可點播歌單
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3 sm:p-6">
