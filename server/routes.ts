@@ -30,6 +30,17 @@ interface WebSocketWithState extends WebSocket {
   sessionId: string;
 }
 
+interface ExtendedIncomingMessage extends IncomingMessage {
+  headers: {
+    'sec-websocket-protocol'?: string;
+    'sec-websocket-key'?: string;
+    'sec-websocket-version'?: string;
+    upgrade?: string;
+    connection?: string;
+    origin?: string;
+  };
+}
+
 declare module 'express-serve-static-core' {
   interface Request {
     user?: User;
@@ -46,243 +57,182 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
 
-  // Create WebSocket server with error handling
+  // WebSocket server configuration
   const wss = new WebSocketServer({
-    server: httpServer,
-    path: '/ws',
-    verifyClient: ({ req }: { req: IncomingMessage }) => {
-      try {
-        const protocol = req.headers['sec-websocket-protocol'];
-        // Ignore vite-hmr connections
-        if (protocol === 'vite-hmr') {
-          return false;
-        }
-        return true;
-      } catch (error) {
-        console.error('Error in verifyClient:', error);
-        return false;
-      }
-    },
+    noServer: true, // Important: Use noServer mode for better control
     clientTracking: true,
   });
 
-  // Heartbeat mechanism with proper type binding
+  // Handle WebSocket upgrade requests
+  httpServer.on('upgrade', (request: ExtendedIncomingMessage, socket, head) => {
+    try {
+      // Ignore vite-hmr requests
+      if (request.headers['sec-websocket-protocol']?.includes('vite-hmr') ||
+          request.headers.origin?.includes('vite')) {
+        socket.destroy();
+        return;
+      }
+
+      // Validate WebSocket connection
+      if (!request.headers.upgrade?.toLowerCase().includes('websocket') ||
+          !request.headers.connection?.toLowerCase().includes('upgrade') ||
+          !request.headers['sec-websocket-key'] ||
+          !request.headers['sec-websocket-version']) {
+        socket.destroy();
+        return;
+      }
+
+      // Handle WebSocket path
+      const url = new URL(request.url || '', `http://${request.headers.host}`);
+      if (url.pathname !== '/ws') {
+        socket.destroy();
+        return;
+      }
+
+      // Upgrade the connection
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } catch (error) {
+      console.error('Error in upgrade handling:', error);
+      socket.destroy();
+    }
+  });
+
+  // Connection tracker
+  let activeConnections = 0;
+
+  // Heartbeat mechanism
   const heartbeat = function(this: WebSocketWithState) {
     this.isAlive = true;
   };
 
-  // Heartbeat interval
-  const interval = setInterval(() => {
+  // Connection cleanup interval
+  const cleanupInterval = setInterval(() => {
     wss.clients.forEach((ws) => {
       const client = ws as WebSocketWithState;
       if (!client.isAlive) {
-        console.log('Terminating inactive WebSocket connection', {
-          sessionId: client.sessionId
-        });
+        console.log('Terminating inactive client:', client.sessionId);
         return client.terminate();
       }
-
       client.isAlive = false;
-      try {
-        client.ping();
-      } catch (error) {
-        console.error('Error sending ping:', error, {
-          sessionId: client.sessionId
-        });
-        client.terminate();
-      }
+      client.ping();
     });
   }, 30000);
 
-  // Error handler for WebSocket server
-  wss.on('error', (error) => {
-    console.error('WebSocket server error:', error);
-  });
-
-  // Connection handler
-  wss.on('connection', (ws, req) => {
+  // WebSocket connection handler
+  wss.on('connection', async (ws: WebSocket, request: IncomingMessage) => {
     try {
       const client = ws as WebSocketWithState;
       client.sessionId = Math.random().toString(36).substring(2);
       client.isAlive = true;
+      activeConnections++;
 
       console.log('New WebSocket connection established', {
-        ip: req.socket.remoteAddress,
-        userAgent: req.headers['user-agent'],
-        sessionId: client.sessionId
+        ip: request.socket.remoteAddress,
+        userAgent: request.headers['user-agent'],
+        sessionId: client.sessionId,
+        activeConnections
       });
 
-      // Bind heartbeat with correct this context
+      // Setup heartbeat
       client.on('pong', heartbeat.bind(client));
 
-      let lastVoteTime: { [key: number]: number } = {};
-      let voteCount: { [key: number]: number } = {};
+      // Initial data sync
+      try {
+        const songsList = await getSongsWithVotes();
+        const message: SongsUpdateMessage = {
+          type: 'SONGS_UPDATE',
+          songs: songsList
+        };
+        client.send(JSON.stringify(message));
+      } catch (error) {
+        console.error('Error in initial data sync:', error);
+        const errorMsg: ErrorMessage = {
+          type: 'ERROR',
+          message: '無法載入歌曲列表'
+        };
+        client.send(JSON.stringify(errorMsg));
+      }
 
-      // Initial data sync with error handling
-      (async () => {
-        try {
-          const songsList = await getSongsWithVotes();
-          if (client.readyState === WebSocket.OPEN) {
-            const message: SongsUpdateMessage = {
-              type: 'SONGS_UPDATE',
-              songs: songsList
-            };
-            client.send(JSON.stringify(message));
-          }
-        } catch (error) {
-          console.error('Error sending initial songs:', error, {
-            sessionId: client.sessionId
-          });
-          if (client.readyState === WebSocket.OPEN) {
-            const errorMsg: ErrorMessage = {
-              type: 'ERROR',
-              message: '無法載入歌曲列表'
-            };
-            try {
-              client.send(JSON.stringify(errorMsg));
-            } catch (sendError) {
-              console.error('Error sending error message:', sendError);
-            }
-          }
-        }
-      })();
-
-      // Message handling with improved error recovery
+      // Message handler
       client.on('message', async (data) => {
         try {
           const message = JSON.parse(data.toString()) as WebSocketMessage;
-          console.log('Received message:', message, { sessionId: client.sessionId });
 
           if (message.type === 'VOTE') {
-            const now = Date.now();
-            const songId = message.songId;
-            const lastTime = lastVoteTime[songId] || 0;
-            const timeDiff = now - lastTime;
-
-            // Rate limiting
-            if (timeDiff < 50) {
-              console.log('Rate limited vote request', {
+            try {
+              await db.insert(votes).values({
+                songId: message.songId,
                 sessionId: client.sessionId,
-                songId,
-                timeDiff
+                createdAt: new Date()
               });
-              return;
-            }
 
-            if (client.readyState === WebSocket.OPEN) {
-              try {
-                await db.insert(votes).values({
-                  songId,
-                  sessionId: client.sessionId,
-                  createdAt: new Date()
-                });
+              // Broadcast update to all clients
+              const updatedSongs = await getSongsWithVotes();
+              const updateMsg: SongsUpdateMessage = {
+                type: 'SONGS_UPDATE',
+                songs: updatedSongs
+              };
 
-                lastVoteTime[songId] = now;
-                voteCount[songId] = (voteCount[songId] || 0) + 1;
-
-                // Broadcast updated songs to all clients
-                const updatedSongs = await getSongsWithVotes();
-                const updateMsg: SongsUpdateMessage = {
-                  type: 'SONGS_UPDATE',
-                  songs: updatedSongs
-                };
-
-                wss.clients.forEach((ws) => {
-                  const target = ws as WebSocketWithState;
-                  if (target.readyState === WebSocket.OPEN) {
-                    try {
-                      target.send(JSON.stringify(updateMsg));
-                    } catch (error) {
-                      console.error('Error sending update to client:', error, {
-                        targetSessionId: target.sessionId
-                      });
-                    }
-                  }
-                });
-              } catch (error) {
-                console.error('Error processing vote:', error, {
-                  sessionId: client.sessionId,
-                  songId
-                });
+              const broadcastData = JSON.stringify(updateMsg);
+              wss.clients.forEach((client) => {
                 if (client.readyState === WebSocket.OPEN) {
-                  const errorMsg: ErrorMessage = {
-                    type: 'ERROR',
-                    message: '處理投票時發生錯誤'
-                  };
-                  try {
-                    client.send(JSON.stringify(errorMsg));
-                  } catch (sendError) {
-                    console.error('Error sending error message:', sendError);
-                  }
+                  client.send(broadcastData);
                 }
-              }
+              });
+            } catch (error) {
+              console.error('Vote processing error:', error);
+              const errorMsg: ErrorMessage = {
+                type: 'ERROR',
+                message: '處理投票時發生錯誤'
+              };
+              client.send(JSON.stringify(errorMsg));
             }
           }
         } catch (error) {
-          console.error('WebSocket message parsing error:', error, {
-            sessionId: client.sessionId
-          });
-          if (client.readyState === WebSocket.OPEN) {
-            try {
-              const errorMsg: ErrorMessage = {
-                type: 'ERROR',
-                message: '無法處理訊息'
-              };
-              client.send(JSON.stringify(errorMsg));
-            } catch (sendError) {
-              console.error('Error sending error message:', sendError, {
-                sessionId: client.sessionId
-              });
-            }
-          }
+          console.error('Message parsing error:', error);
+          const errorMsg: ErrorMessage = {
+            type: 'ERROR',
+            message: '訊息格式錯誤'
+          };
+          client.send(JSON.stringify(errorMsg));
         }
       });
 
-      // Error handling with logging
+      // Error handler
       client.on('error', (error) => {
-        console.error('WebSocket error:', error, {
-          sessionId: client.sessionId,
-          remoteAddress: req.socket.remoteAddress
-        });
+        console.error('WebSocket client error:', error, { sessionId: client.sessionId });
       });
 
-      // Cleanup on close
-      client.on('close', (code, reason) => {
+      // Close handler
+      client.on('close', () => {
+        activeConnections--;
+        client.isAlive = false;
         console.log('WebSocket connection closed', {
-          code,
-          reason: reason.toString(),
           sessionId: client.sessionId,
-          remoteAddress: req.socket.remoteAddress
+          activeConnections
         });
-        // Clean up resources
-        lastVoteTime = {};
-        voteCount = {};
       });
 
     } catch (error) {
-      console.error('Error in WebSocket connection setup:', error);
-      try {
-        ws.terminate();
-      } catch (terminateError) {
-        console.error('Error terminating WebSocket:', terminateError);
-      }
+      console.error('Connection setup error:', error);
+      ws.terminate();
     }
   });
 
-  // Cleanup interval on server close
+  // Server shutdown cleanup
   httpServer.on('close', () => {
-    try {
-      clearInterval(interval);
-      wss.close();
-    } catch (error) {
-      console.error('Error closing WebSocket server:', error);
-    }
+    clearInterval(cleanupInterval);
+    wss.close();
   });
 
+  // Setup authentication
   setupAuth(app);
   return httpServer;
 }
 
+// Helper function for getting songs with votes
 async function getSongsWithVotes(): Promise<Array<Song & { voteCount: number }>> {
   try {
     const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));

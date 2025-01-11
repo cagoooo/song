@@ -62,27 +62,48 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Start the server with a numeric port
-    const PORT = Number(process.env.PORT || 5000);
-    if (isNaN(PORT) || PORT < 0 || PORT > 65535) {
-      throw new Error(`Invalid port number: ${PORT}`);
+    // Server startup with error handling
+    const PORT = 5000;
+    const maxRetries = 3;
+    let currentRetry = 0;
+    let isListening = false;
+
+    while (!isListening && currentRetry < maxRetries) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          server.once('error', (error: NodeJS.ErrnoException) => {
+            if (error.code === 'EADDRINUSE') {
+              log(`Port ${PORT} is in use, attempt ${currentRetry + 1} of ${maxRetries}`);
+              reject(new Error('Port in use'));
+            } else {
+              reject(error);
+            }
+          });
+
+          server.once('listening', () => {
+            isListening = true;
+            log(`Server started on port ${PORT}`);
+            resolve();
+          });
+
+          server.listen(PORT, "0.0.0.0");
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message === 'Port in use') {
+          currentRetry++;
+          if (currentRetry < maxRetries) {
+            log('Waiting before retry...');
+            await new Promise(resolve => setTimeout(resolve, 1000 * currentRetry));
+          }
+        } else {
+          throw error;
+        }
+      }
     }
 
-    server.listen(PORT, "0.0.0.0", () => {
-      log(`Server running on port ${PORT}`);
-      log(`Development mode: ${app.get("env") === "development"}`);
-    });
-
-    // Handle server errors
-    server.on('error', (error: NodeJS.ErrnoException) => {
-      if (error.code === 'EADDRINUSE') {
-        log(`Port ${PORT} is already in use`);
-        process.exit(1);
-      } else {
-        console.error('Server error:', error);
-        process.exit(1);
-      }
-    });
+    if (!isListening) {
+      throw new Error(`Failed to start server after ${maxRetries} attempts`);
+    }
 
   } catch (error) {
     console.error('Failed to start server:', error);

@@ -55,6 +55,55 @@ export default function Home() {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
+      ws.onopen = () => {
+        console.log('WebSocket connection established');
+        setWsStatus('connected');
+        reconnectAttempts.current = 0;
+        toast({
+          title: "連線成功",
+          description: "即時更新已啟用",
+        });
+      };
+
+      ws.onclose = (event) => {
+        // Don't attempt to reconnect if the closure was clean
+        if (event.wasClean) {
+          console.log('WebSocket closed cleanly', event);
+          setWsStatus('disconnected');
+          return;
+        }
+
+        console.log('WebSocket connection closed', event);
+        setWsStatus('disconnected');
+
+        // Calculate reconnection delay with exponential backoff
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), maxReconnectDelay);
+        reconnectAttempts.current++;
+
+        console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current})`);
+
+        // Only show toast for abnormal closures
+        if (!event.wasClean) {
+          toast({
+            title: "連線中斷",
+            description: "正在嘗試重新連線...",
+            variant: "destructive"
+          });
+        }
+
+        // Clear existing reconnection timeout if any
+        if ((window as any).wsReconnectTimeout) {
+          clearTimeout((window as any).wsReconnectTimeout);
+        }
+
+        // Set new reconnection timeout
+        (window as any).wsReconnectTimeout = setTimeout(() => {
+          if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+            setupWebSocket();
+          }
+        }, delay);
+      };
+
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as WebSocketMessage;
@@ -79,50 +128,17 @@ export default function Home() {
             description: "正在嘗試重新建立連線...",
             variant: "destructive"
           });
-        }
-      };
 
-      ws.onopen = () => {
-        console.log('WebSocket connection established');
-        setWsStatus('connected');
-        reconnectAttempts.current = 0;
-        toast({
-          title: "連線成功",
-          description: "即時更新已啟用",
-        });
-      };
-
-      ws.onclose = (event) => {
-        console.log('WebSocket connection closed', event);
-        setWsStatus('disconnected');
-
-        // Calculate reconnection delay with exponential backoff
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), maxReconnectDelay);
-        reconnectAttempts.current++;
-
-        console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current})`);
-
-        toast({
-          title: "連線中斷",
-          description: "正在嘗試重新連線...",
-          variant: "destructive"
-        });
-
-        // Clear existing reconnection timeout if any
-        if ((window as any).wsReconnectTimeout) {
-          clearTimeout((window as any).wsReconnectTimeout);
-        }
-
-        // Set new reconnection timeout
-        (window as any).wsReconnectTimeout = setTimeout(() => {
-          if (wsRef.current?.readyState === WebSocket.CLOSED) {
-            setupWebSocket();
+          // Force reconnection on parse error
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.close();
           }
-        }, delay);
+        }
       };
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        // Only show error toast if we're not already disconnected
         if (wsStatus !== 'disconnected') {
           toast({
             title: "連線錯誤",
@@ -145,9 +161,11 @@ export default function Home() {
   useEffect(() => {
     setupWebSocket();
 
+    // Cleanup function
     return () => {
       if (wsRef.current) {
-        wsRef.current.close();
+        // Perform clean closure
+        wsRef.current.close(1000, "Component unmounting");
       }
       if ((window as any).wsReconnectTimeout) {
         clearTimeout((window as any).wsReconnectTimeout);
