@@ -43,10 +43,11 @@ export function registerRoutes(app: Express): Server {
 
       const [scan] = await db.insert(qrCodeScans)
         .values({
-          songId,
-          sessionId,
-          userAgent: userAgent || null,
-          referrer: referrer || null
+          song_id: songId,  // 修改 songId 為 song_id 以符合資料庫 schema
+          session_id: sessionId,  // 修改 sessionId 為 session_id 以符合資料庫 schema
+          user_agent: userAgent || null,  // 修改 userAgent 為 user_agent 以符合資料庫 schema
+          referrer: referrer || null,
+          created_at: new Date()  // 新增 created_at 欄位
         })
         .returning();
 
