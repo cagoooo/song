@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
 import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import FireworkEffect from "./FireworkEffect";
 import { MusicPlayer } from "./MusicPlayer";
 import QRCodeShareModal from "./QRCodeShareModal";
@@ -40,6 +40,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedSongForShare, setSelectedSongForShare] = useState<Song | null>(null);
+  const [clickCount, setClickCount] = useState<{ [key: number]: number }>({});
 
   const filteredSongs = useMemo(() => {
     if (!searchTerm.trim()) return songs;
@@ -56,7 +57,24 @@ export default function SongList({ songs, ws, user }: SongListProps) {
     if (ws && ws.readyState === WebSocket.OPEN) {
       setVotingId(songId);
       ws.send(JSON.stringify({ type: 'VOTE', songId }));
-      setTimeout(() => setVotingId(null), 800);
+
+      // Update click count for animation
+      setClickCount(prev => ({
+        ...prev,
+        [songId]: (prev[songId] || 0) + 1
+      }));
+
+      // Reset voting status after a shorter delay (300ms instead of 800ms)
+      setTimeout(() => {
+        setVotingId(null);
+        // Reset click count after 1 second of inactivity
+        setTimeout(() => {
+          setClickCount(prev => ({
+            ...prev,
+            [songId]: 0
+          }));
+        }, 1000);
+      }, 300);
     }
   };
 
@@ -218,7 +236,30 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                       `}
                     >
                       <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
-                      點播
+                      <span className="relative">
+                        點播
+                        <AnimatePresence>
+                          {clickCount[song.id] > 0 && (
+                            <motion.span
+                              key={`count-${clickCount[song.id]}`}
+                              initial={{ opacity: 0, y: 10, scale: 0.5 }}
+                              animate={{ 
+                                opacity: 1, 
+                                y: -20, 
+                                scale: Math.min(1 + (clickCount[song.id] * 0.2), 2),
+                                transition: {
+                                  duration: 0.3,
+                                  ease: "easeOut"
+                                }
+                              }}
+                              exit={{ opacity: 0, scale: 0 }}
+                              className="absolute left-1/2 -translate-x-1/2 text-primary font-bold"
+                            >
+                              +{clickCount[song.id]}
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                      </span>
                     </Button>
                     <FireworkEffect isVisible={votingId === song.id} />
                   </motion.div>

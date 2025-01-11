@@ -11,14 +11,12 @@ import fs from "fs";
 import express from "express";
 import type { IncomingMessage } from "http";
 
-// Express 的 Request 類型擴展
 declare module 'express-serve-static-core' {
   interface Request {
     user?: User;
   }
 }
 
-// 需要管理員權限的中間件
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated() || !req.user?.isAdmin) {
     return res.status(403).json({ error: "需要管理員權限" });
@@ -37,60 +35,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 設置認證系統
   setupAuth(app);
-
-  // 設置檔案上傳的儲存位置和檔案名稱
-  const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-      const uploadDir = path.join(process.cwd(), 'uploads', 'audio');
-      // 確保目錄存在
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-      // 生成唯一的檔案名稱
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
-  });
-
-  const upload = multer({
-    storage: storage,
-    fileFilter: (req, file, cb) => {
-      // 只允許上傳音訊檔案
-      if (file.mimetype.startsWith('audio/')) {
-        cb(null, true);
-      } else {
-        cb(new Error('只允許上傳音訊檔案'));
-      }
-    },
-    limits: {
-      fileSize: 10 * 1024 * 1024, // 限制檔案大小為 10MB
-    }
-  });
-
-  // 處理音樂檔案上傳
-  app.post('/api/upload/audio', requireAdmin, upload.single('audio'), (req, res) => {
-    try {
-      if (!req.file) {
-        throw new Error('No file uploaded');
-      }
-
-      // 返回檔案的URL路徑
-      const fileUrl = `/uploads/audio/${req.file.filename}`;
-      res.json({ url: fileUrl });
-    } catch (error) {
-      console.error('Failed to upload audio file:', error);
-      res.status(500).json({ error: '檔案上傳失敗' });
-    }
-  });
-
-  // 提供靜態檔案存取
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
-
 
   // QR Code scan tracking endpoints
   app.post("/api/qr-scans", async (req, res) => {
@@ -101,8 +46,8 @@ export function registerRoutes(app: Express): Server {
       const referrer = req.headers.referer || req.headers.referrer;
 
       const [scan] = await db.insert(qrCodeScans).values({
-        songId,
-        sessionId,
+        songId: songId,
+        sessionId: sessionId,
         userAgent: userAgent || null,
         referrer: referrer || null,
         createdAt: new Date()
@@ -403,6 +348,10 @@ export function registerRoutes(app: Express): Server {
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');
     const sessionId = Math.random().toString(36).substring(2);
+    let lastVoteTime: { [key: number]: number } = {};
+    let voteCount: { [key: number]: number } = {};
+
+    // Send initial songs data
     sendSongsUpdate(wss);
 
     ws.on('message', async (data) => {
@@ -411,11 +360,25 @@ export function registerRoutes(app: Express): Server {
         console.log('Received message:', message);
 
         if (message.type === 'VOTE') {
-          await db.insert(votes).values({
-            songId: message.songId,
-            sessionId
-          });
-          sendSongsUpdate(wss);
+          const now = Date.now();
+          const songId = message.songId;
+          const lastTime = lastVoteTime[songId] || 0;
+          const timeDiff = now - lastTime;
+
+          // Only process vote if more than 100ms has passed since last vote
+          if (timeDiff > 100) {
+            await db.insert(votes).values({
+              songId: message.songId,
+              sessionId
+            });
+
+            // Update vote tracking
+            lastVoteTime[songId] = now;
+            voteCount[songId] = (voteCount[songId] || 0) + 1;
+
+            // Send immediate update
+            sendSongsUpdate(wss);
+          }
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -428,6 +391,13 @@ export function registerRoutes(app: Express): Server {
 
     ws.on('error', (error) => {
       console.error('WebSocket error:', error);
+    });
+
+    // Clean up on connection close
+    ws.on('close', () => {
+      console.log('WebSocket connection closed');
+      lastVoteTime = {};
+      voteCount = {};
     });
   });
 
