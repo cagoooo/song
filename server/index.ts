@@ -47,10 +47,18 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Test database connection
+    // Test database connection with timeout
+    const dbTimeout = setTimeout(() => {
+      throw new Error('Database connection timeout after 5000ms');
+    }, 5000);
+
     const result = await db.execute(sql`SELECT 1`);
+    clearTimeout(dbTimeout);
+    
     if (result) {
       log('Database connection successful');
+      log('Environment: ' + app.get('env'));
+      log('Database host: ' + process.env.PGHOST);
     }
 
     const server = registerRoutes(app);
