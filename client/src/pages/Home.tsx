@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { useQuery } from "@tanstack/react-query";
-import type { Song } from "@db/schema";
+import type { Song, User } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, Music2, Trophy, Lightbulb } from "lucide-react";
 import SongList from "../components/SongList";
@@ -13,7 +13,7 @@ import LoginForm from "../components/LoginForm";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 
-interface SongInfo {
+export interface SongInfo {
   title: string;
   artist: string;
 }
@@ -22,77 +22,126 @@ export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [importSongInfo, setImportSongInfo] = useState<SongInfo | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const maxReconnectAttempts = 5;
+  const reconnectAttemptRef = useRef(0);
 
   const { isLoading } = useQuery({
     queryKey: ['/api/songs'],
     queryFn: async () => {
-      const response = await fetch('/api/songs', {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch songs');
-      const data = await response.json();
-      setSongs(data);
-      return data;
+      try {
+        const response = await fetch('/api/songs', {
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to fetch songs');
+        const data = await response.json();
+        setSongs(data);
+        return data;
+      } catch (error) {
+        console.error('Error fetching songs:', error);
+        toast({
+          title: "錯誤",
+          description: "無法載入歌曲清單",
+          variant: "destructive"
+        });
+        throw error;
+      }
     },
     retry: 1
   });
 
-  useEffect(() => {
-    function setupWebSocket() {
+  const setupWebSocket = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      return;
+    }
+
+    if (reconnectAttemptRef.current >= maxReconnectAttempts) {
+      toast({
+        title: "連線錯誤",
+        description: "無法連接到伺服器，請重新整理頁面",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
+      console.log('Connecting to WebSocket:', wsUrl);
 
-      try {
-        console.log('Connecting to WebSocket:', wsUrl);
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            console.log('WebSocket message received:', data);
-            if (data.type === 'SONGS_UPDATE') {
-              setSongs(data.songs);
-            }
-          } catch (error) {
-            console.error('WebSocket message parsing error:', error);
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'SONGS_UPDATE' && Array.isArray(data.songs)) {
+            setSongs(data.songs);
           }
-        };
+        } catch (error) {
+          console.error('WebSocket message parsing error:', error);
+        }
+      };
 
-        ws.onopen = () => {
-          console.log('WebSocket connection established');
-        };
+      ws.onopen = () => {
+        console.log('WebSocket connection established');
+        setWsConnected(true);
+        reconnectAttemptRef.current = 0;
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = undefined;
+        }
+      };
 
-        ws.onclose = () => {
-          console.log('WebSocket connection closed');
+      ws.onclose = () => {
+        console.log('WebSocket connection closed');
+        setWsConnected(false);
+        wsRef.current = null;
+        reconnectAttemptRef.current += 1;
+
+        if (reconnectAttemptRef.current < maxReconnectAttempts) {
           toast({
             title: "連線中斷",
             description: "正在嘗試重新連線...",
-            variant: "destructive"
           });
-          setTimeout(setupWebSocket, 3000);
-        };
+          reconnectTimeoutRef.current = setTimeout(setupWebSocket, 3000);
+        }
+      };
 
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-        };
-      } catch (error) {
-        console.error('WebSocket connection error:', error);
-        setTimeout(setupWebSocket, 3000);
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close();
+        }
+      };
+    } catch (error) {
+      console.error('WebSocket connection error:', error);
+      reconnectAttemptRef.current += 1;
+      if (reconnectAttemptRef.current < maxReconnectAttempts) {
+        reconnectTimeoutRef.current = setTimeout(setupWebSocket, 3000);
       }
     }
+  }, [toast]);
 
+  useEffect(() => {
     setupWebSocket();
 
     return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
       }
+      setWsConnected(false);
+      reconnectAttemptRef.current = 0;
     };
-  }, [toast]);
+  }, [setupWebSocket]);
 
   const handleLogout = async () => {
     try {
@@ -110,6 +159,7 @@ export default function Home() {
         description: "已登出",
       });
     } catch (error) {
+      console.error('Logout error:', error);
       toast({
         title: "錯誤",
         description: "登出失敗",
@@ -181,7 +231,11 @@ export default function Home() {
               <CardContent>
                 {user?.isAdmin && <SongImport importSongInfo={importSongInfo} />}
                 <div className="h-4" />
-                <SongList songs={songs} ws={wsRef.current} user={user || null} />
+                <SongList 
+                  songs={songs} 
+                  ws={wsConnected ? wsRef.current : null} 
+                  user={user as User | null} 
+                />
               </CardContent>
             </Card>
           </div>

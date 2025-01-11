@@ -35,9 +35,9 @@ export const songSuggestions = pgTable("song_suggestions", {
   title: text("title").notNull(),
   artist: text("artist").notNull(),
   suggestedBy: text("suggested_by"),
+  notes: text("notes"),
   status: text("status").default("pending").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  notes: text("notes")
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
 export const tags = pgTable("tags", {
@@ -124,7 +124,7 @@ export type NewSongSuggestion = typeof songSuggestions.$inferInsert;
 export type QRCodeScan = typeof qrCodeScans.$inferSelect;
 export type NewQRCodeScan = typeof qrCodeScans.$inferInsert;
 
-// Zod schemas
+// Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 

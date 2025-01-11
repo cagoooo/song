@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Import } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface SongInfo {
   title: string;
@@ -19,6 +20,7 @@ export default function SongImport({ importSongInfo }: Props) {
   const [artist, setArtist] = useState("");
   const [notes, setNotes] = useState("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (importSongInfo) {
@@ -50,7 +52,12 @@ export default function SongImport({ importSongInfo }: Props) {
         })
       });
 
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      // 重新取得歌曲清單
+      await queryClient.invalidateQueries({ queryKey: ['/api/songs'] });
 
       toast({
         title: "成功",
@@ -61,6 +68,7 @@ export default function SongImport({ importSongInfo }: Props) {
       setArtist("");
       setNotes("");
     } catch (error) {
+      console.error('Failed to add song:', error);
       toast({
         title: "錯誤",
         description: "新增歌曲失敗",

@@ -36,7 +36,7 @@ export default function SongSuggestion({ isAdmin, onImportSong }: Props) {
   const [notes, setNotes] = useState("");
   const { toast } = useToast();
 
-  const { data: suggestions = [] } = useQuery<SongSuggestion[]>({
+  const { data: suggestions = [], refetch } = useQuery<SongSuggestion[]>({
     queryKey: ['/api/suggestions'],
   });
 
@@ -58,7 +58,9 @@ export default function SongSuggestion({ isAdmin, onImportSong }: Props) {
         body: JSON.stringify({ title, artist, suggestedBy, notes })
       });
 
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
 
       setIsOpen(false);
       setTitle("");
@@ -66,11 +68,14 @@ export default function SongSuggestion({ isAdmin, onImportSong }: Props) {
       setSuggestedBy("");
       setNotes("");
 
+      await refetch();
+
       toast({
         title: "成功",
         description: "您的建議已送出，管理員會盡快審核",
       });
-    } catch {
+    } catch (error) {
+      console.error('Failed to submit suggestion:', error);
       toast({
         title: "錯誤",
         description: "無法送出建議，請稍後再試",
