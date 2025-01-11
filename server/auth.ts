@@ -7,7 +7,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { users } from "@db/schema";
+import { users, type User } from "@db/schema";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -28,14 +28,10 @@ const crypto = {
   },
 };
 
+// extend express user object with our schema
 declare global {
   namespace Express {
-    interface User {
-      id: number;
-      username: string;
-      password: string;
-      isAdmin: boolean;
-    }
+    interface User extends User { }
   }
 }
 

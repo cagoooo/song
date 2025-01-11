@@ -13,17 +13,15 @@ import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
-import FireworkEffect from "../components/FireworkEffect";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
 
-  const { isLoading: queryLoading } = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ['/api/songs'],
     queryFn: async () => {
       const response = await fetch('/api/songs', {
@@ -32,7 +30,6 @@ export default function Home() {
       if (!response.ok) throw new Error('Failed to fetch songs');
       const data = await response.json();
       setSongs(data);
-      setIsLoading(false);
       return data;
     },
     retry: 1
@@ -116,109 +113,22 @@ export default function Home() {
     }
   };
 
-  if (isLoading || queryLoading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-background to-primary/5">
-        <div className="relative">
-          <motion.div
-            animate={{
-              rotate: [0, 360],
-              scale: [1, 1.3, 1],
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: [0.4, 0, 0.2, 1],
-              times: [0, 0.5, 1],
-            }}
-            className="relative z-10"
-          >
-            <Music2 className="w-24 h-24 text-primary/80 drop-shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
-          </motion.div>
-
-          {/* 光暈效果 */}
-          <motion.div
-            className="absolute inset-0 bg-gradient-radial from-primary/30 via-primary/20 to-transparent rounded-full"
-            animate={{
-              scale: [1, 1.8, 1],
-              opacity: [0.3, 0.7, 0.3],
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            style={{
-              width: '180px',
-              height: '180px',
-              top: '-42px',
-              left: '-42px',
-            }}
-          />
-
-          {/* 旋轉光環 */}
-          <motion.div
-            className="absolute inset-0"
-            animate={{ rotate: 360 }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-            style={{
-              width: '240px',
-              height: '240px',
-              top: '-72px',
-              left: '-72px',
-            }}
-          >
-            {[...Array(6)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-full h-full origin-center"
-                style={{ transform: `rotate(${i * 60}deg)` }}
-              >
-                <div
-                  className="absolute top-0 left-1/2 w-4 h-4 -ml-2 rounded-full
-                           bg-gradient-to-r from-primary/30 to-primary/10
-                           blur-[2px]"
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* 煙火效果 */}
-          <FireworkEffect isVisible={true} />
-
-          {/* 音符飄動效果 */}
-          {[...Array(4)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute"
-              initial={{ 
-                x: Math.random() * 200 - 100,
-                y: Math.random() * 200 - 100,
-                opacity: 0,
-                scale: 0
-              }}
-              animate={{
-                x: Math.random() * 300 - 150,
-                y: Math.random() * 300 - 150,
-                opacity: [0, 1, 0],
-                scale: [0, 1.2, 0],
-                rotate: Math.random() * 360
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                delay: i * 0.8,
-                ease: "easeInOut",
-              }}
-            >
-              <Music2 className="w-8 h-8 text-primary/40" />
-            </motion.div>
-          ))}
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <motion.div
+          animate={{
+            rotate: 360,
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        >
+          <Music2 className="w-12 h-12 text-primary" />
+        </motion.div>
       </div>
     );
   }
@@ -233,7 +143,7 @@ export default function Home() {
           className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 sm:mb-8"
         >
           <div className="flex items-center gap-4">
-            <div
+            <div 
               className="relative p-2 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
                        shadow-[0_0_15px_rgba(var(--primary),0.3)]
                        animate-[shadow-pulse_3s_ease-in-out_infinite]
@@ -263,7 +173,7 @@ export default function Home() {
         </motion.div>
 
         <AnimatePresence>
-          <motion.div
+          <motion.div 
             className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
             layout
             transition={{
@@ -333,17 +243,17 @@ export default function Home() {
       </div>
 
       {!user && (
-        <motion.div
+        <motion.div 
           className="fixed bottom-4 right-4 z-50"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <Button
-            variant="outline"
-            size="sm"
+          <Button 
+            variant="outline" 
+            size="sm" 
             onClick={() => setShowLoginForm(true)}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100
+            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 
                       backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40
                       transition-all duration-300"
           >

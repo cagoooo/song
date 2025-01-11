@@ -16,7 +16,7 @@ import {
   DialogContent,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Music, ThumbsUp, Trash2, RotateCcw, PlayCircle, Search } from "lucide-react";
+import { Music, ThumbsUp, Trash2, RotateCcw, PlayCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
 import SearchBar from "./SearchBar";
@@ -56,16 +56,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
     if (ws && ws.readyState === WebSocket.OPEN) {
       setVotingId(songId);
       ws.send(JSON.stringify({ type: 'VOTE', songId }));
-
-      // 添加連點動畫效果
-      const button = document.querySelector(`[data-song-id="${songId}"]`);
-      if (button) {
-        button.classList.add('animate-vote-bounce');
-        setTimeout(() => {
-          button.classList.remove('animate-vote-bounce');
-        }, 300);
-      }
-
       setTimeout(() => setVotingId(null), 800);
     }
   };
@@ -207,42 +197,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                     </Dialog>
                   )}
 
-                  {/* 歌詞搜尋按鈕 */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const searchQuery = `${song.title} ${song.artist} 歌詞`;
-                      window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
-                    }}
-                    className="flex gap-2 relative overflow-hidden w-full sm:w-auto
-                             bg-gradient-to-r from-blue-100 via-indigo-100 to-violet-100
-                             hover:from-blue-200 hover:via-indigo-200 hover:to-violet-200
-                             border-2 border-blue-500/20 hover:border-blue-500/40
-                             transition-all duration-300"
-                  >
-                    <Search className="h-4 w-4" />
-                    歌詞
-                  </Button>
-
-                  {/* 吉他譜搜尋按鈕 */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const searchQuery = `${song.title} ${song.artist} 吉他譜`;
-                      window.open(`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`, '_blank');
-                    }}
-                    className="flex gap-2 relative overflow-hidden w-full sm:w-auto
-                             bg-gradient-to-r from-amber-100 via-orange-100 to-yellow-100
-                             hover:from-amber-200 hover:via-orange-200 hover:to-yellow-200
-                             border-2 border-amber-500/20 hover:border-amber-500/40
-                             transition-all duration-300"
-                  >
-                    <Music className="h-4 w-4" />
-                    吉他譜
-                  </Button>
-
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -252,7 +206,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => voteForSong(song.id)}
-                      data-song-id={song.id}
                       className={`
                         flex gap-2 relative overflow-hidden w-full
                         bg-gradient-to-r from-purple-100 via-pink-100 to-rose-100
@@ -262,19 +215,10 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                           ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]'
                           : 'border-primary/20 hover:border-primary/40'}
                         transition-all duration-300
-                        hover:shadow-[0_4px_12px_rgba(var(--primary),0.2)]
-                        active:shadow-[0_0_8px_rgba(var(--primary),0.4)]
                       `}
                     >
-                      <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary animate-bounce' : ''}`} />
+                      <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
                       點播
-                      {votingId === song.id && (
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute inset-0 bg-primary/10 rounded-lg"
-                        />
-                      )}
                     </Button>
                     <FireworkEffect isVisible={votingId === song.id} />
                   </motion.div>
