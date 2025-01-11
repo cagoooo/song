@@ -165,7 +165,7 @@ export default function SongSuggestion({ isAdmin = false }) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                className="bg-white/70 border-amber-200/50 focus:border-amber-300/60"
+                className="bg-gradient-to-r from-rose-50/70 to-pink-50/70 border-amber-200/50 focus:border-amber-300/60"
               />
             </div>
             <div className="space-y-2">
