@@ -1,7 +1,14 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
+import { useToast } from "@/hooks/use-toast";
+import type { Song, User } from "@db/schema";
+import { Music, ThumbsUp, Trash2, RotateCcw, Pencil } from "lucide-react";
+import SearchBar from "./SearchBar";
+import TagSelector from "./TagSelector";
+import { AnimatePresence, motion } from "framer-motion";
+import { Socket } from "socket.io-client";
+import { 
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -11,51 +18,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
-import type { Song, User } from "@db/schema";
-import { Music, ThumbsUp, Trash2, RotateCcw } from "lucide-react";
-import SearchBar from "./SearchBar";
-import TagSelector from "./TagSelector";
-import { AnimatePresence, motion } from "framer-motion";
-import QRCodeShareModal from "./QRCodeShareModal";
+import { QRCodeShareModal } from "./QRCodeShareModal";
+import { EditSongDialog } from "./EditSongDialog";
 
 interface SongListProps {
   songs: Song[];
-  ws: WebSocket | null;
+  socket: Socket | null;
   user: User | null;
 }
 
-export default function SongList({ songs, ws, user }: SongListProps) {
+export default function SongList({ songs, socket, user }: SongListProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [votingId, setVotingId] = useState<number | null>(null);
-  const [showResetDialog, setShowResetDialog] = useState(false);
-  const [qrModalOpen, setQrModalOpen] = useState(false);
-  const [selectedSongForShare, setSelectedSongForShare] = useState<Song | null>(null);
   const [clickCount, setClickCount] = useState<{ [key: number]: number }>({});
   const [isTouch, setIsTouch] = useState(false);
   const [lastVoteTime, setLastVoteTime] = useState<{ [key: number]: number }>({});
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [selectedSongForShare, setSelectedSongForShare] = useState<Song | null>(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
-  // 觸控事件檢測
-  useEffect(() => {
-    const checkTouch = () => {
-      setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0);
-    };
-    checkTouch();
-    window.addEventListener('resize', checkTouch);
-    return () => window.removeEventListener('resize', checkTouch);
-  }, []);
 
-  const handleVoteStart = useCallback((songId: number) => {
+  const handleVoteStart = (songId: number) => {
     const now = Date.now();
     const lastTime = lastVoteTime[songId] || 0;
     const timeDiff = now - lastTime;
 
     if (timeDiff < 50) return; // 防抖動：最小間隔50ms
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
+    if (socket?.connected) {
       setVotingId(songId);
-      ws.send(JSON.stringify({ type: 'VOTE', songId }));
+      socket.emit('vote', songId);
 
       // Update click count for animation
       setClickCount(prev => ({
@@ -100,8 +94,14 @@ export default function SongList({ songs, ws, user }: SongListProps) {
           });
         }, 100);
       }, 2000);
+    } else {
+      toast({
+        title: "錯誤",
+        description: "無法連接到服務器",
+        variant: "destructive"
+      });
     }
-  }, [ws, clickCount, lastVoteTime]);
+  };
 
   const filteredSongs = useMemo(() => {
     if (!searchTerm.trim()) return songs;
@@ -380,23 +380,42 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                   </motion.div>
 
                   {user?.isAdmin && (
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="w-full sm:w-auto"
-                    >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteSong(song.id)}
-                        className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
+                    <>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-full sm:w-auto"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingSong(song)}
+                          className="flex gap-2 w-full sm:w-auto border-2 border-primary/20
+                                  bg-white/80 hover:bg-white/90"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          編輯
+                        </Button>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-full sm:w-auto"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteSong(song.id)}
+                          className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
                                   text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
                                   hover:border-red-300/50 transition-all duration-300"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        刪除
-                      </Button>
-                    </motion.div>
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          刪除
+                        </Button>
+                      </motion.div>
+                    </>
                   )}
                 </div>
               </div>
@@ -435,6 +454,13 @@ export default function SongList({ songs, ws, user }: SongListProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {editingSong && (
+        <EditSongDialog
+          song={editingSong}
+          isOpen={Boolean(editingSong)}
+          onClose={() => setEditingSong(null)}
+        />
+      )}
     </div>
   );
 }

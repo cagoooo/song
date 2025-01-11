@@ -124,7 +124,7 @@ export type NewSongSuggestion = typeof songSuggestions.$inferInsert;
 export type QRCodeScan = typeof qrCodeScans.$inferSelect;
 export type NewQRCodeScan = typeof qrCodeScans.$inferInsert;
 
-// Zod schemas
+// Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 

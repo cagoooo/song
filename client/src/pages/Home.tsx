@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
@@ -13,13 +13,17 @@ import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
+import { io, Socket } from "socket.io-client";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const { toast } = useToast();
-  const wsRef = useRef<WebSocket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const { user, logout } = useUser();
+  const [socketStatus, setSocketStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
   const { isLoading } = useQuery({
     queryKey: ['/api/songs'],
@@ -35,59 +39,126 @@ export default function Home() {
     retry: 1
   });
 
-  useEffect(() => {
-    function setupWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+  const setupSocket = useCallback(() => {
+    try {
+      if (socketRef.current?.connected) {
+        console.log('Socket is already connected, skipping setup');
+        return;
+      }
 
-      try {
-        console.log('Connecting to WebSocket:', wsUrl);
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
+      console.log('Setting up new socket connection');
+      setSocketStatus('connecting');
 
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            console.log('WebSocket message received:', data);
-            if (data.type === 'SONGS_UPDATE') {
-              setSongs(data.songs);
-            }
-          } catch (error) {
-            console.error('WebSocket message parsing error:', error);
-          }
-        };
+      const socket = io(window.location.origin, {
+        path: '/ws',
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: maxReconnectAttempts,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 45000,
+        forceNew: true,
+        withCredentials: true,
+        autoConnect: true,
+        closeOnBeforeunload: false
+      });
 
-        ws.onopen = () => {
-          console.log('WebSocket connection established');
-        };
+      // Connection event handlers
+      socket.on('connect', () => {
+        console.log('Socket.IO connection established');
+        setSocketStatus('connected');
+        reconnectAttempts.current = 0;
 
-        ws.onclose = () => {
-          console.log('WebSocket connection closed');
+        toast({
+          title: "連線成功",
+          description: "即時更新已啟用",
+        });
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.log('Socket.IO disconnected:', reason);
+        setSocketStatus('disconnected');
+
+        if (reason !== 'io client disconnect' && reason !== 'transport close') {
           toast({
             title: "連線中斷",
             description: "正在嘗試重新連線...",
             variant: "destructive"
           });
-          setTimeout(setupWebSocket, 3000);
-        };
+        }
+      });
 
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-        };
-      } catch (error) {
-        console.error('WebSocket connection error:', error);
-        setTimeout(setupWebSocket, 3000);
-      }
+      socket.on('connect_error', (error) => {
+        console.error('Socket.IO connection error:', error);
+        setSocketStatus('disconnected');
+        reconnectAttempts.current++;
+
+        if (reconnectAttempts.current >= maxReconnectAttempts) {
+          socket.disconnect();
+          toast({
+            title: "連線失敗",
+            description: "已達到最大重試次數，請重新整理頁面",
+            variant: "destructive"
+          });
+        } else if (reconnectAttempts.current === 1) {
+          toast({
+            title: "連線錯誤",
+            description: "正在嘗試重新連線...",
+            variant: "destructive"
+          });
+        }
+      });
+
+      // Keep-alive mechanism
+      socket.on('ping', () => {
+        socket.emit('pong');
+        console.log('Received ping, sending pong');
+      });
+
+      // Handle songs update
+      socket.on('songs_update', (updatedSongs: Song[]) => {
+        console.log('Received songs update');
+        setSongs(updatedSongs);
+      });
+
+      // Handle errors
+      socket.on('error', (error: { message: string }) => {
+        console.error('Socket.IO error:', error);
+        toast({
+          title: "錯誤",
+          description: error.message,
+          variant: "destructive"
+        });
+      });
+
+      socketRef.current = socket;
+
+      // Cleanup function
+      return () => {
+        console.log('Cleaning up socket connection');
+        if (socket.connected) {
+          socket.disconnect();
+        }
+        socketRef.current = null;
+      };
+    } catch (error) {
+      console.error('Socket setup error:', error);
+      setSocketStatus('disconnected');
+
+      toast({
+        title: "連線錯誤",
+        description: "無法建立即時連線，請稍後再試",
+        variant: "destructive"
+      });
     }
+  }, [toast, maxReconnectAttempts]);
 
-    setupWebSocket();
-
+  useEffect(() => {
+    const cleanup = setupSocket();
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
+      cleanup?.();
     };
-  }, [toast]);
+  }, [setupSocket]);
 
   const handleLogout = async () => {
     try {
@@ -215,7 +286,7 @@ export default function Home() {
                 <CardContent className="p-3 sm:p-6">
                   {user?.isAdmin && <SongImport />}
                   <div className="h-4" />
-                  <SongList songs={songs} ws={wsRef.current} user={user || null} />
+                  <SongList songs={songs} socket={socketRef.current} user={user || null} />
                 </CardContent>
               </Card>
             </motion.div>
