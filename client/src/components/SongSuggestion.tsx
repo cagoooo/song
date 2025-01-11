@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,22 +12,17 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText, Copy } from "lucide-react";
-import { motion } from "framer-motion";
-import type { SongSuggestion } from "@db/schema";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Lightbulb, Plus, Music2, FileText, Copy } from "lucide-react";
+import { motion } from "framer-motion";
+import type { SongSuggestion } from "@db/schema";
 import { EditSongDialog } from "./EditSongDialog";
-
-type EditingSongType = {
-  title: string;
-  artist: string;
-  notes?: string | null;
-} | null;
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function SongSuggestion({ isAdmin = false }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -36,17 +30,13 @@ export default function SongSuggestion({ isAdmin = false }) {
   const [artist, setArtist] = useState("");
   const [suggestedBy, setSuggestedBy] = useState("");
   const [notes, setNotes] = useState("");
+  const [showAddSongDialog, setShowAddSongDialog] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<SongSuggestion | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [editingSong, setEditingSong] = useState<EditingSongType>(null);
 
   const { data: suggestions = [] } = useQuery<SongSuggestion[]>({
     queryKey: ['/api/suggestions'],
-    queryFn: async () => {
-      const response = await fetch('/api/suggestions');
-      if (!response.ok) throw new Error('Failed to fetch suggestions');
-      return response.json();
-    }
   });
 
   const addSuggestionMutation = useMutation({
@@ -69,77 +59,25 @@ export default function SongSuggestion({ isAdmin = false }) {
       setNotes("");
       toast({
         title: "成功",
-        description: "您的建議已送出，管理員會盡快審核",
+        description: "您的建議已送出",
       });
     },
-    onError: () => {
-      toast({
-        title: "錯誤",
-        description: "無法送出歌曲建議",
-        variant: "destructive"
-      });
-    }
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: number, status: string }) => {
-      const response = await fetch(`/api/suggestions/${id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-        credentials: 'include'
-      });
-
-      if (!response.ok) throw new Error('Failed to update status');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
-      toast({
-        title: "成功",
-        description: "建議狀態已更新",
-      });
-    }
-  });
-
-  const deleteSuggestionMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await fetch(`/api/suggestions/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-
-      if (!response.ok) throw new Error('Failed to delete suggestion');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
-      toast({
-        title: "成功",
-        description: "建議已刪除",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "錯誤",
-        description: "無法刪除建議",
-        variant: "destructive"
-      });
-    }
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSuggestionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     addSuggestionMutation.mutate();
   };
 
-  const generateGuitarTabsUrl = (song: SongSuggestion) => {
-    const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 吉他譜 tab`);
-    return `https://www.google.com/search?q=${searchQuery}`;
+  const handleImportSong = (suggestion: SongSuggestion) => {
+    setSelectedSuggestion(suggestion);
+    setShowAddSongDialog(true);
   };
 
-  const generateLyricsUrl = (song: SongSuggestion) => {
-    const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 歌詞`);
+  const generateSearchUrl = (song: SongSuggestion, type: 'tabs' | 'lyrics') => {
+    const searchQuery = encodeURIComponent(
+      `${song.title} ${song.artist} ${type === 'tabs' ? '吉他譜 tab' : '歌詞'}`
+    );
     return `https://www.google.com/search?q=${searchQuery}`;
   };
 
@@ -147,25 +85,19 @@ export default function SongSuggestion({ isAdmin = false }) {
     <div className="space-y-4">
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full border-2 border-primary/20 bg-white/80 hover:bg-white/90
-                     shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                     hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                     transition-all duration-300"
-          >
+          <Button variant="outline" className="w-full">
             <Plus className="w-4 h-4 mr-2" />
             想點的歌還沒有？建議新歌給我們！
           </Button>
         </DialogTrigger>
-        <DialogContent className="bg-gradient-to-br from-amber-50 via-white to-orange-50 border-2 border-amber-200/30">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>建議新歌曲</DialogTitle>
             <DialogDescription>
               您的建議將會送交管理員審核。審核通過後，歌曲就會出現在可點播清單中！
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSuggestionSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="title">歌曲名稱</Label>
               <Input
@@ -173,7 +105,6 @@ export default function SongSuggestion({ isAdmin = false }) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                className="bg-gradient-to-r from-rose-50/70 to-pink-50/70 border-amber-200/50 focus:border-amber-300/60"
               />
             </div>
             <div className="space-y-2">
@@ -183,7 +114,6 @@ export default function SongSuggestion({ isAdmin = false }) {
                 value={artist}
                 onChange={(e) => setArtist(e.target.value)}
                 required
-                className="bg-gradient-to-r from-amber-50/70 to-orange-50/70 border-amber-200/50 focus:border-amber-300/60"
               />
             </div>
             <div className="space-y-2">
@@ -193,7 +123,6 @@ export default function SongSuggestion({ isAdmin = false }) {
                 value={suggestedBy}
                 onChange={(e) => setSuggestedBy(e.target.value)}
                 placeholder="讓大家知道是誰推薦的好歌！"
-                className="bg-gradient-to-r from-orange-50/70 to-amber-50/70 border-amber-200/50 focus:border-amber-300/60"
               />
             </div>
             <div className="space-y-2">
@@ -203,25 +132,29 @@ export default function SongSuggestion({ isAdmin = false }) {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="分享一下您喜歡這首歌的原因..."
-                className="bg-gradient-to-br from-amber-50/80 via-orange-50/80 to-amber-50/80 border-amber-200/50 focus:border-amber-300/60 min-h-[100px]"
               />
             </div>
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-            >
+            <Button type="submit" className="w-full">
               送出建議
             </Button>
           </form>
         </DialogContent>
       </Dialog>
 
-      <EditSongDialog
-        song={editingSong}
-        isOpen={Boolean(editingSong)}
-        onClose={() => setEditingSong(null)}
-        mode="create"
-      />
+      {selectedSuggestion && (
+        <EditSongDialog
+          isOpen={showAddSongDialog}
+          onClose={() => {
+            setShowAddSongDialog(false);
+            setSelectedSuggestion(null);
+          }}
+          defaultValues={{
+            title: selectedSuggestion.title,
+            artist: selectedSuggestion.artist,
+            notes: selectedSuggestion.notes
+          }}
+        />
+      )}
 
       {suggestions.length > 0 && (
         <div className="space-y-3">
@@ -230,92 +163,43 @@ export default function SongSuggestion({ isAdmin = false }) {
               <Lightbulb className="w-5 h-5 text-amber-500" />
               歌曲建議列表
             </h3>
-            <span className="text-sm text-muted-foreground">
-              {suggestions.filter(s => s.status === "pending").length} 個待審核建議
-            </span>
           </div>
           {suggestions.map((suggestion) => (
             <motion.div
               key={suggestion.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`
-                relative overflow-hidden
-                flex flex-col gap-4 p-4 sm:p-5 rounded-lg
-                border-2 border-primary/10
-                ${suggestion.id % 2 === 0
-                  ? 'bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50'
-                  : 'bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50'}
-                shadow-[0_4px_12px_rgba(var(--primary),0.1)]
-                hover:shadow-[0_8px_24px_rgba(var(--primary),0.15)]
-                transition-all duration-300
-              `}
+              className="p-4 rounded-lg border bg-white"
             >
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1">
-                  <h4 className={`
-                    text-lg font-semibold mb-1
-                    ${suggestion.id % 2 === 0
-                      ? 'bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600'
-                      : 'bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600'}
-                    bg-clip-text text-transparent
-                  `}>
-                    {suggestion.title}
-                  </h4>
-                  <p className="text-base font-medium text-muted-foreground">
-                    {suggestion.artist}
-                  </p>
-                  {suggestion.suggestedBy && (
-                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                      推薦者：
-                      <span className="font-medium text-foreground">
-                        {suggestion.suggestedBy}
-                      </span>
-                    </p>
-                  )}
+                  <h4 className="font-semibold">{suggestion.title}</h4>
+                  <p className="text-sm text-gray-600">{suggestion.artist}</p>
                   {suggestion.notes && (
-                    <motion.p
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className={`
-                        text-sm mt-3 p-3 rounded-md
-                        ${suggestion.id % 2 === 0
-                          ? 'bg-gradient-to-r from-rose-100/50 to-pink-100/50'
-                          : 'bg-gradient-to-r from-blue-100/50 to-cyan-100/50'}
-                        border border-primary/5
-                      `}
-                    >
-                      {suggestion.notes}
-                    </motion.p>
+                    <p className="text-sm mt-2 text-gray-500">{suggestion.notes}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="w-8 h-8"
+                          asChild
                         >
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="w-8 h-8"
-                            asChild
+                          <a
+                            href={generateSearchUrl(suggestion, 'tabs')}
+                            target="_blank"
+                            rel="noopener noreferrer"
                           >
-                            <a
-                              href={generateGuitarTabsUrl(suggestion)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Music2 className="w-4 h-4" />
-                            </a>
-                          </Button>
-                        </motion.div>
+                            <Music2 className="w-4 h-4" />
+                          </a>
+                        </Button>
                       </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p>點擊在 Google 中搜尋「{suggestion.title} - {suggestion.artist}」的吉他譜</p>
+                      <TooltipContent>
+                        <p>搜尋吉他譜</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -323,117 +207,42 @@ export default function SongSuggestion({ isAdmin = false }) {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="w-8 h-8"
+                          asChild
                         >
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="w-8 h-8"
-                            asChild
+                          <a
+                            href={generateSearchUrl(suggestion, 'lyrics')}
+                            target="_blank"
+                            rel="noopener noreferrer"
                           >
-                            <a
-                              href={generateLyricsUrl(suggestion)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <FileText className="w-4 h-4" />
-                            </a>
-                          </Button>
-                        </motion.div>
+                            <FileText className="w-4 h-4" />
+                          </a>
+                        </Button>
                       </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p>點擊在 Google 中搜尋「{suggestion.title} - {suggestion.artist}」的歌詞</p>
+                      <TooltipContent>
+                        <p>搜尋歌詞</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
 
-                  {isAdmin && suggestion.status === "pending" && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-green-200 text-green-600 hover:text-green-700 hover:border-green-300 transition-colors"
-                        onClick={() => updateStatusMutation.mutate({
-                          id: suggestion.id,
-                          status: "approved"
-                        })}
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-red-200 text-red-600 hover:text-red-700 hover:border-red-300 transition-colors"
-                        onClick={() => updateStatusMutation.mutate({
-                          id: suggestion.id,
-                          status: "rejected"
-                        })}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-              {suggestion.status !== "pending" && (
-                <motion.span
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={`
-                    text-sm px-3 py-1.5 rounded-full inline-flex items-center gap-1
-                    ${suggestion.status === "approved"
-                      ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200"
-                      : "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200"}
-                  `}
-                >
-                  {suggestion.status === "approved" ? "已採納，即將新增" : "暫時無法採納"}
-                </motion.span>
-              )}
-              {isAdmin && (
-                <div className="flex items-center gap-2 mt-2">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-full sm:w-auto"
-                  >
+                  {isAdmin && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setEditingSong({
-                        title: suggestion.title,
-                        artist: suggestion.artist,
-                        notes: suggestion.notes
-                      })}
-                      className="flex gap-2 w-full sm:w-auto border-2 border-emerald-200/50
-                              text-emerald-600 hover:text-emerald-700 bg-white/80 hover:bg-white/90
-                              hover:border-emerald-300/50 transition-all duration-300"
+                      onClick={() => handleImportSong(suggestion)}
+                      className="flex gap-2 border-2 border-emerald-200/50
+                               text-emerald-600 hover:text-emerald-700 bg-white/80 hover:bg-white/90
+                               hover:border-emerald-300/50 transition-all duration-300"
                     >
                       <Copy className="h-4 w-4" />
                       帶入歌曲資訊
                     </Button>
-                  </motion.div>
-
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-full sm:w-auto"
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteSuggestionMutation.mutate(suggestion.id)}
-                      className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
-                              text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
-                              hover:border-red-300/50 transition-all duration-300"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      刪除建議
-                    </Button>
-                  </motion.div>
+                  )}
                 </div>
-              )}
+              </div>
             </motion.div>
           ))}
         </div>
