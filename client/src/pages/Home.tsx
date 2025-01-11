@@ -15,11 +15,6 @@ import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 import { io, Socket } from "socket.io-client";
 
-type SocketEvent = {
-  songs_update: Song[];
-  error: { message: string };
-};
-
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
@@ -28,6 +23,7 @@ export default function Home() {
   const { user, logout } = useUser();
   const [socketStatus, setSocketStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
   const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
   const { isLoading } = useQuery({
     queryKey: ['/api/songs'],
@@ -53,16 +49,18 @@ export default function Home() {
       console.log('Setting up new socket connection');
       setSocketStatus('connecting');
 
-      // Initialize socket connection
       const socket = io(window.location.origin, {
         path: '/ws',
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
         reconnection: true,
-        reconnectionAttempts: Infinity,
+        reconnectionAttempts: maxReconnectAttempts,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        timeout: 20000,
+        timeout: 45000,
         forceNew: true,
+        withCredentials: true,
+        autoConnect: true,
+        closeOnBeforeunload: false
       });
 
       // Connection event handlers
@@ -81,7 +79,6 @@ export default function Home() {
         console.log('Socket.IO disconnected:', reason);
         setSocketStatus('disconnected');
 
-        // Only show toast for non-intentional disconnects
         if (reason !== 'io client disconnect' && reason !== 'transport close') {
           toast({
             title: "連線中斷",
@@ -96,8 +93,14 @@ export default function Home() {
         setSocketStatus('disconnected');
         reconnectAttempts.current++;
 
-        // Show error toast only on first attempt
-        if (reconnectAttempts.current === 1) {
+        if (reconnectAttempts.current >= maxReconnectAttempts) {
+          socket.disconnect();
+          toast({
+            title: "連線失敗",
+            description: "已達到最大重試次數，請重新整理頁面",
+            variant: "destructive"
+          });
+        } else if (reconnectAttempts.current === 1) {
           toast({
             title: "連線錯誤",
             description: "正在嘗試重新連線...",
@@ -106,9 +109,15 @@ export default function Home() {
         }
       });
 
+      // Keep-alive mechanism
+      socket.on('ping', () => {
+        socket.emit('pong');
+        console.log('Received ping, sending pong');
+      });
+
       // Handle songs update
       socket.on('songs_update', (updatedSongs: Song[]) => {
-        console.log('Received songs update:', updatedSongs);
+        console.log('Received songs update');
         setSongs(updatedSongs);
       });
 
@@ -124,6 +133,7 @@ export default function Home() {
 
       socketRef.current = socket;
 
+      // Cleanup function
       return () => {
         console.log('Cleaning up socket connection');
         if (socket.connected) {
@@ -135,17 +145,13 @@ export default function Home() {
       console.error('Socket setup error:', error);
       setSocketStatus('disconnected');
 
-      // Show error toast only on first attempt
-      if (reconnectAttempts.current === 0) {
-        toast({
-          title: "連線錯誤",
-          description: "無法建立即時連線",
-          variant: "destructive"
-        });
-      }
-      return undefined;
+      toast({
+        title: "連線錯誤",
+        description: "無法建立即時連線，請稍後再試",
+        variant: "destructive"
+      });
     }
-  }, [toast]);
+  }, [toast, maxReconnectAttempts]);
 
   useEffect(() => {
     const cleanup = setupSocket();

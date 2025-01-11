@@ -5,8 +5,6 @@ import { db } from "@db";
 import { songs, votes, type User, type Song } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql } from "drizzle-orm";
-import type { IncomingMessage } from "http";
-import type { Socket } from "net";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -24,82 +22,40 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
 
-  // Initialize Socket.IO with CORS and path configuration
+  // Initialize Socket.IO with strict configuration
   const io = new SocketIOServer(httpServer, {
     path: '/ws',
     cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
+      origin: true,
+      methods: ["GET", "POST"],
+      credentials: true
     },
-    transports: ['websocket'],
-    pingTimeout: 60000,
-    pingInterval: 25000,
-    connectTimeout: 5000,
+    allowEIO3: true,
+    transports: ['websocket', 'polling'],
+    connectTimeout: 45000,
     maxHttpBufferSize: 1e6,
+    pingTimeout: 30000,
+    pingInterval: 25000,
+    upgradeTimeout: 10000,
     serveClient: false,
   });
 
-  // Handle WebSocket upgrade
-  httpServer.on('upgrade', (request: IncomingMessage, socket: Socket, head: Buffer) => {
-    try {
-      // Skip Vite HMR connections
-      if (request.headers['sec-websocket-protocol']?.includes('vite-hmr')) {
-        console.log('Skipping Vite HMR connection');
-        socket.destroy();
-        return;
-      }
-
-      // Handle Socket.IO upgrades
-      if (request.url?.startsWith('/ws')) {
-        // Check if the socket is already being upgraded
-        const isUpgrading = (socket as any)._isUpgrading;
-        if (isUpgrading) {
-          console.log('Socket is already being upgraded, skipping');
-          return;
-        }
-        (socket as any)._isUpgrading = true;
-
-        // Add required properties for Socket.IO Engine
-        const engineRequest = request as any;
-        engineRequest._query = {};
-
-        io.engine.handleUpgrade(engineRequest, socket, head);
-      } else {
-        socket.destroy();
-      }
-    } catch (error) {
-      console.error('WebSocket upgrade error:', error);
-      socket.destroy();
-    }
-  });
-
-  // Handle server errors
-  io.engine.on('connection_error', (error) => {
-    console.error('Socket.IO server error:', error);
-  });
-
-  // Connection counter
+  // Connection counter and management
   let activeConnections = 0;
+  const connectedSockets = new Set<string>();
 
   // Socket.IO connection handler
   io.on('connection', async (socket) => {
     try {
-      // Skip vite-hmr connections
-      if (socket.handshake.headers['sec-websocket-protocol']?.includes('vite-hmr')) {
-        console.log('Closing Vite HMR connection');
-        socket.disconnect();
-        return;
-      }
-
-      // Generate session ID
       const sessionId = Math.random().toString(36).substring(2);
       activeConnections++;
+      connectedSockets.add(socket.id);
 
-      console.log('New Socket.IO connection established', {
+      console.log('Socket.IO connection established:', {
         id: socket.id,
         sessionId,
         activeConnections,
-        protocol: socket.handshake.headers['sec-websocket-protocol']
+        transport: socket.conn.transport.name
       });
 
       // Send initial songs data
@@ -111,6 +67,15 @@ export function registerRoutes(app: Express): Server {
         socket.emit('error', { message: '無法載入歌曲列表' });
       }
 
+      // Keep-alive mechanism
+      const pingInterval = setInterval(() => {
+        if (socket.connected) {
+          socket.emit('ping');
+        } else {
+          clearInterval(pingInterval);
+        }
+      }, 25000);
+
       // Handle vote events
       socket.on('vote', async (songId: number) => {
         try {
@@ -120,7 +85,6 @@ export function registerRoutes(app: Express): Server {
             createdAt: new Date()
           });
 
-          // Broadcast updated songs to all clients
           const updatedSongs = await getSongsWithVotes();
           io.emit('songs_update', updatedSongs);
         } catch (error) {
@@ -129,14 +93,23 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
+      // Handle client pong responses
+      socket.on('pong', () => {
+        console.log(`Received pong from client ${socket.id}`);
+      });
+
       // Handle disconnection
       socket.on('disconnect', (reason) => {
         activeConnections--;
-        console.log('Socket.IO connection closed', {
+        connectedSockets.delete(socket.id);
+        clearInterval(pingInterval);
+
+        console.log('Socket.IO connection closed:', {
           id: socket.id,
           sessionId,
           reason,
-          activeConnections
+          activeConnections,
+          remainingConnections: Array.from(connectedSockets)
         });
       });
 
@@ -149,6 +122,11 @@ export function registerRoutes(app: Express): Server {
       console.error('Connection setup error:', error);
       socket.disconnect(true);
     }
+  });
+
+  // Error handling for Socket.IO server
+  io.engine.on('connection_error', (error) => {
+    console.error('Socket.IO server error:', error);
   });
 
   // Setup HTTP routes

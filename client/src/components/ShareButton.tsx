@@ -1,5 +1,12 @@
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger 
+} from "./ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { Share2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -34,6 +41,15 @@ export function ShareButton() {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md border-2 border-primary/20">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-center bg-gradient-to-r from-primary to-purple-600 
+                        bg-clip-text text-transparent">
+            分享點歌系統
+          </DialogTitle>
+          <DialogDescription className="text-center text-muted-foreground">
+            掃描QR Code或透過社群媒體分享
+          </DialogDescription>
+        </DialogHeader>
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -44,14 +60,6 @@ export function ShareButton() {
           }}
           className="flex flex-col items-center justify-center p-6"
         >
-          <h2 className="text-xl font-semibold mb-2 bg-gradient-to-r from-primary to-purple-600 
-                        bg-clip-text text-transparent">
-            分享點歌系統
-          </h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            掃描QR Code或透過社群媒體分享
-          </p>
-
           {/* QR Code Section */}
           <div className="relative mb-8">
             <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 
