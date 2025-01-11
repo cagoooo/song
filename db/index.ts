@@ -1,35 +1,19 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { drizzle } from "drizzle-orm/neon-serverless";
 import { sql } from "drizzle-orm";
+import ws from "ws";
 import * as schema from "@db/schema";
 
-if (!process.env.DATABASE_URL) {
+const dbUrl = process.env.DATABASE_URL || process.env.REPL_DB_URL;
+if (!dbUrl) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "DATABASE_URL or REPL_DB_URL must be set. Did you forget to provision a database?",
   );
 }
 
-// 建立資料庫連接池
-const client = postgres(process.env.DATABASE_URL, {
-  max: 1,
-  idle_timeout: 20,
-  connect_timeout: 10,
-  ssl: true,
+export const db = drizzle({
+  connection: dbUrl,
+  schema,
+  ws: ws,
 });
-
-// 建立 drizzle 實例
-export const db = drizzle(client, { schema });
-
-// 測試資料庫連接
-export async function testConnection() {
-  try {
-    const result = await db.execute(sql`SELECT 1`);
-    console.log('Database connection test successful:', result);
-    return true;
-  } catch (error) {
-    console.error('Database connection test failed:', error);
-    return false;
-  }
-}
 
 export { sql };

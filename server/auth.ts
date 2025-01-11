@@ -7,7 +7,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { users } from "@db/schema";
+import { users, type User } from "@db/schema";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -28,15 +28,10 @@ const crypto = {
   },
 };
 
+// extend express user object with our schema
 declare global {
   namespace Express {
-    interface User {
-      id: number;
-      username: string;
-      password: string;
-      isAdmin: boolean;
-      createdAt: Date;
-    }
+    interface User extends User { }
   }
 }
 
@@ -152,7 +147,7 @@ export function setupAuth(app: Express) {
       return res.status(400).send("請輸入帳號和密碼");
     }
 
-    passport.authenticate("local", (err: any, user: Express.User, info: IVerifyOptions) => {
+    const cb = (err: any, user: Express.User, info: IVerifyOptions) => {
       if (err) {
         return next(err);
       }
@@ -171,7 +166,8 @@ export function setupAuth(app: Express) {
           user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
         });
       });
-    })(req, res, next);
+    };
+    passport.authenticate("local", cb)(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {

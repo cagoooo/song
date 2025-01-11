@@ -36,8 +36,21 @@ export const songSuggestions = pgTable("song_suggestions", {
   artist: text("artist").notNull(),
   suggestedBy: text("suggested_by"),
   status: text("status").default("pending").notNull(),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  notes: text("notes")
+});
+
+export const tags = pgTable("tags", {
+  id: serial("id").primaryKey(),
+  name: text("name").unique().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const songTags = pgTable("song_tags", {
+  id: serial("id").primaryKey(),
+  songId: integer("song_id").references(() => songs.id).notNull(),
+  tagId: integer("tag_id").references(() => tags.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const qrCodeScans = pgTable("qr_code_scans", {
@@ -56,6 +69,7 @@ export const songsRelations = relations(songs, ({ one, many }) => ({
     references: [users.id],
   }),
   votes: many(votes),
+  songTags: many(songTags),
   qrCodeScans: many(qrCodeScans)
 }));
 
@@ -63,6 +77,21 @@ export const votesRelations = relations(votes, ({ one }) => ({
   song: one(songs, {
     fields: [votes.songId],
     references: [songs.id],
+  })
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  songTags: many(songTags)
+}));
+
+export const songTagsRelations = relations(songTags, ({ one }) => ({
+  song: one(songs, {
+    fields: [songTags.songId],
+    references: [songs.id],
+  }),
+  tag: one(tags, {
+    fields: [songTags.tagId],
+    references: [tags.id],
   })
 }));
 
@@ -83,6 +112,12 @@ export type NewSong = typeof songs.$inferInsert;
 export type Vote = typeof votes.$inferSelect;
 export type NewVote = typeof votes.$inferInsert;
 
+export type Tag = typeof tags.$inferSelect;
+export type NewTag = typeof tags.$inferInsert;
+
+export type SongTag = typeof songTags.$inferSelect;
+export type NewSongTag = typeof songTags.$inferInsert;
+
 export type SongSuggestion = typeof songSuggestions.$inferSelect;
 export type NewSongSuggestion = typeof songSuggestions.$inferInsert;
 
@@ -98,6 +133,12 @@ export const selectSongSchema = createSelectSchema(songs);
 
 export const insertVoteSchema = createInsertSchema(votes);
 export const selectVoteSchema = createSelectSchema(votes);
+
+export const insertTagSchema = createInsertSchema(tags);
+export const selectTagSchema = createSelectSchema(tags);
+
+export const insertSongTagSchema = createInsertSchema(songTags);
+export const selectSongTagSchema = createSelectSchema(songTags);
 
 export const insertSongSuggestionSchema = createInsertSchema(songSuggestions);
 export const selectSongSuggestionSchema = createSelectSchema(songSuggestions);
