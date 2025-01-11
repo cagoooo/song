@@ -63,9 +63,10 @@ app.use((req, res, next) => {
     }
 
     // Start the server with a numeric port
-    const PORT = Number(process.env.PORT || 3000);
+    const PORT = Number(process.env.PORT || 80);
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server running on port ${PORT}`);
+      log(`Production mode: ${app.get("env") === "production"}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
