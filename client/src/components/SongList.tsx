@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -33,19 +33,26 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedSongForShare, setSelectedSongForShare] = useState<Song | null>(null);
   const [clickCount, setClickCount] = useState<{ [key: number]: number }>({});
+  const [isTouch, setIsTouch] = useState(false);
+  const [lastVoteTime, setLastVoteTime] = useState<{ [key: number]: number }>({});
 
-  const filteredSongs = useMemo(() => {
-    if (!searchTerm.trim()) return songs;
+  // 觸控事件檢測
+  useEffect(() => {
+    const checkTouch = () => {
+      setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    };
+    checkTouch();
+    window.addEventListener('resize', checkTouch);
+    return () => window.removeEventListener('resize', checkTouch);
+  }, []);
 
-    const term = searchTerm.toLowerCase();
-    return songs.filter(
-      song =>
-        song.title.toLowerCase().includes(term) ||
-        song.artist.toLowerCase().includes(term)
-    );
-  }, [songs, searchTerm]);
+  const handleVoteStart = useCallback((songId: number) => {
+    const now = Date.now();
+    const lastTime = lastVoteTime[songId] || 0;
+    const timeDiff = now - lastTime;
 
-  const voteForSong = (songId: number) => {
+    if (timeDiff < 50) return; // 防抖動：最小間隔50ms
+
     if (ws && ws.readyState === WebSocket.OPEN) {
       setVotingId(songId);
       ws.send(JSON.stringify({ type: 'VOTE', songId }));
@@ -54,6 +61,12 @@ export default function SongList({ songs, ws, user }: SongListProps) {
       setClickCount(prev => ({
         ...prev,
         [songId]: (prev[songId] || 0) + 1
+      }));
+
+      // Update last vote time
+      setLastVoteTime(prev => ({
+        ...prev,
+        [songId]: now
       }));
 
       // Reset voting status after a shorter delay (50ms)
@@ -88,7 +101,18 @@ export default function SongList({ songs, ws, user }: SongListProps) {
         }, 100);
       }, 2000);
     }
-  };
+  }, [ws, clickCount, lastVoteTime]);
+
+  const filteredSongs = useMemo(() => {
+    if (!searchTerm.trim()) return songs;
+
+    const term = searchTerm.toLowerCase();
+    return songs.filter(
+      song =>
+        song.title.toLowerCase().includes(term) ||
+        song.artist.toLowerCase().includes(term)
+    );
+  }, [songs, searchTerm]);
 
   const deleteSong = async (songId: number) => {
     try {
@@ -203,7 +227,13 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => voteForSong(song.id)}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        handleVoteStart(song.id);
+                      }}
+                      onTouchEnd={(e) => e.preventDefault()}
+                      onMouseDown={() => !isTouch && handleVoteStart(song.id)}
+                      onMouseUp={(e) => e.preventDefault()}
                       className={`
                         flex gap-2 relative overflow-hidden w-full sm:w-auto
                         bg-gradient-to-r from-purple-100 via-pink-100 to-rose-100
@@ -219,9 +249,14 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         transition-all duration-150
                         transform-gpu
                         ${clickCount[song.id] > 0 ? 'scale-105' : 'scale-100'}
+                        active:scale-95
+                        select-none
+                        touch-none
                       `}
                       style={{
                         transform: `scale(${Math.min(1 + (clickCount[song.id] || 0) * 0.05, 1.2)})`,
+                        willChange: 'transform',
+                        WebkitTapHighlightColor: 'transparent',
                       }}
                     >
                       <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
