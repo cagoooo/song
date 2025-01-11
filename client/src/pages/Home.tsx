@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
@@ -14,12 +14,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 
+type WebSocketMessage = {
+  type: 'SONGS_UPDATE';
+  songs: Song[];
+} | {
+  type: 'ERROR';
+  message: string;
+};
+
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
+  const [wsStatus, setWsStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
+  const reconnectAttempts = useRef(0);
+  const maxReconnectDelay = 30000; // Maximum delay of 30 seconds
 
   const { isLoading } = useQuery({
     queryKey: ['/api/songs'],
@@ -35,59 +46,114 @@ export default function Home() {
     retry: 1
   });
 
-  useEffect(() => {
-    function setupWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+  const setupWebSocket = useCallback(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-      try {
-        console.log('Connecting to WebSocket:', wsUrl);
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
+    try {
+      console.log('Connecting to WebSocket:', wsUrl);
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            console.log('WebSocket message received:', data);
-            if (data.type === 'SONGS_UPDATE') {
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as WebSocketMessage;
+          console.log('WebSocket message received:', data);
+
+          switch (data.type) {
+            case 'SONGS_UPDATE':
               setSongs(data.songs);
-            }
-          } catch (error) {
-            console.error('WebSocket message parsing error:', error);
+              break;
+            case 'ERROR':
+              toast({
+                title: "錯誤",
+                description: data.message,
+                variant: "destructive"
+              });
+              break;
           }
-        };
-
-        ws.onopen = () => {
-          console.log('WebSocket connection established');
-        };
-
-        ws.onclose = () => {
-          console.log('WebSocket connection closed');
+        } catch (error) {
+          console.error('WebSocket message parsing error:', error);
           toast({
-            title: "連線中斷",
+            title: "訊息處理錯誤",
+            description: "正在嘗試重新建立連線...",
+            variant: "destructive"
+          });
+        }
+      };
+
+      ws.onopen = () => {
+        console.log('WebSocket connection established');
+        setWsStatus('connected');
+        reconnectAttempts.current = 0;
+        toast({
+          title: "連線成功",
+          description: "即時更新已啟用",
+        });
+      };
+
+      ws.onclose = (event) => {
+        console.log('WebSocket connection closed', event);
+        setWsStatus('disconnected');
+
+        // Calculate reconnection delay with exponential backoff
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), maxReconnectDelay);
+        reconnectAttempts.current++;
+
+        console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current})`);
+
+        toast({
+          title: "連線中斷",
+          description: "正在嘗試重新連線...",
+          variant: "destructive"
+        });
+
+        // Clear existing reconnection timeout if any
+        if ((window as any).wsReconnectTimeout) {
+          clearTimeout((window as any).wsReconnectTimeout);
+        }
+
+        // Set new reconnection timeout
+        (window as any).wsReconnectTimeout = setTimeout(() => {
+          if (wsRef.current?.readyState === WebSocket.CLOSED) {
+            setupWebSocket();
+          }
+        }, delay);
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        if (wsStatus !== 'disconnected') {
+          toast({
+            title: "連線錯誤",
             description: "正在嘗試重新連線...",
             variant: "destructive"
           });
-          setTimeout(setupWebSocket, 3000);
-        };
+        }
+      };
 
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-        };
-      } catch (error) {
-        console.error('WebSocket connection error:', error);
-        setTimeout(setupWebSocket, 3000);
-      }
+    } catch (error) {
+      console.error('WebSocket connection error:', error);
+      setWsStatus('disconnected');
+
+      // Attempt to reconnect after a delay
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), maxReconnectDelay);
+      setTimeout(setupWebSocket, delay);
     }
+  }, [toast, wsStatus]);
 
+  useEffect(() => {
     setupWebSocket();
 
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
       }
+      if ((window as any).wsReconnectTimeout) {
+        clearTimeout((window as any).wsReconnectTimeout);
+      }
     };
-  }, [toast]);
+  }, [setupWebSocket]);
 
   const handleLogout = async () => {
     try {
