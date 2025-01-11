@@ -13,20 +13,7 @@ const requireAdmin = async (req: Request, res: Response, next: NextFunction) => 
       return res.status(401).json({ message: "請先登入" });
     }
 
-    const [user] = await db
-      .select({
-        id: users.id,
-        isAdmin: users.isAdmin
-      })
-      .from(users)
-      .where(eq(users.id, req.user.id))
-      .limit(1);
-
-    if (!user) {
-      return res.status(401).json({ message: "找不到使用者資訊" });
-    }
-
-    if (!user.isAdmin) {
+    if (!req.user.isAdmin) {
       return res.status(403).json({ message: "需要管理員權限" });
     }
 

@@ -59,27 +59,30 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        if (!username?.trim() || !password?.trim()) {
+          return done(null, false, { message: "帳號和密碼為必填項目" });
+        }
+
         const [user] = await db
           .select()
           .from(users)
-          .where(eq(users.username, username))
+          .where(eq(users.username, username.trim()))
           .limit(1);
 
         if (!user) {
           return done(null, false, { message: "帳號或密碼錯誤" });
         }
+
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "帳號或密碼錯誤" });
         }
 
-        const sessionUser: Express.User = {
+        return done(null, {
           id: user.id,
           username: user.username,
           isAdmin: user.isAdmin
-        };
-
-        return done(null, sessionUser);
+        });
       } catch (err) {
         console.error('Authentication error:', err);
         return done(err);
@@ -87,7 +90,7 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user, done) => {
+  passport.serializeUser((user: Express.User, done) => {
     done(null, user.id);
   });
 
@@ -106,6 +109,7 @@ export function setupAuth(app: Express) {
       if (!user) {
         return done(null, false);
       }
+
       done(null, user);
     } catch (err) {
       console.error('Deserialization error:', err);
@@ -164,11 +168,6 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    const { username, password } = req.body;
-    if (!username?.trim() || !password?.trim()) {
-      return res.status(400).send("請輸入帳號和密碼");
-    }
-
     passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
       if (err) {
         console.error('Login error:', err);
