@@ -26,7 +26,9 @@ export function registerRoutes(app: Express): Server {
   const io = new SocketIOServer(httpServer, {
     path: '/ws',
     cors: {
-      origin: true,
+      origin: process.env.NODE_ENV === 'development' 
+        ? ['http://localhost:5000', 'http://0.0.0.0:5000'] 
+        : true,
       methods: ["GET", "POST"],
       credentials: true
     },
