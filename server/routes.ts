@@ -43,10 +43,10 @@ export function registerRoutes(app: Express): Server {
 
       const [scan] = await db.insert(qrCodeScans)
         .values({
-          songId,
-          sessionId,
-          userAgent: userAgent || null,
-          referrer: referrer || null
+          songId: songId,
+          sessionId: sessionId,
+          userAgent: userAgent || undefined,
+          referrer: referrer || undefined
         })
         .returning();
 
@@ -313,11 +313,20 @@ export function registerRoutes(app: Express): Server {
       const id = parseInt(req.params.id);
       const { status } = req.body;
 
+      // 驗證狀態值
+      if (!["pending", "approved", "rejected", "added"].includes(status)) {
+        return res.status(400).json({ error: "無效的狀態值" });
+      }
+
       const [updatedSuggestion] = await db
         .update(songSuggestions)
         .set({ status })
         .where(eq(songSuggestions.id, id))
         .returning();
+
+      if (!updatedSuggestion) {
+        return res.status(404).json({ error: "找不到該建議" });
+      }
 
       res.json(updatedSuggestion);
     } catch (error) {
@@ -338,6 +347,53 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to delete suggestion:', error);
       res.status(500).json({ error: "無法刪除建議" });
+    }
+  });
+
+  app.post("/api/suggestions/:id/add-to-songs", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+
+      // 先取得建議的詳細資訊
+      const suggestions = await db
+        .select()
+        .from(songSuggestions)
+        .where(eq(songSuggestions.id, id))
+        .limit(1);
+
+      if (suggestions.length === 0) {
+        return res.status(404).json({ error: "找不到該建議" });
+      }
+
+      const suggestion = suggestions[0];
+
+      if (suggestion.status !== "approved") {
+        return res.status(400).json({ error: "只有已採納的建議才能加入歌單" });
+      }
+
+      // 建立新歌曲
+      const [newSong] = await db.insert(songs)
+        .values({
+          title: suggestion.title,
+          artist: suggestion.artist,
+          notes: suggestion.notes || undefined,
+          createdBy: req.user?.id,
+          isActive: true
+        })
+        .returning();
+
+      // 更新建議狀態
+      await db.update(songSuggestions)
+        .set({ status: "added" })
+        .where(eq(songSuggestions.id, id));
+
+      // 通知所有客戶端歌曲清單已更新
+      await sendSongsUpdate(wss);
+
+      res.json(newSong);
+    } catch (error) {
+      console.error('Failed to add suggestion to songs:', error);
+      res.status(500).json({ error: "無法將建議加入歌單" });
     }
   });
 
