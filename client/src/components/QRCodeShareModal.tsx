@@ -60,7 +60,7 @@ export default function QRCodeShareModal({
               level="H"
               includeMargin
               imageSettings={{
-                src: "/favicon.ico",
+                src: "/logo.png",
                 x: undefined,
                 y: undefined,
                 height: 24,
