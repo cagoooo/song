@@ -103,6 +103,7 @@ export default function Home() {
       toast({
         title: "成功",
         description: "已登出",
+        variant: "info"  // Changed from default to info variant
       });
     } catch (error) {
       toast({
