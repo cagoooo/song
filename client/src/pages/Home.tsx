@@ -157,7 +157,7 @@ export default function Home() {
             whileHover={{ scale: 1.02 }}
           >
             <motion.h1 
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-center bg-gradient-to-r from-blue-500 via-violet-500 to-fuchsia-500 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-4 py-2 relative z-10 leading-tight sm:leading-tight md:leading-tight lg:leading-tight animate-text"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-center bg-gradient-to-r from-blue-600 via-violet-600 to-fuchsia-600 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-4 py-2 relative z-10 leading-tight sm:leading-tight md:leading-tight lg:leading-tight animate-text"
               initial={{ opacity: 0, y: 20 }}
               animate={{ 
                 opacity: 1, 
@@ -172,7 +172,7 @@ export default function Home() {
             </motion.h1>
 
             <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-violet-400/15 to-fuchsia-400/20"
+              className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-violet-500/15 to-fuchsia-500/20"
               initial={{ opacity: 0 }}
               animate={{
                 opacity: [0.3, 0.6, 0.3],
@@ -188,7 +188,6 @@ export default function Home() {
                 backfaceVisibility: "hidden"
               }}
             />
-
             <motion.div 
               className="absolute inset-0 bg-gradient-to-br from-blue-400/10 via-violet-400/15 to-fuchsia-400/10"
               animate={{
