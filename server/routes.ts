@@ -2,9 +2,9 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, type User } from "@db/schema";
+import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, type User } from "@db/schema";
 import { setupAuth } from "./auth";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import type { IncomingMessage } from "http";
 
 // Type declaration for Express Request
@@ -89,6 +89,73 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // QR Code scan tracking endpoints
+  app.post("/api/qr-scans", async (req, res) => {
+    try {
+      const { songId } = req.body;
+      const sessionId = req.sessionID || Math.random().toString(36).substring(2);
+      const userAgent = req.headers['user-agent'];
+      const referrer = req.headers.referer || req.headers.referrer;
+
+      const [scan] = await db.insert(qrCodeScans)
+        .values({
+          songId,
+          sessionId,
+          userAgent: userAgent || null,
+          referrer: referrer || null,
+          createdAt: new Date()
+        })
+        .returning();
+
+      res.json(scan);
+    } catch (error) {
+      console.error('Failed to record QR code scan:', error);
+      res.status(500).json({ error: "無法記錄QR碼掃描" });
+    }
+  });
+
+  // Get QR code scan statistics (admin only)
+  app.get("/api/qr-scans/stats", requireAdmin, async (req, res) => {
+    try {
+      // Get total scans count
+      const totalScans = await db
+        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .from(qrCodeScans);
+
+      // Get scans by song
+      const scansBySong = await db
+        .select({
+          songId: songs.id,
+          title: songs.title,
+          artist: songs.artist,
+          scanCount: sql<number>`count(${qrCodeScans.id})`.mapWith(Number)
+        })
+        .from(qrCodeScans)
+        .innerJoin(songs, eq(qrCodeScans.songId, songs.id))
+        .groupBy(songs.id, songs.title, songs.artist)
+        .orderBy(sql`count(${qrCodeScans.id}) DESC`);
+
+      // Get scans by date
+      const scansByDate = await db
+        .select({
+          date: sql<string>`date_trunc('day', ${qrCodeScans.createdAt})::text`,
+          count: sql<number>`count(*)`.mapWith(Number)
+        })
+        .from(qrCodeScans)
+        .groupBy(sql`date_trunc('day', ${qrCodeScans.createdAt})`)
+        .orderBy(sql`date_trunc('day', ${qrCodeScans.createdAt}) DESC`);
+
+      res.json({
+        totalScans: totalScans[0].count,
+        scansBySong,
+        scansByDate,
+      });
+    } catch (error) {
+      console.error('Failed to fetch QR code scan statistics:', error);
+      res.status(500).json({ error: "無法取得QR碼掃描統計" });
+    }
+  });
+
   // Songs routes
   app.get("/api/songs", async (_req, res) => {
     try {
@@ -158,6 +225,125 @@ export function registerRoutes(app: Express): Server {
     ws.on('close', () => {
       console.log('WebSocket connection closed');
     });
+  });
+
+  // Tags routes
+  app.get("/api/tags", async (_req, res) => {
+    try {
+      const allTags = await db.select().from(tags);
+      res.json(allTags);
+    } catch (error) {
+      console.error('Failed to fetch tags:', error);
+      res.status(500).json({ error: "無法取得標籤列表" });
+    }
+  });
+
+  app.post("/api/tags", requireAdmin, async (req, res) => {
+    try {
+      const { name } = req.body;
+      const [newTag] = await db.insert(tags)
+        .values({ name })
+        .returning();
+      res.json(newTag);
+    } catch (error) {
+      console.error('Failed to create tag:', error);
+      res.status(500).json({ error: "無法創建標籤" });
+    }
+  });
+
+  app.get("/api/songs/:songId/tags", async (req, res) => {
+    try {
+      const songId = parseInt(req.params.songId);
+      const songTagsList = await db
+        .select({
+          id: tags.id,
+          name: tags.name
+        })
+        .from(songTags)
+        .innerJoin(tags, eq(songTags.tagId, tags.id))
+        .where(eq(songTags.songId, songId));
+      res.json(songTagsList);
+    } catch (error) {
+      console.error('Failed to fetch song tags:', error);
+      res.status(500).json({ error: "無法取得歌曲標籤" });
+    }
+  });
+
+  app.post("/api/songs/:songId/tags", requireAdmin, async (req, res) => {
+    try {
+      const songId = parseInt(req.params.songId);
+      const { tagId } = req.body;
+
+      const existingTag = await db
+        .select()
+        .from(songTags)
+        .where(
+          and(
+            eq(songTags.songId, songId),
+            eq(songTags.tagId, tagId)
+          )
+        )
+        .limit(1);
+
+      if (existingTag.length > 0) {
+        return res.status(400).json({ error: "標籤已存在" });
+      }
+
+      await db.insert(songTags)
+        .values({ songId, tagId });
+
+      await sendSongsUpdate(wss);
+      res.json({ message: "標籤新增成功" });
+    } catch (error) {
+      console.error('Failed to add song tag:', error);
+      res.status(500).json({ error: "無法新增歌曲標籤" });
+    }
+  });
+
+  app.delete("/api/songs/:songId/tags/:tagId", requireAdmin, async (req, res) => {
+    try {
+      const songId = parseInt(req.params.songId);
+      const tagId = parseInt(req.params.tagId);
+
+      await db.delete(songTags)
+        .where(
+          and(
+            eq(songTags.songId, songId),
+            eq(songTags.tagId, tagId)
+          )
+        );
+
+      await sendSongsUpdate(wss);
+      res.json({ message: "標籤移除成功" });
+    } catch (error) {
+      console.error('Failed to remove song tag:', error);
+      res.status(500).json({ error: "無法移除歌曲標籤" });
+    }
+  });
+
+  app.post("/api/songs/batch", requireAdmin, async (req, res) => {
+    try {
+      const { songs: songsList } = req.body;
+
+      if (!Array.isArray(songsList)) {
+        return res.status(400).json({ error: "無效的歌曲清單格式" });
+      }
+
+      await db.insert(songs).values(
+        songsList.map(song => ({
+          title: song.title,
+          artist: song.artist,
+          createdBy: req.user?.id,
+          isActive: true
+        }))
+      );
+
+      await sendSongsUpdate(wss);
+      res.json({ message: `成功匯入 ${songsList.length} 首歌曲` });
+    } catch (error) {
+      console.error('Failed to batch import songs:', error);
+      res.status(500).json({ error: "批次匯入失敗" });
+    }
   });
 
   app.delete("/api/songs/:id", requireAdmin, async (req, res) => {
