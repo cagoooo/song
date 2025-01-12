@@ -172,6 +172,26 @@ export default function Home() {
                 吉他彈唱點歌系統
               </motion.h1>
 
+              {/* Add logout button for admin */}
+              {user?.isAdmin && (
+                <motion.div 
+                  className="absolute top-4 right-4"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleLogout}
+                    className="bg-gradient-to-r from-red-50 to-rose-50 hover:from-red-100 hover:to-rose-100 backdrop-blur-sm border-2 border-red-200/30 hover:border-red-300/40 transition-all duration-300"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    登出管理
+                  </Button>
+                </motion.div>
+              )}
+
               <motion.div 
                 className="absolute inset-0 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30"
                 initial={{ opacity: 0 }}
