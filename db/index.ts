@@ -35,21 +35,27 @@ const sql_connection = neon(process.env.DATABASE_URL);
 export const db = drizzle(sql_connection, { schema });
 
 // Initialize function for testing the connection
-export async function initializeDatabase() {
-  try {
-    await db.execute(sql`SELECT 1`);
-    console.log("Database connection established successfully");
-  } catch (error) {
-    console.error("Failed to initialize database. Please check your environment variables:", error);
-    console.error("Required environment variables:", {
-      DATABASE_URL: process.env.DATABASE_URL ? "Set" : "Missing",
-      PGDATABASE: process.env.PGDATABASE ? "Set" : "Missing",
-      PGHOST: process.env.PGHOST ? "Set" : "Missing",
-      PGPORT: process.env.PGPORT ? "Set" : "Missing",
-      PGUSER: process.env.PGUSER ? "Set" : "Missing",
-      PGPASSWORD: process.env.PGPASSWORD ? "Set" : "Missing"
-    });
-    throw error;
+export async function initializeDatabase(retries = 5) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await db.execute(sql`SELECT 1`);
+      console.log("Database connection established successfully");
+      return;
+    } catch (error) {
+      console.error(`Failed to initialize database (attempt ${i + 1}/${retries}):`, error);
+      if (i === retries - 1) {
+        console.error("Required environment variables:", {
+          DATABASE_URL: process.env.DATABASE_URL ? "Set" : "Missing",
+          PGDATABASE: process.env.PGDATABASE ? "Set" : "Missing",
+          PGHOST: process.env.PGHOST ? "Set" : "Missing",
+          PGPORT: process.env.PGPORT ? "Set" : "Missing",
+          PGUSER: process.env.PGUSER ? "Set" : "Missing",
+          PGPASSWORD: process.env.PGPASSWORD ? "Set" : "Missing"
+        });
+        throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds before retrying
+    }
   }
 }
 
