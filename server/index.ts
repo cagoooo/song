@@ -60,15 +60,11 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Start the server with a numeric port
-    const PORT = Number(process.env.PORT || 5000);
+    // ALWAYS serve the app on port 3000
+    // this serves both the API and the client
+    const PORT = 3000;
     server.listen(PORT, "0.0.0.0", () => {
-      log(`Server running on port ${PORT} (${app.get("env")})`);
-      log('Database configuration:', {
-        url: process.env.DATABASE_URL ? "Set" : "Missing",
-        host: process.env.PGHOST ? "Set" : "Missing",
-        database: process.env.PGDATABASE ? "Set" : "Missing"
-      });
+      log(`serving on port ${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
