@@ -1,7 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { prisma } from "@db";
+import { validateDbConnection } from "@db";
+import { setupAuth } from "./auth";
 
 const app = express();
 app.use(express.json());
@@ -50,9 +51,10 @@ process.on('uncaughtException', (error) => {
 (async () => {
   try {
     // 測試資料庫連接
-    await prisma.$queryRaw`SELECT NOW()`;
+    await validateDbConnection();
     log('Database connection test successful');
 
+    setupAuth(app);
     const server = registerRoutes(app);
 
     // Enhanced error handling middleware
@@ -79,28 +81,8 @@ process.on('uncaughtException', (error) => {
       log(`Development mode: ${app.get("env") === "development"}`);
     });
 
-    // Graceful shutdown handler
-    const shutdown = async () => {
-      server.close(() => {
-        prisma.$disconnect().then(() => {
-          log('Server and database connections closed');
-          process.exit(0);
-        });
-      });
-
-      // Force close if graceful shutdown fails
-      setTimeout(() => {
-        log('Server force shutdown');
-        process.exit(1);
-      }, 10000);
-    };
-
-    process.on('SIGTERM', shutdown);
-    process.on('SIGINT', shutdown);
-
   } catch (error) {
     console.error('Failed to start server:', error);
-    await prisma.$disconnect();
     process.exit(1);
   }
 })();

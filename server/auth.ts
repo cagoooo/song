@@ -5,7 +5,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { prisma } from "@db";
+import { sql } from "@db";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -52,9 +52,9 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        const user = await prisma.user.findUnique({
-          where: { username }
-        });
+        const [user] = await sql`
+          SELECT * FROM users WHERE username = ${username}
+        `;
 
         if (!user) {
           return done(null, false, { message: "帳號或密碼錯誤" });
@@ -78,9 +78,9 @@ export function setupAuth(app: Express) {
 
   passport.deserializeUser(async (id: number, done) => {
     try {
-      const user = await prisma.user.findUnique({
-        where: { id }
-      });
+      const [user] = await sql`
+        SELECT * FROM users WHERE id = ${id}
+      `;
       done(null, user);
     } catch (err) {
       done(err);
@@ -92,9 +92,9 @@ export function setupAuth(app: Express) {
       const { username, password } = req.body;
 
       // Check if user already exists
-      const existingUser = await prisma.user.findUnique({
-        where: { username }
-      });
+      const [existingUser] = await sql`
+        SELECT id FROM users WHERE username = ${username}
+      `;
 
       if (existingUser) {
         return res.status(400).send("使用者名稱已存在");
@@ -104,13 +104,11 @@ export function setupAuth(app: Express) {
       const hashedPassword = await crypto.hash(password);
 
       // Create the new user
-      const newUser = await prisma.user.create({
-        data: {
-          username,
-          password: hashedPassword,
-          isAdmin: false
-        }
-      });
+      const [newUser] = await sql`
+        INSERT INTO users (username, password, is_admin)
+        VALUES (${username}, ${hashedPassword}, false)
+        RETURNING *
+      `;
 
       // Log the user in after registration
       req.login(newUser, (err) => {
@@ -119,7 +117,11 @@ export function setupAuth(app: Express) {
         }
         return res.json({
           message: "註冊成功",
-          user: { id: newUser.id, username: newUser.username, isAdmin: newUser.isAdmin },
+          user: {
+            id: newUser.id,
+            username: newUser.username,
+            isAdmin: newUser.is_admin
+          },
         });
       });
     } catch (error) {
@@ -149,7 +151,11 @@ export function setupAuth(app: Express) {
 
         return res.json({
           message: "登入成功",
-          user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
+          user: {
+            id: user.id,
+            username: user.username,
+            isAdmin: user.is_admin
+          },
         });
       });
     };

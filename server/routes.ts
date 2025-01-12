@@ -1,8 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
-import { prisma } from "@db";
-import { setupAuth } from "./auth";
+import { sql } from "@db";
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -14,7 +13,7 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: "請先登入" });
   }
-  if (!req.user?.isAdmin) {
+  if (!req.user?.is_admin) {
     return res.status(403).json({ message: "需要管理員權限" });
   }
   next();
@@ -23,24 +22,18 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 // Helper function for getting songs with votes
 async function getSongsWithVotes() {
   try {
-    const songs = await prisma.song.findMany({
-      where: {
-        isActive: true
-      },
-      include: {
-        votes: true,
-        _count: {
-          select: {
-            votes: true
-          }
-        }
-      }
-    });
+    const songs = await sql`
+      SELECT 
+        s.*,
+        COUNT(v.id) as vote_count
+      FROM songs s
+      LEFT JOIN votes v ON s.id = v.song_id
+      WHERE s.is_active = true
+      GROUP BY s.id
+      ORDER BY vote_count DESC, s.created_at DESC
+    `;
 
-    return songs.map(song => ({
-      ...song,
-      vote_count: song._count.votes
-    }));
+    return songs;
   } catch (error) {
     console.error('Error fetching songs with votes:', error);
     throw error;
@@ -55,8 +48,6 @@ export function registerRoutes(app: Express): Server {
       credentials: true
     }
   });
-
-  setupAuth(app);
 
   // Get all songs
   app.get('/api/songs', async (_req, res) => {
@@ -84,23 +75,24 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Check if song exists
-      const existingSong = await prisma.song.findUnique({
-        where: { id: songId }
-      });
+      const [existingSong] = await sql`
+        SELECT * FROM songs WHERE id = ${songId}
+      `;
 
       if (!existingSong) {
         return res.status(404).json({ message: "找不到指定的歌曲" });
       }
 
       // Update song
-      const updatedSong = await prisma.song.update({
-        where: { id: songId },
-        data: {
-          title: title.trim(),
-          artist: artist.trim(),
-          notes: notes?.trim() || null
-        }
-      });
+      const [updatedSong] = await sql`
+        UPDATE songs
+        SET
+          title = ${title.trim()},
+          artist = ${artist.trim()},
+          notes = ${notes?.trim() || null}
+        WHERE id = ${songId}
+        RETURNING *
+      `;
 
       // 重新獲取所有歌曲數據並通知客戶端
       const updatedSongs = await getSongsWithVotes();
@@ -121,7 +113,7 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log('Starting vote reset process...');
 
-      await prisma.vote.deleteMany({});
+      await sql`DELETE FROM votes`;
       console.log('Votes successfully deleted');
 
       const updatedSongs = await getSongsWithVotes();
@@ -155,12 +147,10 @@ export function registerRoutes(app: Express): Server {
       try {
         console.log(`Processing vote for song ${songId} from session ${sessionId}`);
 
-        await prisma.vote.create({
-          data: {
-            songId,
-            sessionId,
-          }
-        });
+        await sql`
+          INSERT INTO votes (song_id, session_id)
+          VALUES (${songId}, ${sessionId})
+        `;
 
         console.log(`Vote recorded for song ${songId}`);
 
