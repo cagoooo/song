@@ -164,9 +164,11 @@ export default function Home() {
               className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-center
                         bg-gradient-to-r from-primary via-purple-600 to-primary
                         bg-clip-text text-transparent
-                        px-4 py-2
-                        leading-tight
-                        relative"
+                        px-2 sm:px-4 py-2
+                        leading-tight sm:leading-tight md:leading-tight lg:leading-tight
+                        relative
+                        [text-shadow:0_1px_2px_rgba(0,0,0,0.1),0_4px_8px_rgba(0,0,0,0.1)]
+                        sm:[text-shadow:0_2px_4px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)]"
               initial={{ opacity: 0, y: 20 }}
               animate={{ 
                 opacity: 1, 
@@ -178,15 +180,15 @@ export default function Home() {
               }}
               style={{
                 backgroundSize: "200% 100%",
-                animation: "gradient 8s linear infinite, shimmer 3s ease-in-out infinite, float 6s ease-in-out infinite",
-                textShadow: "0 2px 4px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.1)"
+                animation: "gradient 8s linear infinite, shimmer 3s ease-in-out infinite, float 6s ease-in-out infinite"
               }}
             >
               吉他彈唱點歌系統
             </motion.h1>
 
             <motion.div 
-              className="absolute inset-0 rounded-lg border-2 border-primary/20"
+              className="absolute inset-0 rounded-lg border-2 border-primary/20
+                        hidden sm:block"
               initial={{ opacity: 0 }}
               animate={{ 
                 opacity: [0.3, 0.6, 0.3],
@@ -200,7 +202,8 @@ export default function Home() {
             />
 
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-primary/5 via-purple-500/5 to-primary/5"
+              className="absolute inset-0 bg-gradient-to-r from-primary/5 via-purple-500/5 to-primary/5
+                        hidden sm:block"
               initial={{ opacity: 0 }}
               animate={{
                 opacity: [0.3, 0.6, 0.3],
