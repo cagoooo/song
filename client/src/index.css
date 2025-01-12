@@ -24,24 +24,6 @@
   }
 }
 
-@keyframes shadow-pulse {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(var(--primary), 0.3);
-  }
-  50% {
-    box-shadow: 0 0 25px rgba(var(--primary), 0.5);
-  }
-}
-
-@keyframes border-pulse {
-  0%, 100% {
-    border-color: rgba(var(--primary), 0.1);
-  }
-  50% {
-    border-color: rgba(var(--primary), 0.3);
-  }
-}
-
 @keyframes shimmer {
   0% {
     text-shadow: 0 0 4px rgba(255,255,255,0);
@@ -72,4 +54,21 @@
     background-size: 200% 100%;
     background-position: left center;
   }
+}
+
+.animate-gradient {
+  animation: gradient 15s ease infinite;
+  background-size: 200% 200%;
+}
+
+.animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-text {
+  animation: sparkle 3s linear infinite;
 }
