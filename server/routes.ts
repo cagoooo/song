@@ -1,14 +1,12 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
-import { db, sql } from "@db";
-import { songs, votes, type User, type Song } from "@db/schema";
+import { pool } from "@db";
 import { setupAuth } from "./auth";
-import { eq } from "drizzle-orm";
 
 declare module 'express-serve-static-core' {
   interface Request {
-    user?: User;
+    user?: any;
   }
 }
 
@@ -23,33 +21,32 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 };
 
 // Helper function for getting songs with votes
-async function getSongsWithVotes(): Promise<Array<Song & { voteCount: number }>> {
+async function getSongsWithVotes() {
+  const client = await pool.connect();
   try {
-    const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
-    const songVotes = await db.select({
-      songId: votes.songId,
-      voteCount: sql<number>`count(*)`.mapWith(Number)
-    })
-      .from(votes)
-      .groupBy(votes.songId);
-
-    const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
-
-    return allSongs.map(song => ({
-      ...song,
-      voteCount: voteMap.get(song.id) || 0
-    }));
+    const result = await client.query(`
+      SELECT 
+        s.*,
+        COALESCE(v.vote_count, 0) as vote_count
+      FROM songs s
+      LEFT JOIN (
+        SELECT song_id, COUNT(*) as vote_count
+        FROM votes
+        GROUP BY song_id
+      ) v ON s.id = v.song_id
+      WHERE s.is_active = true
+    `);
+    return result.rows;
   } catch (error) {
     console.error('Error fetching songs with votes:', error);
     throw error;
+  } finally {
+    client.release();
   }
 }
 
 export function registerRoutes(app: Express): Server {
-  // Create HTTP server
   const httpServer = createServer(app);
-
-  // Setup Socket.IO with minimal configuration
   const io = new SocketIOServer(httpServer, {
     cors: {
       origin: true,
@@ -57,7 +54,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Setup authentication
   setupAuth(app);
 
   // Get all songs
@@ -73,6 +69,7 @@ export function registerRoutes(app: Express): Server {
 
   // Update song information
   app.patch('/api/songs/:id', requireAdmin, async (req, res) => {
+    const client = await pool.connect();
     try {
       const songId = parseInt(req.params.id);
       const { title, artist, notes } = req.body;
@@ -85,49 +82,57 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "歌名和歌手名稱不能為空" });
       }
 
-      const [existingSong] = await db
-        .select()
-        .from(songs)
-        .where(eq(songs.id, songId))
-        .limit(1);
+      // Start transaction
+      await client.query('BEGIN');
 
-      if (!existingSong) {
+      // Check if song exists
+      const checkResult = await client.query(
+        'SELECT id FROM songs WHERE id = $1',
+        [songId]
+      );
+
+      if (checkResult.rowCount === 0) {
+        await client.query('ROLLBACK');
         return res.status(404).json({ message: "找不到指定的歌曲" });
       }
 
-      const [updatedSong] = await db
-        .update(songs)
-        .set({ 
-          title: title.trim(), 
-          artist: artist.trim(), 
-          notes: notes?.trim() || null 
-        })
-        .where(eq(songs.id, songId))
-        .returning();
+      // Update song
+      const updateResult = await client.query(
+        `UPDATE songs 
+         SET title = $1, artist = $2, notes = $3
+         WHERE id = $4
+         RETURNING *`,
+        [title.trim(), artist.trim(), notes?.trim() || null, songId]
+      );
+
+      await client.query('COMMIT');
 
       // 重新獲取所有歌曲數據並通知客戶端
       const updatedSongs = await getSongsWithVotes();
       io.emit('songs_update', updatedSongs);
 
-      res.json({ 
+      res.json({
         message: "歌曲更新成功",
-        song: updatedSong
+        song: updateResult.rows[0]
       });
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('Error updating song:', error);
       res.status(500).json({ message: "更新歌曲失敗" });
+    } finally {
+      client.release();
     }
   });
 
   // Reset all vote counts
   app.post('/api/songs/reset-votes', requireAdmin, async (_req, res) => {
+    const client = await pool.connect();
     try {
       console.log('Starting vote reset process...');
-      // 使用事務來確保原子性
-      await db.transaction(async (tx) => {
-        await tx.delete(votes).execute();
-        console.log('Votes successfully deleted in transaction');
-      });
+      await client.query('BEGIN');
+      await client.query('DELETE FROM votes');
+      await client.query('COMMIT');
+      console.log('Votes successfully deleted');
 
       const updatedSongs = await getSongsWithVotes();
       io.emit('songs_update', updatedSongs);
@@ -135,8 +140,11 @@ export function registerRoutes(app: Express): Server {
 
       res.json({ message: "點播次數已重置" });
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('Error resetting votes:', error);
       res.status(500).json({ message: "重置點播次數失敗" });
+    } finally {
+      client.release();
     }
   });
 
@@ -157,24 +165,28 @@ export function registerRoutes(app: Express): Server {
 
     // Handle vote events with improved error handling
     socket.on('vote', async (songId: number) => {
+      const client = await pool.connect();
       try {
         console.log(`Processing vote for song ${songId} from session ${sessionId}`);
 
-        await db.transaction(async (tx) => {
-          await tx.insert(votes).values({
-            songId,
-            sessionId,
-            createdAt: new Date()
-          });
-          console.log(`Vote recorded for song ${songId}`);
-        });
+        await client.query('BEGIN');
+        await client.query(
+          'INSERT INTO votes (song_id, session_id, created_at) VALUES ($1, $2, $3)',
+          [songId, sessionId, new Date()]
+        );
+        await client.query('COMMIT');
+
+        console.log(`Vote recorded for song ${songId}`);
 
         const updatedSongs = await getSongsWithVotes();
         io.emit('songs_update', updatedSongs);
         console.log('Vote processed successfully, clients notified');
       } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Vote processing error:', error);
         socket.emit('error', { message: '處理投票時發生錯誤' });
+      } finally {
+        client.release();
       }
     });
 

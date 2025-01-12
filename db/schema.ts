@@ -102,27 +102,66 @@ export const qrCodeScansRelations = relations(qrCodeScans, ({ one }) => ({
   })
 }));
 
-// Schema types
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
+// Type definitions
+export interface User {
+  id: number;
+  username: string;
+  password: string;
+  isAdmin: boolean;
+  createdAt: Date;
+}
 
-export type Song = typeof songs.$inferSelect;
-export type NewSong = typeof songs.$inferInsert;
+export interface Song {
+  id: number;
+  title: string;
+  artist: string;
+  key?: string | null;
+  notes?: string | null;
+  lyrics?: string | null;
+  audioUrl?: string | null;
+  createdAt: Date;
+  createdBy?: number | null;
+  isActive: boolean;
+}
 
-export type Vote = typeof votes.$inferSelect;
-export type NewVote = typeof votes.$inferInsert;
+export interface Vote {
+  id: number;
+  songId: number;
+  sessionId: string;
+  createdAt: Date;
+}
 
-export type Tag = typeof tags.$inferSelect;
-export type NewTag = typeof tags.$inferInsert;
+export interface Tag {
+  id: number;
+  name: string;
+  createdAt: Date;
+}
 
-export type SongTag = typeof songTags.$inferSelect;
-export type NewSongTag = typeof songTags.$inferInsert;
+export interface SongTag {
+  id: number;
+  songId: number;
+  tagId: number;
+  createdAt: Date;
+}
 
-export type SongSuggestion = typeof songSuggestions.$inferSelect;
-export type NewSongSuggestion = typeof songSuggestions.$inferInsert;
+export interface SongSuggestion {
+  id: number;
+  title: string;
+  artist: string;
+  suggestedBy?: string | null;
+  status: string;
+  createdAt: Date;
+  notes?: string | null;
+}
 
-export type QRCodeScan = typeof qrCodeScans.$inferSelect;
-export type NewQRCodeScan = typeof qrCodeScans.$inferInsert;
+export interface QRCodeScan {
+  id: number;
+  songId: number;
+  sessionId: string;
+  userAgent?: string | null;
+  referrer?: string | null;
+  createdAt: Date;
+}
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
