@@ -143,31 +143,70 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="flex flex-col items-center justify-center mb-8 sm:mb-12 px-4"
         >
-          <div 
+          <motion.div 
             className="relative p-4 sm:p-6 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
                       shadow-[0_0_15px_rgba(var(--primary),0.3)]
-                      animate-[shadow-pulse_3s_ease-in-out_infinite]
                       w-full max-w-3xl mx-auto
                       hover:shadow-[0_0_25px_rgba(var(--primary),0.4)]
-                      transition-shadow duration-300"
+                      transition-all duration-300"
+            initial={{ scale: 0.95 }}
+            animate={{ 
+              scale: 1,
+              transition: { 
+                type: "spring",
+                stiffness: 100,
+                damping: 15
+              }
+            }}
+            whileHover={{ scale: 1.02 }}
           >
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-center
+            <motion.h1 
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-center
                         bg-gradient-to-r from-primary via-purple-600 to-primary
                         bg-clip-text text-transparent
-                        animate-[gradient_8s_linear_infinite]
                         px-4 py-2
-                        leading-tight"
+                        leading-tight
+                        relative"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ 
+                opacity: 1, 
+                y: 0,
+                transition: {
+                  duration: 0.8,
+                  ease: "easeOut"
+                }
+              }}
+              style={{
+                backgroundSize: "200% 100%",
+                animation: "gradient 8s linear infinite"
+              }}
             >
               吉他彈唱點歌系統
-            </h1>
-            <div className="absolute inset-0 rounded-lg border-2 border-primary/20
-                          animate-[border-pulse_3s_ease-in-out_infinite_0.5s]" />
-          </div>
-          <div className="mt-6 sm:mt-8 scale-105">
-            <ShareButton />
-          </div>
-        </motion.div>
+            </motion.h1>
 
+            <motion.div 
+              className="absolute inset-0 rounded-lg border-2 border-primary/20"
+              initial={{ opacity: 0 }}
+              animate={{ 
+                opacity: [0.3, 0.6, 0.3],
+                scale: [1, 1.02, 1],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+          </motion.div>
+          <motion.div 
+            className="mt-6 sm:mt-8 scale-105"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
+          >
+            <ShareButton />
+          </motion.div>
+        </motion.div>
         <AnimatePresence>
           <motion.div 
             className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
