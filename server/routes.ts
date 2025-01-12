@@ -36,7 +36,7 @@ async function sendSongsUpdate(wss: WebSocketServer) {
   try {
     const songsList = await getSongsWithVotes();
     wss.clients.forEach(client => {
-      if (client.readyState === 1) { // WebSocket.OPEN
+      if (client.readyState === 1) {
         client.send(JSON.stringify({
           type: 'SONGS_UPDATE',
           songs: songsList
@@ -69,6 +69,26 @@ export function registerRoutes(app: Express): Server {
 
   setupAuth(app);
 
+  // Add the PATCH endpoint for updating songs
+  app.patch("/api/songs/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { title, artist } = req.body;
+
+      const [updatedSong] = await db
+        .update(songs)
+        .set({ title, artist })
+        .where(eq(songs.id, id))
+        .returning();
+
+      await sendSongsUpdate(wss);
+      res.json(updatedSong);
+    } catch (error) {
+      console.error('Failed to update song:', error);
+      res.status(500).json({ error: "更新歌曲失敗" });
+    }
+  });
+
   // QR Code scan tracking endpoints
   app.post("/api/qr-scans", async (req, res) => {
     try {
@@ -77,13 +97,15 @@ export function registerRoutes(app: Express): Server {
       const userAgent = req.headers['user-agent'];
       const referrer = req.headers.referer || req.headers.referrer;
 
-      const [scan] = await db.insert(qrCodeScans).values({
-        songId,
-        sessionId,
-        userAgent: userAgent || null,
-        referrer: referrer || null,
-        createdAt: new Date()
-      }).returning();
+      const [scan] = await db.insert(qrCodeScans)
+        .values({
+          songId,
+          sessionId,
+          userAgent: userAgent || null,
+          referrer: referrer || null,
+          createdAt: new Date()
+        })
+        .returning();
 
       res.json(scan);
     } catch (error) {
@@ -132,6 +154,77 @@ export function registerRoutes(app: Express): Server {
       console.error('Failed to fetch QR code scan statistics:', error);
       res.status(500).json({ error: "無法取得QR碼掃描統計" });
     }
+  });
+
+  // Songs routes
+  app.get("/api/songs", async (_req, res) => {
+    try {
+      const songsList = await getSongsWithVotes();
+      res.json(songsList);
+    } catch (error) {
+      console.error('Failed to fetch songs:', error);
+      res.status(500).json({ error: "無法取得歌曲清單" });
+    }
+  });
+
+  app.post("/api/songs", requireAdmin, async (req, res) => {
+    try {
+      const { title, artist } = req.body;
+      const [newSong] = await db.insert(songs)
+        .values({
+          title,
+          artist,
+          createdBy: req.user?.id,
+          isActive: true
+        })
+        .returning();
+
+      await sendSongsUpdate(wss);
+      res.json(newSong);
+    } catch (error) {
+      console.error('Failed to add song:', error);
+      res.status(500).json({ error: "新增歌曲失敗" });
+    }
+  });
+
+  // WebSocket handling
+  wss.on('connection', (ws) => {
+    console.log('New WebSocket connection established');
+    const sessionId = Math.random().toString(36).substring(2);
+
+    // Send initial songs data
+    sendSongsUpdate(wss);
+
+    ws.on('message', async (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        console.log('Received message:', message);
+
+        if (message.type === 'VOTE') {
+          await db.insert(votes).values({
+            songId: message.songId,
+            sessionId,
+            createdAt: new Date()
+          });
+
+          await sendSongsUpdate(wss);
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+        ws.send(JSON.stringify({
+          type: 'ERROR',
+          message: 'Failed to process message'
+        }));
+      }
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+
+    ws.on('close', () => {
+      console.log('WebSocket connection closed');
+    });
   });
 
   // Tags routes
@@ -228,29 +321,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Songs routes
-  app.post("/api/songs", requireAdmin, async (req, res) => {
-    try {
-      const { title, artist, key, notes, lyrics, audioUrl } = req.body;
-      const [newSong] = await db.insert(songs).values({
-        title,
-        artist,
-        key,
-        notes,
-        lyrics,
-        audioUrl,
-        createdBy: req.user?.id,
-        isActive: true
-      }).returning();
-
-      await sendSongsUpdate(wss);
-      res.json(newSong);
-    } catch (error) {
-      console.error('Failed to add song:', error);
-      res.status(500).json({ error: "新增歌曲失敗" });
-    }
-  });
-
   app.post("/api/songs/batch", requireAdmin, async (req, res) => {
     try {
       const { songs: songsList } = req.body;
@@ -291,16 +361,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/songs", async (_req, res) => {
-    try {
-      const songsList = await getSongsWithVotes();
-      res.json(songsList);
-    } catch (error) {
-      console.error('Failed to fetch songs:', error);
-      res.status(500).json({ error: "無法取得歌曲清單" });
-    }
-  });
-
   app.post("/api/songs/reset-votes", requireAdmin, async (_req, res) => {
     try {
       await db.delete(votes);
@@ -310,128 +370,6 @@ export function registerRoutes(app: Express): Server {
       console.error('Failed to reset votes:', error);
       res.status(500).json({ error: "無法重置點播次數" });
     }
-  });
-
-  // Song suggestions routes
-  app.post("/api/suggestions", async (req, res) => {
-    try {
-      const { title, artist, suggestedBy, notes } = req.body;
-
-      const [newSuggestion] = await db.insert(songSuggestions)
-        .values({
-          title,
-          artist,
-          suggestedBy,
-          notes,
-          status: "pending"
-        })
-        .returning();
-
-      res.json(newSuggestion);
-    } catch (error) {
-      console.error('Failed to add song suggestion:', error);
-      res.status(500).json({ error: "無法新增歌曲建議" });
-    }
-  });
-
-  app.get("/api/suggestions", async (_req, res) => {
-    try {
-      const suggestions = await db
-        .select()
-        .from(songSuggestions)
-        .orderBy(sql`${songSuggestions.createdAt} DESC`);
-
-      res.json(suggestions);
-    } catch (error) {
-      console.error('Failed to fetch song suggestions:', error);
-      res.status(500).json({ error: "無法取得歌曲建議列表" });
-    }
-  });
-
-  app.patch("/api/suggestions/:id/status", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const { status } = req.body;
-
-      const [updatedSuggestion] = await db
-        .update(songSuggestions)
-        .set({ status })
-        .where(eq(songSuggestions.id, id))
-        .returning();
-
-      res.json(updatedSuggestion);
-    } catch (error) {
-      console.error('Failed to update suggestion status:', error);
-      res.status(500).json({ error: "無法更新歌曲建議狀態" });
-    }
-  });
-
-  app.delete("/api/suggestions/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-
-      await db.delete(songSuggestions)
-        .where(eq(songSuggestions.id, id));
-
-      res.json({ message: "建議已刪除" });
-    } catch (error) {
-      console.error('Failed to delete suggestion:', error);
-      res.status(500).json({ error: "無法刪除建議" });
-    }
-  });
-
-  // WebSocket handling
-  wss.on('connection', (ws) => {
-    console.log('New WebSocket connection established');
-    const sessionId = Math.random().toString(36).substring(2);
-    let lastVoteTime: { [key: number]: number } = {};
-    let voteCount: { [key: number]: number } = {};
-
-    // Send initial songs data
-    sendSongsUpdate(wss);
-
-    ws.on('message', async (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        console.log('Received message:', message);
-
-        if (message.type === 'VOTE') {
-          const now = Date.now();
-          const songId = message.songId;
-          const lastTime = lastVoteTime[songId] || 0;
-          const timeDiff = now - lastTime;
-
-          if (timeDiff > 50) {
-            await db.insert(votes).values({
-              songId: message.songId,
-              sessionId: sessionId,
-              createdAt: new Date()
-            });
-
-            lastVoteTime[songId] = now;
-            voteCount[songId] = (voteCount[songId] || 0) + 1;
-
-            await sendSongsUpdate(wss);
-          }
-        }
-      } catch (error) {
-        console.error('WebSocket message error:', error);
-        ws.send(JSON.stringify({
-          type: 'ERROR',
-          message: 'Failed to process message'
-        }));
-      }
-    });
-
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-    });
-
-    ws.on('close', () => {
-      console.log('WebSocket connection closed');
-      lastVoteTime = {};
-      voteCount = {};
-    });
   });
 
   return httpServer;

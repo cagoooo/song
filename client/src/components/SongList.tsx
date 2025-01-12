@@ -11,9 +11,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
-import { Music, ThumbsUp, Trash2, RotateCcw } from "lucide-react";
+import { Music, ThumbsUp, Trash2, RotateCcw, Edit2 } from "lucide-react";
 import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
 import { AnimatePresence, motion } from "framer-motion";
@@ -23,6 +31,59 @@ interface SongListProps {
   songs: Song[];
   ws: WebSocket | null;
   user: User | null;
+}
+
+interface EditDialogProps {
+  song: Song;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (title: string, artist: string) => Promise<void>;
+}
+
+function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
+  const [title, setTitle] = useState(song.title);
+  const [artist, setArtist] = useState(song.artist);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSave(title, artist);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>編輯歌曲</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">歌曲名稱</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="artist">歌手</Label>
+            <Input
+              id="artist"
+              value={artist}
+              onChange={(e) => setArtist(e.target.value)}
+              required
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" type="button" onClick={onClose}>
+              取消
+            </Button>
+            <Button type="submit">儲存</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export default function SongList({ songs, ws, user }: SongListProps) {
@@ -35,8 +96,8 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   const [clickCount, setClickCount] = useState<{ [key: number]: number }>({});
   const [isTouch, setIsTouch] = useState(false);
   const [lastVoteTime, setLastVoteTime] = useState<{ [key: number]: number }>({});
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
 
-  // 觸控事件檢測
   useEffect(() => {
     const checkTouch = () => {
       setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0);
@@ -57,34 +118,29 @@ export default function SongList({ songs, ws, user }: SongListProps) {
       setVotingId(songId);
       ws.send(JSON.stringify({ type: 'VOTE', songId }));
 
-      // Update click count for animation
       setClickCount(prev => ({
         ...prev,
         [songId]: (prev[songId] || 0) + 1
       }));
 
-      // Update last vote time
       setLastVoteTime(prev => ({
         ...prev,
         [songId]: now
       }));
 
-      // Reset voting status after a shorter delay (50ms)
       setTimeout(() => {
         setVotingId(null);
       }, 50);
 
-      // Clear any existing timeout for this song
       const timeoutKey = `timeout_${songId}`;
       if ((window as any)[timeoutKey]) {
         clearTimeout((window as any)[timeoutKey]);
         clearInterval((window as any)[`interval_${songId}`]);
       }
 
-      // Set a new timeout for smooth recovery
       (window as any)[timeoutKey] = setTimeout(() => {
         const currentCount = clickCount[songId] || 0;
-        const steps = 10; // Number of steps for smooth transition
+        const steps = 10; 
         const decrementPerStep = Math.ceil(currentCount / steps);
 
         (window as any)[`interval_${songId}`] = setInterval(() => {
@@ -171,6 +227,33 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   const getShareUrl = (songId: number) => {
     const baseUrl = window.location.origin;
     return `${baseUrl}/songs/${songId}`;
+  };
+
+  const handleEditSave = async (title: string, artist: string) => {
+    if (!editingSong) return;
+
+    try {
+      const response = await fetch(`/api/songs/${editingSong.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, artist }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) throw new Error('Failed to update song');
+
+      toast({
+        title: "成功",
+        description: "歌曲已更新",
+      });
+      setEditingSong(null);
+    } catch (error) {
+      toast({
+        title: "錯誤",
+        description: "無法更新歌曲",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -297,7 +380,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         </AnimatePresence>
                       </span>
 
-                      {/* Fire effect */}
                       <motion.div
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{
@@ -313,7 +395,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                           transformOrigin: 'bottom center'
                         }}
                       >
-                        {/* Main fire */}
                         <div
                           className={`
                             w-8 h-16 bg-gradient-to-t from-orange-500 via-yellow-400 to-transparent
@@ -328,7 +409,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                             filter: `blur(${Math.min(3 + (clickCount[song.id] * 0.2), 8)}px)`
                           }}
                         />
-                        {/* Inner fire core */}
                         <div
                           className={`
                             absolute inset-0 w-6 h-14 bg-gradient-to-t from-yellow-500 via-yellow-300 to-transparent
@@ -343,7 +423,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                             filter: `blur(${Math.min(2 + (clickCount[song.id] * 0.15), 6)}px)`
                           }}
                         />
-                        {/* Sparks */}
                         {Array.from({ length: Math.min(3 + Math.floor(clickCount[song.id] / 3), 12) }).map((_, index) => (
                           <motion.div
                             key={index}
@@ -366,7 +445,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                             }}
                           />
                         ))}
-                        {/* Glow effect */}
                         <div
                           className="absolute inset-0 rounded-full"
                           style={{
@@ -380,23 +458,42 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                   </motion.div>
 
                   {user?.isAdmin && (
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="w-full sm:w-auto"
-                    >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteSong(song.id)}
-                        className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
-                                  text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
-                                  hover:border-red-300/50 transition-all duration-300"
+                    <>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-full sm:w-auto"
                       >
-                        <Trash2 className="h-4 w-4" />
-                        刪除
-                      </Button>
-                    </motion.div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingSong(song)}
+                          className="flex gap-2 w-full sm:w-auto border-2 border-primary/20
+                                    bg-white/80 hover:bg-white/90
+                                    hover:border-primary/40 transition-all duration-300"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          編輯
+                        </Button>
+                      </motion.div>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-full sm:w-auto"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteSong(song.id)}
+                          className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
+                                    text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
+                                    hover:border-red-300/50 transition-all duration-300"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          刪除
+                        </Button>
+                      </motion.div>
+                    </>
                   )}
                 </div>
               </div>
@@ -435,6 +532,14 @@ export default function SongList({ songs, ws, user }: SongListProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {editingSong && (
+        <EditDialog
+          song={editingSong}
+          isOpen={!!editingSong}
+          onClose={() => setEditingSong(null)}
+          onSave={handleEditSave}
+        />
+      )}
     </div>
   );
 }
