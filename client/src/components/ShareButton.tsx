@@ -1,5 +1,5 @@
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "./ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
 import { Share2, QrCode } from "lucide-react";
 import { motion } from "framer-motion";
@@ -50,6 +50,9 @@ export function ShareButton() {
           <DialogTitle className="text-center text-xl font-bold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
             分享點歌系統
           </DialogTitle>
+          <DialogDescription className="text-center text-sm text-muted-foreground">
+            掃描 QR Code 或選擇社群媒體分享給朋友
+          </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 p-4">
           <motion.div

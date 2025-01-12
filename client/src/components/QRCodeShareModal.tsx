@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface QRCodeShareModalProps {
@@ -40,6 +40,9 @@ export default function QRCodeShareModal({
           <DialogTitle className="text-center text-xl font-bold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
             分享歌曲
           </DialogTitle>
+          <DialogDescription className="text-center text-sm text-muted-foreground">
+            掃描 QR Code 立即前往點播這首歌
+          </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 p-4">
           <motion.div
@@ -67,9 +70,9 @@ export default function QRCodeShareModal({
             <h3 className="font-semibold text-gray-800">{songTitle}</h3>
             <p className="text-gray-600">{songArtist}</p>
           </div>
-          <p className="text-sm text-center text-gray-500">
+          {/* <p className="text-sm text-center text-gray-500">
             掃描 QR Code 立即加入點歌！
-          </p>
+          </p> */}
         </div>
       </DialogContent>
     </Dialog>
