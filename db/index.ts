@@ -29,10 +29,16 @@ neonConfig.pipelineTLS = true;
 neonConfig.pipelineConnect = true;
 
 // Create the connection pool with explicit configuration
-const sql_connection = neon(process.env.DATABASE_URL);
+const sql_connection = neon(process.env.DATABASE_URL || '');
 
-// Create the db client with schema
+// Create the db client with schema 
 export const db = drizzle(sql_connection, { schema });
+
+// Test connection immediately
+db.execute(sql`SELECT 1`).catch(error => {
+  console.error('Failed to connect to database:', error);
+  process.exit(1);
+});
 
 // Initialize function for testing the connection
 export async function initializeDatabase(retries = 5) {
