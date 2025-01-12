@@ -122,13 +122,17 @@ export function registerRoutes(app: Express): Server {
   // Reset all vote counts
   app.post('/api/songs/reset-votes', requireAdmin, async (_req, res) => {
     try {
+      console.log('Starting vote reset process...');
       // 使用事務來確保原子性
       await db.transaction(async (tx) => {
         await tx.delete(votes).execute();
+        console.log('Votes successfully deleted in transaction');
       });
 
       const updatedSongs = await getSongsWithVotes();
       io.emit('songs_update', updatedSongs);
+      console.log('Vote reset completed, notified all clients');
+
       res.json({ message: "點播次數已重置" });
     } catch (error) {
       console.error('Error resetting votes:', error);
@@ -154,16 +158,20 @@ export function registerRoutes(app: Express): Server {
     // Handle vote events with improved error handling
     socket.on('vote', async (songId: number) => {
       try {
+        console.log(`Processing vote for song ${songId} from session ${sessionId}`);
+
         await db.transaction(async (tx) => {
           await tx.insert(votes).values({
             songId,
             sessionId,
             createdAt: new Date()
           });
+          console.log(`Vote recorded for song ${songId}`);
         });
 
         const updatedSongs = await getSongsWithVotes();
         io.emit('songs_update', updatedSongs);
+        console.log('Vote processed successfully, clients notified');
       } catch (error) {
         console.error('Vote processing error:', error);
         socket.emit('error', { message: '處理投票時發生錯誤' });
