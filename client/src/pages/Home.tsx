@@ -103,7 +103,7 @@ export default function Home() {
       toast({
         title: "成功",
         description: "已登出",
-        variant: "info"  // Changed from default to info variant
+        variant: "info"
       });
     } catch (error) {
       toast({
@@ -141,36 +141,27 @@ export default function Home() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 sm:mb-8"
+          className="flex flex-col items-center justify-center mb-8 sm:mb-10"
         >
-          <div className="flex items-center gap-4">
-            <div 
-              className="relative p-2 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
-                       shadow-[0_0_15px_rgba(var(--primary),0.3)]
-                       animate-[shadow-pulse_3s_ease-in-out_infinite]
-                       w-full sm:w-auto"
+          <div 
+            className="relative p-3 sm:p-4 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
+                      shadow-[0_0_15px_rgba(var(--primary),0.3)]
+                      animate-[shadow-pulse_3s_ease-in-out_infinite]
+                      w-full max-w-2xl mx-auto"
+          >
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center
+                        bg-gradient-to-r from-primary via-purple-600 to-primary
+                        bg-clip-text text-transparent
+                        px-4 py-2"
             >
-              <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent
-                          px-4 py-2 text-center sm:text-left">
-                吉他彈唱點歌系統
-              </h1>
-              <div className="absolute inset-0 rounded-lg border-2 border-primary/20
-                          animate-[border-pulse_3s_ease-in-out_infinite_0.5s]" />
-            </div>
+              吉他彈唱點歌系統
+            </h1>
+            <div className="absolute inset-0 rounded-lg border-2 border-primary/20
+                         animate-[border-pulse_3s_ease-in-out_infinite_0.5s]" />
+          </div>
+          <div className="mt-4">
             <ShareButton />
           </div>
-
-          {user ? (
-            <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-end w-full sm:w-auto">
-              <span className="text-sm px-3 py-1 rounded-full bg-primary/10 text-primary">
-                {user.isAdmin ? '管理員' : '使用者'}: {user.username}
-              </span>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                登出
-              </Button>
-            </div>
-          ) : null}
         </motion.div>
 
         <AnimatePresence>
