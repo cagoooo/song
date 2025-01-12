@@ -4,9 +4,12 @@ import * as schema from "@db/schema";
 import ws from "ws";
 import { sql } from "drizzle-orm";
 
-if (!process.env.DATABASE_URL) {
+const requiredEnvVars = ['DATABASE_URL', 'PGDATABASE', 'PGHOST', 'PGPORT', 'PGUSER', 'PGPASSWORD'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    `Missing required environment variables: ${missingVars.join(', ')}. Please check your deployment configuration.`
   );
 }
 
