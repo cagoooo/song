@@ -45,12 +45,15 @@ export function ShareButton() {
                         group-hover:opacity-100 blur-xl transition-opacity duration-500 rounded-lg" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 border-2 border-primary/20">
+      <DialogContent 
+        className="sm:max-w-md bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 border-2 border-primary/20"
+        aria-describedby="share-dialog-description"
+      >
         <DialogHeader>
           <DialogTitle className="text-center text-xl font-bold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
             分享點歌系統
           </DialogTitle>
-          <DialogDescription className="text-center text-sm text-muted-foreground">
+          <DialogDescription id="share-dialog-description" className="text-center text-sm text-muted-foreground">
             掃描 QR Code 或選擇社群媒體分享給朋友
           </DialogDescription>
         </DialogHeader>

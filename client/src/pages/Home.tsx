@@ -144,7 +144,7 @@ export default function Home() {
           className="flex flex-col items-center justify-center mb-8 sm:mb-12 px-4"
         >
           <motion.div 
-            className="relative p-4 sm:p-6 rounded-lg border-2 border-primary/50 bg-gradient-to-br from-white/90 via-primary/5 to-white/80 backdrop-blur-sm shadow-[0_0_15px_rgba(var(--primary),0.3)] w-full max-w-3xl mx-auto overflow-hidden hover:shadow-[0_0_25px_rgba(var(--primary),0.4)] transition-all duration-300"
+            className="relative p-4 sm:p-6 rounded-lg border-2 border-primary/50 bg-gradient-to-br from-white/95 via-primary/5 to-white/90 backdrop-blur-sm shadow-[0_0_20px_rgba(var(--primary),0.4)] w-full max-w-3xl mx-auto overflow-hidden hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] transition-all duration-300"
             initial={{ scale: 0.95 }}
             animate={{ 
               scale: 1,
@@ -157,7 +157,7 @@ export default function Home() {
             whileHover={{ scale: 1.02 }}
           >
             <motion.h1 
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-center bg-gradient-to-r from-blue-600 via-violet-600 to-fuchsia-600 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-4 py-2 relative z-10 leading-tight sm:leading-tight md:leading-tight lg:leading-tight animate-text"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-4 py-2 relative z-10 leading-tight sm:leading-tight md:leading-tight lg:leading-tight animate-text tracking-tight"
               initial={{ opacity: 0, y: 20 }}
               animate={{ 
                 opacity: 1, 
@@ -172,10 +172,10 @@ export default function Home() {
             </motion.h1>
 
             <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-violet-500/15 to-fuchsia-500/20"
+              className="absolute inset-0 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30"
               initial={{ opacity: 0 }}
               animate={{
-                opacity: [0.3, 0.6, 0.3],
+                opacity: [0.4, 0.7, 0.4],
               }}
               transition={{
                 duration: 4,
@@ -189,7 +189,7 @@ export default function Home() {
               }}
             />
             <motion.div 
-              className="absolute inset-0 bg-gradient-to-br from-blue-400/10 via-violet-400/15 to-fuchsia-400/10"
+              className="absolute inset-0 bg-gradient-to-br from-indigo-400/15 via-purple-400/20 to-pink-400/15"
               animate={{
                 backgroundPosition: ["0% 0%", "100% 100%"],
               }}

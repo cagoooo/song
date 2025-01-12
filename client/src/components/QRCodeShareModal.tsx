@@ -35,12 +35,15 @@ export default function QRCodeShareModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 border-2 border-primary/20">
+      <DialogContent 
+        className="sm:max-w-md bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 border-2 border-primary/20"
+        aria-describedby="qr-code-modal-description"
+      >
         <DialogHeader>
           <DialogTitle className="text-center text-xl font-bold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
             分享歌曲
           </DialogTitle>
-          <DialogDescription className="text-center text-sm text-muted-foreground">
+          <DialogDescription className="text-center text-sm text-muted-foreground" id="qr-code-modal-description">
             掃描 QR Code 立即前往點播這首歌
           </DialogDescription>
         </DialogHeader>
@@ -70,9 +73,6 @@ export default function QRCodeShareModal({
             <h3 className="font-semibold text-gray-800">{songTitle}</h3>
             <p className="text-gray-600">{songArtist}</p>
           </div>
-          {/* <p className="text-sm text-center text-gray-500">
-            掃描 QR Code 立即加入點歌！
-          </p> */}
         </div>
       </DialogContent>
     </Dialog>
