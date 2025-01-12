@@ -84,28 +84,51 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/suggestions", async (req, res) => {
     try {
       const { title, artist, suggestedBy, notes } = req.body;
-      console.log('Received suggestion:', { title, artist, suggestedBy, notes }); // 添加日誌
+      console.log('Received suggestion:', { title, artist, suggestedBy, notes });
 
-      if (!title || !artist) {
-        return res.status(400).json({ error: "歌曲名稱和歌手為必填欄位" });
+      // 輸入驗證
+      if (!title?.trim()) {
+        return res.status(400).json({ error: "歌曲名稱不能為空" });
+      }
+      if (!artist?.trim()) {
+        return res.status(400).json({ error: "歌手名稱不能為空" });
+      }
+      if (title.length > 100) {
+        return res.status(400).json({ error: "歌曲名稱不能超過100個字符" });
+      }
+      if (artist.length > 100) {
+        return res.status(400).json({ error: "歌手名稱不能超過100個字符" });
+      }
+      if (notes && notes.length > 500) {
+        return res.status(400).json({ error: "備註不能超過500個字符" });
       }
 
       const [suggestion] = await db.insert(songSuggestions)
         .values({
-          title,
-          artist,
-          suggestedBy,
-          notes,
+          title: title.trim(),
+          artist: artist.trim(),
+          suggestedBy: suggestedBy?.trim() || null,
+          notes: notes?.trim() || null,
           status: 'pending',
           createdAt: new Date()
         })
         .returning();
 
-      console.log('Created suggestion:', suggestion); // 添加日誌
+      console.log('Created suggestion:', suggestion);
       res.json(suggestion);
     } catch (error) {
       console.error('Failed to create suggestion:', error);
-      res.status(500).json({ error: "無法新增歌曲建議" });
+      if (error.code === '23505') { // 重複的建議
+        res.status(409).json({ 
+          error: "這首歌曲已經被建議過了",
+          details: "請查看現有的建議列表"
+        });
+      } else {
+        res.status(500).json({ 
+          error: "無法新增歌曲建議",
+          details: "請稍後再試，或聯繫管理員"
+        });
+      }
     }
   });
 
