@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { pool } from "@db";
+import { prisma } from "@db";
 
 const app = express();
 app.use(express.json());
@@ -49,14 +49,9 @@ process.on('uncaughtException', (error) => {
 
 (async () => {
   try {
-    // 測試數據庫連接
-    const client = await pool.connect();
-    try {
-      await client.query('SELECT NOW()');
-      log('Database connection test successful');
-    } finally {
-      client.release();
-    }
+    // 測試資料庫連接
+    await prisma.$queryRaw`SELECT NOW()`;
+    log('Database connection test successful');
 
     const server = registerRoutes(app);
 
@@ -85,10 +80,12 @@ process.on('uncaughtException', (error) => {
     });
 
     // Graceful shutdown handler
-    const shutdown = () => {
+    const shutdown = async () => {
       server.close(() => {
-        log('Server shutdown complete');
-        process.exit(0);
+        prisma.$disconnect().then(() => {
+          log('Server and database connections closed');
+          process.exit(0);
+        });
       });
 
       // Force close if graceful shutdown fails
@@ -103,6 +100,7 @@ process.on('uncaughtException', (error) => {
 
   } catch (error) {
     console.error('Failed to start server:', error);
+    await prisma.$disconnect();
     process.exit(1);
   }
 })();

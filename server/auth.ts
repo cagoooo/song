@@ -5,7 +5,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { pool } from "@db";
+import { prisma } from "@db";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -51,13 +51,10 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      const client = await pool.connect();
       try {
-        const result = await client.query(
-          'SELECT * FROM users WHERE username = $1',
-          [username]
-        );
-        const user = result.rows[0];
+        const user = await prisma.user.findUnique({
+          where: { username }
+        });
 
         if (!user) {
           return done(null, false, { message: "帳號或密碼錯誤" });
@@ -71,8 +68,6 @@ export function setupAuth(app: Express) {
         return done(null, user);
       } catch (err) {
         return done(err);
-      } finally {
-        client.release();
       }
     })
   );
@@ -82,32 +77,26 @@ export function setupAuth(app: Express) {
   });
 
   passport.deserializeUser(async (id: number, done) => {
-    const client = await pool.connect();
     try {
-      const result = await client.query(
-        'SELECT * FROM users WHERE id = $1',
-        [id]
-      );
-      done(null, result.rows[0]);
+      const user = await prisma.user.findUnique({
+        where: { id }
+      });
+      done(null, user);
     } catch (err) {
       done(err);
-    } finally {
-      client.release();
     }
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const client = await pool.connect();
     try {
       const { username, password } = req.body;
 
       // Check if user already exists
-      const existingUser = await client.query(
-        'SELECT id FROM users WHERE username = $1',
-        [username]
-      );
+      const existingUser = await prisma.user.findUnique({
+        where: { username }
+      });
 
-      if (existingUser.rows.length > 0) {
+      if (existingUser) {
         return res.status(400).send("使用者名稱已存在");
       }
 
@@ -115,11 +104,13 @@ export function setupAuth(app: Express) {
       const hashedPassword = await crypto.hash(password);
 
       // Create the new user
-      const result = await client.query(
-        'INSERT INTO users (username, password, is_admin) VALUES ($1, $2, $3) RETURNING *',
-        [username, hashedPassword, false]
-      );
-      const newUser = result.rows[0];
+      const newUser = await prisma.user.create({
+        data: {
+          username,
+          password: hashedPassword,
+          isAdmin: false
+        }
+      });
 
       // Log the user in after registration
       req.login(newUser, (err) => {
@@ -128,13 +119,11 @@ export function setupAuth(app: Express) {
         }
         return res.json({
           message: "註冊成功",
-          user: { id: newUser.id, username: newUser.username, isAdmin: newUser.is_admin },
+          user: { id: newUser.id, username: newUser.username, isAdmin: newUser.isAdmin },
         });
       });
     } catch (error) {
       next(error);
-    } finally {
-      client.release();
     }
   });
 
@@ -160,7 +149,7 @@ export function setupAuth(app: Express) {
 
         return res.json({
           message: "登入成功",
-          user: { id: user.id, username: user.username, isAdmin: user.is_admin },
+          user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
         });
       });
     };

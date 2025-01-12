@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
-import { pool } from "@db";
+import { prisma } from "@db";
 import { setupAuth } from "./auth";
 
 declare module 'express-serve-static-core' {
@@ -22,26 +22,28 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
 
 // Helper function for getting songs with votes
 async function getSongsWithVotes() {
-  const client = await pool.connect();
   try {
-    const result = await client.query(`
-      SELECT 
-        s.*,
-        COALESCE(v.vote_count, 0) as vote_count
-      FROM songs s
-      LEFT JOIN (
-        SELECT song_id, COUNT(*) as vote_count
-        FROM votes
-        GROUP BY song_id
-      ) v ON s.id = v.song_id
-      WHERE s.is_active = true
-    `);
-    return result.rows;
+    const songs = await prisma.song.findMany({
+      where: {
+        isActive: true
+      },
+      include: {
+        votes: true,
+        _count: {
+          select: {
+            votes: true
+          }
+        }
+      }
+    });
+
+    return songs.map(song => ({
+      ...song,
+      vote_count: song._count.votes
+    }));
   } catch (error) {
     console.error('Error fetching songs with votes:', error);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
@@ -69,7 +71,6 @@ export function registerRoutes(app: Express): Server {
 
   // Update song information
   app.patch('/api/songs/:id', requireAdmin, async (req, res) => {
-    const client = await pool.connect();
     try {
       const songId = parseInt(req.params.id);
       const { title, artist, notes } = req.body;
@@ -82,30 +83,24 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "歌名和歌手名稱不能為空" });
       }
 
-      // Start transaction
-      await client.query('BEGIN');
-
       // Check if song exists
-      const checkResult = await client.query(
-        'SELECT id FROM songs WHERE id = $1',
-        [songId]
-      );
+      const existingSong = await prisma.song.findUnique({
+        where: { id: songId }
+      });
 
-      if (checkResult.rowCount === 0) {
-        await client.query('ROLLBACK');
+      if (!existingSong) {
         return res.status(404).json({ message: "找不到指定的歌曲" });
       }
 
       // Update song
-      const updateResult = await client.query(
-        `UPDATE songs 
-         SET title = $1, artist = $2, notes = $3
-         WHERE id = $4
-         RETURNING *`,
-        [title.trim(), artist.trim(), notes?.trim() || null, songId]
-      );
-
-      await client.query('COMMIT');
+      const updatedSong = await prisma.song.update({
+        where: { id: songId },
+        data: {
+          title: title.trim(),
+          artist: artist.trim(),
+          notes: notes?.trim() || null
+        }
+      });
 
       // 重新獲取所有歌曲數據並通知客戶端
       const updatedSongs = await getSongsWithVotes();
@@ -113,25 +108,20 @@ export function registerRoutes(app: Express): Server {
 
       res.json({
         message: "歌曲更新成功",
-        song: updateResult.rows[0]
+        song: updatedSong
       });
     } catch (error) {
-      await client.query('ROLLBACK');
       console.error('Error updating song:', error);
       res.status(500).json({ message: "更新歌曲失敗" });
-    } finally {
-      client.release();
     }
   });
 
   // Reset all vote counts
   app.post('/api/songs/reset-votes', requireAdmin, async (_req, res) => {
-    const client = await pool.connect();
     try {
       console.log('Starting vote reset process...');
-      await client.query('BEGIN');
-      await client.query('DELETE FROM votes');
-      await client.query('COMMIT');
+
+      await prisma.vote.deleteMany({});
       console.log('Votes successfully deleted');
 
       const updatedSongs = await getSongsWithVotes();
@@ -140,11 +130,8 @@ export function registerRoutes(app: Express): Server {
 
       res.json({ message: "點播次數已重置" });
     } catch (error) {
-      await client.query('ROLLBACK');
       console.error('Error resetting votes:', error);
       res.status(500).json({ message: "重置點播次數失敗" });
-    } finally {
-      client.release();
     }
   });
 
@@ -165,16 +152,15 @@ export function registerRoutes(app: Express): Server {
 
     // Handle vote events with improved error handling
     socket.on('vote', async (songId: number) => {
-      const client = await pool.connect();
       try {
         console.log(`Processing vote for song ${songId} from session ${sessionId}`);
 
-        await client.query('BEGIN');
-        await client.query(
-          'INSERT INTO votes (song_id, session_id, created_at) VALUES ($1, $2, $3)',
-          [songId, sessionId, new Date()]
-        );
-        await client.query('COMMIT');
+        await prisma.vote.create({
+          data: {
+            songId,
+            sessionId,
+          }
+        });
 
         console.log(`Vote recorded for song ${songId}`);
 
@@ -182,11 +168,8 @@ export function registerRoutes(app: Express): Server {
         io.emit('songs_update', updatedSongs);
         console.log('Vote processed successfully, clients notified');
       } catch (error) {
-        await client.query('ROLLBACK');
         console.error('Vote processing error:', error);
         socket.emit('error', { message: '處理投票時發生錯誤' });
-      } finally {
-        client.release();
       }
     });
 
