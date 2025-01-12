@@ -73,8 +73,8 @@ export function ShareButton() {
                 src: "/favicon.ico",
                 x: undefined,
                 y: undefined,
-                height: 24,
-                width: 24,
+                height: 32,
+                width: 32,
                 excavate: true,
               }}
             />
