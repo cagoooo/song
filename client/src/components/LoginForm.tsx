@@ -33,6 +33,7 @@ export default function LoginForm({ onClose }: LoginFormProps) {
       toast({
         title: "成功",
         description: "登入成功",
+        variant: "success"  // 使用新的 success variant
       });
       onClose();
     } catch (error) {
