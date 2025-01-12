@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/neon-http";
-import { Pool } from "@neondatabase/serverless";
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import { neon } from '@neondatabase/serverless';
 import * as schema from "@db/schema";
 
 if (!process.env.DATABASE_URL) {
@@ -8,22 +8,13 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// 使用 HTTP 連接配置
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 8000,    // 增加連接超時時間
-  idleTimeoutMillis: 30000,         // 空閒連接超時
-  max: 10                           // 最大連接數
-});
+const sql = neon(process.env.DATABASE_URL);
+export const db = drizzle(sql, { schema });
 
-// 添加連接池錯誤處理
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
-});
-
-// 創建 drizzle 實例，使用 HTTP
-export const db = drizzle(pool, {
-  schema,
-  logger: true
+// Simple connection test
+sql`SELECT 1`.then(() => {
+  console.log('Database connection successful');
+}).catch(err => {
+  console.error('Database connection failed:', err);
+  process.exit(1);
 });
