@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { db, validateDbConnection } from "@db";
+import { db, validateDbConnection, checkDatabaseHealth } from "@db";
 
 const app = express();
 app.use(express.json());
@@ -49,11 +49,18 @@ process.on('uncaughtException', (error) => {
 
 (async () => {
   try {
-    // Test database connection before starting the server
+    // 驗證資料庫連接
+    log('Validating database connection...');
     const isDbConnected = await validateDbConnection();
-    if (isDbConnected) {
-      log('Database connection successful');
+    if (!isDbConnected) {
+      throw new Error('Database connection validation failed');
     }
+    log('Database connection validated successfully');
+
+    // 檢查資料庫健康狀態
+    log('Checking database health...');
+    await checkDatabaseHealth();
+    log('Database health check passed');
 
     const server = registerRoutes(app);
 

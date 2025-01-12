@@ -105,6 +105,7 @@ export function registerRoutes(app: Express): Server {
         .where(eq(songs.id, songId))
         .returning();
 
+      // 重新獲取所有歌曲數據並通知客戶端
       const updatedSongs = await getSongsWithVotes();
       io.emit('songs_update', updatedSongs);
 
@@ -119,9 +120,13 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Reset all vote counts
-  app.post('/api/songs/reset-votes', requireAdmin, async (req, res) => {
+  app.post('/api/songs/reset-votes', requireAdmin, async (_req, res) => {
     try {
-      await db.delete(votes).execute();
+      // 使用事務來確保原子性
+      await db.transaction(async (tx) => {
+        await tx.delete(votes).execute();
+      });
+
       const updatedSongs = await getSongsWithVotes();
       io.emit('songs_update', updatedSongs);
       res.json({ message: "點播次數已重置" });
@@ -146,13 +151,15 @@ export function registerRoutes(app: Express): Server {
         socket.emit('error', { message: '無法載入歌曲列表' });
       });
 
-    // Handle vote events
+    // Handle vote events with improved error handling
     socket.on('vote', async (songId: number) => {
       try {
-        await db.insert(votes).values({
-          songId,
-          sessionId,
-          createdAt: new Date()
+        await db.transaction(async (tx) => {
+          await tx.insert(votes).values({
+            songId,
+            sessionId,
+            createdAt: new Date()
+          });
         });
 
         const updatedSongs = await getSongsWithVotes();
