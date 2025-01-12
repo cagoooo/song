@@ -99,10 +99,10 @@ export function registerRoutes(app: Express): Server {
 
       const [scan] = await db.insert(qrCodeScans)
         .values({
-          songId: songId,
-          sessionId: sessionId,
-          userAgent: userAgent || undefined,
-          referrer: referrer || undefined,
+          songId,
+          sessionId,
+          userAgent: userAgent || null,
+          referrer: referrer || null,
           createdAt: new Date()
         })
         .returning();
@@ -186,74 +186,6 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: "新增歌曲失敗" });
     }
   });
-
-  // 歌曲建議相關API
-  app.get("/api/suggestions", async (_req, res) => {
-    try {
-      const allSuggestions = await db.select().from(songSuggestions);
-      res.json(allSuggestions);
-    } catch (error) {
-      console.error('Failed to fetch suggestions:', error);
-      res.status(500).json({ error: "無法取得建議清單" });
-    }
-  });
-
-  app.post("/api/suggestions", async (req, res) => {
-    try {
-      const { title, artist, suggestedBy, notes } = req.body;
-
-      const [newSuggestion] = await db.insert(songSuggestions)
-        .values({
-          title,
-          artist,
-          suggestedBy,
-          notes,
-          status: 'pending',
-          createdAt: new Date()
-        })
-        .returning();
-
-      res.json(newSuggestion);
-    } catch (error) {
-      console.error('Failed to create suggestion:', error);
-      res.status(500).json({ error: "無法建立歌曲建議" });
-    }
-  });
-
-  app.patch("/api/suggestions/:id/status", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const { status } = req.body;
-
-      if (!['pending', 'approved', 'rejected'].includes(status)) {
-        return res.status(400).json({ error: "無效的狀態值" });
-      }
-
-      const [updatedSuggestion] = await db.update(songSuggestions)
-        .set({ status })
-        .where(eq(songSuggestions.id, id))
-        .returning();
-
-      res.json(updatedSuggestion);
-    } catch (error) {
-      console.error('Failed to update suggestion status:', error);
-      res.status(500).json({ error: "無法更新建議狀態" });
-    }
-  });
-
-  app.delete("/api/suggestions/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await db.delete(songSuggestions)
-        .where(eq(songSuggestions.id, id));
-
-      res.json({ message: "建議已刪除" });
-    } catch (error) {
-      console.error('Failed to delete suggestion:', error);
-      res.status(500).json({ error: "無法刪除建議" });
-    }
-  });
-
 
   // WebSocket handling
   wss.on('connection', (ws) => {

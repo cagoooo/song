@@ -1,27 +1,35 @@
-import { neon } from "@neondatabase/serverless";
+import { neon, neonConfig } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { sql } from "drizzle-orm";
 import * as schema from "@db/schema";
+import ws from "ws";
+import { sql } from "drizzle-orm";
+
+// Configure neon with WebSocket settings
+neonConfig.webSocketConstructor = ws;
+neonConfig.useSecureWebSocket = true;
+neonConfig.pipelineTLS = true;
+neonConfig.pipelineConnect = true;
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
+  console.error('Missing required database environment variable DATABASE_URL');
+  process.exit(1);
 }
 
 // Create the db client with schema
-const client = neon(process.env.DATABASE_URL);
-export const db = drizzle(client, { schema });
+const sql_connection = neon(process.env.DATABASE_URL);
+export const db = drizzle(sql_connection, { schema });
 
 // Initialize function for testing the connection
-export async function initializeDatabase(retries = 5, delay = 5000) {
+export async function initializeDatabase(retries = 5) {
   for (let i = 0; i < retries; i++) {
     try {
-      const result = await db.execute(sql`SELECT 1`);
+      await db.execute(sql`SELECT 1`);
       console.log("Database connection established successfully");
-      return result;
+      return;
     } catch (error) {
       console.error(`Failed to initialize database (attempt ${i + 1}/${retries}):`, error);
       if (i === retries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise(resolve => setTimeout(resolve, 5000));
     }
   }
 }
