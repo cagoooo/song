@@ -69,6 +69,74 @@ export function registerRoutes(app: Express): Server {
 
   setupAuth(app);
 
+  // Song Suggestions routes
+  app.get("/api/suggestions", async (_req, res) => {
+    try {
+      const suggestions = await db.select().from(songSuggestions)
+        .orderBy(sql`${songSuggestions.createdAt} DESC`);
+      res.json(suggestions);
+    } catch (error) {
+      console.error('Failed to fetch suggestions:', error);
+      res.status(500).json({ error: "無法取得歌曲建議列表" });
+    }
+  });
+
+  app.post("/api/suggestions", async (req, res) => {
+    try {
+      const { title, artist, suggestedBy, notes } = req.body;
+
+      const [suggestion] = await db.insert(songSuggestions)
+        .values({
+          title,
+          artist,
+          suggestedBy,
+          notes,
+          status: 'pending',
+          createdAt: new Date()
+        })
+        .returning();
+
+      res.json(suggestion);
+    } catch (error) {
+      console.error('Failed to create suggestion:', error);
+      res.status(500).json({ error: "無法新增歌曲建議" });
+    }
+  });
+
+  app.patch("/api/suggestions/:id/status", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+
+      if (!['pending', 'approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: "無效的狀態" });
+      }
+
+      const [updatedSuggestion] = await db.update(songSuggestions)
+        .set({ status })
+        .where(eq(songSuggestions.id, id))
+        .returning();
+
+      res.json(updatedSuggestion);
+    } catch (error) {
+      console.error('Failed to update suggestion status:', error);
+      res.status(500).json({ error: "無法更新建議狀態" });
+    }
+  });
+
+  app.delete("/api/suggestions/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(songSuggestions)
+        .where(eq(songSuggestions.id, id));
+
+      res.json({ message: "建議已刪除" });
+    } catch (error) {
+      console.error('Failed to delete suggestion:', error);
+      res.status(500).json({ error: "無法刪除建議" });
+    }
+  });
+
   // Add the PATCH endpoint for updating songs
   app.patch("/api/songs/:id", requireAdmin, async (req, res) => {
     try {

@@ -52,36 +52,28 @@ app.use((req, res, next) => {
       await initializeDatabase();
       log('Database connection successful');
     } catch (error) {
-      log('Database connection failed:', error);
+      log('Database connection failed');
       if (!process.env.DATABASE_URL) {
         log('Missing DATABASE_URL environment variable');
       }
-      const statusCode = error.status || error.statusCode || 500;
-      process.exit(statusCode);
+      process.exit(1);
     }
 
     const server = registerRoutes(app);
 
-    // Setup Vite in development environment
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);
     }
 
-    // Start the server with a numeric port
-    const PORT = Number(process.env.PORT || 3000);
-    if (isNaN(PORT)) {
-      log('Invalid PORT environment variable');
-      process.exit(1);
-    }
+    // ALWAYS serve the app on port 5000
+    const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server running on port ${PORT} (${app.get("env")})`);
-      log('Database configuration:', {
-        url: process.env.DATABASE_URL ? "Set" : "Missing",
-        host: process.env.PGHOST ? "Set" : "Missing",
-        database: process.env.PGDATABASE ? "Set" : "Missing"
-      });
     });
   } catch (error) {
     console.error('Failed to start server:', error);
