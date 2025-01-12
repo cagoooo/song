@@ -24,32 +24,30 @@ export function ShareButton() {
       <DialogTrigger asChild>
         <Button 
           variant="outline" 
-          className="group relative flex flex-col sm:flex-row items-center gap-2 sm:gap-3 
-                    px-4 sm:px-6 py-2.5 sm:py-3
-                    border-2 border-indigo-400 bg-gradient-to-r from-white to-indigo-50
-                    hover:from-indigo-50 hover:to-indigo-100/90 
+          className="group relative flex items-center gap-2 px-6 py-3 
+                    border-2 border-violet-300 bg-gradient-to-r from-violet-100/90 to-fuchsia-100
+                    hover:from-violet-200/90 hover:to-fuchsia-200/90 
                     shadow-lg hover:shadow-xl transition-all duration-300"
         >
           <div className="flex items-center gap-2">
-            <Share2 className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-700 group-hover:scale-110 transition-transform" />
-            <span className="text-sm sm:text-base lg:text-lg font-bold bg-gradient-to-r from-indigo-800 to-purple-800 bg-clip-text text-transparent">
+            <Share2 className="w-5 h-5 text-violet-600 group-hover:scale-110 transition-transform" />
+            <span className="text-base sm:text-lg font-semibold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
               分享點歌系統
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium 
-                        bg-indigo-700 text-white px-2 sm:px-2.5 py-0.5 sm:py-1 
-                        rounded-full shadow-md mt-1.5 sm:mt-0">
-            <QrCode className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          <div className="flex items-center gap-1.5 text-xs font-medium bg-violet-500 text-white px-2.5 py-1 rounded-full shadow-md">
+            <QrCode className="w-3.5 h-3.5" />
             <span>掃描 QR Code</span>
           </div>
+
           {/* Enhanced glow effect on hover */}
-          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-400/20 via-purple-400/20 to-purple-400/20 opacity-0 
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-violet-400/20 via-fuchsia-400/20 to-purple-400/20 opacity-0 
                         group-hover:opacity-100 blur-xl transition-opacity duration-500 rounded-lg" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-gradient-to-br from-indigo-50 via-white to-purple-50 border-2 border-indigo-200">
+      <DialogContent className="sm:max-w-md bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 border-2 border-primary/20">
         <DialogHeader>
-          <DialogTitle className="text-center text-xl font-bold bg-gradient-to-r from-indigo-800 to-purple-800 bg-clip-text text-transparent">
+          <DialogTitle className="text-center text-xl font-bold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
             分享點歌系統
           </DialogTitle>
         </DialogHeader>
