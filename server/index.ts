@@ -61,10 +61,14 @@ app.use((req, res, next) => {
     }
 
     // Start the server with a numeric port
-    const PORT = process.env.PORT ? Number(process.env.PORT) : 80;
+    const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server running on port ${PORT} (${app.get("env")})`);
-      log(`Database URL: ${process.env.DATABASE_URL ? "Set" : "Missing"}`);
+      log('Database configuration:', {
+        url: process.env.DATABASE_URL ? "Set" : "Missing",
+        host: process.env.PGHOST ? "Set" : "Missing",
+        database: process.env.PGDATABASE ? "Set" : "Missing"
+      });
     });
   } catch (error) {
     console.error('Failed to start server:', error);
