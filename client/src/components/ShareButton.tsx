@@ -25,32 +25,32 @@ export function ShareButton() {
         <Button 
           variant="outline" 
           className="group relative flex items-center gap-2 px-6 py-3 
-                    border-2 border-violet-300 bg-gradient-to-r from-violet-100/90 to-fuchsia-100
-                    hover:from-violet-200/90 hover:to-fuchsia-200/90 
+                    border-2 border-violet-400 bg-gradient-to-r from-violet-200/90 to-fuchsia-200/90
+                    hover:from-violet-300/90 hover:to-fuchsia-300/90 
                     shadow-lg hover:shadow-xl transition-all duration-300"
         >
           <div className="flex items-center gap-2">
-            <Share2 className="w-5 h-5 text-violet-600 group-hover:scale-110 transition-transform" />
-            <span className="text-base sm:text-lg font-semibold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
+            <Share2 className="w-5 h-5 text-violet-700 group-hover:scale-110 transition-transform" />
+            <span className="text-base sm:text-lg font-bold bg-gradient-to-r from-violet-700 to-fuchsia-700 bg-clip-text text-transparent">
               分享點歌系統
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs font-medium bg-violet-500 text-white px-2.5 py-1 rounded-full shadow-md">
+          <div className="flex items-center gap-1.5 text-xs font-medium bg-violet-600 text-white px-2.5 py-1 rounded-full shadow-md">
             <QrCode className="w-3.5 h-3.5" />
             <span>掃描 QR Code</span>
           </div>
 
           {/* Enhanced glow effect on hover */}
-          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-violet-400/20 via-fuchsia-400/20 to-purple-400/20 opacity-0 
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-violet-400/30 via-fuchsia-400/30 to-purple-400/30 opacity-0 
                         group-hover:opacity-100 blur-xl transition-opacity duration-500 rounded-lg" />
         </Button>
       </DialogTrigger>
       <DialogContent 
-        className="sm:max-w-md bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 border-2 border-primary/20"
+        className="sm:max-w-md bg-gradient-to-br from-violet-100 via-fuchsia-100 to-pink-100 border-2 border-violet-300/40"
         aria-describedby="share-dialog-description"
       >
         <DialogHeader>
-          <DialogTitle className="text-center text-xl font-bold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
+          <DialogTitle className="text-center text-xl font-bold bg-gradient-to-r from-violet-700 to-pink-700 bg-clip-text text-transparent">
             分享點歌系統
           </DialogTitle>
           <DialogDescription id="share-dialog-description" className="text-center text-sm text-muted-foreground">
@@ -82,7 +82,7 @@ export function ShareButton() {
 
           {/* Social Media Share Buttons */}
           <div className="w-full space-y-4">
-            <p className="text-sm text-center font-medium text-muted-foreground mb-4">
+            <p className="text-sm text-center font-medium text-violet-700 mb-4">
               透過社群媒體分享
             </p>
             <div className="flex justify-center gap-4">
@@ -112,7 +112,7 @@ export function ShareButton() {
             </div>
           </div>
 
-          <p className="text-sm text-muted-foreground mt-6 text-center max-w-[280px]">
+          <p className="text-sm text-violet-600 mt-6 text-center max-w-[280px]">
             分享這個連結給朋友，讓大家一起來點歌！
           </p>
         </div>
