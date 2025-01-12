@@ -2,13 +2,10 @@ import { neon, neonConfig } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "@db/schema";
 import ws from "ws";
-import { sql } from "drizzle-orm";
 
 // Configure neon with WebSocket settings
 neonConfig.webSocketConstructor = ws;
-neonConfig.useSecureWebSocket = true;
-neonConfig.pipelineTLS = true;
-neonConfig.pipelineConnect = true;
+neonConfig.useSecureWebSocket = false;
 
 if (!process.env.DATABASE_URL) {
   console.error('Missing required database environment variable DATABASE_URL');
@@ -34,4 +31,4 @@ export async function initializeDatabase(retries = 5) {
   }
 }
 
-export { sql };
+export { sql } from "drizzle-orm";
