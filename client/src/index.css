@@ -41,3 +41,35 @@
     border-color: rgba(var(--primary), 0.3);
   }
 }
+
+@keyframes shimmer {
+  0% {
+    text-shadow: 0 0 4px rgba(255,255,255,0);
+  }
+  50% {
+    text-shadow: 0 0 16px rgba(255,255,255,0.4);
+  }
+  100% {
+    text-shadow: 0 0 4px rgba(255,255,255,0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    background-size: 200% 100%;
+    background-position: right center;
+  }
+  50% {
+    background-size: 200% 100%;
+    background-position: left center;
+  }
+}

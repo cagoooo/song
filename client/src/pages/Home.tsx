@@ -178,7 +178,8 @@ export default function Home() {
               }}
               style={{
                 backgroundSize: "200% 100%",
-                animation: "gradient 8s linear infinite"
+                animation: "gradient 8s linear infinite, shimmer 3s ease-in-out infinite, float 6s ease-in-out infinite",
+                textShadow: "0 2px 4px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.1)"
               }}
             >
               吉他彈唱點歌系統
@@ -195,6 +196,23 @@ export default function Home() {
                 duration: 3,
                 repeat: Infinity,
                 ease: "easeInOut"
+              }}
+            />
+
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-primary/5 via-purple-500/5 to-primary/5"
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: [0.3, 0.6, 0.3],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              style={{
+                filter: "blur(20px)",
+                animation: "sparkle 8s linear infinite"
               }}
             />
           </motion.div>
