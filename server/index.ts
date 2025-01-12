@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { db } from "@db";
+import { db, initializeDatabase } from "@db";
 import { sql } from "drizzle-orm";
 
 const app = express();
@@ -48,10 +48,8 @@ app.use((req, res, next) => {
 (async () => {
   try {
     // Test database connection
-    const result = await db.execute(sql`SELECT 1`);
-    if (result) {
-      log('Database connection successful');
-    }
+    await initializeDatabase();
+    log('Database connection successful');
 
     const server = registerRoutes(app);
 
