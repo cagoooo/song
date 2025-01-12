@@ -25,22 +25,23 @@ export function ShareButton() {
         <Button 
           variant="outline" 
           className="group relative flex items-center gap-2 px-6 py-3 
-                    border-2 border-primary/30 bg-gradient-to-r from-white/90 to-primary/5
-                    hover:from-primary/10 hover:to-primary/20 
-                    shadow-lg hover:shadow-xl transition-all duration-300
-                    text-base sm:text-lg font-medium"
+                    border-2 border-violet-300 bg-gradient-to-r from-violet-100/90 to-fuchsia-100
+                    hover:from-violet-200/90 hover:to-fuchsia-200/90 
+                    shadow-lg hover:shadow-xl transition-all duration-300"
         >
           <div className="flex items-center gap-2">
-            <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span>分享點歌系統</span>
+            <Share2 className="w-5 h-5 text-violet-600 group-hover:scale-110 transition-transform" />
+            <span className="text-base sm:text-lg font-semibold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
+              分享點歌系統
+            </span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-primary/70 bg-primary/10 px-2.5 py-1 rounded-full">
+          <div className="flex items-center gap-1.5 text-xs font-medium bg-violet-500 text-white px-2.5 py-1 rounded-full shadow-md">
             <QrCode className="w-3.5 h-3.5" />
             <span>掃描 QR Code</span>
           </div>
 
           {/* Enhanced glow effect on hover */}
-          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-primary/20 via-pink-500/20 to-purple-500/20 opacity-0 
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-violet-400/20 via-fuchsia-400/20 to-purple-400/20 opacity-0 
                         group-hover:opacity-100 blur-xl transition-opacity duration-500 rounded-lg" />
         </Button>
       </DialogTrigger>
