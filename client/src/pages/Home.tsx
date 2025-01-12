@@ -161,7 +161,7 @@ export default function Home() {
             whileHover={{ scale: 1.02 }}
           >
             <motion.h1 
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-center
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-center
                         bg-gradient-to-r from-primary via-purple-600 to-primary
                         bg-clip-text text-transparent
                         px-2 sm:px-4 py-2
