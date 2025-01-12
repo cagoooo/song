@@ -137,85 +137,86 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
       <div className="container mx-auto py-4 sm:py-8 px-4">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col items-center justify-center mb-8 sm:mb-12 px-4"
-        >
-          <motion.div 
-            className="relative p-4 sm:p-6 rounded-lg border-2 border-primary/50 bg-gradient-to-br from-white/95 via-primary/5 to-white/90 backdrop-blur-sm shadow-[0_0_20px_rgba(var(--primary),0.4)] w-full max-w-3xl mx-auto overflow-hidden hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] transition-all duration-300"
-            initial={{ scale: 0.95 }}
-            animate={{ 
-              scale: 1,
-              transition: { 
-                type: "spring",
-                stiffness: 100,
-                damping: 15
-              }
-            }}
-            whileHover={{ scale: 1.02 }}
+          {/* Title container */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col items-center justify-center mb-6 sm:mb-8 md:mb-10 lg:mb-12 px-3 sm:px-4 md:px-6 lg:px-8 w-full"
           >
-            <motion.h1 
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-4 py-2 relative z-10 leading-tight sm:leading-tight md:leading-tight lg:leading-tight animate-text tracking-tight"
-              initial={{ opacity: 0, y: 20 }}
+            <motion.div 
+              className="relative p-3 sm:p-4 md:p-5 lg:p-6 rounded-lg border-2 border-primary/50 bg-gradient-to-br from-white/95 via-primary/5 to-white/90 backdrop-blur-sm shadow-[0_0_20px_rgba(var(--primary),0.4)] w-full max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-3xl mx-auto overflow-hidden hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] transition-all duration-300"
+              initial={{ scale: 0.95 }}
               animate={{ 
-                opacity: 1, 
-                y: 0,
-                transition: {
-                  duration: 0.8,
-                  ease: "easeOut"
+                scale: 1,
+                transition: { 
+                  type: "spring",
+                  stiffness: 100,
+                  damping: 15
                 }
               }}
+              whileHover={{ scale: 1.02 }}
             >
-              吉他彈唱點歌系統
-            </motion.h1>
+              <motion.h1 
+                className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-3 md:px-4 py-2 relative z-10 leading-[1.2] sm:leading-[1.2] md:leading-[1.2] lg:leading-[1.2] animate-text tracking-tight"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                  transition: {
+                    duration: 0.8,
+                    ease: "easeOut"
+                  }
+                }}
+              >
+                吉他彈唱點歌系統
+              </motion.h1>
 
+              <motion.div 
+                className="absolute inset-0 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30"
+                initial={{ opacity: 0 }}
+                animate={{
+                  opacity: [0.4, 0.7, 0.4],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                style={{
+                  filter: "blur(20px)",
+                  transform: "translate3d(0, 0, 0)", 
+                  backfaceVisibility: "hidden"
+                }}
+              />
+              <motion.div 
+                className="absolute inset-0 bg-gradient-to-br from-indigo-400/15 via-purple-400/20 to-pink-400/15"
+                animate={{
+                  backgroundPosition: ["0% 0%", "100% 100%"],
+                }}
+                transition={{
+                  duration: 15,
+                  repeat: Infinity,
+                  ease: "linear",
+                  repeatType: "reverse"
+                }}
+                style={{
+                  backgroundSize: "200% 200%",
+                  filter: "blur(15px)",
+                  transform: "translate3d(0, 0, 0)", 
+                  backfaceVisibility: "hidden"
+                }}
+              />
+            </motion.div>
             <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30"
+              className="mt-4 sm:mt-5 md:mt-6 lg:mt-8 scale-90 sm:scale-95 md:scale-100 lg:scale-105"
               initial={{ opacity: 0 }}
-              animate={{
-                opacity: [0.4, 0.7, 0.4],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              style={{
-                filter: "blur(20px)",
-                transform: "translate3d(0, 0, 0)", 
-                backfaceVisibility: "hidden"
-              }}
-            />
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-br from-indigo-400/15 via-purple-400/20 to-pink-400/15"
-              animate={{
-                backgroundPosition: ["0% 0%", "100% 100%"],
-              }}
-              transition={{
-                duration: 15,
-                repeat: Infinity,
-                ease: "linear",
-                repeatType: "reverse"
-              }}
-              style={{
-                backgroundSize: "200% 200%",
-                filter: "blur(15px)",
-                transform: "translate3d(0, 0, 0)", 
-                backfaceVisibility: "hidden"
-              }}
-            />
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+            >
+              <ShareButton />
+            </motion.div>
           </motion.div>
-          <motion.div 
-            className="mt-6 sm:mt-8 scale-105"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-          >
-            <ShareButton />
-          </motion.div>
-        </motion.div>
         <AnimatePresence>
           <motion.div 
             className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
