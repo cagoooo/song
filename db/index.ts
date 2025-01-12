@@ -1,8 +1,6 @@
-import pkg from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from "@db/schema";
-
-const { Client } = pkg;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -10,36 +8,8 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-const client = new Client({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
+// Create the SQL client
+const sql = neon(process.env.DATABASE_URL);
 
-let db: ReturnType<typeof drizzle>;
-
-// Connect to the database
-console.log('Connecting to database...');
-async function initializeDatabase() {
-  try {
-    await client.connect();
-    console.log('Connected to database successfully');
-
-    db = drizzle(client, { schema });
-
-    // Test the connection
-    const result = await client.query('SELECT NOW()');
-    console.log('Database connection verified:', result.rows[0]);
-
-    return db;
-  } catch (err) {
-    console.error('Database connection error:', err);
-    process.exit(1);
-  }
-}
-
-export const dbPromise = initializeDatabase();
-
-// Export the database instance
-export { db };
+// Create the drizzle db instance
+export const db = drizzle(sql, { schema });
