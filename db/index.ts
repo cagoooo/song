@@ -7,8 +7,7 @@ import { sql } from "drizzle-orm";
 // Configure neon with WebSocket settings
 neonConfig.webSocketConstructor = ws;
 neonConfig.useSecureWebSocket = true;
-neonConfig.pipelineTLS = true;
-neonConfig.pipelineConnect = true;
+neonConfig.pipelineConnect = "password";
 
 if (!process.env.DATABASE_URL) {
   console.error('Missing required database environment variable DATABASE_URL');

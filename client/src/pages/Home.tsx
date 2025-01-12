@@ -136,107 +136,110 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
-      <div className="container mx-auto py-4 sm:py-8 px-4">
-          {/* Title container */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col items-center justify-center mb-6 sm:mb-8 md:mb-10 lg:mb-12 px-3 sm:px-4 md:px-6 lg:px-8 w-full"
+      {/* Admin Logout Button - Moved outside the title container */}
+      {user?.isAdmin && (
+        <motion.div 
+          className="fixed top-4 right-4 z-50"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLogout}
+            className="bg-white/90 hover:bg-white border-2 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 shadow-lg hover:shadow-xl transition-all duration-300"
           >
-            <motion.div 
-              className="relative p-3 sm:p-4 md:p-5 lg:p-6 rounded-lg border-2 border-primary/50 bg-gradient-to-br from-white/95 via-primary/5 to-white/90 backdrop-blur-sm shadow-[0_0_20px_rgba(var(--primary),0.4)] w-full max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-3xl mx-auto overflow-hidden hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] transition-all duration-300"
-              initial={{ scale: 0.95 }}
+            <LogOut className="w-4 h-4 mr-2" />
+            登出管理
+          </Button>
+        </motion.div>
+      )}
+
+      <div className="container mx-auto py-4 sm:py-8 px-4">
+        {/* Title container */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col items-center justify-center mb-6 sm:mb-8 md:mb-10 lg:mb-12 px-3 sm:px-4 md:px-6 lg:px-8 w-full"
+        >
+          <motion.div 
+            className="relative p-3 sm:p-4 md:p-5 lg:p-6 rounded-lg border-2 border-primary/50 bg-gradient-to-br from-white/95 via-primary/5 to-white/90 backdrop-blur-sm shadow-[0_0_20px_rgba(var(--primary),0.4)] w-full max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-3xl mx-auto overflow-hidden hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] transition-all duration-300"
+            initial={{ scale: 0.95 }}
+            animate={{ 
+              scale: 1,
+              transition: { 
+                type: "spring",
+                stiffness: 100,
+                damping: 15
+              }
+            }}
+            whileHover={{ scale: 1.02 }}
+          >
+            <motion.h1 
+              className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-3 md:px-4 py-2 relative z-10 leading-[1.2] sm:leading-[1.2] md:leading-[1.2] lg:leading-[1.2] animate-text tracking-tight"
+              initial={{ opacity: 0, y: 20 }}
               animate={{ 
-                scale: 1,
-                transition: { 
-                  type: "spring",
-                  stiffness: 100,
-                  damping: 15
+                opacity: 1, 
+                y: 0,
+                transition: {
+                  duration: 0.8,
+                  ease: "easeOut"
                 }
               }}
-              whileHover={{ scale: 1.02 }}
             >
-              <motion.h1 
-                className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-3 md:px-4 py-2 relative z-10 leading-[1.2] sm:leading-[1.2] md:leading-[1.2] lg:leading-[1.2] animate-text tracking-tight"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ 
-                  opacity: 1, 
-                  y: 0,
-                  transition: {
-                    duration: 0.8,
-                    ease: "easeOut"
-                  }
-                }}
-              >
-                吉他彈唱點歌系統
-              </motion.h1>
+              吉他彈唱點歌系統
+            </motion.h1>
 
-              {/* Add logout button for admin */}
-              {user?.isAdmin && (
-                <motion.div 
-                  className="absolute top-4 right-4"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleLogout}
-                    className="bg-gradient-to-r from-red-50 to-rose-50 hover:from-red-100 hover:to-rose-100 backdrop-blur-sm border-2 border-red-200/30 hover:border-red-300/40 transition-all duration-300"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    登出管理
-                  </Button>
-                </motion.div>
-              )}
-
-              <motion.div 
-                className="absolute inset-0 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30"
-                initial={{ opacity: 0 }}
-                animate={{
-                  opacity: [0.4, 0.7, 0.4],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                style={{
-                  filter: "blur(20px)",
-                  transform: "translate3d(0, 0, 0)", 
-                  backfaceVisibility: "hidden"
-                }}
-              />
-              <motion.div 
-                className="absolute inset-0 bg-gradient-to-br from-indigo-400/15 via-purple-400/20 to-pink-400/15"
-                animate={{
-                  backgroundPosition: ["0% 0%", "100% 100%"],
-                }}
-                transition={{
-                  duration: 15,
-                  repeat: Infinity,
-                  ease: "linear",
-                  repeatType: "reverse"
-                }}
-                style={{
-                  backgroundSize: "200% 200%",
-                  filter: "blur(15px)",
-                  transform: "translate3d(0, 0, 0)", 
-                  backfaceVisibility: "hidden"
-                }}
-              />
-            </motion.div>
             <motion.div 
-              className="mt-4 sm:mt-5 md:mt-6 lg:mt-8 scale-90 sm:scale-95 md:scale-100 lg:scale-105"
+              className="absolute inset-0 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30"
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-            >
-              <ShareButton />
-            </motion.div>
+              animate={{
+                opacity: [0.4, 0.7, 0.4],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              style={{
+                filter: "blur(20px)",
+                transform: "translate3d(0, 0, 0)", 
+                backfaceVisibility: "hidden"
+              }}
+            />
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-br from-indigo-400/15 via-purple-400/20 to-pink-400/15"
+              animate={{
+                backgroundPosition: ["0% 0%", "100% 100%"],
+              }}
+              transition={{
+                duration: 15,
+                repeat: Infinity,
+                ease: "linear",
+                repeatType: "reverse"
+              }}
+              style={{
+                backgroundSize: "200% 200%",
+                filter: "blur(15px)",
+                transform: "translate3d(0, 0, 0)", 
+                backfaceVisibility: "hidden"
+              }}
+            />
           </motion.div>
+
+          <motion.div 
+            className="mt-4 sm:mt-5 md:mt-6 lg:mt-8 scale-90 sm:scale-95 md:scale-100 lg:scale-105"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
+          >
+            <ShareButton />
+          </motion.div>
+        </motion.div>
+
+        {/* Rest of the content */}
         <AnimatePresence>
           <motion.div 
             className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
@@ -245,6 +248,7 @@ export default function Home() {
               layout: { duration: 0.3 },
             }}
           >
+            {/* Song suggestion section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -264,6 +268,7 @@ export default function Home() {
               </Card>
             </motion.div>
 
+            {/* Song list section */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -285,6 +290,7 @@ export default function Home() {
               </Card>
             </motion.div>
 
+            {/* Ranking board section */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -307,6 +313,7 @@ export default function Home() {
         </AnimatePresence>
       </div>
 
+      {/* Login button for non-admin users */}
       {!user && (
         <motion.div 
           className="fixed bottom-4 right-4 z-50"
@@ -326,6 +333,7 @@ export default function Home() {
         </motion.div>
       )}
 
+      {/* Login form modal */}
       {showLoginForm && (
         <LoginForm onClose={() => setShowLoginForm(false)} />
       )}
