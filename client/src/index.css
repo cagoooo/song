@@ -73,3 +73,13 @@
     background-position: left center;
   }
 }
+
+/* Add gradient animation for the title */
+.animate-text {
+  animation: gradient 8s linear infinite, 
+             shimmer 3s ease-in-out infinite, 
+             sparkle 8s linear infinite;
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+}
