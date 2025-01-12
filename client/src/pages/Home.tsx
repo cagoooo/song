@@ -144,11 +144,7 @@ export default function Home() {
           className="flex flex-col items-center justify-center mb-8 sm:mb-12 px-4"
         >
           <motion.div 
-            className="relative p-4 sm:p-6 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
-                      shadow-[0_0_15px_rgba(var(--primary),0.3)]
-                      w-full max-w-3xl mx-auto
-                      hover:shadow-[0_0_25px_rgba(var(--primary),0.4)]
-                      transition-all duration-300"
+            className="relative p-4 sm:p-6 rounded-lg border-2 border-primary/50 bg-gradient-to-br from-white/90 via-primary/5 to-white/80 backdrop-blur-sm shadow-[0_0_15px_rgba(var(--primary),0.3)] w-full max-w-3xl mx-auto overflow-hidden hover:shadow-[0_0_25px_rgba(var(--primary),0.4)] transition-all duration-300"
             initial={{ scale: 0.95 }}
             animate={{ 
               scale: 1,
@@ -161,14 +157,7 @@ export default function Home() {
             whileHover={{ scale: 1.02 }}
           >
             <motion.h1 
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-center
-                        bg-gradient-to-r from-primary via-purple-600 to-primary
-                        bg-clip-text text-transparent
-                        px-2 sm:px-4 py-2
-                        leading-tight sm:leading-tight md:leading-tight lg:leading-tight
-                        relative
-                        [text-shadow:0_1px_2px_rgba(0,0,0,0.1),0_4px_8px_rgba(0,0,0,0.1)]
-                        sm:[text-shadow:0_2px_4px_rgba(0,0,0,0.1),0_8px_16px_rgba(0,0,0,0.1)]"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-center bg-gradient-to-r from-primary via-purple-600 to-primary bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-4 py-2 relative z-10 leading-tight sm:leading-tight md:leading-tight lg:leading-tight"
               initial={{ opacity: 0, y: 20 }}
               animate={{ 
                 opacity: 1, 
@@ -178,32 +167,12 @@ export default function Home() {
                   ease: "easeOut"
                 }
               }}
-              style={{
-                backgroundSize: "200% 100%",
-                animation: "gradient 8s linear infinite, shimmer 3s ease-in-out infinite, float 6s ease-in-out infinite"
-              }}
             >
               吉他彈唱點歌系統
             </motion.h1>
 
             <motion.div 
-              className="absolute inset-0 rounded-lg border-2 border-primary/20
-                        hidden sm:block"
-              initial={{ opacity: 0 }}
-              animate={{ 
-                opacity: [0.3, 0.6, 0.3],
-                scale: [1, 1.02, 1],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-primary/5 via-purple-500/5 to-primary/5
-                        hidden sm:block"
+              className="absolute inset-0 bg-gradient-to-r from-primary/10 via-purple-500/5 to-primary/10"
               initial={{ opacity: 0 }}
               animate={{
                 opacity: [0.3, 0.6, 0.3],
@@ -215,7 +184,27 @@ export default function Home() {
               }}
               style={{
                 filter: "blur(20px)",
-                animation: "sparkle 8s linear infinite"
+                transform: "translate3d(0, 0, 0)", 
+                backfaceVisibility: "hidden"
+              }}
+            />
+
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-500/10 to-primary/5"
+              animate={{
+                backgroundPosition: ["0% 0%", "100% 100%"],
+              }}
+              transition={{
+                duration: 15,
+                repeat: Infinity,
+                ease: "linear",
+                repeatType: "reverse"
+              }}
+              style={{
+                backgroundSize: "200% 200%",
+                filter: "blur(15px)",
+                transform: "translate3d(0, 0, 0)", 
+                backfaceVisibility: "hidden"
               }}
             />
           </motion.div>
@@ -309,9 +298,7 @@ export default function Home() {
             variant="outline" 
             size="sm" 
             onClick={() => setShowLoginForm(true)}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 
-                      backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40
-                      transition-all duration-300"
+            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40 transition-all duration-300"
           >
             <LogIn className="w-4 h-4 mr-2" />
             管理員登入
