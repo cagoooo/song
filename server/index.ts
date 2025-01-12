@@ -1,8 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { validateDbConnection } from "@db";
-import { setupAuth } from "./auth";
+import { db } from "@db";
+import { sql } from "drizzle-orm";
 
 const app = express();
 app.use(express.json());
@@ -27,11 +27,9 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
-
       log(logLine);
     }
   });
@@ -50,14 +48,15 @@ process.on('uncaughtException', (error) => {
 
 (async () => {
   try {
-    // 測試資料庫連接
-    await validateDbConnection();
-    log('Database connection test successful');
+    // Test database connection
+    const result = await db.execute(sql`SELECT 1`);
+    if (result) {
+      log('Database connection successful');
+    }
 
-    setupAuth(app);
     const server = registerRoutes(app);
 
-    // Enhanced error handling middleware
+    // Added error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Error:', err);
       const status = err.status || err.statusCode || 500;
@@ -72,14 +71,30 @@ process.on('uncaughtException', (error) => {
       serveStatic(app);
     }
 
-    // Always serve the app on port 5000
-    const PORT = 5000;
+    const PORT = parseInt(process.env.PORT || "3000", 10);
 
     // Start server
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server started successfully on port ${PORT}`);
       log(`Development mode: ${app.get("env") === "development"}`);
     });
+
+    // Graceful shutdown handler
+    const shutdown = () => {
+      server.close(() => {
+        log('Server shutdown complete');
+        process.exit(0);
+      });
+
+      // Force close if graceful shutdown fails
+      setTimeout(() => {
+        log('Server force shutdown');
+        process.exit(1);
+      }, 10000);
+    };
+
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', shutdown);
 
   } catch (error) {
     console.error('Failed to start server:', error);

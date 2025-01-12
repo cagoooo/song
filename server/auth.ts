@@ -5,7 +5,9 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { sql } from "@db";
+import { db } from "@db";
+import { eq } from "drizzle-orm";
+import { users, type User } from "@db/schema";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -25,6 +27,13 @@ const crypto = {
     return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
   },
 };
+
+// extend express user object with our schema
+declare global {
+  namespace Express {
+    interface User extends User { }
+  }
+}
 
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
@@ -52,19 +61,19 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        const [user] = await sql`
-          SELECT * FROM users WHERE username = ${username}
-        `;
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.username, username))
+          .limit(1);
 
         if (!user) {
           return done(null, false, { message: "帳號或密碼錯誤" });
         }
-
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "帳號或密碼錯誤" });
         }
-
         return done(null, user);
       } catch (err) {
         return done(err);
@@ -72,15 +81,17 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user: any, done) => {
+  passport.serializeUser((user, done) => {
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
-      const [user] = await sql`
-        SELECT * FROM users WHERE id = ${id}
-      `;
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
       done(null, user);
     } catch (err) {
       done(err);
@@ -92,9 +103,11 @@ export function setupAuth(app: Express) {
       const { username, password } = req.body;
 
       // Check if user already exists
-      const [existingUser] = await sql`
-        SELECT id FROM users WHERE username = ${username}
-      `;
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
 
       if (existingUser) {
         return res.status(400).send("使用者名稱已存在");
@@ -104,11 +117,14 @@ export function setupAuth(app: Express) {
       const hashedPassword = await crypto.hash(password);
 
       // Create the new user
-      const [newUser] = await sql`
-        INSERT INTO users (username, password, is_admin)
-        VALUES (${username}, ${hashedPassword}, false)
-        RETURNING *
-      `;
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          username,
+          password: hashedPassword,
+          isAdmin: false // 預設為非管理員
+        })
+        .returning();
 
       // Log the user in after registration
       req.login(newUser, (err) => {
@@ -117,11 +133,7 @@ export function setupAuth(app: Express) {
         }
         return res.json({
           message: "註冊成功",
-          user: {
-            id: newUser.id,
-            username: newUser.username,
-            isAdmin: newUser.is_admin
-          },
+          user: { id: newUser.id, username: newUser.username, isAdmin: newUser.isAdmin },
         });
       });
     } catch (error) {
@@ -135,13 +147,13 @@ export function setupAuth(app: Express) {
       return res.status(400).send("請輸入帳號和密碼");
     }
 
-    const cb = (err: any, user: any, info?: IVerifyOptions) => {
+    const cb = (err: any, user: Express.User, info: IVerifyOptions) => {
       if (err) {
         return next(err);
       }
 
       if (!user) {
-        return res.status(400).send(info?.message ?? "登入失敗");
+        return res.status(400).send(info.message ?? "登入失敗");
       }
 
       req.logIn(user, (err) => {
@@ -151,11 +163,7 @@ export function setupAuth(app: Express) {
 
         return res.json({
           message: "登入成功",
-          user: {
-            id: user.id,
-            username: user.username,
-            isAdmin: user.is_admin
-          },
+          user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
         });
       });
     };

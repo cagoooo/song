@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
 import { useState } from "react";
 
@@ -25,16 +25,12 @@ export function EditSongDialog({ song, isOpen, onClose }: EditSongDialogProps) {
   const [artist, setArtist] = useState(song.artist);
   const [notes, setNotes] = useState(song.notes || "");
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const updateSongMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/songs/${song.id}`, {
         method: "PATCH",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, artist, notes }),
         credentials: "include",
       });
@@ -51,34 +47,24 @@ export function EditSongDialog({ song, isOpen, onClose }: EditSongDialogProps) {
         title: "成功",
         description: "歌曲資訊已更新",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/songs'] });
       onClose();
     },
-    onError: (error) => {
-      console.error('Update song error:', error);
+    onError: () => {
       toast({
         title: "錯誤",
-        description: error.message || "更新歌曲失敗",
+        description: "更新歌曲失敗",
         variant: "destructive",
       });
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !artist.trim()) {
-      toast({
-        title: "錯誤",
-        description: "歌名和歌手名稱不能為空",
-        variant: "destructive",
-      });
-      return;
-    }
     updateSongMutation.mutate();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
