@@ -84,6 +84,11 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/suggestions", async (req, res) => {
     try {
       const { title, artist, suggestedBy, notes } = req.body;
+      console.log('Received suggestion:', { title, artist, suggestedBy, notes }); // 添加日誌
+
+      if (!title || !artist) {
+        return res.status(400).json({ error: "歌曲名稱和歌手為必填欄位" });
+      }
 
       const [suggestion] = await db.insert(songSuggestions)
         .values({
@@ -96,6 +101,7 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
+      console.log('Created suggestion:', suggestion); // 添加日誌
       res.json(suggestion);
     } catch (error) {
       console.error('Failed to create suggestion:', error);
