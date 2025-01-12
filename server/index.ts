@@ -53,7 +53,11 @@ app.use((req, res, next) => {
       log('Database connection successful');
     } catch (error) {
       log('Database connection failed:', error);
-      process.exit(1);
+      if (!process.env.DATABASE_URL) {
+        log('Missing DATABASE_URL environment variable');
+      }
+      const statusCode = error.status || error.statusCode || 500;
+      process.exit(statusCode);
     }
 
     const server = registerRoutes(app);
@@ -67,6 +71,10 @@ app.use((req, res, next) => {
 
     // Start the server with a numeric port
     const PORT = Number(process.env.PORT || 3000);
+    if (isNaN(PORT)) {
+      log('Invalid PORT environment variable');
+      process.exit(1);
+    }
     server.listen(PORT, "0.0.0.0", () => {
       log(`Server running on port ${PORT} (${app.get("env")})`);
       log('Database configuration:', {
