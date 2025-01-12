@@ -32,7 +32,15 @@ export async function initializeDatabase() {
     await db.execute(sql`SELECT 1`);
     console.log("Database connection established successfully");
   } catch (error) {
-    console.error("Failed to initialize database:", error);
+    console.error("Failed to initialize database. Please check your environment variables:", error);
+    console.error("Required environment variables:", {
+      DATABASE_URL: process.env.DATABASE_URL ? "Set" : "Missing",
+      PGDATABASE: process.env.PGDATABASE ? "Set" : "Missing",
+      PGHOST: process.env.PGHOST ? "Set" : "Missing",
+      PGPORT: process.env.PGPORT ? "Set" : "Missing",
+      PGUSER: process.env.PGUSER ? "Set" : "Missing",
+      PGPASSWORD: process.env.PGPASSWORD ? "Set" : "Missing"
+    });
     throw error;
   }
 }
