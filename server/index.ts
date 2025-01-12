@@ -8,6 +8,14 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Added error handling middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Error:', err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ message });
+});
+
 // Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
@@ -37,15 +45,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Global error handler for unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-});
-
 (async () => {
   try {
     // Test database connection
@@ -56,14 +55,6 @@ process.on('uncaughtException', (error) => {
 
     const server = registerRoutes(app);
 
-    // Added error handling middleware
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      console.error('Error:', err);
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
-    });
-
     // Setup Vite in development environment
     if (app.get("env") === "development") {
       await setupVite(app, server);
@@ -71,31 +62,11 @@ process.on('uncaughtException', (error) => {
       serveStatic(app);
     }
 
-    const PORT = parseInt(process.env.PORT || "3000", 10);
-
-    // Start server
+    // Start the server with a numeric port
+    const PORT = Number(process.env.PORT || 5000);
     server.listen(PORT, "0.0.0.0", () => {
-      log(`Server started successfully on port ${PORT}`);
-      log(`Development mode: ${app.get("env") === "development"}`);
+      log(`Server running on port ${PORT}`);
     });
-
-    // Graceful shutdown handler
-    const shutdown = () => {
-      server.close(() => {
-        log('Server shutdown complete');
-        process.exit(0);
-      });
-
-      // Force close if graceful shutdown fails
-      setTimeout(() => {
-        log('Server force shutdown');
-        process.exit(1);
-      }, 10000);
-    };
-
-    process.on('SIGTERM', shutdown);
-    process.on('SIGINT', shutdown);
-
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);

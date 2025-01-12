@@ -1,5 +1,6 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { sql } from "drizzle-orm";
+import ws from "ws";
 import * as schema from "@db/schema";
 
 if (!process.env.DATABASE_URL) {
@@ -8,8 +9,10 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Create a direct HTTP connection without pooling
-const sql = neon(process.env.DATABASE_URL);
+export const db = drizzle({
+  connection: process.env.DATABASE_URL,
+  schema,
+  ws: ws,
+});
 
-// Initialize drizzle with the latest configuration
-export const db = drizzle(sql, { schema });
+export { sql };

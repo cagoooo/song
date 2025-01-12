@@ -1,16 +1,14 @@
-import { pgTable, text, serial, integer, timestamp, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull(),
+  username: text("username").unique().notNull(),
   password: text("password").notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
-}, (table) => ({
-  usernameIdx: uniqueIndex("username_idx").on(table.username)
-}));
+});
 
 export const songs = pgTable("songs", {
   id: serial("id").primaryKey(),
@@ -44,17 +42,15 @@ export const songSuggestions = pgTable("song_suggestions", {
 
 export const tags = pgTable("tags", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
-}, (table) => ({
-  nameIdx: uniqueIndex("name_idx").on(table.name)
-}));
+  name: text("name").unique().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 export const songTags = pgTable("song_tags", {
   id: serial("id").primaryKey(),
   songId: integer("song_id").references(() => songs.id).notNull(),
   tagId: integer("tag_id").references(() => tags.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const qrCodeScans = pgTable("qr_code_scans", {
@@ -107,28 +103,6 @@ export const qrCodeScansRelations = relations(qrCodeScans, ({ one }) => ({
 }));
 
 // Schema types
-export const insertUserSchema = createInsertSchema(users);
-export const selectUserSchema = createSelectSchema(users);
-
-export const insertSongSchema = createInsertSchema(songs);
-export const selectSongSchema = createSelectSchema(songs);
-
-export const insertVoteSchema = createInsertSchema(votes);
-export const selectVoteSchema = createSelectSchema(votes);
-
-export const insertTagSchema = createInsertSchema(tags);
-export const selectTagSchema = createSelectSchema(tags);
-
-export const insertSongTagSchema = createInsertSchema(songTags);
-export const selectSongTagSchema = createSelectSchema(songTags);
-
-export const insertSongSuggestionSchema = createInsertSchema(songSuggestions);
-export const selectSongSuggestionSchema = createSelectSchema(songSuggestions);
-
-export const insertQRCodeScanSchema = createInsertSchema(qrCodeScans);
-export const selectQRCodeScanSchema = createSelectSchema(qrCodeScans);
-
-// Types inferred from the schema
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
@@ -149,3 +123,25 @@ export type NewSongSuggestion = typeof songSuggestions.$inferInsert;
 
 export type QRCodeScan = typeof qrCodeScans.$inferSelect;
 export type NewQRCodeScan = typeof qrCodeScans.$inferInsert;
+
+// Zod schemas
+export const insertUserSchema = createInsertSchema(users);
+export const selectUserSchema = createSelectSchema(users);
+
+export const insertSongSchema = createInsertSchema(songs);
+export const selectSongSchema = createSelectSchema(songs);
+
+export const insertVoteSchema = createInsertSchema(votes);
+export const selectVoteSchema = createSelectSchema(votes);
+
+export const insertTagSchema = createInsertSchema(tags);
+export const selectTagSchema = createSelectSchema(tags);
+
+export const insertSongTagSchema = createInsertSchema(songTags);
+export const selectSongTagSchema = createSelectSchema(songTags);
+
+export const insertSongSuggestionSchema = createInsertSchema(songSuggestions);
+export const selectSongSuggestionSchema = createSelectSchema(songSuggestions);
+
+export const insertQRCodeScanSchema = createInsertSchema(qrCodeScans);
+export const selectQRCodeScanSchema = createSelectSchema(qrCodeScans);
