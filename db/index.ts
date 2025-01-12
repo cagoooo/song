@@ -1,19 +1,29 @@
-import { drizzle } from "drizzle-orm/neon-serverless";
-import { sql } from "drizzle-orm";
-import ws from "ws";
+import pg from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@db/schema";
 
-const dbUrl = process.env.DATABASE_URL || process.env.REPL_DB_URL;
-if (!dbUrl) {
+if (!process.env.DATABASE_URL) {
   throw new Error(
-    "DATABASE_URL or REPL_DB_URL must be set. Did you forget to provision a database?",
+    "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
 
-export const db = drizzle({
-  connection: dbUrl,
-  schema,
-  ws: ws,
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-export { sql };
+// Test the database connection
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('Error acquiring client', err.stack);
+    return;
+  }
+  console.log('Database connection successful');
+  release();
+});
+
+export const db = drizzle(pool, { schema });
+export { sql } from 'drizzle-orm';
