@@ -12,10 +12,10 @@ if (!process.env.DATABASE_URL) {
 
 // Configure neon with WebSocket settings
 neonConfig.webSocketConstructor = ws;
-// Required for Replit environment
-neonConfig.useSecureWebSocket = false;
-neonConfig.pipelineTLS = false;
-neonConfig.pipelineConnect = false;
+// Enable secure connections for deployment
+neonConfig.useSecureWebSocket = true;
+neonConfig.pipelineTLS = true;
+neonConfig.pipelineConnect = true;
 
 // Create the connection pool with explicit configuration
 const sql_connection = neon(process.env.DATABASE_URL);
