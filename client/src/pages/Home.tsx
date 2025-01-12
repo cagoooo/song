@@ -141,25 +141,29 @@ export default function Home() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col items-center justify-center mb-8 sm:mb-10"
+          className="flex flex-col items-center justify-center mb-8 sm:mb-12 px-4"
         >
           <div 
-            className="relative p-3 sm:p-4 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
+            className="relative p-4 sm:p-6 rounded-lg border-2 border-primary/50 bg-white/50 backdrop-blur-sm
                       shadow-[0_0_15px_rgba(var(--primary),0.3)]
                       animate-[shadow-pulse_3s_ease-in-out_infinite]
-                      w-full max-w-2xl mx-auto"
+                      w-full max-w-3xl mx-auto
+                      hover:shadow-[0_0_25px_rgba(var(--primary),0.4)]
+                      transition-shadow duration-300"
           >
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-center
                         bg-gradient-to-r from-primary via-purple-600 to-primary
                         bg-clip-text text-transparent
-                        px-4 py-2"
+                        animate-[gradient_8s_linear_infinite]
+                        px-4 py-2
+                        leading-tight"
             >
               吉他彈唱點歌系統
             </h1>
             <div className="absolute inset-0 rounded-lg border-2 border-primary/20
-                         animate-[border-pulse_3s_ease-in-out_infinite_0.5s]" />
+                          animate-[border-pulse_3s_ease-in-out_infinite_0.5s]" />
           </div>
-          <div className="mt-4">
+          <div className="mt-6 sm:mt-8 scale-105">
             <ShareButton />
           </div>
         </motion.div>

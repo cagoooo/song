@@ -34,14 +34,14 @@ export function ShareButton() {
             <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>分享點歌系統</span>
           </div>
-          <div className="flex items-center gap-1 text-xs text-primary/70 bg-primary/10 px-2 py-1 rounded-full">
-            <QrCode className="w-3 h-3" />
-            <span>QR Code</span>
+          <div className="flex items-center gap-1.5 text-xs text-primary/70 bg-primary/10 px-2.5 py-1 rounded-full">
+            <QrCode className="w-3.5 h-3.5" />
+            <span>掃描 QR Code</span>
           </div>
 
-          {/* Glow effect on hover */}
-          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-primary/20 to-purple-500/20 opacity-0 
-                        group-hover:opacity-100 blur-xl transition-opacity rounded-lg" />
+          {/* Enhanced glow effect on hover */}
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-primary/20 via-pink-500/20 to-purple-500/20 opacity-0 
+                        group-hover:opacity-100 blur-xl transition-opacity duration-500 rounded-lg" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 border-2 border-primary/20">
