@@ -70,11 +70,11 @@ export function ShareButton() {
               level="H"
               includeMargin
               imageSettings={{
-                src: "/favicon.ico",
+                src: "/logo.png",
                 x: undefined,
                 y: undefined,
-                height: 32,
-                width: 32,
+                height: 24,
+                width: 24,
                 excavate: true,
               }}
             />
