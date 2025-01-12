@@ -8,9 +8,12 @@ const requiredEnvVars = ['DATABASE_URL', 'PGDATABASE', 'PGHOST', 'PGPORT', 'PGUS
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0) {
-  console.error(`Missing environment variables: ${missingVars.join(', ')}`);
-  console.error('Please set these variables in the Deployment settings');
-  throw new Error('Database configuration incomplete');
+  console.error('Missing required database environment variables:');
+  missingVars.forEach(varName => {
+    console.error(`- ${varName}`);
+  });
+  console.error('Please set these variables in your Deployment settings');
+  throw new Error('Database configuration incomplete - check deployment logs');
 }
 
 // Configure neon with WebSocket settings
