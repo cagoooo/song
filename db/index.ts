@@ -8,8 +8,8 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Create a neon connection
+// Create a direct HTTP connection without pooling
 const sql = neon(process.env.DATABASE_URL);
 
-// Create the drizzle db instance
+// Initialize drizzle with the latest configuration
 export const db = drizzle(sql, { schema });
