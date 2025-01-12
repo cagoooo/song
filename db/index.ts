@@ -4,16 +4,21 @@ import * as schema from "@db/schema";
 import ws from "ws";
 import { sql } from "drizzle-orm";
 
-const requiredEnvVars = ['DATABASE_URL', 'PGDATABASE', 'PGHOST', 'PGPORT', 'PGUSER', 'PGPASSWORD'];
+const requiredEnvVars = ['DATABASE_URL'];
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0) {
-  console.error('Missing required database environment variables:');
-  missingVars.forEach(varName => {
-    console.error(`- ${varName}`);
-  });
-  console.error('Please set these variables in your Deployment settings');
-  throw new Error('Database configuration incomplete - check deployment logs');
+  console.error('Missing required database environment variable DATABASE_URL');
+  console.error('Please set DATABASE_URL in your Deployment secrets');
+  process.exit(1);
+}
+
+// Verify database URL format
+try {
+  new URL(process.env.DATABASE_URL as string);
+} catch (error) {
+  console.error('Invalid DATABASE_URL format');
+  process.exit(1);
 }
 
 // Configure neon with WebSocket settings
