@@ -8,7 +8,7 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Create the SQL client
+// Create a neon connection
 const sql = neon(process.env.DATABASE_URL);
 
 // Create the drizzle db instance
