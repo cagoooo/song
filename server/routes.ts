@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, templates, type User, users } from "@db/schema";
+import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, type User, users } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql, and } from "drizzle-orm";
 import type { IncomingMessage } from "http";
@@ -28,55 +28,12 @@ export function registerRoutes(app: Express): Server {
     next();
   };
 
-  // Templates routes
-  app.get("/api/templates", async (req, res) => {
-    try {
-      const userTemplates = await db
-        .select()
-        .from(templates)
-        .where(
-          and(
-            eq(templates.userId, req.user!.id),
-            eq(templates.isActive, true)
-          )
-        );
-      res.json(userTemplates);
-    } catch (error) {
-      console.error('Failed to fetch templates:', error);
-      res.status(500).json({ error: "無法取得模板列表" });
-    }
-  });
-
-  app.post("/api/templates", async (req, res) => {
-    if (!req.user) {
-      return res.status(403).json({ error: "需要登入" });
-    }
-
-    try {
-      const { name, settings } = req.body;
-      const [newTemplate] = await db
-        .insert(templates)
-        .values({
-          userId: req.user.id,
-          name,
-          settings,
-          isActive: true
-        })
-        .returning();
-
-      res.json(newTemplate);
-    } catch (error) {
-      console.error('Failed to create template:', error);
-      res.status(500).json({ error: "無法創建新模板" });
-    }
-  });
-
-  // Add this new route to get user templates
-  app.get("/api/users/:username/templates", async (req, res) => {
+  // Get user information
+  app.get("/api/users/:username", async (req, res) => {
     try {
       const username = req.params.username;
 
-      // 首先查找用戶
+      // Find the user
       const user = await db.query.users.findFirst({
         where: (users, { eq }) => eq(users.username, username),
       });
@@ -85,21 +42,15 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "找不到該使用者" });
       }
 
-      // 獲取該用戶的所有啟用模板
-      const userTemplates = await db
-        .select()
-        .from(templates)
-        .where(
-          and(
-            eq(templates.userId, user.id),
-            eq(templates.isActive, true)
-          )
-        );
-
-      res.json(userTemplates);
+      // Return user info without sensitive data
+      res.json({
+        id: user.id,
+        username: user.username,
+        isAdmin: user.isAdmin
+      });
     } catch (error) {
-      console.error('Failed to fetch user templates:', error);
-      res.status(500).json({ error: "無法取得使用者模板列表" });
+      console.error('Failed to fetch user:', error);
+      res.status(500).json({ error: "無法取得使用者資訊" });
     }
   });
 
@@ -150,7 +101,7 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Created suggestion:', suggestion);
       res.json(suggestion);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create suggestion:', error);
       if (error.code === '23505') { // 重複的建議
         res.status(409).json({
@@ -220,73 +171,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // QR Code scan tracking endpoints
-  app.post("/api/qr-scans", async (req, res) => {
-    try {
-      const { songId } = req.body;
-      const sessionId = req.sessionID || Math.random().toString(36).substring(2);
-      const userAgent = req.headers['user-agent'];
-      const referrer = req.headers.referer || req.headers.referrer;
-
-      const [scan] = await db.insert(qrCodeScans)
-        .values({
-          songId,
-          sessionId,
-          userAgent: userAgent || null,
-          referrer: referrer || null,
-          createdAt: new Date()
-        })
-        .returning();
-
-      res.json(scan);
-    } catch (error) {
-      console.error('Failed to record QR code scan:', error);
-      res.status(500).json({ error: "無法記錄QR碼掃描" });
-    }
-  });
-
-  // Get QR code scan statistics (admin only)
-  app.get("/api/qr-scans/stats", requireAdmin, async (req, res) => {
-    try {
-      // Get total scans count
-      const totalScans = await db
-        .select({ count: sql<number>`count(*)`.mapWith(Number) })
-        .from(qrCodeScans);
-
-      // Get scans by song
-      const scansBySong = await db
-        .select({
-          songId: songs.id,
-          title: songs.title,
-          artist: songs.artist,
-          scanCount: sql<number>`count(${qrCodeScans.id})`.mapWith(Number)
-        })
-        .from(qrCodeScans)
-        .innerJoin(songs, eq(qrCodeScans.songId, songs.id))
-        .groupBy(songs.id, songs.title, songs.artist)
-        .orderBy(sql`count(${qrCodeScans.id}) DESC`);
-
-      // Get scans by date
-      const scansByDate = await db
-        .select({
-          date: sql<string>`date_trunc('day', ${qrCodeScans.createdAt})::text`,
-          count: sql<number>`count(*)`.mapWith(Number)
-        })
-        .from(qrCodeScans)
-        .groupBy(sql`date_trunc('day', ${qrCodeScans.createdAt})`)
-        .orderBy(sql`date_trunc('day', ${qrCodeScans.createdAt}) DESC`);
-
-      res.json({
-        totalScans: totalScans[0].count,
-        scansBySong,
-        scansByDate,
-      });
-    } catch (error) {
-      console.error('Failed to fetch QR code scan statistics:', error);
-      res.status(500).json({ error: "無法取得QR碼掃描統計" });
-    }
-  });
-
   // Songs routes
   app.get("/api/songs", async (_req, res) => {
     try {
@@ -317,7 +201,6 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: "新增歌曲失敗" });
     }
   });
-
 
   const wss = new WebSocketServer({
     server: httpServer,
@@ -422,6 +305,74 @@ export function registerRoutes(app: Express): Server {
       console.error('Failed to send songs update:', error);
     }
   }
+
+
+  // QR Code scan tracking endpoints
+  app.post("/api/qr-scans", async (req, res) => {
+    try {
+      const { songId } = req.body;
+      const sessionId = req.sessionID || Math.random().toString(36).substring(2);
+      const userAgent = req.headers['user-agent'];
+      const referrer = req.headers.referer || req.headers.referrer;
+
+      const [scan] = await db.insert(qrCodeScans)
+        .values({
+          songId,
+          sessionId,
+          userAgent: userAgent || null,
+          referrer: referrer || null,
+          createdAt: new Date()
+        })
+        .returning();
+
+      res.json(scan);
+    } catch (error) {
+      console.error('Failed to record QR code scan:', error);
+      res.status(500).json({ error: "無法記錄QR碼掃描" });
+    }
+  });
+
+  // Get QR code scan statistics (admin only)
+  app.get("/api/qr-scans/stats", requireAdmin, async (req, res) => {
+    try {
+      // Get total scans count
+      const totalScans = await db
+        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .from(qrCodeScans);
+
+      // Get scans by song
+      const scansBySong = await db
+        .select({
+          songId: songs.id,
+          title: songs.title,
+          artist: songs.artist,
+          scanCount: sql<number>`count(${qrCodeScans.id})`.mapWith(Number)
+        })
+        .from(qrCodeScans)
+        .innerJoin(songs, eq(qrCodeScans.songId, songs.id))
+        .groupBy(songs.id, songs.title, songs.artist)
+        .orderBy(sql`count(${qrCodeScans.id}) DESC`);
+
+      // Get scans by date
+      const scansByDate = await db
+        .select({
+          date: sql<string>`date_trunc('day', ${qrCodeScans.createdAt})::text`,
+          count: sql<number>`count(*)`.mapWith(Number)
+        })
+        .from(qrCodeScans)
+        .groupBy(sql`date_trunc('day', ${qrCodeScans.createdAt})`)
+        .orderBy(sql`date_trunc('day', ${qrCodeScans.createdAt}) DESC`);
+
+      res.json({
+        totalScans: totalScans[0].count,
+        scansBySong,
+        scansByDate,
+      });
+    } catch (error) {
+      console.error('Failed to fetch QR code scan statistics:', error);
+      res.status(500).json({ error: "無法取得QR碼掃描統計" });
+    }
+  });
 
   // Tags routes
   app.get("/api/tags", async (_req, res) => {

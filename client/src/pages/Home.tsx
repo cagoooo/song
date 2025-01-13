@@ -5,20 +5,17 @@ import { useUser } from "@/hooks/use-user";
 import { useQuery } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Music2, Trophy, Lightbulb, Settings } from "lucide-react";
+import { LogOut, Music2, Trophy, Lightbulb, Settings } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import RankingBoard from "../components/RankingBoard";
-import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 import UserManagement from "../components/UserManagement";
-import TemplateManager from "../components/TemplateManager";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
-  const [showLoginForm, setShowLoginForm] = useState(false);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
@@ -236,31 +233,8 @@ export default function Home() {
                   系統管理
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <UserManagement />
-                <TemplateManager />
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Template Manager for Regular Users */}
-        {!user?.isAdmin && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  模板設定
-                </CardTitle>
-              </CardHeader>
               <CardContent>
-                <TemplateManager />
+                <UserManagement />
               </CardContent>
             </Card>
           </motion.div>
@@ -339,11 +313,6 @@ export default function Home() {
           </motion.div>
         </AnimatePresence>
       </div>
-
-      {/* Login form modal */}
-      {showLoginForm && (
-        <LoginForm onClose={() => setShowLoginForm(false)} />
-      )}
     </div>
   );
 }
