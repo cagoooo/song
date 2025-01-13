@@ -38,7 +38,10 @@ async function initAdmin() {
     }
   } catch (error) {
     console.error("建立管理員帳號時發生錯誤:", error);
+    process.exit(1);
   }
 }
 
-initAdmin().then(() => process.exit(0));
+// 執行初始化
+await initAdmin();
+process.exit(0);

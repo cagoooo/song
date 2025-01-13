@@ -4,6 +4,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import AuthPage from "@/pages/auth-page";
 import { useUser } from "@/hooks/use-user";
 import { Toaster } from "@/components/ui/toaster";
+import Home from "@/pages/Home";
 
 function App() {
   const { user, isLoading } = useUser();
@@ -23,8 +24,7 @@ function App() {
   return (
     <>
       <Switch>
-        {/* Add pages below */}
-        {/* <Route path="/" component={Home} /> */}
+        <Route path="/" component={Home} />
         <Route component={NotFound} />
       </Switch>
       <Toaster />
