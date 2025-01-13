@@ -49,7 +49,7 @@ export default function UserTemplate() {
     retry: 1
   });
 
-  // WebSocket連接
+  // WebSocket connection
   useEffect(() => {
     function setupWebSocket() {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -58,20 +58,14 @@ export default function UserTemplate() {
 
       try {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host;
-        const wsUrl = `${protocol}//${host}/ws`;
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-        if (!isReconnecting) {
-          console.log('建立 WebSocket 連接...');
-        }
-
+        console.log('Attempting to establish WebSocket connection:', wsUrl);
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
-          if (!isReconnecting) {
-            console.log('WebSocket 連接成功');
-          }
+          console.log('WebSocket connection established');
           setIsWebSocketConnected(true);
           setIsReconnecting(false);
           reconnectAttempts.current = 0;
@@ -98,20 +92,22 @@ export default function UserTemplate() {
               });
             }
           } catch (error) {
-            console.error('WebSocket 消息解析錯誤:', error);
+            console.error('WebSocket message parsing error:', error);
           }
         };
 
         ws.onclose = () => {
+          console.log('WebSocket connection closed');
           setIsWebSocketConnected(false);
+
           if (!isReconnecting && reconnectAttempts.current < maxReconnectAttempts) {
             setIsReconnecting(true);
             reconnectAttempts.current += 1;
             const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-            console.log(`嘗試重新連接中... (${reconnectAttempts.current}/${maxReconnectAttempts})`);
+            console.log(`Attempting to reconnect... (${reconnectAttempts.current}/${maxReconnectAttempts})`);
             reconnectTimeoutRef.current = setTimeout(setupWebSocket, delay);
           } else if (reconnectAttempts.current >= maxReconnectAttempts) {
-            console.log('已達到最大重試次數');
+            console.log('Maximum reconnection attempts reached');
             toast({
               title: "連接中斷",
               description: "無法連接到伺服器，請重新整理頁面",
@@ -121,12 +117,13 @@ export default function UserTemplate() {
         };
 
         ws.onerror = (error) => {
-          console.error('WebSocket 錯誤:', error);
+          console.error('WebSocket error:', error);
           if (ws.readyState === WebSocket.OPEN) {
             ws.close();
           }
         };
 
+        // Setup ping interval
         const pingInterval = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'PING' }));
@@ -141,17 +138,17 @@ export default function UserTemplate() {
         };
 
       } catch (error) {
-        console.error('WebSocket 連接錯誤:', error);
+        console.error('WebSocket connection error:', error);
         setIsWebSocketConnected(false);
 
         if (!isReconnecting && reconnectAttempts.current < maxReconnectAttempts) {
           setIsReconnecting(true);
           reconnectAttempts.current += 1;
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-          console.log(`嘗試重新連接中... (${reconnectAttempts.current}/${maxReconnectAttempts})`);
+          console.log(`Attempting to reconnect... (${reconnectAttempts.current}/${maxReconnectAttempts})`);
           reconnectTimeoutRef.current = setTimeout(setupWebSocket, delay);
         } else if (reconnectAttempts.current >= maxReconnectAttempts) {
-          console.log('已達到最大重試次數');
+          console.log('Maximum reconnection attempts reached');
           toast({
             title: "連接錯誤",
             description: "無法建立連接，請重新整理頁面",

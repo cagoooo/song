@@ -57,7 +57,11 @@ export function registerRoutes(app: Express): Server {
 
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
-          client.send(message);
+          try {
+            client.send(message);
+          } catch (error) {
+            console.error('Failed to send message to client:', error);
+          }
         }
       });
     } catch (error) {
@@ -65,33 +69,46 @@ export function registerRoutes(app: Express): Server {
     }
   }
 
-  // WebSocket server setup
+  // WebSocket server setup with improved error handling
   const wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws',
     verifyClient: ({ req }: { req: IncomingMessage }) => {
       const protocol = req.headers['sec-websocket-protocol'];
-      return protocol === 'vite-hmr' || true;
+      // Always allow Vite HMR connections
+      if (protocol === 'vite-hmr') {
+        return true;
+      }
+      // For our application WebSocket connections
+      return true;
     }
   });
 
   wss.on('connection', function(ws) {
+    console.log('New WebSocket connection established');
     const sessionId = Math.random().toString(36).substring(2);
     let isAlive = true;
 
     // Send initial songs data
     broadcastSongsUpdate(wss);
 
-    // Set up ping interval
+    // Set up ping interval with error handling
     const pingInterval = setInterval(() => {
       if (!isAlive) {
+        console.log('Client connection lost, terminating...');
         ws.terminate();
         clearInterval(pingInterval);
         return;
       }
 
       isAlive = false;
-      ws.ping();
+      try {
+        ws.ping();
+      } catch (error) {
+        console.error('Error sending ping:', error);
+        clearInterval(pingInterval);
+        ws.terminate();
+      }
     }, 30000);
 
     ws.on('pong', () => {
@@ -135,6 +152,7 @@ export function registerRoutes(app: Express): Server {
             await broadcastSongsUpdate(wss);
 
           } catch (error: any) {
+            console.error('Vote handling error:', error);
             ws.send(JSON.stringify({
               type: 'ERROR',
               message: error.message || '處理點播請求時發生錯誤'
@@ -142,7 +160,7 @@ export function registerRoutes(app: Express): Server {
           }
         }
       } catch (error) {
-        console.error('WebSocket message processing error:', error);
+        console.error('Message processing error:', error);
         ws.send(JSON.stringify({
           type: 'ERROR',
           message: '無法處理請求'
@@ -150,11 +168,13 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
-    ws.on('error', () => {
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
       clearInterval(pingInterval);
     });
 
     ws.on('close', () => {
+      console.log('WebSocket connection closed');
       clearInterval(pingInterval);
     });
   });
