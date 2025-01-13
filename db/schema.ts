@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
@@ -20,6 +20,16 @@ export const songs = pgTable("songs", {
   audioUrl: text("audio_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   createdBy: integer("created_by").references(() => users.id),
+  isActive: boolean("is_active").default(true).notNull()
+});
+
+export const templates = pgTable("templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  name: text("name").notNull(),
+  settings: jsonb("settings").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   isActive: boolean("is_active").default(true).notNull()
 });
 
@@ -102,6 +112,18 @@ export const qrCodeScansRelations = relations(qrCodeScans, ({ one }) => ({
   })
 }));
 
+export const usersRelations = relations(users, ({ many }) => ({
+  templates: many(templates),
+  songs: many(songs)
+}));
+
+export const templatesRelations = relations(templates, ({ one }) => ({
+  user: one(users, {
+    fields: [templates.userId],
+    references: [users.id],
+  })
+}));
+
 // Schema types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -124,6 +146,9 @@ export type NewSongSuggestion = typeof songSuggestions.$inferInsert;
 export type QRCodeScan = typeof qrCodeScans.$inferSelect;
 export type NewQRCodeScan = typeof qrCodeScans.$inferInsert;
 
+export type Template = typeof templates.$inferSelect;
+export type NewTemplate = typeof templates.$inferInsert;
+
 // Zod schemas
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
@@ -145,3 +170,6 @@ export const selectSongSuggestionSchema = createSelectSchema(songSuggestions);
 
 export const insertQRCodeScanSchema = createInsertSchema(qrCodeScans);
 export const selectQRCodeScanSchema = createSelectSchema(qrCodeScans);
+
+export const insertTemplateSchema = createInsertSchema(templates);
+export const selectTemplateSchema = createSelectSchema(templates);
