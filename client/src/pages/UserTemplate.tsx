@@ -79,14 +79,18 @@ export default function UserTemplate() {
       }
 
       try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        // 使用當前頁面URL構建WebSocket URL
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = window.location.host;
+        const wsUrl = `${wsProtocol}//${wsHost}/ws`;
+        console.log('Connecting to WebSocket:', wsUrl);
 
         lastConnectionAttemptRef.current = now;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
+          console.log('WebSocket connection established');
           setIsWebSocketConnected(true);
           isReconnectingRef.current = false;
           reconnectAttemptsRef.current = 0;
@@ -104,6 +108,8 @@ export default function UserTemplate() {
                 description: data.message,
                 variant: "destructive"
               });
+            } else if (data.type === 'PONG') {
+              console.log('Server responded with PONG');
             }
           } catch (error) {
             console.error('WebSocket message parsing error:', error);
@@ -111,9 +117,11 @@ export default function UserTemplate() {
         };
 
         ws.onclose = () => {
+          console.log('WebSocket connection closed');
           setIsWebSocketConnected(false);
 
           if (!isReconnectingRef.current && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+            console.log(`Attempting to reconnect... (${reconnectAttemptsRef.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
             isReconnectingRef.current = true;
             reconnectAttemptsRef.current += 1;
             reconnectTimeoutRef.current = setTimeout(setupWebSocket, minRetryInterval);
@@ -126,7 +134,8 @@ export default function UserTemplate() {
           }
         };
 
-        ws.onerror = () => {
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
           if (ws.readyState === WebSocket.OPEN) {
             ws.close();
           }
@@ -145,6 +154,7 @@ export default function UserTemplate() {
         };
 
       } catch (error) {
+        console.error('WebSocket setup error:', error);
         setIsWebSocketConnected(false);
         if (!isReconnectingRef.current && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
           isReconnectingRef.current = true;
