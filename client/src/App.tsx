@@ -5,6 +5,7 @@ import AuthPage from "@/pages/auth-page";
 import { useUser } from "@/hooks/use-user";
 import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/Home";
+import UserTemplate from "@/pages/UserTemplate";
 
 function App() {
   const { user, isLoading } = useUser();
@@ -25,6 +26,7 @@ function App() {
     <>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/:username" component={UserTemplate} />
         <Route component={NotFound} />
       </Switch>
       <Toaster />

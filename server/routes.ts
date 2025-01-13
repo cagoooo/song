@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, templates, type User } from "@db/schema";
+import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, templates, type User, users } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql, and } from "drizzle-orm";
 import type { IncomingMessage } from "http";
@@ -38,8 +38,12 @@ export function registerRoutes(app: Express): Server {
       const userTemplates = await db
         .select()
         .from(templates)
-        .where(eq(templates.userId, req.user!.id))
-        .where(eq(templates.isActive, true));
+        .where(
+          and(
+            eq(templates.userId, req.user!.id),
+            eq(templates.isActive, true)
+          )
+        );
       res.json(userTemplates);
     } catch (error) {
       console.error('Failed to fetch templates:', error);
@@ -70,6 +74,39 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: "無法創建新模板" });
     }
   });
+
+  // Add this new route to get user templates
+  app.get("/api/users/:username/templates", async (req, res) => {
+    try {
+      const username = req.params.username;
+
+      // 首先查找用戶
+      const user = await db.query.users.findFirst({
+        where: eq(users.username, username),
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: "找不到該使用者" });
+      }
+
+      // 獲取該用戶的所有啟用模板
+      const userTemplates = await db
+        .select()
+        .from(templates)
+        .where(
+          and(
+            eq(templates.userId, user.id),
+            eq(templates.isActive, true)
+          )
+        );
+
+      res.json(userTemplates);
+    } catch (error) {
+      console.error('Failed to fetch user templates:', error);
+      res.status(500).json({ error: "無法取得使用者模板列表" });
+    }
+  });
+
 
   // Song Suggestions routes
   app.get("/api/suggestions", async (_req, res) => {
