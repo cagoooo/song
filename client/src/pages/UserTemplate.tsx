@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
@@ -11,6 +11,10 @@ import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 import { useToast } from "@/hooks/use-toast";
 
+const INITIAL_RETRY_DELAY = 2000;
+const MAX_RETRY_DELAY = 30000;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
 export default function UserTemplate() {
   const { username } = useParams();
   const [songs, setSongs] = useState<Song[]>([]);
@@ -19,40 +23,58 @@ export default function UserTemplate() {
   const { toast } = useToast();
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const prevSongsRef = useRef<Song[]>([]);
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
-  const [isReconnecting, setIsReconnecting] = useState(false);
+  const reconnectAttemptsRef = useRef(0);
+  const isReconnectingRef = useRef(false);
+  const lastConnectionAttemptRef = useRef(0);
+  const songUpdateTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // 獲取使用者
-  const { data: user, isLoading } = useQuery({
-    queryKey: [`/api/users/${username}`],
-    enabled: !!username,
-  });
+  // Clean up function
+  const cleanup = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    if (songUpdateTimeoutRef.current) {
+      clearTimeout(songUpdateTimeoutRef.current);
+    }
+  }, []);
 
-  // 獲取歌曲
-  useQuery({
-    queryKey: ['/api/songs'],
-    queryFn: async () => {
-      const response = await fetch('/api/songs', {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch songs');
-      const data = await response.json();
+  // Handle song updates with debounce
+  const handleSongUpdate = useCallback((newSongs: Song[]) => {
+    if (songUpdateTimeoutRef.current) {
+      clearTimeout(songUpdateTimeoutRef.current);
+    }
 
-      prevSongsRef.current = songs;
-      setSongs(data.map((song: any) => ({
-        ...song,
-        prevVoteCount: (prevSongsRef.current.find(s => s.id === song.id) as any)?.voteCount || 0
-      })));
-      return data;
-    },
-    retry: 1
-  });
+    songUpdateTimeoutRef.current = setTimeout(() => {
+      const hasChanges = JSON.stringify(newSongs) !== JSON.stringify(prevSongsRef.current);
+      if (hasChanges) {
+        prevSongsRef.current = newSongs;
+        setSongs(newSongs);
+      }
+    }, 300);
+  }, []);
 
-  // WebSocket connection
+  // WebSocket connection management
   useEffect(() => {
-    function setupWebSocket() {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
+    const setupWebSocket = () => {
+      // Check cooldown period
+      const now = Date.now();
+      const timeSinceLastAttempt = now - lastConnectionAttemptRef.current;
+      const minRetryInterval = Math.min(
+        INITIAL_RETRY_DELAY * Math.pow(2, reconnectAttemptsRef.current),
+        MAX_RETRY_DELAY
+      );
+
+      if (timeSinceLastAttempt < minRetryInterval) {
+        return;
+      }
+
+      // Prevent duplicate connections
+      if (wsRef.current?.readyState === WebSocket.CONNECTING || 
+          wsRef.current?.readyState === WebSocket.OPEN) {
         return;
       }
 
@@ -60,18 +82,14 @@ export default function UserTemplate() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-        console.log('Attempting to establish WebSocket connection:', wsUrl);
+        lastConnectionAttemptRef.current = now;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log('WebSocket connection established');
           setIsWebSocketConnected(true);
-          setIsReconnecting(false);
-          reconnectAttempts.current = 0;
-          if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-          }
+          isReconnectingRef.current = false;
+          reconnectAttemptsRef.current = 0;
           ws.send(JSON.stringify({ type: 'PING' }));
         };
 
@@ -79,11 +97,7 @@ export default function UserTemplate() {
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'SONGS_UPDATE') {
-              prevSongsRef.current = songs;
-              setSongs(data.songs.map((song: any) => ({
-                ...song,
-                prevVoteCount: (prevSongsRef.current.find(s => s.id === song.id) as any)?.voteCount || 0
-              })));
+              handleSongUpdate(data.songs);
             } else if (data.type === 'ERROR') {
               toast({
                 title: "錯誤",
@@ -97,17 +111,13 @@ export default function UserTemplate() {
         };
 
         ws.onclose = () => {
-          console.log('WebSocket connection closed');
           setIsWebSocketConnected(false);
 
-          if (!isReconnecting && reconnectAttempts.current < maxReconnectAttempts) {
-            setIsReconnecting(true);
-            reconnectAttempts.current += 1;
-            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-            console.log(`Attempting to reconnect... (${reconnectAttempts.current}/${maxReconnectAttempts})`);
-            reconnectTimeoutRef.current = setTimeout(setupWebSocket, delay);
-          } else if (reconnectAttempts.current >= maxReconnectAttempts) {
-            console.log('Maximum reconnection attempts reached');
+          if (!isReconnectingRef.current && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+            isReconnectingRef.current = true;
+            reconnectAttemptsRef.current += 1;
+            reconnectTimeoutRef.current = setTimeout(setupWebSocket, minRetryInterval);
+          } else if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
             toast({
               title: "連接中斷",
               description: "無法連接到伺服器，請重新整理頁面",
@@ -116,14 +126,13 @@ export default function UserTemplate() {
           }
         };
 
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
+        ws.onerror = () => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.close();
           }
         };
 
-        // Setup ping interval
+        // Keep connection alive
         const pingInterval = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'PING' }));
@@ -132,45 +141,44 @@ export default function UserTemplate() {
 
         return () => {
           clearInterval(pingInterval);
-          if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-          }
+          cleanup();
         };
 
       } catch (error) {
-        console.error('WebSocket connection error:', error);
         setIsWebSocketConnected(false);
-
-        if (!isReconnecting && reconnectAttempts.current < maxReconnectAttempts) {
-          setIsReconnecting(true);
-          reconnectAttempts.current += 1;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-          console.log(`Attempting to reconnect... (${reconnectAttempts.current}/${maxReconnectAttempts})`);
-          reconnectTimeoutRef.current = setTimeout(setupWebSocket, delay);
-        } else if (reconnectAttempts.current >= maxReconnectAttempts) {
-          console.log('Maximum reconnection attempts reached');
-          toast({
-            title: "連接錯誤",
-            description: "無法建立連接，請重新整理頁面",
-            variant: "destructive"
-          });
+        if (!isReconnectingRef.current && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+          isReconnectingRef.current = true;
+          reconnectAttemptsRef.current += 1;
+          reconnectTimeoutRef.current = setTimeout(setupWebSocket, minRetryInterval);
         }
       }
-    }
+    };
 
     setupWebSocket();
+    return cleanup;
+  }, [cleanup, handleSongUpdate, toast]);
 
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-    };
-  }, [toast, songs]);
+  // Fetch initial songs data
+  useQuery({
+    queryKey: ['/api/songs'],
+    queryFn: async () => {
+      const response = await fetch('/api/songs', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch songs');
+      const data = await response.json();
+      handleSongUpdate(data);
+      return data;
+    },
+    retry: 1
+  });
 
-  // 載入動畫
+  // Get user data
+  const { data: user, isLoading } = useQuery({
+    queryKey: [`/api/users/${username}`],
+    enabled: !!username,
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -191,7 +199,6 @@ export default function UserTemplate() {
     );
   }
 
-  // 找不到用戶的情況
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -209,7 +216,6 @@ export default function UserTemplate() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
       <div className="container mx-auto py-4 sm:py-8 px-4">
-        {/* Title container */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -241,7 +247,6 @@ export default function UserTemplate() {
               layout: { duration: 0.3 },
             }}
           >
-            {/* Song suggestion section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -261,7 +266,6 @@ export default function UserTemplate() {
               </Card>
             </motion.div>
 
-            {/* Song list section */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -287,7 +291,6 @@ export default function UserTemplate() {
               </Card>
             </motion.div>
 
-            {/* Ranking board section */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}

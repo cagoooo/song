@@ -88,16 +88,38 @@ export function registerRoutes(app: Express): Server {
     console.log('New WebSocket connection established');
     const sessionId = Math.random().toString(36).substring(2);
     let isAlive = true;
+    let lastMessageTime = Date.now();
+    let messageQueue: string[] = [];
+    let messageTimeout: NodeJS.Timeout | null = null;
+    let pingIntervalId: NodeJS.Timeout | null = null;
 
     // Send initial songs data
-    broadcastSongsUpdate(wss);
+    broadcastSongsUpdate(wss).catch(console.error);
+
+    // Helper function to process message queue
+    const processMessageQueue = () => {
+      if (messageQueue.length > 0 && Date.now() - lastMessageTime >= 1000) {
+        const message = messageQueue[messageQueue.length - 1]; // Get latest message
+        if (ws.readyState === WebSocket.OPEN) {
+          try {
+            ws.send(message);
+            lastMessageTime = Date.now();
+          } catch (error) {
+            console.error('Failed to send queued message:', error);
+          }
+        }
+        messageQueue = []; // Clear queue after sending latest state
+      }
+    };
 
     // Set up ping interval with error handling
-    const pingInterval = setInterval(() => {
+    pingIntervalId = setInterval(() => {
       if (!isAlive) {
-        console.log('Client connection lost, terminating...');
+        if (pingIntervalId) {
+          clearInterval(pingIntervalId);
+          pingIntervalId = null;
+        }
         ws.terminate();
-        clearInterval(pingInterval);
         return;
       }
 
@@ -106,7 +128,10 @@ export function registerRoutes(app: Express): Server {
         ws.ping();
       } catch (error) {
         console.error('Error sending ping:', error);
-        clearInterval(pingInterval);
+        if (pingIntervalId) {
+          clearInterval(pingIntervalId);
+          pingIntervalId = null;
+        }
         ws.terminate();
       }
     }, 30000);
@@ -149,33 +174,61 @@ export function registerRoutes(app: Express): Server {
               createdAt: new Date()
             });
 
-            await broadcastSongsUpdate(wss);
+            // Queue the update message
+            const songsList = await getSongsWithVotes();
+            const updateMessage = JSON.stringify({
+              type: 'SONGS_UPDATE',
+              songs: songsList
+            });
+
+            messageQueue.push(updateMessage);
+
+            // Process queue with debounce
+            if (messageTimeout) {
+              clearTimeout(messageTimeout);
+            }
+            messageTimeout = setTimeout(processMessageQueue, 100);
 
           } catch (error: any) {
             console.error('Vote handling error:', error);
-            ws.send(JSON.stringify({
-              type: 'ERROR',
-              message: error.message || '處理點播請求時發生錯誤'
-            }));
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'ERROR',
+                message: error.message || '處理點播請求時發生錯誤'
+              }));
+            }
           }
         }
       } catch (error) {
         console.error('Message processing error:', error);
-        ws.send(JSON.stringify({
-          type: 'ERROR',
-          message: '無法處理請求'
-        }));
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'ERROR',
+            message: '無法處理請求'
+          }));
+        }
       }
     });
 
+    const cleanup = () => {
+      if (pingIntervalId) {
+        clearInterval(pingIntervalId);
+        pingIntervalId = null;
+      }
+      if (messageTimeout) {
+        clearTimeout(messageTimeout);
+        messageTimeout = null;
+      }
+    };
+
     ws.on('error', (error) => {
       console.error('WebSocket error:', error);
-      clearInterval(pingInterval);
+      cleanup();
     });
 
     ws.on('close', () => {
       console.log('WebSocket connection closed');
-      clearInterval(pingInterval);
+      cleanup();
     });
   });
 
@@ -183,9 +236,11 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/users/:username", async (req, res) => {
     try {
       const username = req.params.username;
-      const user = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.username, username),
-      });
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
 
       if (!user) {
         return res.status(404).json({ error: "找不到該使用者" });
@@ -199,6 +254,176 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to fetch user:', error);
       res.status(500).json({ error: "無法取得使用者資訊" });
+    }
+  });
+
+  // Song routes
+  app.get("/api/songs", async (_req, res) => {
+    try {
+      const songsList = await getSongsWithVotes();
+      res.json(songsList);
+    } catch (error) {
+      console.error('Failed to fetch songs:', error);
+      res.status(500).json({ error: "無法取得歌曲清單" });
+    }
+  });
+
+  app.post("/api/songs", requireAdmin, async (req, res) => {
+    try {
+      const { title, artist } = req.body;
+      const [newSong] = await db.insert(songs)
+        .values({
+          title,
+          artist,
+          createdBy: req.user?.id,
+          isActive: true
+        })
+        .returning();
+
+      await broadcastSongsUpdate(wss);
+      res.json(newSong);
+    } catch (error) {
+      console.error('Failed to add song:', error);
+      res.status(500).json({ error: "新增歌曲失敗" });
+    }
+  });
+
+  app.patch("/api/songs/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { title, artist } = req.body;
+
+      const [updatedSong] = await db
+        .update(songs)
+        .set({ title, artist })
+        .where(eq(songs.id, id))
+        .returning();
+
+      await broadcastSongsUpdate(wss);
+      res.json(updatedSong);
+    } catch (error) {
+      console.error('Failed to update song:', error);
+      res.status(500).json({ error: "更新歌曲失敗" });
+    }
+  });
+
+  app.delete("/api/songs/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.update(songs)
+        .set({ isActive: false })
+        .where(eq(songs.id, id));
+
+      await broadcastSongsUpdate(wss);
+      res.json({ message: "歌曲已刪除" });
+    } catch (error) {
+      console.error('Failed to delete song:', error);
+      res.status(500).json({ error: "刪除歌曲失敗" });
+    }
+  });
+
+  app.post("/api/songs/reset-votes", requireAdmin, async (_req, res) => {
+    try {
+      await db.delete(votes);
+      await broadcastSongsUpdate(wss);
+      res.json({ message: "所有點播次數已重置" });
+    } catch (error) {
+      console.error('Failed to reset votes:', error);
+      res.status(500).json({ error: "無法重置點播次數" });
+    }
+  });
+
+  // Tags routes
+  app.get("/api/tags", async (_req, res) => {
+    try {
+      const allTags = await db.select().from(tags);
+      res.json(allTags);
+    } catch (error) {
+      console.error('Failed to fetch tags:', error);
+      res.status(500).json({ error: "無法取得標籤列表" });
+    }
+  });
+
+  app.post("/api/tags", requireAdmin, async (req, res) => {
+    try {
+      const { name } = req.body;
+      const [newTag] = await db.insert(tags)
+        .values({ name })
+        .returning();
+      res.json(newTag);
+    } catch (error) {
+      console.error('Failed to create tag:', error);
+      res.status(500).json({ error: "無法創建標籤" });
+    }
+  });
+
+  app.get("/api/songs/:songId/tags", async (req, res) => {
+    try {
+      const songId = parseInt(req.params.songId);
+      const songTagsList = await db
+        .select({
+          id: tags.id,
+          name: tags.name
+        })
+        .from(songTags)
+        .innerJoin(tags, eq(songTags.tagId, tags.id))
+        .where(eq(songTags.songId, songId));
+      res.json(songTagsList);
+    } catch (error) {
+      console.error('Failed to fetch song tags:', error);
+      res.status(500).json({ error: "無法取得歌曲標籤" });
+    }
+  });
+
+  app.post("/api/songs/:songId/tags", requireAdmin, async (req, res) => {
+    try {
+      const songId = parseInt(req.params.songId);
+      const { tagId } = req.body;
+
+      const existingTag = await db
+        .select()
+        .from(songTags)
+        .where(
+          and(
+            eq(songTags.songId, songId),
+            eq(songTags.tagId, tagId)
+          )
+        )
+        .limit(1);
+
+      if (existingTag.length > 0) {
+        return res.status(400).json({ error: "標籤已存在" });
+      }
+
+      await db.insert(songTags)
+        .values({ songId, tagId });
+
+      await broadcastSongsUpdate(wss);
+      res.json({ message: "標籤新增成功" });
+    } catch (error) {
+      console.error('Failed to add song tag:', error);
+      res.status(500).json({ error: "無法新增歌曲標籤" });
+    }
+  });
+
+  app.delete("/api/songs/:songId/tags/:tagId", requireAdmin, async (req, res) => {
+    try {
+      const songId = parseInt(req.params.songId);
+      const tagId = parseInt(req.params.tagId);
+
+      await db.delete(songTags)
+        .where(
+          and(
+            eq(songTags.songId, songId),
+            eq(songTags.tagId, tagId)
+          )
+        );
+
+      await broadcastSongsUpdate(wss);
+      res.json({ message: "標籤移除成功" });
+    } catch (error) {
+      console.error('Failed to remove song tag:', error);
+      res.status(500).json({ error: "無法移除歌曲標籤" });
     }
   });
 
@@ -297,80 +522,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch("/api/songs/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const { title, artist } = req.body;
-
-      const [updatedSong] = await db
-        .update(songs)
-        .set({ title, artist })
-        .where(eq(songs.id, id))
-        .returning();
-
-      await broadcastSongsUpdate(wss);
-      res.json(updatedSong);
-    } catch (error) {
-      console.error('Failed to update song:', error);
-      res.status(500).json({ error: "更新歌曲失敗" });
-    }
-  });
-
-  app.get("/api/songs", async (_req, res) => {
-    try {
-      const songsList = await getSongsWithVotes();
-      res.json(songsList);
-    } catch (error) {
-      console.error('Failed to fetch songs:', error);
-      res.status(500).json({ error: "無法取得歌曲清單" });
-    }
-  });
-
-  app.post("/api/songs", requireAdmin, async (req, res) => {
-    try {
-      const { title, artist } = req.body;
-      const [newSong] = await db.insert(songs)
-        .values({
-          title,
-          artist,
-          createdBy: req.user?.id,
-          isActive: true
-        })
-        .returning();
-
-      await broadcastSongsUpdate(wss);
-      res.json(newSong);
-    } catch (error) {
-      console.error('Failed to add song:', error);
-      res.status(500).json({ error: "新增歌曲失敗" });
-    }
-  });
-
-  app.delete("/api/songs/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await db.update(songs)
-        .set({ isActive: false })
-        .where(eq(songs.id, id));
-
-      await broadcastSongsUpdate(wss);
-      res.json({ message: "歌曲已刪除" });
-    } catch (error) {
-      console.error('Failed to delete song:', error);
-      res.status(500).json({ error: "刪除歌曲失敗" });
-    }
-  });
-
-  app.post("/api/songs/reset-votes", requireAdmin, async (_req, res) => {
-    try {
-      await db.delete(votes);
-      await broadcastSongsUpdate(wss);
-      res.json({ message: "所有點播次數已重置" });
-    } catch (error) {
-      console.error('Failed to reset votes:', error);
-      res.status(500).json({ error: "無法重置點播次數" });
-    }
-  });
 
   app.post("/api/qr-scans", async (req, res) => {
     try {
@@ -440,151 +591,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to fetch QR code scan statistics:', error);
       res.status(500).json({ error: "無法取得QR碼掃描統計" });
-    }
-  });
-
-  // Tags routes
-  app.get("/api/tags", async (_req, res) => {
-    try {
-      const allTags = await db.select().from(tags);
-      res.json(allTags);
-    } catch (error) {
-      console.error('Failed to fetch tags:', error);
-      res.status(500).json({ error: "無法取得標籤列表" });
-    }
-  });
-
-  app.post("/api/tags", requireAdmin, async (req, res) => {
-    try {
-      const { name } = req.body;
-      const [newTag] = await db.insert(tags)
-        .values({ name })
-        .returning();
-      res.json(newTag);
-    } catch (error) {
-      console.error('Failed to create tag:', error);
-      res.status(500).json({ error: "無法創建標籤" });
-    }
-  });
-
-  app.get("/api/songs/:songId/tags", async (req, res) => {
-    try {
-      const songId = parseInt(req.params.songId);
-      const songTagsList = await db
-        .select({
-          id: tags.id,
-          name: tags.name
-        })
-        .from(songTags)
-        .innerJoin(tags, eq(songTags.tagId, tags.id))
-        .where(eq(songTags.songId, songId));
-      res.json(songTagsList);
-    } catch (error) {
-      console.error('Failed to fetch song tags:', error);
-      res.status(500).json({ error: "無法取得歌曲標籤" });
-    }
-  });
-
-  app.post("/api/songs/:songId/tags", requireAdmin, async (req, res) => {
-    try {
-      const songId = parseInt(req.params.songId);
-      const { tagId } = req.body;
-
-      const existingTag = await db
-        .select()
-        .from(songTags)
-        .where(
-          and(
-            eq(songTags.songId, songId),
-            eq(songTags.tagId, tagId)
-          )
-        )
-        .limit(1);
-
-      if (existingTag.length > 0) {
-        return res.status(400).json({ error: "標籤已存在" });
-      }
-
-      await db.insert(songTags)
-        .values({ songId, tagId });
-
-      await broadcastSongsUpdate(wss);
-      res.json({ message: "標籤新增成功" });
-    } catch (error) {
-      console.error('Failed to add song tag:', error);
-      res.status(500).json({ error: "無法新增歌曲標籤" });
-    }
-  });
-
-  app.delete("/api/songs/:songId/tags/:tagId", requireAdmin, async (req, res) => {
-    try {
-      const songId = parseInt(req.params.songId);
-      const tagId = parseInt(req.params.tagId);
-
-      await db.delete(songTags)
-        .where(
-          and(
-            eq(songTags.songId, songId),
-            eq(songTags.tagId, tagId)
-          )
-        );
-
-      await broadcastSongsUpdate(wss);
-      res.json({ message: "標籤移除成功" });
-    } catch (error) {
-      console.error('Failed to remove song tag:', error);
-      res.status(500).json({ error: "無法移除歌曲標籤" });
-    }
-  });
-
-  app.post("/api/songs/batch", requireAdmin, async (req, res) => {
-    try {
-      const { songs: songsList } = req.body;
-
-      if (!Array.isArray(songsList)) {
-        return res.status(400).json({ error: "無效的歌曲清單格式" });
-      }
-
-      await db.insert(songs).values(
-        songsList.map(song => ({
-          title: song.title,
-          artist: song.artist,
-          createdBy: req.user?.id,
-          isActive: true
-        }))
-      );
-
-      await broadcastSongsUpdate(wss);
-      res.json({ message: `成功匯入 ${songsList.length} 首歌曲` });
-    } catch (error) {
-      console.error('Failed to batch import songs:', error);
-      res.status(500).json({ error: "批次匯入失敗" });
-    }
-  });
-
-  app.delete("/api/songs/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await db.update(songs)
-        .set({ isActive: false })
-        .where(eq(songs.id, id));
-
-      await broadcastSongsUpdate(wss);
-      res.json({ message: "歌曲已刪除" });
-    } catch (error) {
-      console.error('Failed to delete song:', error);
-      res.status(500).json({ error: "刪除歌曲失敗" });
-    }
-  });
-
-  app.post("/api/songs/reset-votes", requireAdmin, async (_req, res) => {
-    try {
-      await db.delete(votes);
-      await broadcastSongsUpdate(wss);
-      res.json({ message: "所有點播次數已重置" });
-    } catch (error) {
-      console.error('Failed to reset votes:', error);
-      res.status(500).json({ error: "無法重置點播次數" });
     }
   });
 
