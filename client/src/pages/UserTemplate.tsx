@@ -19,6 +19,8 @@ export default function UserTemplate() {
   const { toast } = useToast();
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const prevSongsRef = useRef<Song[]>([]);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
   // 獲取使用者
   const { data: user, isLoading } = useQuery({
@@ -89,6 +91,7 @@ export default function UserTemplate() {
         ws.onopen = () => {
           console.log('WebSocket connection established');
           setIsWebSocketConnected(true);
+          reconnectAttempts.current = 0;
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
@@ -97,19 +100,44 @@ export default function UserTemplate() {
         ws.onclose = () => {
           console.log('WebSocket connection closed');
           setIsWebSocketConnected(false);
-          reconnectTimeoutRef.current = setTimeout(setupWebSocket, 3000);
+
+          // 檢查重連次數
+          if (reconnectAttempts.current < maxReconnectAttempts) {
+            reconnectAttempts.current += 1;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+            reconnectTimeoutRef.current = setTimeout(setupWebSocket, delay);
+          } else {
+            toast({
+              title: "連接中斷",
+              description: "無法連接到伺服器，請重新整理頁面",
+              variant: "destructive"
+            });
+          }
         };
 
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
           setIsWebSocketConnected(false);
-          ws.close();
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.close();
+          }
         };
 
       } catch (error) {
         console.error('WebSocket connection error:', error);
         setIsWebSocketConnected(false);
-        reconnectTimeoutRef.current = setTimeout(setupWebSocket, 3000);
+
+        if (reconnectAttempts.current < maxReconnectAttempts) {
+          reconnectAttempts.current += 1;
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+          reconnectTimeoutRef.current = setTimeout(setupWebSocket, delay);
+        } else {
+          toast({
+            title: "連接錯誤",
+            description: "無法建立連接，請重新整理頁面",
+            variant: "destructive"
+          });
+        }
       }
     }
 
@@ -164,6 +192,7 @@ export default function UserTemplate() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
       <div className="container mx-auto py-4 sm:py-8 px-4">
+        {/* Title container */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
