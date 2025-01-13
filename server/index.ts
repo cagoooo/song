@@ -1,8 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { db, initializeDatabase } from "@db";
-import { setupAuth } from "./auth";
+import { registerRoutes } from "./routes.js";
+import { setupVite, serveStatic, log } from "./vite.js";
+import { db } from "@db";
 
 const app = express();
 app.use(express.json());
@@ -39,16 +38,18 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+    log("正在啟動伺服器...");
+
     // Initialize database connection
-    const dbConnected = await initializeDatabase();
-    if (!dbConnected) {
+    try {
+      // Test database connection
+      await db.select().from('users').limit(1);
+      log("資料庫連接成功");
+    } catch (error) {
       log("無法連接到資料庫，伺服器將不會啟動");
+      console.error("資料庫連接錯誤:", error);
       process.exit(1);
     }
-    log("資料庫連接成功");
-
-    // 設置認證系統
-    setupAuth(app);
 
     const server = registerRoutes(app);
 

@@ -63,6 +63,7 @@ export default function UserTemplate() {
       try {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws`;
+        console.log('Attempting to establish WebSocket connection:', wsUrl);
 
         lastConnectionAttemptRef.current = now;
         const ws = new WebSocket(wsUrl);
@@ -101,6 +102,7 @@ export default function UserTemplate() {
 
           if (reconnectAttemptsRef.current < 5) {
             reconnectAttemptsRef.current += 1;
+            console.log(`Attempting to reconnect... (${reconnectAttemptsRef.current}/5)`);
             retryTimeoutId = setTimeout(setupWebSocket, retryDelay);
           } else {
             toast({

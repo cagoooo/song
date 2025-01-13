@@ -89,6 +89,10 @@ export function registerRoutes(app: Express): Server {
     // Send initial songs data
     broadcastSongsUpdate(wss).catch(console.error);
 
+    ws.onopen = () => {
+      console.log('Client WebSocket connection opened');
+    };
+
     const pingInterval = setInterval(() => {
       if (!isAlive) {
         clearInterval(pingInterval);
@@ -106,6 +110,7 @@ export function registerRoutes(app: Express): Server {
     ws.on('message', async (data) => {
       try {
         const message = JSON.parse(data.toString());
+        console.log('Received message:', message);
 
         if (message.type === 'PING') {
           if (ws.readyState === WebSocket.OPEN) {
@@ -182,71 +187,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to fetch songs:', error);
       res.status(500).json({ error: "無法取得歌曲清單" });
-    }
-  });
-
-  app.post("/api/songs", requireAdmin, async (req, res) => {
-    try {
-      const { title, artist } = req.body;
-      const [newSong] = await db.insert(songs)
-        .values({
-          title,
-          artist,
-          createdBy: req.user?.id,
-          isActive: true
-        })
-        .returning();
-
-      await broadcastSongsUpdate(wss);
-      res.json(newSong);
-    } catch (error) {
-      console.error('Failed to add song:', error);
-      res.status(500).json({ error: "新增歌曲失敗" });
-    }
-  });
-
-  app.patch("/api/songs/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const { title, artist } = req.body;
-
-      const [updatedSong] = await db
-        .update(songs)
-        .set({ title, artist })
-        .where(eq(songs.id, id))
-        .returning();
-
-      await broadcastSongsUpdate(wss);
-      res.json(updatedSong);
-    } catch (error) {
-      console.error('Failed to update song:', error);
-      res.status(500).json({ error: "更新歌曲失敗" });
-    }
-  });
-
-  app.delete("/api/songs/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await db.update(songs)
-        .set({ isActive: false })
-        .where(eq(songs.id, id));
-
-      await broadcastSongsUpdate(wss);
-      res.json({ message: "歌曲已刪除" });
-    } catch (error) {
-      console.error('Failed to delete song:', error);
-      res.status(500).json({ error: "刪除歌曲失敗" });
-    }
-  });
-
-  app.post("/api/songs/reset-votes", requireAdmin, async (_req, res) => {
-    try {
-      await db.delete(votes);
-      await broadcastSongsUpdate(wss);
-      res.json({ message: "所有點播次數已重置" });
-    } catch (error) {
-      console.error('Failed to reset votes:', error);
-      res.status(500).json({ error: "無法重置點播次數" });
     }
   });
 
