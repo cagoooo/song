@@ -19,6 +19,18 @@ export default function Home() {
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const reconnectAttemptsRef = useRef(0);
+  const lastConnectionAttemptRef = useRef(0);
+  const lastSongsUpdateRef = useRef<string>("");
+
+  const handleSongUpdate = (newSongs: Song[]) => {
+    const newSongsString = JSON.stringify(newSongs);
+    if (newSongsString !== lastSongsUpdateRef.current) {
+      lastSongsUpdateRef.current = newSongsString;
+      setSongs(newSongs);
+    }
+  };
 
   const { isLoading } = useQuery({
     queryKey: ['/api/songs'],
@@ -28,62 +40,113 @@ export default function Home() {
       });
       if (!response.ok) throw new Error('Failed to fetch songs');
       const data = await response.json();
-      setSongs(data);
+      handleSongUpdate(data);
       return data;
     },
     retry: 1
   });
 
   useEffect(() => {
-    function setupWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+    let mounted = true;
+    let retryTimeoutId: NodeJS.Timeout;
+
+    const setupWebSocket = () => {
+      if (!mounted) return;
+
+      const now = Date.now();
+      const timeSinceLastAttempt = now - lastConnectionAttemptRef.current;
+      const retryDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+
+      if (timeSinceLastAttempt < retryDelay) {
+        return;
+      }
+
+      if (wsRef.current?.readyState === WebSocket.CONNECTING || 
+          wsRef.current?.readyState === WebSocket.OPEN) {
+        return;
+      }
 
       try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const wsUrl = `${protocol}//${host}/ws`;
+
         console.log('Connecting to WebSocket:', wsUrl);
+        lastConnectionAttemptRef.current = now;
+
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
+        ws.onopen = () => {
+          if (!mounted) return;
+          console.log('WebSocket connection established');
+          setIsWebSocketConnected(true);
+          reconnectAttemptsRef.current = 0;
+          ws.send(JSON.stringify({ type: 'PING' }));
+        };
+
         ws.onmessage = (event) => {
+          if (!mounted) return;
           try {
             const data = JSON.parse(event.data);
             console.log('WebSocket message received:', data);
             if (data.type === 'SONGS_UPDATE') {
-              setSongs(data.songs);
+              handleSongUpdate(data.songs);
+            } else if (data.type === 'PONG') {
+              console.log('Server responded with PONG');
             }
           } catch (error) {
             console.error('WebSocket message parsing error:', error);
           }
         };
 
-        ws.onopen = () => {
-          console.log('WebSocket connection established');
-        };
-
         ws.onclose = () => {
+          if (!mounted) return;
           console.log('WebSocket connection closed');
-          toast({
-            title: "連線中斷",
-            description: "正在嘗試重新連線...",
-            variant: "destructive"
-          });
-          setTimeout(setupWebSocket, 3000);
+          setIsWebSocketConnected(false);
+
+          if (reconnectAttemptsRef.current < 5) {
+            reconnectAttemptsRef.current += 1;
+            console.log(`Attempting to reconnect... (${reconnectAttemptsRef.current}/5)`);
+            retryTimeoutId = setTimeout(setupWebSocket, retryDelay);
+          } else {
+            toast({
+              title: "連線中斷",
+              description: "無法連接到伺服器，請重新整理頁面",
+              variant: "destructive"
+            });
+          }
         };
 
         ws.onerror = (error) => {
+          if (!mounted) return;
           console.error('WebSocket error:', error);
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.close();
+          }
         };
+
       } catch (error) {
-        console.error('WebSocket connection error:', error);
-        setTimeout(setupWebSocket, 3000);
+        console.error('WebSocket setup error:', error);
+        if (!mounted) return;
+
+        if (reconnectAttemptsRef.current < 5) {
+          reconnectAttemptsRef.current += 1;
+          retryTimeoutId = setTimeout(setupWebSocket, retryDelay);
+        }
       }
-    }
+    };
 
     setupWebSocket();
 
     return () => {
+      mounted = false;
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (retryTimeoutId) {
+        clearTimeout(retryTimeoutId);
       }
     };
   }, [toast]);
@@ -135,7 +198,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
-      {/* Admin Logout Button - Moved outside the title container */}
       <motion.div 
         className="fixed top-4 right-4 z-50 flex gap-2"
         initial={{ opacity: 0, y: -20 }}
@@ -163,56 +225,16 @@ export default function Home() {
         >
           <motion.div 
             className="relative p-3 sm:p-4 md:p-5 lg:p-6 rounded-lg border-2 border-primary/50 bg-gradient-to-br from-white/95 via-primary/5 to-white/90 backdrop-blur-sm shadow-[0_0_20px_rgba(var(--primary),0.4)] w-full max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-3xl mx-auto overflow-hidden hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] transition-all duration-300"
-            initial={{ scale: 0.95 }}
-            animate={{ 
-              scale: 1,
-              transition: { 
-                type: "spring",
-                stiffness: 100,
-                damping: 15
-              }
-            }}
-            whileHover={{ scale: 1.02 }}
           >
             <motion.h1 
               className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-3 md:px-4 py-2 relative z-10 leading-[1.2] sm:leading-[1.2] md:leading-[1.2] lg:leading-[1.2] animate-text tracking-tight"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ 
-                opacity: 1, 
-                y: 0,
-                transition: {
-                  duration: 0.8,
-                  ease: "easeOut"
-                }
-              }}
             >
               吉他彈唱點歌系統
             </motion.h1>
-
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30"
-              initial={{ opacity: 0 }}
-              animate={{
-                opacity: [0.4, 0.7, 0.4],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              style={{
-                filter: "blur(20px)",
-                transform: "translate3d(0, 0, 0)", 
-                backfaceVisibility: "hidden"
-              }}
-            />
           </motion.div>
 
           <motion.div 
             className="mt-4 sm:mt-5 md:mt-6 lg:mt-8 scale-90 sm:scale-95 md:scale-100 lg:scale-105"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
           >
             <ShareButton />
           </motion.div>
@@ -286,7 +308,12 @@ export default function Home() {
                 <CardContent className="p-3 sm:p-6">
                   {user?.isAdmin && <SongImport />}
                   <div className="h-4" />
-                  <SongList songs={songs} ws={wsRef.current} user={user} />
+                  <SongList 
+                    songs={songs} 
+                    ws={wsRef.current} 
+                    user={user}
+                    isWebSocketConnected={isWebSocketConnected} 
+                  />
                 </CardContent>
               </Card>
             </motion.div>

@@ -21,12 +21,13 @@ function App() {
   return (
     <>
       <Switch>
+        {/* Put the more specific route first */}
+        <Route path="/:username" component={UserTemplate} />
         {user ? (
           <Route path="/" component={Home} />
         ) : (
           <Route path="/" component={AuthPage} />
         )}
-        <Route path="/:username" component={UserTemplate} />
         <Route component={NotFound} />
       </Switch>
       <Toaster />

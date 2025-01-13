@@ -2,14 +2,16 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { db } from "@db";
-import { songs, votes } from "@db/schema";
-import { setupAuth } from "./auth";
+import { songs, votes, users } from "@db/schema";
+import { setupAuth } from "./auth.js";
 import { eq, sql, and } from "drizzle-orm";
 import type { IncomingMessage } from "http";
 
 export function registerRoutes(app: Express): Server {
-  const httpServer = createServer(app);
+  // Setup authentication first
   setupAuth(app);
+
+  const httpServer = createServer(app);
 
   // Auth middleware
   const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
@@ -106,7 +108,9 @@ export function registerRoutes(app: Express): Server {
         const message = JSON.parse(data.toString());
 
         if (message.type === 'PING') {
-          ws.send(JSON.stringify({ type: 'PONG' }));
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'PONG' }));
+          }
           return;
         }
 
@@ -137,10 +141,12 @@ export function registerRoutes(app: Express): Server {
 
             await broadcastSongsUpdate(wss);
 
-            ws.send(JSON.stringify({
-              type: 'VOTE_SUCCESS',
-              songId: message.songId
-            }));
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'VOTE_SUCCESS',
+                songId: message.songId
+              }));
+            }
 
           } catch (error: any) {
             console.error('Vote handling error:', error);
@@ -241,6 +247,31 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to reset votes:', error);
       res.status(500).json({ error: "無法重置點播次數" });
+    }
+  });
+
+  // User routes
+  app.get("/api/users/:username", async (req, res) => {
+    try {
+      const username = req.params.username;
+      const [user] = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          isAdmin: users.isAdmin,
+        })
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      if (!user) {
+        return res.status(404).json({ error: "找不到該使用者" });
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+      res.status(500).json({ error: "無法取得使用者資訊" });
     }
   });
 
