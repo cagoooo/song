@@ -18,14 +18,15 @@ function App() {
     );
   }
 
-  if (!user) {
-    return <AuthPage />;
-  }
-
+  // 移除登入檢查，允許訪客訪問
   return (
     <>
       <Switch>
-        <Route path="/" component={Home} />
+        {user ? (
+          <Route path="/" component={Home} />
+        ) : (
+          <Route path="/" component={AuthPage} />
+        )}
         <Route path="/:username" component={UserTemplate} />
         <Route component={NotFound} />
       </Switch>

@@ -30,10 +30,6 @@ export function registerRoutes(app: Express): Server {
 
   // Templates routes
   app.get("/api/templates", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "請先登入" });
-    }
-
     try {
       const userTemplates = await db
         .select()
@@ -52,8 +48,8 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.post("/api/templates", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: "請先登入" });
+    if (!req.user) {
+      return res.status(403).json({ error: "需要登入" });
     }
 
     try {
@@ -61,7 +57,7 @@ export function registerRoutes(app: Express): Server {
       const [newTemplate] = await db
         .insert(templates)
         .values({
-          userId: req.user!.id,
+          userId: req.user.id,
           name,
           settings,
           isActive: true
@@ -106,7 +102,6 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: "無法取得使用者模板列表" });
     }
   });
-
 
   // Song Suggestions routes
   app.get("/api/suggestions", async (_req, res) => {
@@ -347,6 +342,27 @@ export function registerRoutes(app: Express): Server {
         console.log('Received message:', message);
 
         if (message.type === 'VOTE') {
+          // 檢查該 session 是否已經對這首歌投票
+          const existingVote = await db
+            .select()
+            .from(votes)
+            .where(
+              and(
+                eq(votes.songId, message.songId),
+                eq(votes.sessionId, sessionId)
+              )
+            )
+            .limit(1);
+
+          if (existingVote.length > 0) {
+            ws.send(JSON.stringify({
+              type: 'ERROR',
+              message: '您已經對這首歌投過票了'
+            }));
+            return;
+          }
+
+          // 新增投票記錄
           await db.insert(votes).values({
             songId: message.songId,
             sessionId,
@@ -359,7 +375,7 @@ export function registerRoutes(app: Express): Server {
         console.error('WebSocket message error:', error);
         ws.send(JSON.stringify({
           type: 'ERROR',
-          message: 'Failed to process message'
+          message: '處理訊息時發生錯誤'
         }));
       }
     });
