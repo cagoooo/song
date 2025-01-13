@@ -1,11 +1,20 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes.js";
-import { setupVite, serveStatic, log } from "./vite.js";
-import { db } from "@db";
+import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite";
+import { db, initializeDatabase } from "@db";
+import { sql } from "drizzle-orm";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Added error handling middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Error:', err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ message });
+});
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -38,43 +47,35 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    log("正在啟動伺服器...");
-
-    // Initialize database connection
+    // Test database connection with retries
     try {
-      // Test database connection
-      await db.select().from('users').limit(1);
-      log("資料庫連接成功");
+      await initializeDatabase();
+      log('Database connection successful');
     } catch (error) {
-      log("無法連接到資料庫，伺服器將不會啟動");
-      console.error("資料庫連接錯誤:", error);
+      log('Database connection failed');
+      if (!process.env.DATABASE_URL) {
+        log('Missing DATABASE_URL environment variable');
+      }
       process.exit(1);
     }
 
     const server = registerRoutes(app);
 
-    // Add error handling middleware
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      console.error("Error:", err);
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
-    });
-
-    // Setup vite in development
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);
     }
 
-    // Start server
-    const PORT = 5000;
+    const PORT = process.env.PORT || 3000;
     server.listen(PORT, "0.0.0.0", () => {
-      log(`伺服器運行在端口 ${PORT} (${app.get("env")})`);
+      log(`Server running on port ${PORT} (${app.get("env")})`);
     });
   } catch (error) {
-    console.error("伺服器啟動失敗:", error);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 })();

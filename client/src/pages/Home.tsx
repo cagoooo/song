@@ -5,32 +5,21 @@ import { useUser } from "@/hooks/use-user";
 import { useQuery } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
 import { Button } from "@/components/ui/button";
-import { LogOut, Music2, Trophy, Lightbulb, Settings } from "lucide-react";
+import { LogIn, LogOut, Music2, Trophy, Lightbulb } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import RankingBoard from "../components/RankingBoard";
+import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
-import UserManagement from "../components/UserManagement";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
+  const [showLoginForm, setShowLoginForm] = useState(false);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
-  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
-  const reconnectAttemptsRef = useRef(0);
-  const lastConnectionAttemptRef = useRef(0);
-  const lastSongsUpdateRef = useRef<string>("");
-
-  const handleSongUpdate = (newSongs: Song[]) => {
-    const newSongsString = JSON.stringify(newSongs);
-    if (newSongsString !== lastSongsUpdateRef.current) {
-      lastSongsUpdateRef.current = newSongsString;
-      setSongs(newSongs);
-    }
-  };
 
   const { isLoading } = useQuery({
     queryKey: ['/api/songs'],
@@ -40,113 +29,62 @@ export default function Home() {
       });
       if (!response.ok) throw new Error('Failed to fetch songs');
       const data = await response.json();
-      handleSongUpdate(data);
+      setSongs(data);
       return data;
     },
     retry: 1
   });
 
   useEffect(() => {
-    let mounted = true;
-    let retryTimeoutId: NodeJS.Timeout;
-
-    const setupWebSocket = () => {
-      if (!mounted) return;
-
-      const now = Date.now();
-      const timeSinceLastAttempt = now - lastConnectionAttemptRef.current;
-      const retryDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-
-      if (timeSinceLastAttempt < retryDelay) {
-        return;
-      }
-
-      if (wsRef.current?.readyState === WebSocket.CONNECTING || 
-          wsRef.current?.readyState === WebSocket.OPEN) {
-        return;
-      }
+    function setupWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
 
       try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host;
-        const wsUrl = `${protocol}//${host}/ws`;
-
         console.log('Connecting to WebSocket:', wsUrl);
-        lastConnectionAttemptRef.current = now;
-
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
-        ws.onopen = () => {
-          if (!mounted) return;
-          console.log('WebSocket connection established');
-          setIsWebSocketConnected(true);
-          reconnectAttemptsRef.current = 0;
-          ws.send(JSON.stringify({ type: 'PING' }));
-        };
-
         ws.onmessage = (event) => {
-          if (!mounted) return;
           try {
             const data = JSON.parse(event.data);
             console.log('WebSocket message received:', data);
             if (data.type === 'SONGS_UPDATE') {
-              handleSongUpdate(data.songs);
-            } else if (data.type === 'PONG') {
-              console.log('Server responded with PONG');
+              setSongs(data.songs);
             }
           } catch (error) {
             console.error('WebSocket message parsing error:', error);
           }
         };
 
-        ws.onclose = () => {
-          if (!mounted) return;
-          console.log('WebSocket connection closed');
-          setIsWebSocketConnected(false);
+        ws.onopen = () => {
+          console.log('WebSocket connection established');
+        };
 
-          if (reconnectAttemptsRef.current < 5) {
-            reconnectAttemptsRef.current += 1;
-            console.log(`Attempting to reconnect... (${reconnectAttemptsRef.current}/5)`);
-            retryTimeoutId = setTimeout(setupWebSocket, retryDelay);
-          } else {
-            toast({
-              title: "連線中斷",
-              description: "無法連接到伺服器，請重新整理頁面",
-              variant: "destructive"
-            });
-          }
+        ws.onclose = () => {
+          console.log('WebSocket connection closed');
+          toast({
+            title: "連線中斷",
+            description: "正在嘗試重新連線...",
+            variant: "destructive"
+          });
+          setTimeout(setupWebSocket, 3000);
         };
 
         ws.onerror = (error) => {
-          if (!mounted) return;
           console.error('WebSocket error:', error);
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.close();
-          }
         };
-
       } catch (error) {
-        console.error('WebSocket setup error:', error);
-        if (!mounted) return;
-
-        if (reconnectAttemptsRef.current < 5) {
-          reconnectAttemptsRef.current += 1;
-          retryTimeoutId = setTimeout(setupWebSocket, retryDelay);
-        }
+        console.error('WebSocket connection error:', error);
+        setTimeout(setupWebSocket, 3000);
       }
-    };
+    }
 
     setupWebSocket();
 
     return () => {
-      mounted = false;
       if (wsRef.current) {
         wsRef.current.close();
-        wsRef.current = null;
-      }
-      if (retryTimeoutId) {
-        clearTimeout(retryTimeoutId);
       }
     };
   }, [toast]);
@@ -165,7 +103,7 @@ export default function Home() {
       toast({
         title: "成功",
         description: "已登出",
-        variant: "default"
+        variant: "info"
       });
     } catch (error) {
       toast({
@@ -198,22 +136,25 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
-      <motion.div 
-        className="fixed top-4 right-4 z-50 flex gap-2"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleLogout}
-          className="bg-white/90 hover:bg-white border-2 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 shadow-lg hover:shadow-xl transition-all duration-300"
+      {/* Admin Logout Button - Moved outside the title container */}
+      {user?.isAdmin && (
+        <motion.div 
+          className="fixed top-4 right-4 z-50"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
         >
-          <LogOut className="w-4 h-4 mr-2" />
-          登出
-        </Button>
-      </motion.div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLogout}
+            className="bg-white/90 hover:bg-white border-2 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            登出管理
+          </Button>
+        </motion.div>
+      )}
 
       <div className="container mx-auto py-4 sm:py-8 px-4">
         {/* Title container */}
@@ -225,42 +166,78 @@ export default function Home() {
         >
           <motion.div 
             className="relative p-3 sm:p-4 md:p-5 lg:p-6 rounded-lg border-2 border-primary/50 bg-gradient-to-br from-white/95 via-primary/5 to-white/90 backdrop-blur-sm shadow-[0_0_20px_rgba(var(--primary),0.4)] w-full max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-3xl mx-auto overflow-hidden hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] transition-all duration-300"
+            initial={{ scale: 0.95 }}
+            animate={{ 
+              scale: 1,
+              transition: { 
+                type: "spring",
+                stiffness: 100,
+                damping: 15
+              }
+            }}
+            whileHover={{ scale: 1.02 }}
           >
             <motion.h1 
               className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-3 md:px-4 py-2 relative z-10 leading-[1.2] sm:leading-[1.2] md:leading-[1.2] lg:leading-[1.2] animate-text tracking-tight"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ 
+                opacity: 1, 
+                y: 0,
+                transition: {
+                  duration: 0.8,
+                  ease: "easeOut"
+                }
+              }}
             >
               吉他彈唱點歌系統
             </motion.h1>
+
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30"
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: [0.4, 0.7, 0.4],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              style={{
+                filter: "blur(20px)",
+                transform: "translate3d(0, 0, 0)", 
+                backfaceVisibility: "hidden"
+              }}
+            />
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-br from-indigo-400/15 via-purple-400/20 to-pink-400/15"
+              animate={{
+                backgroundPosition: ["0% 0%", "100% 100%"],
+              }}
+              transition={{
+                duration: 15,
+                repeat: Infinity,
+                ease: "linear",
+                repeatType: "reverse"
+              }}
+              style={{
+                backgroundSize: "200% 200%",
+                filter: "blur(15px)",
+                transform: "translate3d(0, 0, 0)", 
+                backfaceVisibility: "hidden"
+              }}
+            />
           </motion.div>
 
           <motion.div 
             className="mt-4 sm:mt-5 md:mt-6 lg:mt-8 scale-90 sm:scale-95 md:scale-100 lg:scale-105"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
           >
             <ShareButton />
           </motion.div>
         </motion.div>
-
-        {/* System Management Section for Admin */}
-        {user?.isAdmin && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  系統管理
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <UserManagement />
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
 
         {/* Rest of the content */}
         <AnimatePresence>
@@ -308,12 +285,7 @@ export default function Home() {
                 <CardContent className="p-3 sm:p-6">
                   {user?.isAdmin && <SongImport />}
                   <div className="h-4" />
-                  <SongList 
-                    songs={songs} 
-                    ws={wsRef.current} 
-                    user={user}
-                    isWebSocketConnected={isWebSocketConnected} 
-                  />
+                  <SongList songs={songs} ws={wsRef.current} user={user || null} />
                 </CardContent>
               </Card>
             </motion.div>
@@ -340,6 +312,31 @@ export default function Home() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Login button for non-admin users */}
+      {!user && (
+        <motion.div 
+          className="fixed bottom-4 right-4 z-50"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowLoginForm(true)}
+            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40 transition-all duration-300"
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            管理員登入
+          </Button>
+        </motion.div>
+      )}
+
+      {/* Login form modal */}
+      {showLoginForm && (
+        <LoginForm onClose={() => setShowLoginForm(false)} />
+      )}
     </div>
   );
 }

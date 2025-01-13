@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -25,12 +25,12 @@ import { Music, ThumbsUp, Trash2, RotateCcw, Edit2 } from "lucide-react";
 import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
 import { AnimatePresence, motion } from "framer-motion";
+import QRCodeShareModal from "./QRCodeShareModal";
 
 interface SongListProps {
   songs: Song[];
   ws: WebSocket | null;
   user: User | null;
-  isWebSocketConnected?: boolean;
 }
 
 interface EditDialogProps {
@@ -86,16 +86,17 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
   );
 }
 
-export default function SongList({ songs, ws, user, isWebSocketConnected }: SongListProps) {
+export default function SongList({ songs, ws, user }: SongListProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [votingId, setVotingId] = useState<number | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
-  const [clickCounts, setClickCounts] = useState<{ [key: number]: number }>({});
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedSongForShare, setSelectedSongForShare] = useState<Song | null>(null);
+  const [clickCount, setClickCount] = useState<{ [key: number]: number }>({});
   const [isTouch, setIsTouch] = useState(false);
-  const clickTimeoutsRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
+  const [lastVoteTime, setLastVoteTime] = useState<{ [key: number]: number }>({});
   const [editingSong, setEditingSong] = useState<Song | null>(null);
-  const [voteInProgress, setVoteInProgress] = useState(false);
 
   useEffect(() => {
     const checkTouch = () => {
@@ -106,68 +107,66 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
     return () => window.removeEventListener('resize', checkTouch);
   }, []);
 
-  useEffect(() => {
-    return () => {
-      Object.values(clickTimeoutsRef.current).forEach(timeout => {
-        clearTimeout(timeout);
-      });
-    };
-  }, []);
+  const handleVoteStart = useCallback((songId: number) => {
+    const now = Date.now();
+    const lastTime = lastVoteTime[songId] || 0;
+    const timeDiff = now - lastTime;
 
-  const handleVoteStart = useCallback(async (songId: number) => {
-    if (voteInProgress) {
-      return;
-    }
+    if (timeDiff < 50) return; // 防抖動：最小間隔50ms
 
-    if (!ws || ws.readyState !== WebSocket.OPEN || !isWebSocketConnected) {
-      toast({
-        title: "連線錯誤",
-        description: "無法連接到伺服器，請稍後再試",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      setVoteInProgress(true);
+    if (ws && ws.readyState === WebSocket.OPEN) {
       setVotingId(songId);
-
       ws.send(JSON.stringify({ type: 'VOTE', songId }));
 
-      setClickCounts(prev => {
-        const newCount = Math.min((prev[songId] || 0) + 1, 15);
-        return { ...prev, [songId]: newCount };
-      });
+      setClickCount(prev => ({
+        ...prev,
+        [songId]: (prev[songId] || 0) + 1
+      }));
 
-      if (clickTimeoutsRef.current[songId]) {
-        clearTimeout(clickTimeoutsRef.current[songId]);
+      setLastVoteTime(prev => ({
+        ...prev,
+        [songId]: now
+      }));
+
+      setTimeout(() => {
+        setVotingId(null);
+      }, 50);
+
+      const timeoutKey = `timeout_${songId}`;
+      if ((window as any)[timeoutKey]) {
+        clearTimeout((window as any)[timeoutKey]);
+        clearInterval((window as any)[`interval_${songId}`]);
       }
 
-      clickTimeoutsRef.current[songId] = setTimeout(() => {
-        setClickCounts(prev => ({ ...prev, [songId]: 0 }));
-      }, 2000);
+      (window as any)[timeoutKey] = setTimeout(() => {
+        const currentCount = clickCount[songId] || 0;
+        const steps = 10; 
+        const decrementPerStep = Math.ceil(currentCount / steps);
 
-    } catch (error) {
-      console.error('Vote error:', error);
-      toast({
-        title: "錯誤",
-        description: "點播失敗，請稍後再試",
-        variant: "destructive"
-      });
-    } finally {
-      setTimeout(() => {
-        setVoteInProgress(false);
-        setVotingId(null);
-      }, 500);
+        (window as any)[`interval_${songId}`] = setInterval(() => {
+          setClickCount(prev => {
+            const newCount = Math.max((prev[songId] || 0) - decrementPerStep, 0);
+            if (newCount === 0) {
+              clearInterval((window as any)[`interval_${songId}`]);
+            }
+            return {
+              ...prev,
+              [songId]: newCount
+            };
+          });
+        }, 100);
+      }, 2000);
     }
-  }, [ws, isWebSocketConnected, toast, voteInProgress]);
+  }, [ws, clickCount, lastVoteTime]);
 
   const filteredSongs = useMemo(() => {
     if (!searchTerm.trim()) return songs;
+
     const term = searchTerm.toLowerCase();
-    return songs.filter(song =>
-      song.title.toLowerCase().includes(term) ||
-      song.artist.toLowerCase().includes(term)
+    return songs.filter(
+      song =>
+        song.title.toLowerCase().includes(term) ||
+        song.artist.toLowerCase().includes(term)
     );
   }, [songs, searchTerm]);
 
@@ -178,7 +177,9 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
         credentials: 'include'
       });
 
-      if (!response.ok) throw new Error('Failed to delete song');
+      if (!response.ok) {
+        throw new Error('Failed to delete song');
+      }
 
       toast({
         title: "成功",
@@ -200,11 +201,13 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
         credentials: 'include'
       });
 
-      if (!response.ok) throw new Error('Failed to reset votes');
+      if (!response.ok) {
+        throw new Error('Failed to reset votes');
+      }
 
       toast({
         title: "成功",
-        description: "所有點播次數已重置",
+        description: "所有點播次數已歸零",
       });
       setShowResetDialog(false);
     } catch (error) {
@@ -214,6 +217,16 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
         variant: "destructive"
       });
     }
+  };
+
+  const handleShareClick = (song: Song) => {
+    setSelectedSongForShare(song);
+    setQrModalOpen(true);
+  };
+
+  const getShareUrl = (songId: number) => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/songs/${songId}`;
   };
 
   const handleEditSave = async (title: string, artist: string) => {
@@ -266,120 +279,247 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
 
       <ScrollArea className="h-[400px] sm:h-[500px] w-full pr-4">
         <div className="space-y-4">
-          <AnimatePresence mode="popLayout">
-            {filteredSongs.map((song) => (
-              <motion.div
-                key={song.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{
-                  duration: 0.3,
-                  layout: { duration: 0.2 }
-                }}
-                className="relative flex flex-col gap-4 p-3 sm:p-4 rounded-lg border-2 border-primary/10
-                          bg-gradient-to-br from-white via-primary/5 to-white
-                          hover:from-white hover:via-primary/10 hover:to-white
-                          shadow-[0_4px_12px_rgba(var(--primary),0.1)]
-                          hover:shadow-[0_4px_16px_rgba(var(--primary),0.15)]
-                          transition-all duration-300"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Music className="h-4 w-4 text-primary" />
-                      <h3 className="font-semibold text-gray-800 break-all">{song.title}</h3>
-                    </div>
-                    <p className="text-sm text-gray-600 break-all">{song.artist}</p>
+          {filteredSongs.map((song) => (
+            <motion.div
+              key={song.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-4 p-3 sm:p-4 rounded-lg border-2 border-primary/10
+                        bg-gradient-to-br from-white via-primary/5 to-white
+                        hover:from-white hover:via-primary/10 hover:to-white
+                        shadow-[0_4px_12px_rgba(var(--primary),0.1)]
+                        hover:shadow-[0_4px_16px_rgba(var(--primary),0.15)]
+                        transition-all duration-300"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Music className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-gray-800 break-all">{song.title}</h3>
                   </div>
+                  <p className="text-sm text-gray-600 break-all">{song.artist}</p>
+                </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="relative w-full sm:w-auto"
+                <div className="flex flex-wrap gap-2">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="relative w-full sm:w-auto"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        handleVoteStart(song.id);
+                      }}
+                      onTouchEnd={(e) => e.preventDefault()}
+                      onMouseDown={() => !isTouch && handleVoteStart(song.id)}
+                      onMouseUp={(e) => e.preventDefault()}
+                      className={`
+                        flex gap-2 relative overflow-hidden w-full sm:w-auto
+                        bg-gradient-to-r from-purple-100 via-pink-100 to-rose-100
+                        hover:from-purple-200 hover:via-pink-200 hover:to-rose-200
+                        border-2
+                        ${votingId === song.id || clickCount[song.id] > 0
+                          ? `border-primary shadow-[0_0_${Math.min(15 + (clickCount[song.id] || 0) * 5, 30)}px_rgba(var(--primary),${Math.min(0.3 + (clickCount[song.id] || 0) * 0.1, 0.8)})]
+                              bg-gradient-to-r 
+                              ${clickCount[song.id] >= 10 ? 'from-purple-500 via-pink-500 to-rose-500 text-white' :
+                                clickCount[song.id] >= 5 ? 'from-purple-400 via-pink-400 to-rose-400' :
+                                'from-purple-300 via-pink-300 to-rose-300'}`
+                          : 'border-primary/20 hover:border-primary/40'}
+                        transition-all duration-150
+                        transform-gpu
+                        ${clickCount[song.id] > 0 ? 'scale-105' : 'scale-100'}
+                        active:scale-95
+                        select-none
+                        touch-none
+                      `}
+                      style={{
+                        transform: `scale(${Math.min(1 + (clickCount[song.id] || 0) * 0.05, 1.2)})`,
+                        willChange: 'transform',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
                     >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!isWebSocketConnected || voteInProgress}
-                        onTouchStart={(e) => {
-                          e.preventDefault();
-                          handleVoteStart(song.id);
-                        }}
-                        onTouchEnd={(e) => e.preventDefault()}
-                        onMouseDown={() => !isTouch && handleVoteStart(song.id)}
-                        onMouseUp={(e) => e.preventDefault()}
-                        className={`
-                          flex gap-2 relative overflow-hidden w-full sm:w-auto
-                          bg-gradient-to-r from-purple-100 via-pink-100 to-rose-100
-                          hover:from-purple-200 hover:via-pink-200 hover:to-rose-200
-                          border-2 select-none touch-none
-                          ${votingId === song.id || clickCounts[song.id] > 0
-                            ? `border-primary shadow-[0_0_${Math.min(10 + (clickCounts[song.id] || 0) * 2, 20)}px_rgba(var(--primary),${Math.min(0.2 + (clickCounts[song.id] || 0) * 0.05, 0.5)})]
-                               transition-all duration-300 ease-out
-                               ${clickCounts[song.id] >= 10 ? 'from-purple-400 via-pink-400 to-rose-400 text-white' :
-                                 clickCounts[song.id] >= 5 ? 'from-purple-300 via-pink-300 to-rose-300' :
-                                 'from-purple-200 via-pink-200 to-rose-200'}`
-                            : 'border-primary/20 hover:border-primary/40'}
-                          ${!isWebSocketConnected ? 'opacity-50 cursor-not-allowed' : ''}
-                          transform-gpu will-change-transform
-                        `}
-                      >
-                        <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
-                        <span>{voteInProgress ? '點播中...' : '點播'}</span>
-                        {clickCounts[song.id] > 0 && (
-                          <motion.div
-                            className="absolute -top-1 -right-1 bg-primary text-white text-xs px-1.5 py-0.5 rounded-full"
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            +{clickCounts[song.id]}
-                          </motion.div>
-                        )}
-                      </Button>
-                    </motion.div>
+                      <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
+                      <span className="relative">
+                        點播
+                        <AnimatePresence>
+                          {clickCount[song.id] > 0 && (
+                            <motion.div
+                              className="absolute -top-1 left-1/2 -translate-x-1/2"
+                              style={{ pointerEvents: "none" }}
+                            >
+                              <motion.span
+                                key={`count-${clickCount[song.id]}`}
+                                initial={{ opacity: 0, y: 10, scale: 0.5 }}
+                                animate={{
+                                  opacity: [0, 1, 0],
+                                  y: [-10, -30],
+                                  scale: Math.min(1 + (clickCount[song.id] * 0.3), 2.5),
+                                  color: [
+                                    "rgb(var(--primary))",
+                                    "rgb(239, 68, 68)",
+                                    "rgb(234, 179, 8)"
+                                  ]
+                                }}
+                                transition={{
+                                  duration: 0.5,
+                                  ease: "easeOut"
+                                }}
+                                className="absolute font-bold text-primary"
+                                style={{
+                                  textShadow: `0 0 ${Math.min(10 + clickCount[song.id] * 2, 20)}px rgba(var(--primary), ${Math.min(0.3 + clickCount[song.id] * 0.1, 0.8)})`
+                                }}
+                              >
+                                +{clickCount[song.id]}
+                              </motion.span>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </span>
 
-                    {user?.isAdmin && (
-                      <>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{
+                          opacity: clickCount[song.id] > 0 ? [0, Math.min(0.8 + (clickCount[song.id] * 0.05), 1), 0] : 0,
+                          scale: clickCount[song.id] > 0 ? [0.5, Math.min(1.5 + (clickCount[song.id] * 0.1), 3)] : 0,
+                          y: clickCount[song.id] > 0 ? [0, Math.min(-30 - (clickCount[song.id] * 2), -60)] : 0
+                        }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute left-1/2 -translate-x-1/2 -bottom-4"
+                        style={{
+                          zIndex: -1,
+                          pointerEvents: 'none',
+                          transformOrigin: 'bottom center'
+                        }}
+                      >
+                        <div
+                          className={`
+                            w-8 h-16 bg-gradient-to-t from-orange-500 via-yellow-400 to-transparent
+                            rounded-full blur-sm
+                            ${clickCount[song.id] >= 10 ? 'opacity-100 scale-150' :
+                              clickCount[song.id] >= 5 ? 'opacity-90 scale-125' :
+                              'opacity-80'}
+                          `}
+                          style={{
+                            animation: `pulse ${Math.max(1.5 - (clickCount[song.id] * 0.1), 0.5)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
+                            transform: `scale(${Math.min(1 + (clickCount[song.id] * 0.1), 2)})`,
+                            filter: `blur(${Math.min(3 + (clickCount[song.id] * 0.2), 8)}px)`
+                          }}
+                        />
+                        <div
+                          className={`
+                            absolute inset-0 w-6 h-14 bg-gradient-to-t from-yellow-500 via-yellow-300 to-transparent
+                            rounded-full blur-sm
+                            ${clickCount[song.id] >= 10 ? 'opacity-100 scale-150' :
+                              clickCount[song.id] >= 5 ? 'opacity-90 scale-125' :
+                              'opacity-80'}
+                          `}
+                          style={{
+                            animation: `pulse ${Math.max(1.2 - (clickCount[song.id] * 0.1), 0.3)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
+                            transform: `scale(${Math.min(1 + (clickCount[song.id] * 0.15), 2.2)})`,
+                            filter: `blur(${Math.min(2 + (clickCount[song.id] * 0.15), 6)}px)`
+                          }}
+                        />
+                        {Array.from({ length: Math.min(3 + Math.floor(clickCount[song.id] / 3), 12) }).map((_, index) => (
+                          <motion.div
+                            key={index}
+                            className="absolute w-1 h-1 bg-yellow-300 rounded-full"
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{
+                              opacity: [0, 0.8, 0],
+                              scale: [0, 1, 0],
+                              x: [0, (Math.random() - 0.5) * 50 * (1 + clickCount[song.id] * 0.2)],
+                              y: [0, -40 - Math.random() * 30 * (1 + clickCount[song.id] * 0.1)]
+                            }}
+                            transition={{
+                              duration: 0.5 + Math.random() * 0.3,
+                              repeat: Infinity,
+                              repeatDelay: Math.random() * 0.2
+                            }}
+                            style={{
+                              left: '50%',
+                              bottom: '100%',
+                            }}
+                          />
+                        ))}
+                        <div
+                          className="absolute inset-0 rounded-full"
+                          style={{
+                            background: `radial-gradient(circle, rgba(255,166,0,${Math.min(0.2 + clickCount[song.id] * 0.05, 0.6)}) 0%, transparent 70%)`,
+                            transform: `scale(${Math.min(1.5 + clickCount[song.id] * 0.1, 3)})`,
+                            filter: `blur(${Math.min(5 + clickCount[song.id] * 0.5, 15)}px)`
+                          }}
+                        />
+                      </motion.div>
+                    </Button>
+                  </motion.div>
+
+                  {user?.isAdmin && (
+                    <>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-full sm:w-auto"
+                      >
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setEditingSong(song)}
-                          className="w-full sm:w-auto border-2 border-primary/20
+                          className="flex gap-2 w-full sm:w-auto border-2 border-primary/20
                                     bg-white/80 hover:bg-white/90
                                     hover:border-primary/40 transition-all duration-300"
                         >
-                          <Edit2 className="h-4 w-4 mr-2" />
+                          <Edit2 className="h-4 w-4" />
                           編輯
                         </Button>
+                      </motion.div>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-full sm:w-auto"
+                      >
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => deleteSong(song.id)}
-                          className="w-full sm:w-auto border-2 border-red-200/50
+                          className="flex gap-2 w-full sm:w-auto border-2 border-red-200/50
                                     text-red-500 hover:text-red-600 bg-white/80 hover:bg-white/90
                                     hover:border-red-300/50 transition-all duration-300"
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
+                          <Trash2 className="h-4 w-4" />
                           刪除
                         </Button>
-                      </>
-                    )}
-                  </div>
+                      </motion.div>
+                    </>
+                  )}
                 </div>
+              </div>
 
-                <TagSelector song={song} isAdmin={user?.isAdmin ?? false} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+              <TagSelector song={song} isAdmin={user?.isAdmin ?? false} />
+            </motion.div>
+          ))}
         </div>
       </ScrollArea>
 
+      {selectedSongForShare && (
+        <QRCodeShareModal
+          isOpen={qrModalOpen}
+          onClose={() => {
+            setQrModalOpen(false);
+            setSelectedSongForShare(null);
+          }}
+          songTitle={selectedSongForShare.title}
+          songArtist={selectedSongForShare.artist}
+          shareUrl={getShareUrl(selectedSongForShare.id)}
+          songId={selectedSongForShare.id}
+        />
+      )}
+
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-[425px]">
           <AlertDialogHeader>
             <AlertDialogTitle>確認重置所有點播次數？</AlertDialogTitle>
             <AlertDialogDescription>
@@ -392,7 +532,6 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       {editingSong && (
         <EditDialog
           song={editingSong}

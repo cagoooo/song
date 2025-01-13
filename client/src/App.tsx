@@ -1,33 +1,14 @@
 import { Switch, Route } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, Loader2 } from "lucide-react";
-import AuthPage from "@/pages/auth-page";
-import { useUser } from "@/hooks/use-user";
-import { Toaster } from "@/components/ui/toaster";
+import { AlertCircle } from "lucide-react";
 import Home from "@/pages/Home";
-import UserTemplate from "@/pages/UserTemplate";
+import { Toaster } from "@/components/ui/toaster";
 
 function App() {
-  const { user, isLoading } = useUser();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <>
       <Switch>
-        {/* Put the more specific route first */}
-        <Route path="/:username" component={UserTemplate} />
-        {user ? (
-          <Route path="/" component={Home} />
-        ) : (
-          <Route path="/" component={AuthPage} />
-        )}
+        <Route path="/" component={Home} />
         <Route component={NotFound} />
       </Switch>
       <Toaster />
@@ -47,7 +28,7 @@ function NotFound() {
           </div>
 
           <p className="mt-4 text-sm text-gray-600">
-            頁面不存在
+            Did you forget to add the page to the router?
           </p>
         </CardContent>
       </Card>

@@ -1,7 +1,6 @@
 import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
-import { sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -103,11 +102,7 @@ export const qrCodeScansRelations = relations(qrCodeScans, ({ one }) => ({
   })
 }));
 
-export const usersRelations = relations(users, ({ many }) => ({
-  songs: many(songs)
-}));
-
-// Schema types and inference
+// Schema types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 

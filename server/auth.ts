@@ -31,7 +31,7 @@ const crypto = {
 // extend express user object with our schema
 declare global {
   namespace Express {
-    interface User extends Omit<import("@db/schema").User, never> { }
+    interface User extends User { }
   }
 }
 
@@ -122,7 +122,7 @@ export function setupAuth(app: Express) {
         .values({
           username,
           password: hashedPassword,
-          isAdmin: false
+          isAdmin: false // 預設為非管理員
         })
         .returning();
 
