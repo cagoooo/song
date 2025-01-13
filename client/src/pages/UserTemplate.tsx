@@ -9,12 +9,16 @@ import SongList from "../components/SongList";
 import RankingBoard from "../components/RankingBoard";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
+import { useToast } from "@/hooks/use-toast";
 
 export default function UserTemplate() {
   const { username } = useParams();
   const [songs, setSongs] = useState<Song[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const { toast } = useToast();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const prevSongsRef = useRef<Song[]>([]);
 
   // 獲取使用者
   const { data: user, isLoading } = useQuery({
@@ -31,7 +35,13 @@ export default function UserTemplate() {
       });
       if (!response.ok) throw new Error('Failed to fetch songs');
       const data = await response.json();
-      setSongs(data);
+
+      // 在更新狀態前保存前一個狀態，用於動畫比較
+      prevSongsRef.current = songs;
+      setSongs(data.map((song: any) => ({
+        ...song,
+        prevVoteCount: (prevSongsRef.current.find(s => s.id === song.id) as any)?.voteCount || 0
+      })));
       return data;
     },
     retry: 1
@@ -40,10 +50,15 @@ export default function UserTemplate() {
   // WebSocket連接
   useEffect(() => {
     function setupWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        return;
+      }
 
       try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const wsUrl = `${protocol}//${host}/ws`;
+
         console.log('Connecting to WebSocket:', wsUrl);
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
@@ -53,7 +68,18 @@ export default function UserTemplate() {
             const data = JSON.parse(event.data);
             console.log('WebSocket message received:', data);
             if (data.type === 'SONGS_UPDATE') {
-              setSongs(data.songs);
+              // 更新歌曲時保存前一個狀態，用於動畫比較
+              prevSongsRef.current = songs;
+              setSongs(data.songs.map((song: any) => ({
+                ...song,
+                prevVoteCount: (prevSongsRef.current.find(s => s.id === song.id) as any)?.voteCount || 0
+              })));
+            } else if (data.type === 'ERROR') {
+              toast({
+                title: "錯誤",
+                description: data.message,
+                variant: "destructive"
+              });
             }
           } catch (error) {
             console.error('WebSocket message parsing error:', error);
@@ -63,22 +89,27 @@ export default function UserTemplate() {
         ws.onopen = () => {
           console.log('WebSocket connection established');
           setIsWebSocketConnected(true);
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
         };
 
         ws.onclose = () => {
           console.log('WebSocket connection closed');
           setIsWebSocketConnected(false);
-          setTimeout(setupWebSocket, 3000);
+          reconnectTimeoutRef.current = setTimeout(setupWebSocket, 3000);
         };
 
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
           setIsWebSocketConnected(false);
+          ws.close();
         };
+
       } catch (error) {
         console.error('WebSocket connection error:', error);
         setIsWebSocketConnected(false);
-        setTimeout(setupWebSocket, 3000);
+        reconnectTimeoutRef.current = setTimeout(setupWebSocket, 3000);
       }
     }
 
@@ -88,8 +119,11 @@ export default function UserTemplate() {
       if (wsRef.current) {
         wsRef.current.close();
       }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
-  }, []);
+  }, [toast, songs]);
 
   // 載入動畫
   if (isLoading) {

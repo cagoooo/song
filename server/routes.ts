@@ -202,7 +202,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 修正 QR code scan 相關的代碼
+  // QR code scan 相關的代碼
   app.post("/api/qr-scans", async (req, res) => {
     try {
       const { songId } = req.body;
@@ -215,13 +215,14 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid songId" });
       }
 
-      const [scan] = await db.insert(qrCodeScans).values({
-        songId,
-        sessionId,
-        userAgent: userAgent || null,
-        referrer: referrer || null,
-        createdAt: new Date()
-      }).returning();
+      const scan = await db.insert(qrCodeScans)
+        .values({
+          songId: songId,
+          sessionId: sessionId,
+          userAgent: userAgent || null,
+          referrer: referrer || null
+        })
+        .returning();
 
       res.json(scan);
     } catch (error) {
@@ -236,7 +237,9 @@ export function registerRoutes(app: Express): Server {
     path: '/ws',
     verifyClient: ({ req }: { req: IncomingMessage }) => {
       const protocol = req.headers['sec-websocket-protocol'];
-      return protocol !== 'vite-hmr';
+      // 不阻擋 vite-hmr
+      if (protocol === 'vite-hmr') return true;
+      return true; // 允許所有其他連接
     }
   });
 
@@ -337,7 +340,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const songsList = await getSongsWithVotes();
       wss.clients.forEach(client => {
-        if (client.readyState === 1) {
+        if (client.readyState === 1) { // WebSocket.OPEN
           client.send(JSON.stringify({
             type: 'SONGS_UPDATE',
             songs: songsList
