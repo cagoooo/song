@@ -202,6 +202,35 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // 修正 QR code scan 相關的代碼
+  app.post("/api/qr-scans", async (req, res) => {
+    try {
+      const { songId } = req.body;
+      const sessionId = req.sessionID || Math.random().toString(36).substring(2);
+      const userAgent = req.headers['user-agent'];
+      const referrer = req.headers.referer || req.headers.referrer;
+
+      // Add type check for songId
+      if (!songId || typeof songId !== 'number') {
+        return res.status(400).json({ error: "Invalid songId" });
+      }
+
+      const [scan] = await db.insert(qrCodeScans).values({
+        songId,
+        sessionId,
+        userAgent: userAgent || null,
+        referrer: referrer || null,
+        createdAt: new Date()
+      }).returning();
+
+      res.json(scan);
+    } catch (error) {
+      console.error('Failed to record QR code scan:', error);
+      res.status(500).json({ error: "無法記錄QR碼掃描" });
+    }
+  });
+
+  // WebSocket server setup
   const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws',
@@ -211,7 +240,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // WebSocket handling
+  // WebSocket connection handling
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');
     const sessionId = Math.random().toString(36).substring(2);
@@ -225,33 +254,41 @@ export function registerRoutes(app: Express): Server {
         console.log('Received message:', message);
 
         if (message.type === 'VOTE') {
-          // 檢查該 session 是否已經對這首歌投票
-          const existingVote = await db
-            .select()
-            .from(votes)
-            .where(
-              and(
-                eq(votes.songId, message.songId),
-                eq(votes.sessionId, sessionId)
-              )
-            )
-            .limit(1);
-
-          if (existingVote.length > 0) {
+          // Type check for songId
+          if (!message.songId || typeof message.songId !== 'number') {
             ws.send(JSON.stringify({
               type: 'ERROR',
-              message: '您已經對這首歌投過票了'
+              message: 'Invalid songId'
             }));
             return;
           }
 
-          // 新增投票記錄
+          // Check if song exists and is active
+          const [song] = await db
+            .select()
+            .from(songs)
+            .where(and(
+              eq(songs.id, message.songId),
+              eq(songs.isActive, true)
+            ))
+            .limit(1);
+
+          if (!song) {
+            ws.send(JSON.stringify({
+              type: 'ERROR',
+              message: '找不到該歌曲或歌曲已被刪除'
+            }));
+            return;
+          }
+
+          // Add vote
           await db.insert(votes).values({
             songId: message.songId,
             sessionId,
             createdAt: new Date()
           });
 
+          // Broadcast updated songs list to all clients
           await sendSongsUpdate(wss);
         }
       } catch (error) {
@@ -272,13 +309,18 @@ export function registerRoutes(app: Express): Server {
     });
   });
 
+  // Helper function to get songs with vote counts
   async function getSongsWithVotes() {
-    const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
+    const allSongs = await db
+      .select()
+      .from(songs)
+      .where(eq(songs.isActive, true));
 
-    const songVotes = await db.select({
-      songId: votes.songId,
-      voteCount: sql<number>`count(*)`.mapWith(Number)
-    })
+    const songVotes = await db
+      .select({
+        songId: votes.songId,
+        voteCount: sql<number>`count(*)`.mapWith(Number)
+      })
       .from(votes)
       .groupBy(votes.songId);
 
@@ -290,6 +332,7 @@ export function registerRoutes(app: Express): Server {
     }));
   }
 
+  // Helper function to broadcast songs update
   async function sendSongsUpdate(wss: WebSocketServer) {
     try {
       const songsList = await getSongsWithVotes();
@@ -305,32 +348,6 @@ export function registerRoutes(app: Express): Server {
       console.error('Failed to send songs update:', error);
     }
   }
-
-
-  // QR Code scan tracking endpoints
-  app.post("/api/qr-scans", async (req, res) => {
-    try {
-      const { songId } = req.body;
-      const sessionId = req.sessionID || Math.random().toString(36).substring(2);
-      const userAgent = req.headers['user-agent'];
-      const referrer = req.headers.referer || req.headers.referrer;
-
-      const [scan] = await db.insert(qrCodeScans)
-        .values({
-          songId,
-          sessionId,
-          userAgent: userAgent || null,
-          referrer: referrer || null,
-          createdAt: new Date()
-        })
-        .returning();
-
-      res.json(scan);
-    } catch (error) {
-      console.error('Failed to record QR code scan:', error);
-      res.status(500).json({ error: "無法記錄QR碼掃描" });
-    }
-  });
 
   // Get QR code scan statistics (admin only)
   app.get("/api/qr-scans/stats", requireAdmin, async (req, res) => {
