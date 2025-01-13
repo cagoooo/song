@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Template, Song } from "@db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Music2 } from "lucide-react";
+import { Music2, Trophy } from "lucide-react";
 import SongList from "../components/SongList";
 import RankingBoard from "../components/RankingBoard";
 
@@ -140,7 +140,7 @@ export default function UserTemplate() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 歌單區域 */}
           <div className="lg:col-span-2">
-            <Card>
+            <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Music2 className="w-5 h-5" />
@@ -159,9 +159,12 @@ export default function UserTemplate() {
 
           {/* 排行榜區域 */}
           <div>
-            <Card>
+            <Card className="shadow-lg">
               <CardHeader>
-                <CardTitle>點播排行榜</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5" />
+                  點播排行榜
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <RankingBoard songs={songs} />

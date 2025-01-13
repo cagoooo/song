@@ -18,7 +18,6 @@ function App() {
     );
   }
 
-  // 移除登入檢查，允許訪客訪問
   return (
     <>
       <Switch>

@@ -78,7 +78,7 @@ export function registerRoutes(app: Express): Server {
 
       // 首先查找用戶
       const user = await db.query.users.findFirst({
-        where: eq(users.username, username),
+        where: (users, { eq }) => eq(users.username, username),
       });
 
       if (!user) {

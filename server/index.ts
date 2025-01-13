@@ -1,7 +1,9 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { db, initializeDatabase } from "@db";
+import { db } from "@db";
+import { sql } from "drizzle-orm";
+import { setupAuth } from "./auth";
 
 const app = express();
 app.use(express.json());
@@ -39,12 +41,15 @@ app.use((req, res, next) => {
 (async () => {
   try {
     // Initialize database connection
-    const dbConnected = await initializeDatabase();
-    if (!dbConnected) {
+    const result = await db.execute(sql`SELECT NOW()`);
+    if (!result) {
       log("無法連接到資料庫，伺服器將不會啟動");
       process.exit(1);
     }
     log("資料庫連接成功");
+
+    // 設置認證系統
+    setupAuth(app);
 
     const server = registerRoutes(app);
 
