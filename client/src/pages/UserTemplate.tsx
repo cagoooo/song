@@ -11,93 +11,73 @@ import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 import { useToast } from "@/hooks/use-toast";
 
-const INITIAL_RETRY_DELAY = 2000;
-const MAX_RETRY_DELAY = 30000;
-const MAX_RECONNECT_ATTEMPTS = 5;
-
 export default function UserTemplate() {
   const { username } = useParams();
   const [songs, setSongs] = useState<Song[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const { toast } = useToast();
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const prevSongsRef = useRef<Song[]>([]);
   const reconnectAttemptsRef = useRef(0);
-  const isReconnectingRef = useRef(false);
   const lastConnectionAttemptRef = useRef(0);
-  const songUpdateTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastSongsUpdateRef = useRef<string>("");
+  const cleanupTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Clean up function
   const cleanup = useCallback(() => {
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-    if (songUpdateTimeoutRef.current) {
-      clearTimeout(songUpdateTimeoutRef.current);
+    if (cleanupTimeoutRef.current) {
+      clearTimeout(cleanupTimeoutRef.current);
     }
   }, []);
 
-  // Handle song updates with debounce
   const handleSongUpdate = useCallback((newSongs: Song[]) => {
-    if (songUpdateTimeoutRef.current) {
-      clearTimeout(songUpdateTimeoutRef.current);
+    const newSongsString = JSON.stringify(newSongs);
+    if (newSongsString !== lastSongsUpdateRef.current) {
+      lastSongsUpdateRef.current = newSongsString;
+      setSongs(newSongs);
     }
-
-    songUpdateTimeoutRef.current = setTimeout(() => {
-      const hasChanges = JSON.stringify(newSongs) !== JSON.stringify(prevSongsRef.current);
-      if (hasChanges) {
-        prevSongsRef.current = newSongs;
-        setSongs(newSongs);
-      }
-    }, 300);
   }, []);
 
-  // WebSocket connection management
   useEffect(() => {
+    let mounted = true;
+    let retryTimeoutId: NodeJS.Timeout;
+
     const setupWebSocket = () => {
-      // Check cooldown period
+      if (!mounted) return;
+
       const now = Date.now();
       const timeSinceLastAttempt = now - lastConnectionAttemptRef.current;
-      const minRetryInterval = Math.min(
-        INITIAL_RETRY_DELAY * Math.pow(2, reconnectAttemptsRef.current),
-        MAX_RETRY_DELAY
-      );
+      const retryDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
 
-      if (timeSinceLastAttempt < minRetryInterval) {
+      if (timeSinceLastAttempt < retryDelay) {
         return;
       }
 
-      // Prevent duplicate connections
       if (wsRef.current?.readyState === WebSocket.CONNECTING || 
           wsRef.current?.readyState === WebSocket.OPEN) {
         return;
       }
 
       try {
-        // 使用當前頁面URL構建WebSocket URL
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = window.location.host;
-        const wsUrl = `${wsProtocol}//${wsHost}/ws`;
-        console.log('Connecting to WebSocket:', wsUrl);
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
 
         lastConnectionAttemptRef.current = now;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
+          if (!mounted) return;
           console.log('WebSocket connection established');
           setIsWebSocketConnected(true);
-          isReconnectingRef.current = false;
           reconnectAttemptsRef.current = 0;
           ws.send(JSON.stringify({ type: 'PING' }));
         };
 
         ws.onmessage = (event) => {
+          if (!mounted) return;
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'SONGS_UPDATE') {
@@ -108,8 +88,6 @@ export default function UserTemplate() {
                 description: data.message,
                 variant: "destructive"
               });
-            } else if (data.type === 'PONG') {
-              console.log('Server responded with PONG');
             }
           } catch (error) {
             console.error('WebSocket message parsing error:', error);
@@ -117,17 +95,16 @@ export default function UserTemplate() {
         };
 
         ws.onclose = () => {
+          if (!mounted) return;
           console.log('WebSocket connection closed');
           setIsWebSocketConnected(false);
 
-          if (!isReconnectingRef.current && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
-            console.log(`Attempting to reconnect... (${reconnectAttemptsRef.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
-            isReconnectingRef.current = true;
+          if (reconnectAttemptsRef.current < 5) {
             reconnectAttemptsRef.current += 1;
-            reconnectTimeoutRef.current = setTimeout(setupWebSocket, minRetryInterval);
-          } else if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+            retryTimeoutId = setTimeout(setupWebSocket, retryDelay);
+          } else {
             toast({
-              title: "連接中斷",
+              title: "連線中斷",
               description: "無法連接到伺服器，請重新整理頁面",
               variant: "destructive"
             });
@@ -135,40 +112,35 @@ export default function UserTemplate() {
         };
 
         ws.onerror = (error) => {
+          if (!mounted) return;
           console.error('WebSocket error:', error);
           if (ws.readyState === WebSocket.OPEN) {
             ws.close();
           }
         };
 
-        // Keep connection alive
-        const pingInterval = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'PING' }));
-          }
-        }, 30000);
-
-        return () => {
-          clearInterval(pingInterval);
-          cleanup();
-        };
-
       } catch (error) {
         console.error('WebSocket setup error:', error);
-        setIsWebSocketConnected(false);
-        if (!isReconnectingRef.current && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
-          isReconnectingRef.current = true;
+        if (!mounted) return;
+
+        if (reconnectAttemptsRef.current < 5) {
           reconnectAttemptsRef.current += 1;
-          reconnectTimeoutRef.current = setTimeout(setupWebSocket, minRetryInterval);
+          retryTimeoutId = setTimeout(setupWebSocket, retryDelay);
         }
       }
     };
 
     setupWebSocket();
-    return cleanup;
+
+    return () => {
+      mounted = false;
+      cleanup();
+      if (retryTimeoutId) {
+        clearTimeout(retryTimeoutId);
+      }
+    };
   }, [cleanup, handleSongUpdate, toast]);
 
-  // Fetch initial songs data
   useQuery({
     queryKey: ['/api/songs'],
     queryFn: async () => {
@@ -183,7 +155,6 @@ export default function UserTemplate() {
     retry: 1
   });
 
-  // Get user data
   const { data: user, isLoading } = useQuery({
     queryKey: [`/api/users/${username}`],
     enabled: !!username,
@@ -191,7 +162,7 @@ export default function UserTemplate() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <motion.div
           animate={{
             rotate: 360,
@@ -226,6 +197,7 @@ export default function UserTemplate() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
       <div className="container mx-auto py-4 sm:py-8 px-4">
+        {/* Title container */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

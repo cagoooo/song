@@ -95,6 +95,7 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
   const [isTouch, setIsTouch] = useState(false);
   const clickTimeoutsRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
   const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [voteInProgress, setVoteInProgress] = useState(false);
 
   useEffect(() => {
     const checkTouch = () => {
@@ -105,7 +106,6 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
     return () => window.removeEventListener('resize', checkTouch);
   }, []);
 
-  // Clean up timeouts when component unmounts
   useEffect(() => {
     return () => {
       Object.values(clickTimeoutsRef.current).forEach(timeout => {
@@ -114,35 +114,53 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
     };
   }, []);
 
-  const handleVoteStart = useCallback((songId: number) => {
+  const handleVoteStart = useCallback(async (songId: number) => {
+    if (voteInProgress) {
+      return;
+    }
+
     if (!ws || ws.readyState !== WebSocket.OPEN || !isWebSocketConnected) {
       toast({
-        title: "錯誤",
+        title: "連線錯誤",
         description: "無法連接到伺服器，請稍後再試",
         variant: "destructive"
       });
       return;
     }
 
-    setVotingId(songId);
-    ws.send(JSON.stringify({ type: 'VOTE', songId }));
+    try {
+      setVoteInProgress(true);
+      setVotingId(songId);
 
-    // Update click count with debounce
-    setClickCounts(prev => {
-      const newCount = Math.min((prev[songId] || 0) + 1, 15);
-      return { ...prev, [songId]: newCount };
-    });
+      ws.send(JSON.stringify({ type: 'VOTE', songId }));
 
-    // Clear previous timeout if exists
-    if (clickTimeoutsRef.current[songId]) {
-      clearTimeout(clickTimeoutsRef.current[songId]);
+      setClickCounts(prev => {
+        const newCount = Math.min((prev[songId] || 0) + 1, 15);
+        return { ...prev, [songId]: newCount };
+      });
+
+      if (clickTimeoutsRef.current[songId]) {
+        clearTimeout(clickTimeoutsRef.current[songId]);
+      }
+
+      clickTimeoutsRef.current[songId] = setTimeout(() => {
+        setClickCounts(prev => ({ ...prev, [songId]: 0 }));
+      }, 2000);
+
+    } catch (error) {
+      console.error('Vote error:', error);
+      toast({
+        title: "錯誤",
+        description: "點播失敗，請稍後再試",
+        variant: "destructive"
+      });
+    } finally {
+      setTimeout(() => {
+        setVoteInProgress(false);
+        setVotingId(null);
+      }, 500);
     }
-
-    // Set new timeout to clear click count
-    clickTimeoutsRef.current[songId] = setTimeout(() => {
-      setClickCounts(prev => ({ ...prev, [songId]: 0 }));
-    }, 2000);
-  }, [ws, isWebSocketConnected, toast]);
+  }, [ws, isWebSocketConnected, toast, voteInProgress]);
 
   const filteredSongs = useMemo(() => {
     if (!searchTerm.trim()) return songs;
@@ -256,7 +274,7 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ 
+                transition={{
                   duration: 0.3,
                   layout: { duration: 0.2 }
                 }}
@@ -285,6 +303,7 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
                       <Button
                         variant="outline"
                         size="sm"
+                        disabled={!isWebSocketConnected || voteInProgress}
                         onTouchStart={(e) => {
                           e.preventDefault();
                           handleVoteStart(song.id);
@@ -299,18 +318,17 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
                           border-2 select-none touch-none
                           ${votingId === song.id || clickCounts[song.id] > 0
                             ? `border-primary shadow-[0_0_${Math.min(10 + (clickCounts[song.id] || 0) * 2, 20)}px_rgba(var(--primary),${Math.min(0.2 + (clickCounts[song.id] || 0) * 0.05, 0.5)})]
-                                transition-all duration-300 ease-out
-                                ${clickCounts[song.id] >= 10 ? 'from-purple-400 via-pink-400 to-rose-400 text-white' :
-                                  clickCounts[song.id] >= 5 ? 'from-purple-300 via-pink-300 to-rose-300' :
-                                  'from-purple-200 via-pink-200 to-rose-200'}`
+                               transition-all duration-300 ease-out
+                               ${clickCounts[song.id] >= 10 ? 'from-purple-400 via-pink-400 to-rose-400 text-white' :
+                                 clickCounts[song.id] >= 5 ? 'from-purple-300 via-pink-300 to-rose-300' :
+                                 'from-purple-200 via-pink-200 to-rose-200'}`
                             : 'border-primary/20 hover:border-primary/40'}
                           ${!isWebSocketConnected ? 'opacity-50 cursor-not-allowed' : ''}
                           transform-gpu will-change-transform
                         `}
-                        disabled={!isWebSocketConnected}
                       >
                         <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
-                        <span>點播</span>
+                        <span>{voteInProgress ? '點播中...' : '點播'}</span>
                         {clickCounts[song.id] > 0 && (
                           <motion.div
                             className="absolute -top-1 -right-1 bg-primary text-white text-xs px-1.5 py-0.5 rounded-full"
