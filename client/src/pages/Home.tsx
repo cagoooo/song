@@ -5,7 +5,7 @@ import { useUser } from "@/hooks/use-user";
 import { useQuery } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Music2, Trophy, Lightbulb } from "lucide-react";
+import { LogIn, LogOut, Music2, Trophy, Lightbulb, Settings } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import RankingBoard from "../components/RankingBoard";
@@ -13,6 +13,8 @@ import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
+import UserManagement from "../components/UserManagement";
+import TemplateManager from "../components/TemplateManager";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -103,7 +105,7 @@ export default function Home() {
       toast({
         title: "成功",
         description: "已登出",
-        variant: "info"
+        variant: "default"
       });
     } catch (error) {
       toast({
@@ -137,24 +139,22 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
       {/* Admin Logout Button - Moved outside the title container */}
-      {user?.isAdmin && (
-        <motion.div 
-          className="fixed top-4 right-4 z-50"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+      <motion.div 
+        className="fixed top-4 right-4 z-50 flex gap-2"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleLogout}
+          className="bg-white/90 hover:bg-white border-2 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 shadow-lg hover:shadow-xl transition-all duration-300"
         >
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleLogout}
-            className="bg-white/90 hover:bg-white border-2 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 shadow-lg hover:shadow-xl transition-all duration-300"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            登出管理
-          </Button>
-        </motion.div>
-      )}
+          <LogOut className="w-4 h-4 mr-2" />
+          登出
+        </Button>
+      </motion.div>
 
       <div className="container mx-auto py-4 sm:py-8 px-4">
         {/* Title container */}
@@ -209,24 +209,6 @@ export default function Home() {
                 backfaceVisibility: "hidden"
               }}
             />
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-br from-indigo-400/15 via-purple-400/20 to-pink-400/15"
-              animate={{
-                backgroundPosition: ["0% 0%", "100% 100%"],
-              }}
-              transition={{
-                duration: 15,
-                repeat: Infinity,
-                ease: "linear",
-                repeatType: "reverse"
-              }}
-              style={{
-                backgroundSize: "200% 200%",
-                filter: "blur(15px)",
-                transform: "translate3d(0, 0, 0)", 
-                backfaceVisibility: "hidden"
-              }}
-            />
           </motion.div>
 
           <motion.div 
@@ -238,6 +220,51 @@ export default function Home() {
             <ShareButton />
           </motion.div>
         </motion.div>
+
+        {/* System Management Section for Admin */}
+        {user?.isAdmin && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-6"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  系統管理
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <UserManagement />
+                <TemplateManager />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Template Manager for Regular Users */}
+        {!user?.isAdmin && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-6"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  模板設定
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TemplateManager />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Rest of the content */}
         <AnimatePresence>
@@ -285,7 +312,7 @@ export default function Home() {
                 <CardContent className="p-3 sm:p-6">
                   {user?.isAdmin && <SongImport />}
                   <div className="h-4" />
-                  <SongList songs={songs} ws={wsRef.current} user={user || null} />
+                  <SongList songs={songs} ws={wsRef.current} user={user} />
                 </CardContent>
               </Card>
             </motion.div>
@@ -312,26 +339,6 @@ export default function Home() {
           </motion.div>
         </AnimatePresence>
       </div>
-
-      {/* Login button for non-admin users */}
-      {!user && (
-        <motion.div 
-          className="fixed bottom-4 right-4 z-50"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setShowLoginForm(true)}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40 transition-all duration-300"
-          >
-            <LogIn className="w-4 h-4 mr-2" />
-            管理員登入
-          </Button>
-        </motion.div>
-      )}
 
       {/* Login form modal */}
       {showLoginForm && (

@@ -2,6 +2,7 @@ import { db } from "@db";
 import { users } from "@db/schema";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import { eq } from "drizzle-orm";
 
 const scryptAsync = promisify(scrypt);
 
@@ -43,5 +44,4 @@ async function initAdmin() {
 }
 
 // 執行初始化
-await initAdmin();
-process.exit(0);
+initAdmin().then(() => process.exit(0));
