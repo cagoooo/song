@@ -2,19 +2,10 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { db, initializeDatabase } from "@db";
-import { sql } from "drizzle-orm";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// Added error handling middleware
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('Error:', err);
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  res.status(status).json({ message });
-});
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -47,35 +38,38 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Test database connection with retries
-    try {
-      await initializeDatabase();
-      log('Database connection successful');
-    } catch (error) {
-      log('Database connection failed');
-      if (!process.env.DATABASE_URL) {
-        log('Missing DATABASE_URL environment variable');
-      }
+    // Initialize database connection
+    const dbConnected = await initializeDatabase();
+    if (!dbConnected) {
+      log("無法連接到資料庫，伺服器將不會啟動");
       process.exit(1);
     }
+    log("資料庫連接成功");
 
     const server = registerRoutes(app);
 
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
+    // Add error handling middleware
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error("Error:", err);
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
+    });
+
+    // Setup vite in development
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);
     }
 
-    const PORT = process.env.PORT || 3000;
+    // Start server
+    const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
-      log(`Server running on port ${PORT} (${app.get("env")})`);
+      log(`伺服器運行在端口 ${PORT} (${app.get("env")})`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error("伺服器啟動失敗:", error);
     process.exit(1);
   }
 })();

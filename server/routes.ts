@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { db } from "@db";
-import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, type User } from "@db/schema";
+import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, templates, type User } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql, and } from "drizzle-orm";
 import type { IncomingMessage } from "http";
@@ -14,50 +14,11 @@ declare module 'express-serve-static-core' {
   }
 }
 
-async function getSongsWithVotes() {
-  const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
-
-  const songVotes = await db.select({
-    songId: votes.songId,
-    voteCount: sql<number>`count(*)`.mapWith(Number)
-  })
-    .from(votes)
-    .groupBy(votes.songId);
-
-  const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
-
-  return allSongs.map(song => ({
-    ...song,
-    voteCount: voteMap.get(song.id) || 0
-  }));
-}
-
-async function sendSongsUpdate(wss: WebSocketServer) {
-  try {
-    const songsList = await getSongsWithVotes();
-    wss.clients.forEach(client => {
-      if (client.readyState === 1) {
-        client.send(JSON.stringify({
-          type: 'SONGS_UPDATE',
-          songs: songsList
-        }));
-      }
-    });
-  } catch (error) {
-    console.error('Failed to send songs update:', error);
-  }
-}
-
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({
-    server: httpServer,
-    path: '/ws',
-    verifyClient: ({ req }: { req: IncomingMessage }) => {
-      const protocol = req.headers['sec-websocket-protocol'];
-      return protocol !== 'vite-hmr';
-    }
-  });
+
+  // 設置認證系統
+  setupAuth(app);
 
   // Auth middleware
   const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
@@ -67,7 +28,48 @@ export function registerRoutes(app: Express): Server {
     next();
   };
 
-  setupAuth(app);
+  // Templates routes
+  app.get("/api/templates", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "請先登入" });
+    }
+
+    try {
+      const userTemplates = await db
+        .select()
+        .from(templates)
+        .where(eq(templates.userId, req.user!.id))
+        .where(eq(templates.isActive, true));
+      res.json(userTemplates);
+    } catch (error) {
+      console.error('Failed to fetch templates:', error);
+      res.status(500).json({ error: "無法取得模板列表" });
+    }
+  });
+
+  app.post("/api/templates", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "請先登入" });
+    }
+
+    try {
+      const { name, settings } = req.body;
+      const [newTemplate] = await db
+        .insert(templates)
+        .values({
+          userId: req.user!.id,
+          name,
+          settings,
+          isActive: true
+        })
+        .returning();
+
+      res.json(newTemplate);
+    } catch (error) {
+      console.error('Failed to create template:', error);
+      res.status(500).json({ error: "無法創建新模板" });
+    }
+  });
 
   // Song Suggestions routes
   app.get("/api/suggestions", async (_req, res) => {
@@ -119,12 +121,12 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Failed to create suggestion:', error);
       if (error.code === '23505') { // 重複的建議
-        res.status(409).json({ 
+        res.status(409).json({
           error: "這首歌曲已經被建議過了",
           details: "請查看現有的建議列表"
         });
       } else {
-        res.status(500).json({ 
+        res.status(500).json({
           error: "無法新增歌曲建議",
           details: "請稍後再試，或聯繫管理員"
         });
@@ -284,6 +286,16 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+
+  const wss = new WebSocketServer({
+    server: httpServer,
+    path: '/ws',
+    verifyClient: ({ req }: { req: IncomingMessage }) => {
+      const protocol = req.headers['sec-websocket-protocol'];
+      return protocol !== 'vite-hmr';
+    }
+  });
+
   // WebSocket handling
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');
@@ -323,6 +335,40 @@ export function registerRoutes(app: Express): Server {
       console.log('WebSocket connection closed');
     });
   });
+
+  async function getSongsWithVotes() {
+    const allSongs = await db.select().from(songs).where(eq(songs.isActive, true));
+
+    const songVotes = await db.select({
+      songId: votes.songId,
+      voteCount: sql<number>`count(*)`.mapWith(Number)
+    })
+      .from(votes)
+      .groupBy(votes.songId);
+
+    const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
+
+    return allSongs.map(song => ({
+      ...song,
+      voteCount: voteMap.get(song.id) || 0
+    }));
+  }
+
+  async function sendSongsUpdate(wss: WebSocketServer) {
+    try {
+      const songsList = await getSongsWithVotes();
+      wss.clients.forEach(client => {
+        if (client.readyState === 1) {
+          client.send(JSON.stringify({
+            type: 'SONGS_UPDATE',
+            songs: songsList
+          }));
+        }
+      });
+    } catch (error) {
+      console.error('Failed to send songs update:', error);
+    }
+  }
 
   // Tags routes
   app.get("/api/tags", async (_req, res) => {

@@ -20,7 +20,7 @@ async function initAdmin() {
 
     if (!adminExists) {
       // 建立管理員密碼的雜湊值
-      const hashedPassword = await hashPassword("cagoo_admin");
+      const hashedPassword = await hashPassword("smes1234");
 
       // 建立管理員帳號
       const [newAdmin] = await db
