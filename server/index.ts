@@ -1,8 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { db } from "@db";
-import { sql } from "drizzle-orm";
+import { db, initializeDatabase } from "@db";
 import { setupAuth } from "./auth";
 
 const app = express();
@@ -41,8 +40,8 @@ app.use((req, res, next) => {
 (async () => {
   try {
     // Initialize database connection
-    const result = await db.execute(sql`SELECT NOW()`);
-    if (!result) {
+    const dbConnected = await initializeDatabase();
+    if (!dbConnected) {
       log("無法連接到資料庫，伺服器將不會啟動");
       process.exit(1);
     }

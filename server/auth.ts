@@ -7,7 +7,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { users, type User, insertUserSchema } from "@db/schema";
+import { users, type User } from "@db/schema";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -31,8 +31,7 @@ const crypto = {
 // extend express user object with our schema
 declare global {
   namespace Express {
-    // use type instead of interface to avoid recursive type reference
-    type User = Omit<import("@db/schema").User, never>;
+    interface User extends Omit<import("@db/schema").User, never> { }
   }
 }
 
@@ -101,14 +100,7 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const result = insertUserSchema.safeParse(req.body);
-      if (!result.success) {
-        return res
-          .status(400)
-          .send("輸入資料無效: " + result.error.issues.map(i => i.message).join(", "));
-      }
-
-      const { username, password } = result.data;
+      const { username, password } = req.body;
 
       // Check if user already exists
       const [existingUser] = await db
@@ -130,7 +122,7 @@ export function setupAuth(app: Express) {
         .values({
           username,
           password: hashedPassword,
-          isAdmin: false // 預設為非管理員
+          isAdmin: false
         })
         .returning();
 
@@ -146,56 +138,6 @@ export function setupAuth(app: Express) {
       });
     } catch (error) {
       next(error);
-    }
-  });
-
-  // Special endpoint for admin to create new users
-  app.post("/api/admin/users", async (req, res) => {
-    // Check if the current user is an admin
-    if (!req.user?.isAdmin) {
-      return res.status(403).send("需要管理員權限");
-    }
-
-    try {
-      const result = insertUserSchema.safeParse(req.body);
-      if (!result.success) {
-        return res
-          .status(400)
-          .send("輸入資料無效: " + result.error.issues.map(i => i.message).join(", "));
-      }
-
-      const { username, password } = result.data;
-
-      // Check if user already exists
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (existingUser) {
-        return res.status(400).send("使用者名稱已存在");
-      }
-
-      // Hash the password
-      const hashedPassword = await crypto.hash(password);
-
-      // Create the new user
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          username,
-          password: hashedPassword,
-          isAdmin: false // 管理員創建的用戶預設為非管理員
-        })
-        .returning();
-
-      return res.json({
-        message: "使用者建立成功",
-        user: { id: newUser.id, username: newUser.username, isAdmin: newUser.isAdmin }
-      });
-    } catch (error) {
-      return res.status(500).send("建立使用者時發生錯誤");
     }
   });
 

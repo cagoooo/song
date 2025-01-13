@@ -1,26 +1,24 @@
-import { neon, neonConfig } from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "@db/schema";
-import ws from "ws";
+import { WebSocket } from "ws";
 import { sql } from "drizzle-orm";
 
-// Configure neon with WebSocket settings
-neonConfig.webSocketConstructor = ws;
-
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
+  throw new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database?",
+  );
 }
 
 // Create the db client with schema
-const sql_connection = neon(process.env.DATABASE_URL);
-export const db = drizzle(sql_connection, { schema });
+const client = neon(process.env.DATABASE_URL);
+export const db = drizzle(client, { schema });
 
 // Initialize function for testing the connection
 export async function initializeDatabase() {
   try {
-    // Test the connection
-    const result = await db.execute(sql`SELECT NOW()`);
-    console.log("資料庫連接成功", result);
+    await db.execute(sql`SELECT NOW()`);
+    console.log("資料庫連接成功");
     return true;
   } catch (error) {
     console.error("資料庫連接失敗:", error);
