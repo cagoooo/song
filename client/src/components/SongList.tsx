@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -91,9 +91,9 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
   const [searchTerm, setSearchTerm] = useState("");
   const [votingId, setVotingId] = useState<number | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
-  const [clickCount, setClickCount] = useState<{ [key: number]: number }>({});
+  const [clickCounts, setClickCounts] = useState<{ [key: number]: number }>({});
   const [isTouch, setIsTouch] = useState(false);
-  const [lastVoteTime, setLastVoteTime] = useState<{ [key: number]: number }>({});
+  const clickTimeoutsRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
   const [editingSong, setEditingSong] = useState<Song | null>(null);
 
   useEffect(() => {
@@ -103,6 +103,15 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
     checkTouch();
     window.addEventListener('resize', checkTouch);
     return () => window.removeEventListener('resize', checkTouch);
+  }, []);
+
+  // Clean up timeouts when component unmounts
+  useEffect(() => {
+    return () => {
+      Object.values(clickTimeoutsRef.current).forEach(timeout => {
+        clearTimeout(timeout);
+      });
+    };
   }, []);
 
   const handleVoteStart = useCallback((songId: number) => {
@@ -115,48 +124,25 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
       return;
     }
 
-    const now = Date.now();
-    const lastTime = lastVoteTime[songId] || 0;
-    const timeDiff = now - lastTime;
-
-    if (timeDiff < 150) return; // 增加點擊間隔以減少狀態更新頻率
-
     setVotingId(songId);
     ws.send(JSON.stringify({ type: 'VOTE', songId }));
 
-    setClickCount(prev => {
-      const newCount = Math.min((prev[songId] || 0) + 1, 15); // 限制最大點擊次數為15
-      return {
-        ...prev,
-        [songId]: newCount
-      };
+    // Update click count with debounce
+    setClickCounts(prev => {
+      const newCount = Math.min((prev[songId] || 0) + 1, 15);
+      return { ...prev, [songId]: newCount };
     });
 
-    setLastVoteTime(prev => ({
-      ...prev,
-      [songId]: now
-    }));
+    // Clear previous timeout if exists
+    if (clickTimeoutsRef.current[songId]) {
+      clearTimeout(clickTimeoutsRef.current[songId]);
+    }
 
-    // 使用 RAF 進行平滑的點擊計數重置
-    let start: number;
-    const duration = 2000; // 2秒內平滑降低
-
-    const animate = (timestamp: number) => {
-      if (!start) start = timestamp;
-      const progress = timestamp - start;
-
-      if (progress < duration) {
-        requestAnimationFrame(animate);
-      } else {
-        setClickCount(prev => ({
-          ...prev,
-          [songId]: 0
-        }));
-      }
-    };
-
-    requestAnimationFrame(animate);
-  }, [ws, isWebSocketConnected, lastVoteTime, toast]);
+    // Set new timeout to clear click count
+    clickTimeoutsRef.current[songId] = setTimeout(() => {
+      setClickCounts(prev => ({ ...prev, [songId]: 0 }));
+    }, 2000);
+  }, [ws, isWebSocketConnected, toast]);
 
   const filteredSongs = useMemo(() => {
     if (!searchTerm.trim()) return songs;
@@ -200,7 +186,7 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
 
       toast({
         title: "成功",
-        description: "所有點播次數已重置", //This line is changed
+        description: "所有點播次數已重置",
       });
       setShowResetDialog(false);
     } catch (error) {
@@ -274,7 +260,7 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
                   duration: 0.3,
                   layout: { duration: 0.2 }
                 }}
-                className="flex flex-col gap-4 p-3 sm:p-4 rounded-lg border-2 border-primary/10
+                className="relative flex flex-col gap-4 p-3 sm:p-4 rounded-lg border-2 border-primary/10
                           bg-gradient-to-br from-white via-primary/5 to-white
                           hover:from-white hover:via-primary/10 hover:to-white
                           shadow-[0_4px_12px_rgba(var(--primary),0.1)]
@@ -310,33 +296,29 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
                           flex gap-2 relative overflow-hidden w-full sm:w-auto
                           bg-gradient-to-r from-purple-100 via-pink-100 to-rose-100
                           hover:from-purple-200 hover:via-pink-200 hover:to-rose-200
-                          border-2
-                          ${votingId === song.id || clickCount[song.id] > 0
-                            ? `border-primary shadow-[0_0_${Math.min(10 + (clickCount[song.id] || 0) * 2, 20)}px_rgba(var(--primary),${Math.min(0.2 + (clickCount[song.id] || 0) * 0.05, 0.5)})]
-                                bg-gradient-to-r 
-                                ${clickCount[song.id] >= 10 ? 'from-purple-400 via-pink-400 to-rose-400 text-white' :
-                                  clickCount[song.id] >= 5 ? 'from-purple-300 via-pink-300 to-rose-300' :
+                          border-2 select-none touch-none
+                          ${votingId === song.id || clickCounts[song.id] > 0
+                            ? `border-primary shadow-[0_0_${Math.min(10 + (clickCounts[song.id] || 0) * 2, 20)}px_rgba(var(--primary),${Math.min(0.2 + (clickCounts[song.id] || 0) * 0.05, 0.5)})]
+                                transition-all duration-300 ease-out
+                                ${clickCounts[song.id] >= 10 ? 'from-purple-400 via-pink-400 to-rose-400 text-white' :
+                                  clickCounts[song.id] >= 5 ? 'from-purple-300 via-pink-300 to-rose-300' :
                                   'from-purple-200 via-pink-200 to-rose-200'}`
                             : 'border-primary/20 hover:border-primary/40'}
-                          transition-all duration-150
-                          transform-gpu
-                          active:scale-95
-                          select-none
-                          touch-none
                           ${!isWebSocketConnected ? 'opacity-50 cursor-not-allowed' : ''}
+                          transform-gpu will-change-transform
                         `}
                         disabled={!isWebSocketConnected}
                       >
                         <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
                         <span>點播</span>
-                        {clickCount[song.id] > 0 && (
+                        {clickCounts[song.id] > 0 && (
                           <motion.div
-                            className={`absolute -top-1 -right-1 bg-primary text-white text-xs px-1.5 py-0.5 rounded-full`}
+                            className="absolute -top-1 -right-1 bg-primary text-white text-xs px-1.5 py-0.5 rounded-full"
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ duration: 0.2 }}
                           >
-                            +{clickCount[song.id]}
+                            +{clickCounts[song.id]}
                           </motion.div>
                         )}
                       </Button>
