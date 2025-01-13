@@ -200,7 +200,7 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
 
       toast({
         title: "成功",
-        description: "所有點播次數已歸零",
+        description: "所有點播次數已重置", //This line is changed
       });
       setShowResetDialog(false);
     } catch (error) {

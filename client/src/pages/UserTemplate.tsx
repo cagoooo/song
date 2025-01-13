@@ -65,6 +65,17 @@ export default function UserTemplate() {
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
+        ws.onopen = () => {
+          console.log('WebSocket connection established');
+          setIsWebSocketConnected(true);
+          reconnectAttempts.current = 0;
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          // 連接成功後發送一個ping消息
+          ws.send(JSON.stringify({ type: 'PING' }));
+        };
+
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
@@ -82,18 +93,11 @@ export default function UserTemplate() {
                 description: data.message,
                 variant: "destructive"
               });
+            } else if (data.type === 'PONG') {
+              console.log('Server responded with PONG');
             }
           } catch (error) {
             console.error('WebSocket message parsing error:', error);
-          }
-        };
-
-        ws.onopen = () => {
-          console.log('WebSocket connection established');
-          setIsWebSocketConnected(true);
-          reconnectAttempts.current = 0;
-          if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
           }
         };
 
@@ -105,6 +109,7 @@ export default function UserTemplate() {
           if (reconnectAttempts.current < maxReconnectAttempts) {
             reconnectAttempts.current += 1;
             const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+            console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current})`);
             reconnectTimeoutRef.current = setTimeout(setupWebSocket, delay);
           } else {
             toast({
@@ -123,6 +128,17 @@ export default function UserTemplate() {
           }
         };
 
+        // 設置心跳檢查
+        const pingInterval = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'PING' }));
+          }
+        }, 30000); // 每30秒發送一次ping
+
+        return () => {
+          clearInterval(pingInterval);
+        };
+
       } catch (error) {
         console.error('WebSocket connection error:', error);
         setIsWebSocketConnected(false);
@@ -130,6 +146,7 @@ export default function UserTemplate() {
         if (reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current += 1;
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+          console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current})`);
           reconnectTimeoutRef.current = setTimeout(setupWebSocket, delay);
         } else {
           toast({
@@ -263,7 +280,7 @@ export default function UserTemplate() {
                   <SongList 
                     songs={songs} 
                     ws={wsRef.current} 
-                    user={null} 
+                    user={null}
                     isWebSocketConnected={isWebSocketConnected} 
                   />
                 </CardContent>

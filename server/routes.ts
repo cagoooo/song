@@ -7,7 +7,6 @@ import { setupAuth } from "./auth";
 import { eq, sql, and } from "drizzle-orm";
 import type { IncomingMessage } from "http";
 
-// Type declaration for Express Request
 declare module 'express-serve-static-core' {
   interface Request {
     user?: User;
@@ -215,12 +214,13 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid songId" });
       }
 
-      const scan = await db.insert(qrCodeScans)
+      const [scan] = await db.insert(qrCodeScans)
         .values({
-          songId: songId,
-          sessionId: sessionId,
+          songId,
+          sessionId,
           userAgent: userAgent || null,
-          referrer: referrer || null
+          referrer: referrer || null,
+          createdAt: new Date()
         })
         .returning();
 
@@ -231,7 +231,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // WebSocket server setup
+  // WebSocket server setup with improved error handling
   const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws',
@@ -247,52 +247,81 @@ export function registerRoutes(app: Express): Server {
   wss.on('connection', (ws) => {
     console.log('New WebSocket connection established');
     const sessionId = Math.random().toString(36).substring(2);
+    let pingTimeout: NodeJS.Timeout;
 
     // Send initial songs data
     sendSongsUpdate(wss);
+
+    // Setup ping timeout
+    const heartbeat = () => {
+      clearTimeout(pingTimeout);
+      pingTimeout = setTimeout(() => {
+        console.log('WebSocket connection timed out');
+        ws.terminate();
+      }, 35000); // slightly longer than the client's ping interval
+    };
+
+    // Start the heartbeat
+    heartbeat();
 
     ws.on('message', async (data) => {
       try {
         const message = JSON.parse(data.toString());
         console.log('Received message:', message);
 
+        // Reset the heartbeat timeout on any message
+        heartbeat();
+
+        if (message.type === 'PING') {
+          ws.send(JSON.stringify({ type: 'PONG' }));
+          return;
+        }
+
         if (message.type === 'VOTE') {
-          // Type check for songId
-          if (!message.songId || typeof message.songId !== 'number') {
+          try {
+            // Type check for songId
+            if (!message.songId || typeof message.songId !== 'number') {
+              ws.send(JSON.stringify({
+                type: 'ERROR',
+                message: '無效的歌曲ID'
+              }));
+              return;
+            }
+
+            // Check if song exists and is active
+            const [song] = await db
+              .select()
+              .from(songs)
+              .where(and(
+                eq(songs.id, message.songId),
+                eq(songs.isActive, true)
+              ))
+              .limit(1);
+
+            if (!song) {
+              ws.send(JSON.stringify({
+                type: 'ERROR',
+                message: '找不到該歌曲或歌曲已被刪除'
+              }));
+              return;
+            }
+
+            // Add vote
+            await db.insert(votes).values({
+              songId: message.songId,
+              sessionId,
+              createdAt: new Date()
+            });
+
+            // Broadcast updated songs list to all clients
+            await sendSongsUpdate(wss);
+          } catch (error) {
+            console.error('Vote processing error:', error);
             ws.send(JSON.stringify({
               type: 'ERROR',
-              message: 'Invalid songId'
+              message: '處理點播請求時發生錯誤'
             }));
-            return;
           }
-
-          // Check if song exists and is active
-          const [song] = await db
-            .select()
-            .from(songs)
-            .where(and(
-              eq(songs.id, message.songId),
-              eq(songs.isActive, true)
-            ))
-            .limit(1);
-
-          if (!song) {
-            ws.send(JSON.stringify({
-              type: 'ERROR',
-              message: '找不到該歌曲或歌曲已被刪除'
-            }));
-            return;
-          }
-
-          // Add vote
-          await db.insert(votes).values({
-            songId: message.songId,
-            sessionId,
-            createdAt: new Date()
-          });
-
-          // Broadcast updated songs list to all clients
-          await sendSongsUpdate(wss);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -305,46 +334,59 @@ export function registerRoutes(app: Express): Server {
 
     ws.on('error', (error) => {
       console.error('WebSocket error:', error);
+      clearTimeout(pingTimeout);
     });
 
     ws.on('close', () => {
       console.log('WebSocket connection closed');
+      clearTimeout(pingTimeout);
     });
   });
 
   // Helper function to get songs with vote counts
   async function getSongsWithVotes() {
-    const allSongs = await db
-      .select()
-      .from(songs)
-      .where(eq(songs.isActive, true));
+    try {
+      const allSongs = await db
+        .select()
+        .from(songs)
+        .where(eq(songs.isActive, true));
 
-    const songVotes = await db
-      .select({
-        songId: votes.songId,
-        voteCount: sql<number>`count(*)`.mapWith(Number)
-      })
-      .from(votes)
-      .groupBy(votes.songId);
+      const songVotes = await db
+        .select({
+          songId: votes.songId,
+          voteCount: sql<number>`count(*)`.mapWith(Number)
+        })
+        .from(votes)
+        .groupBy(votes.songId);
 
-    const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
+      const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
 
-    return allSongs.map(song => ({
-      ...song,
-      voteCount: voteMap.get(song.id) || 0
-    }));
+      return allSongs.map(song => ({
+        ...song,
+        voteCount: voteMap.get(song.id) || 0
+      }));
+    } catch (error) {
+      console.error('Error fetching songs with votes:', error);
+      throw error;
+    }
   }
 
-  // Helper function to broadcast songs update
+  // Helper function to broadcast songs update with improved error handling
   async function sendSongsUpdate(wss: WebSocketServer) {
     try {
       const songsList = await getSongsWithVotes();
+      const message = JSON.stringify({
+        type: 'SONGS_UPDATE',
+        songs: songsList
+      });
+
       wss.clients.forEach(client => {
         if (client.readyState === 1) { // WebSocket.OPEN
-          client.send(JSON.stringify({
-            type: 'SONGS_UPDATE',
-            songs: songsList
-          }));
+          try {
+            client.send(message);
+          } catch (error) {
+            console.error('Failed to send update to client:', error);
+          }
         }
       });
     } catch (error) {
