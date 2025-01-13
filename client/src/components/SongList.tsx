@@ -350,9 +350,29 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
                     >
                       <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
                       <span>點播</span>
+                      {clickCount[song.id] > 0 && (
+                        <motion.div
+                          className={`absolute inset-0 pointer-events-none
+                            ${clickCount[song.id] >= 10 ? 'bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-rose-500/20' :
+                              clickCount[song.id] >= 5 ? 'bg-gradient-to-r from-purple-400/20 via-pink-400/20 to-rose-400/20' :
+                              'bg-gradient-to-r from-purple-300/20 via-pink-300/20 to-rose-300/20'}`}
+                          initial={{ y: "100%" }}
+                          animate={{ y: "0%" }}
+                          transition={{ duration: 0.2 }}
+                        />
+                      )}
+                      {clickCount[song.id] > 0 && (
+                        <motion.div
+                          className="absolute -top-1 -right-1 bg-primary text-white text-xs px-1.5 py-0.5 rounded-full"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          exit={{ scale: 0 }}
+                        >
+                          +{clickCount[song.id]}
+                        </motion.div>
+                      )}
                     </Button>
                   </motion.div>
-
                   {user?.isAdmin && (
                     <>
                       <Button
@@ -387,7 +407,6 @@ export default function SongList({ songs, ws, user, isWebSocketConnected }: Song
           ))}
         </div>
       </ScrollArea>
-
       {selectedSongForShare && (
         <QRCodeShareModal
           isOpen={qrModalOpen}
