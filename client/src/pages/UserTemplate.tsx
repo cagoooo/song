@@ -21,6 +21,7 @@ export default function UserTemplate() {
   const prevSongsRef = useRef<Song[]>([]);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   // 獲取使用者
   const { data: user, isLoading } = useQuery({
@@ -38,7 +39,6 @@ export default function UserTemplate() {
       if (!response.ok) throw new Error('Failed to fetch songs');
       const data = await response.json();
 
-      // 在更新狀態前保存前一個狀態，用於動畫比較
       prevSongsRef.current = songs;
       setSongs(data.map((song: any) => ({
         ...song,
@@ -61,27 +61,30 @@ export default function UserTemplate() {
         const host = window.location.host;
         const wsUrl = `${protocol}//${host}/ws`;
 
-        console.log('Connecting to WebSocket:', wsUrl);
+        if (!isReconnecting) {
+          console.log('建立 WebSocket 連接...');
+        }
+
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log('WebSocket connection established');
+          if (!isReconnecting) {
+            console.log('WebSocket 連接成功');
+          }
           setIsWebSocketConnected(true);
+          setIsReconnecting(false);
           reconnectAttempts.current = 0;
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
-          // 連接成功後發送一個ping消息
           ws.send(JSON.stringify({ type: 'PING' }));
         };
 
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            console.log('WebSocket message received:', data);
             if (data.type === 'SONGS_UPDATE') {
-              // 更新歌曲時保存前一個狀態，用於動畫比較
               prevSongsRef.current = songs;
               setSongs(data.songs.map((song: any) => ({
                 ...song,
@@ -93,25 +96,22 @@ export default function UserTemplate() {
                 description: data.message,
                 variant: "destructive"
               });
-            } else if (data.type === 'PONG') {
-              console.log('Server responded with PONG');
             }
           } catch (error) {
-            console.error('WebSocket message parsing error:', error);
+            console.error('WebSocket 消息解析錯誤:', error);
           }
         };
 
         ws.onclose = () => {
-          console.log('WebSocket connection closed');
           setIsWebSocketConnected(false);
-
-          // 檢查重連次數
-          if (reconnectAttempts.current < maxReconnectAttempts) {
+          if (!isReconnecting && reconnectAttempts.current < maxReconnectAttempts) {
+            setIsReconnecting(true);
             reconnectAttempts.current += 1;
             const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-            console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current})`);
+            console.log(`嘗試重新連接中... (${reconnectAttempts.current}/${maxReconnectAttempts})`);
             reconnectTimeoutRef.current = setTimeout(setupWebSocket, delay);
-          } else {
+          } else if (reconnectAttempts.current >= maxReconnectAttempts) {
+            console.log('已達到最大重試次數');
             toast({
               title: "連接中斷",
               description: "無法連接到伺服器，請重新整理頁面",
@@ -121,34 +121,37 @@ export default function UserTemplate() {
         };
 
         ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          setIsWebSocketConnected(false);
+          console.error('WebSocket 錯誤:', error);
           if (ws.readyState === WebSocket.OPEN) {
             ws.close();
           }
         };
 
-        // 設置心跳檢查
         const pingInterval = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'PING' }));
           }
-        }, 30000); // 每30秒發送一次ping
+        }, 30000);
 
         return () => {
           clearInterval(pingInterval);
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
         };
 
       } catch (error) {
-        console.error('WebSocket connection error:', error);
+        console.error('WebSocket 連接錯誤:', error);
         setIsWebSocketConnected(false);
 
-        if (reconnectAttempts.current < maxReconnectAttempts) {
+        if (!isReconnecting && reconnectAttempts.current < maxReconnectAttempts) {
+          setIsReconnecting(true);
           reconnectAttempts.current += 1;
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-          console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current})`);
+          console.log(`嘗試重新連接中... (${reconnectAttempts.current}/${maxReconnectAttempts})`);
           reconnectTimeoutRef.current = setTimeout(setupWebSocket, delay);
-        } else {
+        } else if (reconnectAttempts.current >= maxReconnectAttempts) {
+          console.log('已達到最大重試次數');
           toast({
             title: "連接錯誤",
             description: "無法建立連接，請重新整理頁面",

@@ -1,0 +1,59 @@
+Attempting to reconnect in 2000ms (attempt 1)
+WebSocket connection established
+WebSocket message received: 
+Object {type: "PONG"}
+Server responded with PONG
+WebSocket message received: 
+Object {type: "SONGS_UPDATE", songs: Array(91)}
+Connecting to WebSocket: wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws
+WebSocket connection closed
+Attempting to reconnect in 2000ms (attempt 1)
+WebSocket connection established
+WebSocket message received: 
+Object {type: "PONG"}
+Server responded with PONG
+WebSocket message received: 
+Object {type: "SONGS_UPDATE", songs: Array(91)}
+Connecting to WebSocket: wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws
+WebSocket connection closed
+Attempting to reconnect in 2000ms (attempt 1)
+WebSocket connection established
+WebSocket message received: 
+Object {type: "PONG"}
+Server responded with PONG
+WebSocket message received: 
+Object {type: "SONGS_UPDATE", songs: Array(91)}
+Connecting to WebSocket: wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws
+WebSocket connection closed
+Attempting to reconnect in 2000ms (attempt 1)
+WebSocket connection established
+WebSocket message received: 
+Object {type: "PONG"}
+Server responded with PONG
+WebSocket message received: 
+Object {type: "SONGS_UPDATE", songs: Array(91)}
+Connecting to WebSocket: wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws
+WebSocket connection closed
+Attempting to reconnect in 2000ms (attempt 1)
+WebSocket connection established
+WebSocket message received: 
+Object {type: "PONG"}
+Server responded with PONG
+WebSocket message received: 
+Object {type: "SONGS_UPDATE", songs: Array(91)}
+Connecting to WebSocket: wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws
+WebSocket connection closed
+Attempting to reconnect in 2000ms (attempt 1)
+WebSocket connection established
+WebSocket message received: 
+Object {type: "PONG"}
+Server responded with PONG
+WebSocket message received: 
+Object {type: "SONGS_UPDATE", songs: Array(91)}
+Connecting to WebSocket: wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws
+WebSocket connection closed
+Attempting to reconnect in 2000ms (attempt 1)
+WebSocket connection established
+WebSocket message received: 
+Object {type: "PONG"}
+Server responded with PONG

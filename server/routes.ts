@@ -1,23 +1,14 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { db } from "@db";
 import { songs, votes, tags, songTags, songSuggestions, qrCodeScans, type User, users } from "@db/schema";
 import { setupAuth } from "./auth";
 import { eq, sql, and } from "drizzle-orm";
 import type { IncomingMessage } from "http";
 
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: User;
-  }
-}
-
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
-
-  // 設置認證系統
-  setupAuth(app);
 
   // Auth middleware
   const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
@@ -27,12 +18,151 @@ export function registerRoutes(app: Express): Server {
     next();
   };
 
-  // Get user information
+  // Helper function to get songs with votes
+  async function getSongsWithVotes() {
+    try {
+      const allSongs = await db
+        .select()
+        .from(songs)
+        .where(eq(songs.isActive, true));
+
+      const songVotes = await db
+        .select({
+          songId: votes.songId,
+          voteCount: sql<number>`count(*)`.mapWith(Number)
+        })
+        .from(votes)
+        .groupBy(votes.songId);
+
+      const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
+
+      return allSongs.map(song => ({
+        ...song,
+        voteCount: voteMap.get(song.id) || 0
+      }));
+    } catch (error) {
+      console.error('Error fetching songs with votes:', error);
+      throw error;
+    }
+  }
+
+  // Helper function to broadcast songs update
+  async function broadcastSongsUpdate(wss: WebSocketServer) {
+    try {
+      const songsList = await getSongsWithVotes();
+      const message = JSON.stringify({
+        type: 'SONGS_UPDATE',
+        songs: songsList
+      });
+
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to broadcast songs update:', error);
+    }
+  }
+
+  // WebSocket server setup
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws',
+    verifyClient: ({ req }: { req: IncomingMessage }) => {
+      const protocol = req.headers['sec-websocket-protocol'];
+      return protocol === 'vite-hmr' || true;
+    }
+  });
+
+  wss.on('connection', function(ws) {
+    const sessionId = Math.random().toString(36).substring(2);
+    let isAlive = true;
+
+    // Send initial songs data
+    broadcastSongsUpdate(wss);
+
+    // Set up ping interval
+    const pingInterval = setInterval(() => {
+      if (!isAlive) {
+        ws.terminate();
+        clearInterval(pingInterval);
+        return;
+      }
+
+      isAlive = false;
+      ws.ping();
+    }, 30000);
+
+    ws.on('pong', () => {
+      isAlive = true;
+    });
+
+    ws.on('message', async (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+
+        if (message.type === 'PING') {
+          ws.send(JSON.stringify({ type: 'PONG' }));
+          return;
+        }
+
+        if (message.type === 'VOTE') {
+          try {
+            if (typeof message.songId !== 'number') {
+              throw new Error('無效的歌曲ID');
+            }
+
+            const [song] = await db
+              .select()
+              .from(songs)
+              .where(and(
+                eq(songs.id, message.songId),
+                eq(songs.isActive, true)
+              ))
+              .limit(1);
+
+            if (!song) {
+              throw new Error('找不到該歌曲或歌曲已被刪除');
+            }
+
+            await db.insert(votes).values({
+              songId: message.songId,
+              sessionId,
+              createdAt: new Date()
+            });
+
+            await broadcastSongsUpdate(wss);
+
+          } catch (error: any) {
+            ws.send(JSON.stringify({
+              type: 'ERROR',
+              message: error.message || '處理點播請求時發生錯誤'
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('WebSocket message processing error:', error);
+        ws.send(JSON.stringify({
+          type: 'ERROR',
+          message: '無法處理請求'
+        }));
+      }
+    });
+
+    ws.on('error', () => {
+      clearInterval(pingInterval);
+    });
+
+    ws.on('close', () => {
+      clearInterval(pingInterval);
+    });
+  });
+
+  // API Routes
   app.get("/api/users/:username", async (req, res) => {
     try {
       const username = req.params.username;
-
-      // Find the user
       const user = await db.query.users.findFirst({
         where: (users, { eq }) => eq(users.username, username),
       });
@@ -41,7 +171,6 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "找不到該使用者" });
       }
 
-      // Return user info without sensitive data
       res.json({
         id: user.id,
         username: user.username,
@@ -68,9 +197,8 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/suggestions", async (req, res) => {
     try {
       const { title, artist, suggestedBy, notes } = req.body;
-      console.log('Received suggestion:', { title, artist, suggestedBy, notes });
 
-      // 輸入驗證
+      // Input validation
       if (!title?.trim()) {
         return res.status(400).json({ error: "歌曲名稱不能為空" });
       }
@@ -98,11 +226,10 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
-      console.log('Created suggestion:', suggestion);
       res.json(suggestion);
     } catch (error: any) {
       console.error('Failed to create suggestion:', error);
-      if (error.code === '23505') { // 重複的建議
+      if (error.code === '23505') {
         res.status(409).json({
           error: "這首歌曲已經被建議過了",
           details: "請查看現有的建議列表"
@@ -150,7 +277,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add the PATCH endpoint for updating songs
   app.patch("/api/songs/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -162,7 +288,7 @@ export function registerRoutes(app: Express): Server {
         .where(eq(songs.id, id))
         .returning();
 
-      await sendSongsUpdate(wss);
+      await broadcastSongsUpdate(wss);
       res.json(updatedSong);
     } catch (error) {
       console.error('Failed to update song:', error);
@@ -170,7 +296,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Songs routes
   app.get("/api/songs", async (_req, res) => {
     try {
       const songsList = await getSongsWithVotes();
@@ -193,7 +318,7 @@ export function registerRoutes(app: Express): Server {
         })
         .returning();
 
-      await sendSongsUpdate(wss);
+      await broadcastSongsUpdate(wss);
       res.json(newSong);
     } catch (error) {
       console.error('Failed to add song:', error);
@@ -201,7 +326,32 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // QR code scan 相關的代碼
+  app.delete("/api/songs/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.update(songs)
+        .set({ isActive: false })
+        .where(eq(songs.id, id));
+
+      await broadcastSongsUpdate(wss);
+      res.json({ message: "歌曲已刪除" });
+    } catch (error) {
+      console.error('Failed to delete song:', error);
+      res.status(500).json({ error: "刪除歌曲失敗" });
+    }
+  });
+
+  app.post("/api/songs/reset-votes", requireAdmin, async (_req, res) => {
+    try {
+      await db.delete(votes);
+      await broadcastSongsUpdate(wss);
+      res.json({ message: "所有點播次數已重置" });
+    } catch (error) {
+      console.error('Failed to reset votes:', error);
+      res.status(500).json({ error: "無法重置點播次數" });
+    }
+  });
+
   app.post("/api/qr-scans", async (req, res) => {
     try {
       const { songId } = req.body;
@@ -231,170 +381,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // WebSocket server setup with improved error handling
-  const wss = new WebSocketServer({
-    server: httpServer,
-    path: '/ws',
-    verifyClient: ({ req }: { req: IncomingMessage }) => {
-      const protocol = req.headers['sec-websocket-protocol'];
-      // 不阻擋 vite-hmr
-      if (protocol === 'vite-hmr') return true;
-      return true; // 允許所有其他連接
-    }
-  });
 
-  // WebSocket connection handling
-  wss.on('connection', (ws) => {
-    console.log('New WebSocket connection established');
-    const sessionId = Math.random().toString(36).substring(2);
-    let pingTimeout: NodeJS.Timeout;
-
-    // Send initial songs data
-    sendSongsUpdate(wss);
-
-    // Setup ping timeout
-    const heartbeat = () => {
-      clearTimeout(pingTimeout);
-      pingTimeout = setTimeout(() => {
-        console.log('WebSocket connection timed out');
-        ws.terminate();
-      }, 35000); // slightly longer than the client's ping interval
-    };
-
-    // Start the heartbeat
-    heartbeat();
-
-    ws.on('message', async (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        console.log('Received message:', message);
-
-        // Reset the heartbeat timeout on any message
-        heartbeat();
-
-        if (message.type === 'PING') {
-          ws.send(JSON.stringify({ type: 'PONG' }));
-          return;
-        }
-
-        if (message.type === 'VOTE') {
-          try {
-            // Type check for songId
-            if (!message.songId || typeof message.songId !== 'number') {
-              ws.send(JSON.stringify({
-                type: 'ERROR',
-                message: '無效的歌曲ID'
-              }));
-              return;
-            }
-
-            // Check if song exists and is active
-            const [song] = await db
-              .select()
-              .from(songs)
-              .where(and(
-                eq(songs.id, message.songId),
-                eq(songs.isActive, true)
-              ))
-              .limit(1);
-
-            if (!song) {
-              ws.send(JSON.stringify({
-                type: 'ERROR',
-                message: '找不到該歌曲或歌曲已被刪除'
-              }));
-              return;
-            }
-
-            // Add vote
-            await db.insert(votes).values({
-              songId: message.songId,
-              sessionId,
-              createdAt: new Date()
-            });
-
-            // Broadcast updated songs list to all clients
-            await sendSongsUpdate(wss);
-          } catch (error) {
-            console.error('Vote processing error:', error);
-            ws.send(JSON.stringify({
-              type: 'ERROR',
-              message: '處理點播請求時發生錯誤'
-            }));
-          }
-        }
-      } catch (error) {
-        console.error('WebSocket message error:', error);
-        ws.send(JSON.stringify({
-          type: 'ERROR',
-          message: '處理訊息時發生錯誤'
-        }));
-      }
-    });
-
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-      clearTimeout(pingTimeout);
-    });
-
-    ws.on('close', () => {
-      console.log('WebSocket connection closed');
-      clearTimeout(pingTimeout);
-    });
-  });
-
-  // Helper function to get songs with vote counts
-  async function getSongsWithVotes() {
-    try {
-      const allSongs = await db
-        .select()
-        .from(songs)
-        .where(eq(songs.isActive, true));
-
-      const songVotes = await db
-        .select({
-          songId: votes.songId,
-          voteCount: sql<number>`count(*)`.mapWith(Number)
-        })
-        .from(votes)
-        .groupBy(votes.songId);
-
-      const voteMap = new Map(songVotes.map(v => [v.songId, v.voteCount]));
-
-      return allSongs.map(song => ({
-        ...song,
-        voteCount: voteMap.get(song.id) || 0
-      }));
-    } catch (error) {
-      console.error('Error fetching songs with votes:', error);
-      throw error;
-    }
-  }
-
-  // Helper function to broadcast songs update with improved error handling
-  async function sendSongsUpdate(wss: WebSocketServer) {
-    try {
-      const songsList = await getSongsWithVotes();
-      const message = JSON.stringify({
-        type: 'SONGS_UPDATE',
-        songs: songsList
-      });
-
-      wss.clients.forEach(client => {
-        if (client.readyState === 1) { // WebSocket.OPEN
-          try {
-            client.send(message);
-          } catch (error) {
-            console.error('Failed to send update to client:', error);
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Failed to send songs update:', error);
-    }
-  }
-
-  // Get QR code scan statistics (admin only)
   app.get("/api/qr-scans/stats", requireAdmin, async (req, res) => {
     try {
       // Get total scans count
@@ -501,7 +488,7 @@ export function registerRoutes(app: Express): Server {
       await db.insert(songTags)
         .values({ songId, tagId });
 
-      await sendSongsUpdate(wss);
+      await broadcastSongsUpdate(wss);
       res.json({ message: "標籤新增成功" });
     } catch (error) {
       console.error('Failed to add song tag:', error);
@@ -522,7 +509,7 @@ export function registerRoutes(app: Express): Server {
           )
         );
 
-      await sendSongsUpdate(wss);
+      await broadcastSongsUpdate(wss);
       res.json({ message: "標籤移除成功" });
     } catch (error) {
       console.error('Failed to remove song tag:', error);
@@ -547,7 +534,7 @@ export function registerRoutes(app: Express): Server {
         }))
       );
 
-      await sendSongsUpdate(wss);
+      await broadcastSongsUpdate(wss);
       res.json({ message: `成功匯入 ${songsList.length} 首歌曲` });
     } catch (error) {
       console.error('Failed to batch import songs:', error);
@@ -562,7 +549,7 @@ export function registerRoutes(app: Express): Server {
         .set({ isActive: false })
         .where(eq(songs.id, id));
 
-      await sendSongsUpdate(wss);
+      await broadcastSongsUpdate(wss);
       res.json({ message: "歌曲已刪除" });
     } catch (error) {
       console.error('Failed to delete song:', error);
@@ -573,7 +560,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/songs/reset-votes", requireAdmin, async (_req, res) => {
     try {
       await db.delete(votes);
-      await sendSongsUpdate(wss);
+      await broadcastSongsUpdate(wss);
       res.json({ message: "所有點播次數已重置" });
     } catch (error) {
       console.error('Failed to reset votes:', error);
