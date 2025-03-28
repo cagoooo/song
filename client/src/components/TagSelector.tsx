@@ -234,7 +234,21 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
                       >
                         {tag.name}
                         {songTags.some((t: SongTag) => t.id === tag.id) && (
-                          <span className="text-green-500">✓</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-green-500">✓</span>
+                            <motion.button 
+                              type="button"
+                              whileHover={{ scale: 1.2 }}
+                              whileTap={{ scale: 0.9 }}
+                              className="ml-1 hover:text-red-500 focus:outline-none"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeSongTagMutation.mutate(tag.id);
+                              }}
+                            >
+                              <X className="w-3 h-3" />
+                            </motion.button>
+                          </div>
                         )}
                       </Badge>
                     </motion.div>
