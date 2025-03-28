@@ -178,193 +178,220 @@ export default function Home() {
             whileHover={{ scale: 1.02 }}
           >
             <motion.div className="relative">
-              <motion.h1 
+              <h1 
                 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-center bg-gradient-to-r from-yellow-500 via-rose-500 to-amber-500 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-3 md:px-4 py-2 relative z-10 leading-[1.2] sm:leading-[1.2] md:leading-[1.2] lg:leading-[1.2] animate-text tracking-tight drop-shadow-lg"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ 
-                  opacity: 1, 
-                  y: 0,
-                  transition: {
+              >
+                <motion.div
+                  className="inline-block"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ 
+                    opacity: 1, 
+                    y: 0
+                  }}
+                  transition={{
                     duration: 0.8,
                     ease: "easeOut"
-                  }
-                }}
-                whileHover={{
-                  scale: 1.05,
-                  transition: { duration: 0.3 }
-                }}
-              >
-                <span className="inline-block">
-                  <motion.span
-                    className="inline-block"
-                    animate={{ 
-                      y: [0, -3, 0],
-                      rotate: [0, 2, 0],
-                      scale: [1, 1.1, 1]
-                    }}
-                    transition={{ 
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      ease: "easeInOut",
-                      times: [0, 0.5, 1],
-                      delay: 0
-                    }}
-                  >吉</motion.span>
-                  <motion.span
-                    className="inline-block"
-                    animate={{ 
-                      y: [0, -4, 0],
-                      rotate: [0, -3, 0],
-                      scale: [1, 1.15, 1]  
-                    }}
-                    transition={{ 
-                      duration: 1.8,
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      ease: "easeInOut",
-                      times: [0, 0.5, 1],
-                      delay: 0.1
-                    }}
-                  >他</motion.span>
-                  <motion.span
-                    className="inline-block"
-                    animate={{ 
-                      y: [0, -5, 0],
-                      rotate: [0, 3, 0],
-                      scale: [1, 1.2, 1]
-                    }}
-                    transition={{ 
-                      duration: 1.9,
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      ease: "easeInOut",
-                      times: [0, 0.5, 1],
-                      delay: 0.2
-                    }}
-                  >彈</motion.span>
-                  <motion.span
-                    className="inline-block"
-                    animate={{ 
-                      y: [0, -4, 0],
-                      rotate: [0, -2, 0],
-                      scale: [1, 1.15, 1]
-                    }}
-                    transition={{ 
-                      duration: 2.1,
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      ease: "easeInOut",
-                      times: [0, 0.5, 1],
-                      delay: 0.3
-                    }}
-                  >唱</motion.span>
-                  <motion.span
-                    className="inline-block px-2"
-                    animate={{ 
-                      y: [0, -5, 0],
-                      rotate: [0, 4, 0],
-                      scale: [1, 1.25, 1], 
-                      color: ["#f59e0b", "#ec4899", "#f59e0b"]
-                    }}
-                    transition={{ 
-                      duration: 1.5,
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      ease: "easeInOut",
-                      times: [0, 0.5, 1],
-                      delay: 0.4
-                    }}
-                  >🎸</motion.span>
-                  <motion.span
-                    className="inline-block"
-                    animate={{ 
-                      y: [0, -3, 0],
-                      rotate: [0, 2, 0],
-                      scale: [1, 1.1, 1]
-                    }}
-                    transition={{ 
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      ease: "easeInOut",
-                      times: [0, 0.5, 1],
-                      delay: 0.5
-                    }}
-                  >點</motion.span>
-                  <motion.span
-                    className="inline-block"
-                    animate={{ 
-                      y: [0, -4, 0],
-                      rotate: [0, -3, 0],
-                      scale: [1, 1.15, 1]
-                    }}
-                    transition={{ 
-                      duration: 1.7,
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      ease: "easeInOut",
-                      times: [0, 0.5, 1],
-                      delay: 0.6
-                    }}
-                  >歌</motion.span>
-                  <motion.span
-                    className="inline-block"
-                    animate={{ 
-                      y: [0, -5, 0],
-                      rotate: [0, 3, 0],
-                      scale: [1, 1.2, 1]
-                    }}
-                    transition={{ 
-                      duration: 1.8,
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      ease: "easeInOut",
-                      times: [0, 0.5, 1],
-                      delay: 0.7
-                    }}
-                  >系</motion.span>
-                  <motion.span
-                    className="inline-block"
-                    animate={{ 
-                      y: [0, -4, 0],
-                      rotate: [0, -2, 0],
-                      scale: [1, 1.15, 1]
-                    }}
-                    transition={{ 
-                      duration: 2.1,
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      ease: "easeInOut",
-                      times: [0, 0.5, 1],
-                      delay: 0.8
-                    }}
-                  >統</motion.span>
-                  <motion.span
-                    className="inline-block ml-1"
-                    animate={{ 
-                      y: [0, -5, 0],
-                      rotate: [0, 4, 0],
-                      scale: [1, 1.25, 1], 
-                      color: ["#f59e0b", "#ec4899", "#f59e0b"]
-                    }}
-                    transition={{ 
-                      duration: 1.5,
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      ease: "easeInOut",
-                      times: [0, 0.5, 1],
-                      delay: 0.9
-                    }}
-                  >🎵</motion.span>
-                </span>
-              </motion.h1>
+                  }}
+                >
+                  <div className="flex justify-center items-baseline">
+                    <motion.span
+                      className="inline-block"
+                      initial={{ opacity: 1 }}
+                      animate={{ 
+                        y: [0, -3, 0],
+                        rotate: [0, 2, 0],
+                        scale: [1, 1.1, 1]
+                      }}
+                      transition={{ 
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        ease: "easeInOut",
+                        times: [0, 0.5, 1]
+                      }}
+                    >
+                      吉
+                    </motion.span>
+                    <motion.span
+                      className="inline-block"
+                      initial={{ opacity: 1 }}
+                      animate={{ 
+                        y: [0, -4, 0],
+                        rotate: [0, -3, 0],
+                        scale: [1, 1.15, 1]  
+                      }}
+                      transition={{ 
+                        duration: 1.8,
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        ease: "easeInOut",
+                        times: [0, 0.5, 1],
+                        delay: 0.1
+                      }}
+                    >
+                      他
+                    </motion.span>
+                    <motion.span
+                      className="inline-block"
+                      initial={{ opacity: 1 }}
+                      animate={{ 
+                        y: [0, -5, 0],
+                        rotate: [0, 3, 0],
+                        scale: [1, 1.2, 1]
+                      }}
+                      transition={{ 
+                        duration: 1.9,
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        ease: "easeInOut",
+                        times: [0, 0.5, 1],
+                        delay: 0.2
+                      }}
+                    >
+                      彈
+                    </motion.span>
+                    <motion.span
+                      className="inline-block"
+                      initial={{ opacity: 1 }}
+                      animate={{ 
+                        y: [0, -4, 0],
+                        rotate: [0, -2, 0],
+                        scale: [1, 1.15, 1]
+                      }}
+                      transition={{ 
+                        duration: 2.1,
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        ease: "easeInOut",
+                        times: [0, 0.5, 1],
+                        delay: 0.3
+                      }}
+                    >
+                      唱
+                    </motion.span>
+                    <motion.span
+                      className="inline-block px-2"
+                      initial={{ opacity: 1 }}
+                      animate={{ 
+                        y: [0, -5, 0],
+                        rotate: [0, 4, 0],
+                        scale: [1, 1.25, 1]
+                      }}
+                      transition={{ 
+                        duration: 1.5,
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        ease: "easeInOut",
+                        times: [0, 0.5, 1],
+                        delay: 0.4
+                      }}
+                    >
+                      🎸
+                    </motion.span>
+                    <motion.span
+                      className="inline-block"
+                      initial={{ opacity: 1 }}
+                      animate={{ 
+                        y: [0, -3, 0],
+                        rotate: [0, 2, 0],
+                        scale: [1, 1.1, 1]
+                      }}
+                      transition={{ 
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        ease: "easeInOut",
+                        times: [0, 0.5, 1],
+                        delay: 0.5
+                      }}
+                    >
+                      點
+                    </motion.span>
+                    <motion.span
+                      className="inline-block"
+                      initial={{ opacity: 1 }}
+                      animate={{ 
+                        y: [0, -4, 0],
+                        rotate: [0, -3, 0],
+                        scale: [1, 1.15, 1]
+                      }}
+                      transition={{ 
+                        duration: 1.7,
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        ease: "easeInOut",
+                        times: [0, 0.5, 1],
+                        delay: 0.6
+                      }}
+                    >
+                      歌
+                    </motion.span>
+                    <motion.span
+                      className="inline-block"
+                      initial={{ opacity: 1 }}
+                      animate={{ 
+                        y: [0, -5, 0],
+                        rotate: [0, 3, 0],
+                        scale: [1, 1.2, 1]
+                      }}
+                      transition={{ 
+                        duration: 1.8,
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        ease: "easeInOut",
+                        times: [0, 0.5, 1],
+                        delay: 0.7
+                      }}
+                    >
+                      系
+                    </motion.span>
+                    <motion.span
+                      className="inline-block"
+                      initial={{ opacity: 1 }}
+                      animate={{ 
+                        y: [0, -4, 0],
+                        rotate: [0, -2, 0],
+                        scale: [1, 1.15, 1]
+                      }}
+                      transition={{ 
+                        duration: 2.1,
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        ease: "easeInOut",
+                        times: [0, 0.5, 1],
+                        delay: 0.8
+                      }}
+                    >
+                      統
+                    </motion.span>
+                    <motion.span
+                      className="inline-block ml-1"
+                      initial={{ opacity: 1 }}
+                      animate={{ 
+                        y: [0, -5, 0],
+                        rotate: [0, 4, 0],
+                        scale: [1, 1.25, 1]
+                      }}
+                      transition={{ 
+                        duration: 1.5,
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        ease: "easeInOut",
+                        times: [0, 0.5, 1],
+                        delay: 0.9
+                      }}
+                    >
+                      🎵
+                    </motion.span>
+                  </div>
+                </motion.div>
+              </h1>
               
               {/* 閃爍星星裝飾 */}
               {[...Array(5)].map((_, i) => (
                 <motion.div
                   key={i}
-                  className="absolute text-yellow-400 text-sm"
+                  className="absolute text-yellow-400 text-sm pointer-events-none"
                   initial={{ 
                     x: `${10 + (i * 20)}%`,
                     y: `${50 + (Math.sin(i * 0.5) * 20)}%`,
@@ -380,7 +407,7 @@ export default function Home() {
                     repeat: Infinity,
                     repeatType: "loop",
                     ease: "easeInOut",
-                    delay: i * 0.3
+                    delay: i * 0.3 + 1
                   }}
                 >
                   ✨
@@ -402,7 +429,8 @@ export default function Home() {
               style={{
                 filter: "blur(20px)",
                 transform: "translate3d(0, 0, 0)", 
-                backfaceVisibility: "hidden"
+                backfaceVisibility: "hidden",
+                pointerEvents: "none"
               }}
             />
             <motion.div 
@@ -420,7 +448,8 @@ export default function Home() {
                 backgroundSize: "200% 200%",
                 filter: "blur(15px)",
                 transform: "translate3d(0, 0, 0)", 
-                backfaceVisibility: "hidden"
+                backfaceVisibility: "hidden",
+                pointerEvents: "none"
               }}
             />
           </motion.div>
