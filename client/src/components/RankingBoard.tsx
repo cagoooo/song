@@ -1,5 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trophy, Crown, Award, FileText, Music2 } from "lucide-react";
+import { Trophy, Crown, Award, FileText, Music2, Sparkles, Star, TrendingUp, Flame } from "lucide-react";
 import type { Song } from "@db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useEffect, useState, useRef } from "react";
+import confetti from 'canvas-confetti';
 
 interface RankingBoardProps {
   songs: Song[];
@@ -18,30 +19,86 @@ interface RankingBoardProps {
 export default function RankingBoard({ songs }: RankingBoardProps) {
   const [prevRanks, setPrevRanks] = useState<{[key: number]: number}>({});
   const [showRankChange, setShowRankChange] = useState<{[key: number]: 'up' | 'down' | null}>({});
+  const [prevVotes, setPrevVotes] = useState<{[key: number]: number}>({});
+  const [showFirework, setShowFirework] = useState<{[key: number]: boolean}>({});
   const rankChangeTimeoutRef = useRef<{[key: number]: NodeJS.Timeout}>({});
+  const fireWorkTimeoutRef = useRef<{[key: number]: NodeJS.Timeout}>({});
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // 排序歌曲並追蹤排名變化
   const sortedSongs = [...songs].sort((a, b) => 
     ((b as any).voteCount || 0) - ((a as any).voteCount || 0)
   );
 
+  // 觸發首名變更時的煙火效果
+  const triggerTopRankConfetti = () => {
+    if (!containerRef.current) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = rect.x + rect.width / 2;
+    const y = rect.y + 100; // 對準第一名位置
+    
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { 
+        x: x / window.innerWidth, 
+        y: y / window.innerHeight 
+      },
+      colors: ['#FFD700', '#FFA500', '#FF4500', '#FF6347'],
+      zIndex: 1000,
+    });
+  };
+
   useEffect(() => {
     const newRanks: {[key: number]: number} = {};
     const newRankChanges: {[key: number]: 'up' | 'down' | null} = {};
+    const newFireworks: {[key: number]: boolean} = {};
+    const newVotes: {[key: number]: number} = {};
+
+    let hasTopRankChanged = false;
+    let previousTopSongId: number | null = null;
+
+    // 找出前一個第一名
+    if (Object.keys(prevRanks).length > 0) {
+      const prevTopEntry = Object.entries(prevRanks).find(([_, rank]) => rank === 0);
+      if (prevTopEntry) {
+        previousTopSongId = Number(prevTopEntry[0]);
+      }
+    }
 
     sortedSongs.forEach((song, index) => {
       const prevRank = prevRanks[song.id] ?? index;
+      const currentVotes = (song as any).voteCount || 0;
+      const prevVote = prevVotes[song.id] || 0;
+      
       newRanks[song.id] = index;
+      newVotes[song.id] = currentVotes;
 
+      // 檢查排名變化
       if (prevRank !== index) {
         newRankChanges[song.id] = prevRank > index ? 'up' : 'down';
+        
+        // 如果是升至第一名，觸發特效
+        if (index === 0 && prevRank > 0) {
+          hasTopRankChanged = true;
+          newFireworks[song.id] = true;
+          
+          if (fireWorkTimeoutRef.current[song.id]) {
+            clearTimeout(fireWorkTimeoutRef.current[song.id]);
+          }
+          
+          fireWorkTimeoutRef.current[song.id] = setTimeout(() => {
+            setShowFirework(prev => ({...prev, [song.id]: false}));
+          }, 3000);
+        }
 
-        // Clear existing timeout
+        // 清除現有的排名變化提示計時器
         if (rankChangeTimeoutRef.current[song.id]) {
           clearTimeout(rankChangeTimeoutRef.current[song.id]);
         }
 
-        // Set new timeout to clear rank change indicator
+        // 設置新的計時器來清除排名變化提示
         rankChangeTimeoutRef.current[song.id] = setTimeout(() => {
           setShowRankChange(prev => ({
             ...prev,
@@ -49,14 +106,40 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
           }));
         }, 2000);
       }
+      
+      // 檢查是否有新的投票增加
+      if (currentVotes > prevVote && prevVote > 0) {
+        newFireworks[song.id] = true;
+        
+        if (fireWorkTimeoutRef.current[song.id]) {
+          clearTimeout(fireWorkTimeoutRef.current[song.id]);
+        }
+        
+        fireWorkTimeoutRef.current[song.id] = setTimeout(() => {
+          setShowFirework(prev => ({...prev, [song.id]: false}));
+        }, 3000);
+      }
     });
 
+    // 更新狀態
     setPrevRanks(newRanks);
     setShowRankChange(newRankChanges);
+    setPrevVotes(newVotes);
+    setShowFirework(newFireworks);
+    
+    // 如果首名變更，觸發煙火效果
+    if (hasTopRankChanged) {
+      setTimeout(() => {
+        triggerTopRankConfetti();
+      }, 300);
+    }
 
-    // Cleanup timeouts
+    // 清理計時器
     return () => {
       Object.values(rankChangeTimeoutRef.current).forEach(timeout => {
+        clearTimeout(timeout);
+      });
+      Object.values(fireWorkTimeoutRef.current).forEach(timeout => {
         clearTimeout(timeout);
       });
     };
