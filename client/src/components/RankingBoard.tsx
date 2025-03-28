@@ -1,16 +1,16 @@
+import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trophy, Crown, Award, FileText, Music2, Sparkles, Star, TrendingUp, Flame } from "lucide-react";
 import type { Song } from "@db/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import confetti from "canvas-confetti";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useEffect, useState, useRef } from "react";
-import confetti from 'canvas-confetti';
 
 interface RankingBoardProps {
   songs: Song[];
@@ -157,7 +157,43 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
 
   return (
     <ScrollArea className="h-[500px] w-full pr-4">
-      <div className="space-y-4">
+      {/* 添加頂部裝飾元素 */}
+      <div className="mb-4 relative overflow-hidden rounded-lg p-2 bg-amber-50 border border-yellow-300 shadow-inner">
+        <div className="text-center text-sm font-semibold text-amber-800 flex items-center justify-center gap-2">
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Sparkles className="h-4 w-4 text-amber-500" />
+          </motion.div>
+          <span>實時人氣排名</span>
+          <motion.div
+            animate={{ rotate: [0, -10, 10, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Flame className="h-4 w-4 text-amber-500" />
+          </motion.div>
+        </div>
+        
+        <motion.div 
+          className="absolute inset-0 bg-gradient-to-r from-amber-200/30 via-yellow-300/20 to-amber-100/30 -z-10"
+          animate={{
+            backgroundPosition: ['0% 0%', '100% 100%'],
+          }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "easeInOut"
+          }}
+          style={{
+            backgroundSize: "200% 200%",
+            filter: "blur(5px)",
+          }}
+        />
+      </div>
+      
+      <div className="space-y-4" ref={containerRef}>
         <AnimatePresence mode="popLayout">
           {sortedSongs.map((song, index) => (
             <motion.div
@@ -181,16 +217,97 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                 transition: { duration: 0.2 }
               }}
               className={`
-                flex items-center gap-4 p-4 rounded-lg border
-                ${index === 0 ? 'bg-gradient-to-r from-amber-50 to-yellow-100 border-yellow-300' :
-                  index === 1 ? 'bg-gradient-to-r from-slate-50 to-gray-100 border-gray-300' :
-                  index === 2 ? 'bg-gradient-to-r from-orange-50 to-rose-100 border-orange-300' :
-                  'bg-gradient-to-r from-white to-gray-50 border-gray-200'}
+                flex items-center gap-4 p-4 rounded-lg border relative overflow-hidden
+                ${index === 0 ? 'bg-gradient-to-r from-amber-50 to-yellow-100 border-yellow-300 shadow-lg shadow-amber-100/50' :
+                  index === 1 ? 'bg-gradient-to-r from-slate-50 to-gray-100 border-gray-300 shadow-md shadow-gray-100/50' :
+                  index === 2 ? 'bg-gradient-to-r from-orange-50 to-rose-100 border-orange-300 shadow-md shadow-orange-100/50' :
+                  'bg-gradient-to-r from-white to-gray-50 border-gray-200 hover:shadow-sm hover:shadow-gray-100/30 hover:border-gray-300/50'}
                 transform transition-all duration-300
                 ${showRankChange[song.id] === 'up' ? 'shadow-lg shadow-green-100 scale-[1.02]' : 
                   showRankChange[song.id] === 'down' ? 'shadow-lg shadow-red-100 scale-[0.98]' : ''}
+                ${index === 0 ? 'hover:shadow-xl hover:shadow-amber-200/40 hover:scale-[1.01]' : 'hover:scale-[1.005]'}
               `}
             >
+              {/* 增加背景動態效果 */}
+              {index === 0 && (
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 via-amber-300/5 to-yellow-200/10"
+                  animate={{
+                    backgroundPosition: ['0% 0%', '100% 100%'],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    ease: "easeInOut"
+                  }}
+                  style={{
+                    backgroundSize: "200% 200%",
+                    opacity: 0.6,
+                    filter: "blur(10px)",
+                    zIndex: 0
+                  }}
+                />
+              )}
+              
+              {/* 當有排名變化時顯示的動畫效果 */}
+              {showRankChange[song.id] === 'up' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 0.3, 0] }}
+                  transition={{ duration: 1.5, times: [0, 0.5, 1] }}
+                  className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20"
+                  style={{ filter: "blur(8px)", zIndex: 0 }}
+                />
+              )}
+              
+              {showRankChange[song.id] === 'down' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 0.3, 0] }}
+                  transition={{ duration: 1.5, times: [0, 0.5, 1] }}
+                  className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-rose-500/20"
+                  style={{ filter: "blur(8px)", zIndex: 0 }}
+                />
+              )}
+              
+              {/* 特殊動畫效果，如煙火 */}
+              {showFirework[song.id] && (
+                <motion.div 
+                  className="absolute inset-0 pointer-events-none"
+                  initial={{ opacity: 0 }}
+                  animate={{ 
+                    opacity: [0, 0.8, 0],
+                    scale: [0.9, 1.1, 1]
+                  }}
+                  transition={{ 
+                    duration: 1.5,
+                    times: [0, 0.3, 1]
+                  }}
+                >
+                  {[...Array(12)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-1 h-1 bg-amber-500 rounded-full"
+                      initial={{ 
+                        x: "50%",
+                        y: "50%", 
+                        opacity: 1
+                      }}
+                      animate={{ 
+                        x: `${50 + (Math.random() * 100 - 50)}%`,
+                        y: `${50 + (Math.random() * 100 - 50)}%`, 
+                        opacity: 0,
+                        scale: [1, 1.5, 0]
+                      }}
+                      transition={{ 
+                        duration: 0.8 + Math.random() * 0.7,
+                        delay: Math.random() * 0.2
+                      }}
+                    />
+                  ))}
+                </motion.div>
+              )}
               <motion.div 
                 className="relative flex items-center justify-center w-10 h-10"
                 animate={{ scale: showRankChange[song.id] ? [1, 1.1, 1] : 1 }}

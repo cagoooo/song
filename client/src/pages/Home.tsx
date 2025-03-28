@@ -268,46 +268,49 @@ export default function Home() {
               </Card>
             </motion.div>
 
-            {/* Song list section */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="lg:col-span-2"
+            {/* 兩欄的平均分配容器 */}
+            <motion.div 
+              className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
             >
-              <Card className="shadow-lg h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                    可選歌單
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 sm:p-6">
-                  {user?.isAdmin && <SongImport />}
-                  <div className="h-4" />
-                  <SongList songs={songs} ws={wsRef.current} user={user || null} />
-                </CardContent>
-              </Card>
-            </motion.div>
+              {/* Song list section */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                <Card className="shadow-lg h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                      <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                      可選歌單
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 sm:p-6">
+                    {user?.isAdmin && <SongImport />}
+                    <div className="h-4" />
+                    <SongList songs={songs} ws={wsRef.current} user={user || null} />
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-            {/* Ranking board section */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className="lg:col-span-1"
-            >
-              <Card className="shadow-lg h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                    人氣點播排行榜
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 sm:p-6">
-                  <RankingBoard songs={songs} />
-                </CardContent>
-              </Card>
+              {/* Ranking board section */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              >
+                <Card className="shadow-lg h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                      <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                      人氣點播排行榜
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 sm:p-6">
+                    <RankingBoard songs={songs} />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </motion.div>
           </motion.div>
         </AnimatePresence>
