@@ -197,60 +197,172 @@ export default function SongSuggestion({ isAdmin = false }) {
                 </motion.div>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-gradient-to-br from-amber-50 via-white to-orange-50 border-2 border-amber-200/30">
-              <DialogHeader>
-                <DialogTitle>建議新歌曲</DialogTitle>
-                <DialogDescription>
-                  您的建議將會送交管理員審核。審核通過後，歌曲就會出現在可點播清單中！
-                </DialogDescription>
+            <DialogContent className="max-w-md bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 border-none shadow-[0_10px_50px_rgba(120,100,255,0.3),0_0_0_1px_rgba(120,113,254,0.3)] overflow-hidden">
+              {/* 背景裝飾效果 */}
+              <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_80%_20%,rgba(120,113,255,0.2),transparent_40%),radial-gradient(circle_at_20%_80%,rgba(255,113,200,0.2),transparent_30%)]"></div>
+              
+              <motion.div 
+                className="absolute -z-5 top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-90"
+                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              
+              <DialogHeader className="pb-2">
+                <motion.div
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.5, type: "spring" }}
+                >
+                  <DialogTitle className="text-2xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
+                    ✨ 建議新歌曲 ✨
+                  </DialogTitle>
+                </motion.div>
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <DialogDescription className="text-center px-4 py-2 bg-white/50 rounded-lg border border-indigo-100/50 shadow-inner text-gray-600">
+                    您的建議將會送交管理員審核。審核通過後，歌曲就會出現在可點播清單中！
+                  </DialogDescription>
+                </motion.div>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">歌曲名稱</Label>
-                  <Input
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    required
-                    className="bg-gradient-to-r from-rose-50/70 to-pink-50/70 border-amber-200/50 focus:border-amber-300/60"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="artist">歌手</Label>
-                  <Input
-                    id="artist"
-                    value={artist}
-                    onChange={(e) => setArtist(e.target.value)}
-                    required
-                    className="bg-gradient-to-r from-amber-50/70 to-orange-50/70 border-amber-200/50 focus:border-amber-300/60"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="suggestedBy">您的稱呼 (選填)</Label>
+              
+              <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+                <motion.div 
+                  className="space-y-2"
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.3 }}
+                >
+                  <Label htmlFor="title" className="flex items-center gap-1.5 font-medium text-indigo-800">
+                    <Music2 className="w-4 h-4 text-indigo-500" />
+                    歌曲名稱
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      required
+                      className="bg-white/70 border-2 border-indigo-200/50 focus:border-indigo-400/70 focus:ring-2 focus:ring-indigo-300/30 rounded-lg pl-3 pr-3 py-5 font-medium text-gray-800 shadow-inner"
+                    />
+                    <motion.span 
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-indigo-400"
+                      animate={{ opacity: title ? 1 : 0, scale: title ? [1, 1.5, 1] : 1 }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    />
+                  </div>
+                </motion.div>
+                
+                <motion.div 
+                  className="space-y-2"
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.4 }}
+                >
+                  <Label htmlFor="artist" className="flex items-center gap-1.5 font-medium text-purple-800">
+                    <FileText className="w-4 h-4 text-purple-500" />
+                    歌手
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="artist"
+                      value={artist}
+                      onChange={(e) => setArtist(e.target.value)}
+                      required
+                      className="bg-white/70 border-2 border-purple-200/50 focus:border-purple-400/70 focus:ring-2 focus:ring-purple-300/30 rounded-lg pl-3 pr-3 py-5 font-medium text-gray-800 shadow-inner"
+                    />
+                    <motion.span 
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-purple-400"
+                      animate={{ opacity: artist ? 1 : 0, scale: artist ? [1, 1.5, 1] : 1 }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    />
+                  </div>
+                </motion.div>
+                
+                <motion.div 
+                  className="space-y-2"
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.5 }}
+                >
+                  <Label htmlFor="suggestedBy" className="flex items-center gap-1.5 font-medium text-pink-800">
+                    <PlusCircle className="w-4 h-4 text-pink-500" />
+                    您的稱呼 <span className="text-xs text-pink-500/80">(選填)</span>
+                  </Label>
                   <Input
                     id="suggestedBy"
                     value={suggestedBy}
                     onChange={(e) => setSuggestedBy(e.target.value)}
                     placeholder="讓大家知道是誰推薦的好歌！"
-                    className="bg-gradient-to-r from-orange-50/70 to-amber-50/70 border-amber-200/50 focus:border-amber-300/60"
+                    className="bg-white/70 border-2 border-pink-200/50 focus:border-pink-400/70 focus:ring-2 focus:ring-pink-300/30 rounded-lg pl-3 pr-3 py-2 shadow-inner"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">為什麼想推薦這首歌？ (選填)</Label>
-                  <Textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="分享一下您喜歡這首歌的原因..."
-                    className="bg-gradient-to-br from-amber-50/80 via-orange-50/80 to-amber-50/80 border-amber-200/50 focus:border-amber-300/60 min-h-[100px]"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                </motion.div>
+                
+                <motion.div 
+                  className="space-y-2"
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.6 }}
                 >
-                  送出建議
-                </Button>
+                  <Label htmlFor="notes" className="flex items-center gap-1.5 font-medium text-indigo-800">
+                    <Lightbulb className="w-4 h-4 text-indigo-500" />
+                    為什麼想推薦這首歌？ <span className="text-xs text-indigo-500/80">(選填)</span>
+                  </Label>
+                  <div className="relative overflow-hidden rounded-lg">
+                    <motion.div
+                      className="absolute inset-0 -z-10 bg-gradient-to-br from-indigo-100/30 via-purple-100/30 to-pink-100/30 opacity-50"
+                      animate={{ 
+                        backgroundPosition: ['0% 0%', '100% 100%'] 
+                      }}
+                      transition={{ duration: 10, repeat: Infinity, repeatType: 'reverse' }}
+                      style={{ backgroundSize: '200% 200%' }}
+                    />
+                    <Textarea
+                      id="notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="分享一下您喜歡這首歌的原因..."
+                      className="bg-white/60 border-2 border-indigo-200/40 focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-300/30 min-h-[100px] shadow-inner"
+                    />
+                  </div>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.7 }}
+                  className="pt-2"
+                >
+                  <Button
+                    type="submit"
+                    className="w-full py-6 rounded-lg font-bold text-white tracking-wide
+                             border-none shadow-lg
+                             bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600
+                             hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700
+                             shadow-[0_4px_20px_rgba(120,87,255,0.3)]
+                             hover:shadow-[0_6px_25px_rgba(120,87,255,0.5)]
+                             transition-all duration-300 ease-out
+                             hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <motion.span
+                      animate={{ 
+                        color: ['rgb(255,255,255)', 'rgb(240,240,255)', 'rgb(255,255,255)'],
+                      }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <span>送出建議</span>
+                      <motion.span 
+                        animate={{ x: [0, 5, 0] }} 
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        ✨
+                      </motion.span>
+                    </motion.span>
+                  </Button>
+                </motion.div>
               </form>
             </DialogContent>
           </Dialog>
