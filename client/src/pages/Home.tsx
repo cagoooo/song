@@ -179,7 +179,7 @@ export default function Home() {
           >
             <motion.div className="relative">
               <h1 
-                className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-center bg-gradient-to-r from-yellow-500 via-rose-500 to-amber-500 bg-[length:200%_auto] bg-clip-text text-transparent px-2 sm:px-3 md:px-4 py-2 relative z-10 leading-[1.2] sm:leading-[1.2] md:leading-[1.2] lg:leading-[1.2] animate-text tracking-tight drop-shadow-lg"
+                className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-center bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 px-2 sm:px-3 md:px-4 py-2 relative z-10 leading-[1.2] sm:leading-[1.2] md:leading-[1.2] lg:leading-[1.2] tracking-tight text-white shadow-lg rounded-lg"
               >
                 <motion.div
                   className="inline-block"
