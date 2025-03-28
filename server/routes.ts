@@ -358,16 +358,63 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/tags", requireAdmin, async (req, res) => {
     try {
       const { name } = req.body;
+      
+      // 檢查標籤名稱是否為空
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "標籤名稱不能為空" });
+      }
+      
+      // 檢查標籤是否已存在
+      const existingTag = await db
+        .select()
+        .from(tags)
+        .where(eq(tags.name, name.trim()))
+        .limit(1);
+        
+      if (existingTag.length > 0) {
+        return res.status(400).json({ error: "標籤已存在" });
+      }
+      
       const [newTag] = await db.insert(tags)
         .values({ 
-          name,
+          name: name.trim(),
           createdAt: new Date().toISOString() 
         })
         .returning();
+        
       res.json(newTag);
     } catch (error) {
       console.error('Failed to create tag:', error);
       res.status(500).json({ error: "無法創建標籤" });
+    }
+  });
+  
+  // 刪除標籤
+  app.delete("/api/tags/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // 先檢查該標籤是否被使用
+      const songTagsCount = await db
+        .select({ count: sql<number>`count(*)`.mapWith(Number) })
+        .from(songTags)
+        .where(eq(songTags.tagId, id));
+        
+      if (songTagsCount[0].count > 0) {
+        // 先刪除所有與這個標籤關聯的歌曲標籤
+        await db.delete(songTags)
+          .where(eq(songTags.tagId, id));
+      }
+      
+      // 刪除標籤本身
+      await db.delete(tags)
+        .where(eq(tags.id, id));
+      
+      await sendSongsUpdate(wss);
+      res.json({ message: "標籤已刪除" });
+    } catch (error) {
+      console.error('Failed to delete tag:', error);
+      res.status(500).json({ error: "無法刪除標籤" });
     }
   });
 
