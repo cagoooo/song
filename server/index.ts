@@ -48,14 +48,32 @@ app.use((req, res, next) => {
 (async () => {
   try {
     // Test database connection with retries
-    try {
-      await initializeDatabase();
-      log('Database connection successful');
-    } catch (error) {
-      log('Database connection failed');
-      if (!process.env.DATABASE_URL) {
-        log('Missing DATABASE_URL environment variable');
+    const MAX_RETRIES = 3;
+    let retries = 0;
+    let success = false;
+    
+    while (retries < MAX_RETRIES && !success) {
+      try {
+        retries++;
+        log(`Initializing database (attempt ${retries}/${MAX_RETRIES})...`);
+        await initializeDatabase();
+        log('Database initialization successful');
+        success = true;
+      } catch (error) {
+        log(`Database initialization failed on attempt ${retries}/${MAX_RETRIES}`);
+        console.error(error);
+        
+        if (retries < MAX_RETRIES) {
+          // Wait for a bit before retrying
+          const waitTime = retries * 2000; // Increase wait time for each retry
+          log(`Waiting ${waitTime/1000} seconds before retrying...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
       }
+    }
+    
+    if (!success) {
+      log('All database initialization attempts failed. Exiting...');
       process.exit(1);
     }
 
@@ -71,7 +89,7 @@ app.use((req, res, next) => {
     }
 
     const PORT = process.env.PORT || 3000;
-    server.listen(PORT, "0.0.0.0", () => {
+    server.listen(PORT, () => {
       log(`Server running on port ${PORT} (${app.get("env")})`);
     });
   } catch (error) {
