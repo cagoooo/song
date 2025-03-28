@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
@@ -7,7 +8,7 @@ export const users = sqliteTable("users", {
   username: text("username").unique().notNull(),
   password: text("password").notNull(),
   isAdmin: integer("is_admin", { mode: "boolean" }).default(false).notNull(),
-  createdAt: text("created_at").notNull()
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
 export const songs = sqliteTable("songs", {
@@ -18,7 +19,7 @@ export const songs = sqliteTable("songs", {
   notes: text("notes"),
   lyrics: text("lyrics"),
   audioUrl: text("audio_url"),
-  createdAt: text("created_at").notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   createdBy: integer("created_by").references(() => users.id),
   isActive: integer("is_active", { mode: "boolean" }).default(true).notNull()
 });
@@ -27,7 +28,7 @@ export const votes = sqliteTable("votes", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   songId: integer("song_id").references(() => songs.id).notNull(),
   sessionId: text("session_id").notNull(),
-  createdAt: text("created_at").notNull()
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
 export const songSuggestions = sqliteTable("song_suggestions", {
@@ -35,22 +36,23 @@ export const songSuggestions = sqliteTable("song_suggestions", {
   title: text("title").notNull(),
   artist: text("artist").notNull(),
   suggestedBy: text("suggested_by"),
-  status: text("status").default("pending").notNull(),
-  createdAt: text("created_at").notNull(),
+  status: text("status").default("pending").notNull(), // pending, approved, rejected, added_to_playlist
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  processedAt: text("processed_at"),
   notes: text("notes")
 });
 
 export const tags = sqliteTable("tags", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").unique().notNull(),
-  createdAt: text("created_at").notNull()
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
 export const songTags = sqliteTable("song_tags", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   songId: integer("song_id").references(() => songs.id).notNull(),
   tagId: integer("tag_id").references(() => tags.id).notNull(),
-  createdAt: text("created_at").notNull()
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
 export const qrCodeScans = sqliteTable("qr_code_scans", {
@@ -59,7 +61,7 @@ export const qrCodeScans = sqliteTable("qr_code_scans", {
   sessionId: text("session_id").notNull(),
   userAgent: text("user_agent"),
   referrer: text("referrer"),
-  createdAt: text("created_at").notNull()
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
 // Define relationships

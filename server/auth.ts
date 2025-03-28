@@ -22,7 +22,13 @@ const crypto = {
 // extend express user object with our schema
 declare global {
   namespace Express {
-    interface User extends User { }
+    interface User {
+      id: number;
+      username: string;
+      password: string;
+      isAdmin: boolean;
+      createdAt: string;
+    }
   }
 }
 

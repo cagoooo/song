@@ -266,16 +266,32 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/songs", requireAdmin, async (req, res) => {
     try {
-      const { title, artist } = req.body;
+      const { title, artist, notes, suggestedBy, fromSuggestion } = req.body;
+      
+      // 添加新歌曲
       const [newSong] = await db.insert(songs)
         .values({
           title,
           artist,
+          notes: notes || null,
           createdBy: req.user?.id,
           isActive: true,
           createdAt: new Date().toISOString()
         })
         .returning();
+
+      // 如果是從建議中添加的，更新建議的狀態
+      if (fromSuggestion) {
+        // 標記建議為已處理
+        await db.update(songSuggestions)
+          .set({ 
+            status: "added_to_playlist",
+            processedAt: new Date().toISOString() 
+          })
+          .where(eq(songSuggestions.id, fromSuggestion));
+          
+        console.log(`Song added from suggestion #${fromSuggestion}`);
+      }
 
       await sendSongsUpdate(wss);
       res.json(newSong);

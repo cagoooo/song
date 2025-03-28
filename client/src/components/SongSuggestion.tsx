@@ -13,7 +13,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText } from "lucide-react";
+import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText, PlusCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SongSuggestion } from "@db/schema";
 import {
@@ -264,9 +264,17 @@ export default function SongSuggestion({ isAdmin = false }) {
               <Lightbulb className="w-5 h-5 text-amber-500" />
               歌曲建議列表
             </h3>
-            <span className="text-sm text-muted-foreground">
-              {suggestions.filter(s => s.status === "pending").length} 個待審核建議
-            </span>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-md">
+                {suggestions.filter(s => s.status === "pending").length} 個待審核
+              </span>
+              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-md">
+                {suggestions.filter(s => s.status === "approved").length} 個已採納
+              </span>
+              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md">
+                {suggestions.filter(s => s.status === "added_to_playlist").length} 個已加入
+              </span>
+            </div>
           </div>
           {suggestions.map((suggestion, index) => (
             <motion.div
@@ -429,18 +437,41 @@ export default function SongSuggestion({ isAdmin = false }) {
                 </div>
               </div>
               {suggestion.status !== "pending" && (
-                <motion.span
+                <motion.div 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className={`
-                    text-sm px-3 py-1.5 rounded-full inline-flex items-center gap-1
-                    ${suggestion.status === "approved"
-                      ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200"
-                      : "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200"}
-                  `}
+                  className="flex items-center gap-2"
                 >
-                  {suggestion.status === "approved" ? "已採納，即將新增" : "暫時無法採納"}
-                </motion.span>
+                  <motion.span
+                    className={`
+                      text-sm px-3 py-1.5 rounded-full inline-flex items-center gap-1
+                      ${suggestion.status === "approved"
+                        ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200"
+                        : suggestion.status === "added_to_playlist"
+                          ? "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 border border-blue-200"
+                          : "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200"}
+                    `}
+                  >
+                    {suggestion.status === "approved" ? (
+                      "已採納，即將新增"
+                    ) : suggestion.status === "added_to_playlist" ? (
+                      <>
+                        已新增到播放列表
+                        {suggestion.processedAt && (
+                          <span className="text-xs ml-1 opacity-70">
+                            {new Date(suggestion.processedAt).toLocaleDateString('zh-TW')}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      "暫時無法採納"
+                    )}
+                  </motion.span>
+                  
+                  {isAdmin && suggestion.status === "approved" && (
+                    <AddToPlaylistButton suggestion={suggestion} />
+                  )}
+                </motion.div>
               )}
               {isAdmin && (
                 <motion.div
@@ -467,5 +498,82 @@ export default function SongSuggestion({ isAdmin = false }) {
         </div>
       )}
     </div>
+  );
+}
+
+interface AddToPlaylistButtonProps {
+  suggestion: SongSuggestion;
+}
+
+function AddToPlaylistButton({ suggestion }: AddToPlaylistButtonProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const addToPlaylistMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/songs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: suggestion.title,
+          artist: suggestion.artist,
+          notes: suggestion.notes || '',
+          suggestedBy: suggestion.suggestedBy || '',
+          fromSuggestion: suggestion.id
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('加入歌單失敗');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "成功加入歌單！",
+        description: `「${suggestion.title} - ${suggestion.artist}」已加入歌單`,
+      });
+      // 重新獲取歌曲列表和建議列表
+      queryClient.invalidateQueries({ queryKey: ['/api/songs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "加入歌單失敗",
+        description: error.message || "請稍後再試",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  return (
+    <motion.div
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              size="sm"
+              className="h-8 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 
+                       text-white border-none shadow-md 
+                       hover:shadow-lg transition-all"
+              onClick={() => addToPlaylistMutation.mutate()}
+            >
+              <PlusCircle className="w-4 h-4 mr-2" />
+              直接加入歌單
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent
+            side="top"
+            className="bg-white/90 backdrop-blur-sm border-2 border-emerald-200 shadow-lg"
+          >
+            <p>將這首歌直接加入到歌單中</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </motion.div>
   );
 }
