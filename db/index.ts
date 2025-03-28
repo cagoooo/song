@@ -115,7 +115,7 @@ export async function initializeDatabase() {
       db.run(sql`
         INSERT INTO users (username, password, is_admin) 
         VALUES 
-          ('admin', '$2b$10$aW5uZXJfcGFzc3dvcmRfaO5FnJ3BMJkCJQxdlgYeGT4bOWOZwJZWS', 1),
+          ('cagoo', '$2b$10$gsypgex3yfikc9FZilmbtOTwTU3gZuhuUbt3kFS.9TD2Zx7YTKI/q', 1),
           ('user', '$2b$10$aW5uZXJfcGFzc3dvcmRfaO5FnJ3BMJkCJQxdlgYeGT4bOWOZwJZWS', 0)
       `);
       
