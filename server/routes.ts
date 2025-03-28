@@ -110,7 +110,7 @@ export function registerRoutes(app: Express): Server {
           suggestedBy: suggestedBy?.trim() || null,
           notes: notes?.trim() || null,
           status: 'pending',
-          createdAt: new Date()
+          createdAt: new Date().toISOString()
         })
         .returning();
 
@@ -200,7 +200,7 @@ export function registerRoutes(app: Express): Server {
           sessionId,
           userAgent: userAgent || null,
           referrer: referrer || null,
-          createdAt: new Date()
+          createdAt: new Date().toISOString()
         })
         .returning();
 
@@ -272,7 +272,8 @@ export function registerRoutes(app: Express): Server {
           title,
           artist,
           createdBy: req.user?.id,
-          isActive: true
+          isActive: true,
+          createdAt: new Date().toISOString()
         })
         .returning();
 
@@ -298,10 +299,13 @@ export function registerRoutes(app: Express): Server {
         console.log('Received message:', message);
 
         if (message.type === 'VOTE') {
+          // 將 Date 對象轉換為 ISO 字符串格式，這是 SQLite 可接受的格式
+          const now = new Date().toISOString();
+          
           await db.insert(votes).values({
             songId: message.songId,
             sessionId,
-            createdAt: new Date()
+            createdAt: now
           });
 
           await sendSongsUpdate(wss);
@@ -339,7 +343,10 @@ export function registerRoutes(app: Express): Server {
     try {
       const { name } = req.body;
       const [newTag] = await db.insert(tags)
-        .values({ name })
+        .values({ 
+          name,
+          createdAt: new Date().toISOString() 
+        })
         .returning();
       res.json(newTag);
     } catch (error) {
@@ -387,7 +394,11 @@ export function registerRoutes(app: Express): Server {
       }
 
       await db.insert(songTags)
-        .values({ songId, tagId });
+        .values({ 
+          songId, 
+          tagId, 
+          createdAt: new Date().toISOString() 
+        });
 
       await sendSongsUpdate(wss);
       res.json({ message: "標籤新增成功" });
@@ -431,7 +442,8 @@ export function registerRoutes(app: Express): Server {
           title: song.title,
           artist: song.artist,
           createdBy: req.user?.id,
-          isActive: true
+          isActive: true,
+          createdAt: new Date().toISOString()
         }))
       );
 
