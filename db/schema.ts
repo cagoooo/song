@@ -1,65 +1,65 @@
-import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").unique().notNull(),
   password: text("password").notNull(),
-  isAdmin: boolean("is_admin").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  isAdmin: integer("is_admin", { mode: "boolean" }).default(false).notNull(),
+  createdAt: text("created_at").notNull()
 });
 
-export const songs = pgTable("songs", {
-  id: serial("id").primaryKey(),
+export const songs = sqliteTable("songs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   artist: text("artist").notNull(),
   key: text("key"),
   notes: text("notes"),
   lyrics: text("lyrics"),
   audioUrl: text("audio_url"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: text("created_at").notNull(),
   createdBy: integer("created_by").references(() => users.id),
-  isActive: boolean("is_active").default(true).notNull()
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull()
 });
 
-export const votes = pgTable("votes", {
-  id: serial("id").primaryKey(),
+export const votes = sqliteTable("votes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   songId: integer("song_id").references(() => songs.id).notNull(),
   sessionId: text("session_id").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: text("created_at").notNull()
 });
 
-export const songSuggestions = pgTable("song_suggestions", {
-  id: serial("id").primaryKey(),
+export const songSuggestions = sqliteTable("song_suggestions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   artist: text("artist").notNull(),
   suggestedBy: text("suggested_by"),
   status: text("status").default("pending").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: text("created_at").notNull(),
   notes: text("notes")
 });
 
-export const tags = pgTable("tags", {
-  id: serial("id").primaryKey(),
+export const tags = sqliteTable("tags", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").unique().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: text("created_at").notNull()
 });
 
-export const songTags = pgTable("song_tags", {
-  id: serial("id").primaryKey(),
+export const songTags = sqliteTable("song_tags", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   songId: integer("song_id").references(() => songs.id).notNull(),
   tagId: integer("tag_id").references(() => tags.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: text("created_at").notNull()
 });
 
-export const qrCodeScans = pgTable("qr_code_scans", {
-  id: serial("id").primaryKey(),
+export const qrCodeScans = sqliteTable("qr_code_scans", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   songId: integer("song_id").references(() => songs.id).notNull(),
   sessionId: text("session_id").notNull(),
   userAgent: text("user_agent"),
   referrer: text("referrer"),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: text("created_at").notNull()
 });
 
 // Define relationships
