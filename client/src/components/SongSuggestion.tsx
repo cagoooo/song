@@ -13,7 +13,10 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Lightbulb, Plus, Check, X, Trash2, Music2, FileText, PlusCircle } from "lucide-react";
+import { 
+  Lightbulb, Plus, Check, X, Trash2, Music2, FileText, PlusCircle, 
+  HeartPulse, Clock, Music, Calendar, User2
+} from "lucide-react";
 import { motion } from "framer-motion";
 import type { SongSuggestion } from "@db/schema";
 import {
@@ -22,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function SongSuggestion({ isAdmin = false }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,6 +35,7 @@ export default function SongSuggestion({ isAdmin = false }) {
   const [notes, setNotes] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const { data: suggestions = [] } = useQuery<SongSuggestion[]>({
     queryKey: ['/api/suggestions'],
@@ -370,243 +375,397 @@ export default function SongSuggestion({ isAdmin = false }) {
       </div>
 
       {suggestions.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Lightbulb className="w-5 h-5 text-amber-500" />
-              歌曲建議列表
-            </h3>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-md">
-                {suggestions.filter(s => s.status === "pending").length} 個待審核
-              </span>
-              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-md">
-                {suggestions.filter(s => s.status === "approved").length} 個已採納
-              </span>
-              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-md">
-                {suggestions.filter(s => s.status === "added_to_playlist").length} 個已加入
-              </span>
-            </div>
-          </div>
-          {suggestions.map((suggestion, index) => (
-            <motion.div
-              key={suggestion.id}
+        <div className="mt-8 space-y-6">
+          {/* 標題區塊 */}
+          <div className="relative">
+            <div className="absolute -left-2 sm:left-0 -top-6 w-16 h-16 rounded-full bg-gradient-to-br from-amber-300 to-orange-500 opacity-20 blur-xl"></div>
+            <div className="absolute -right-2 sm:right-0 -top-3 w-12 h-12 rounded-full bg-gradient-to-br from-orange-300 to-red-500 opacity-20 blur-xl"></div>
+            
+            <motion.div 
+              className="relative flex flex-wrap justify-between items-center gap-y-3 p-4 sm:p-5 rounded-xl 
+                       bg-gradient-to-r from-amber-100/70 via-orange-50/70 to-amber-100/70 
+                       border-2 border-amber-200/30 shadow-lg overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`
-                relative overflow-hidden
-                flex flex-col gap-4 p-4 sm:p-5 rounded-lg
-                border-2 border-primary/10
-                ${index % 2 === 0
-                  ? 'bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50'
-                  : 'bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50'}
-                shadow-[0_4px_12px_rgba(var(--primary),0.1)]
-                hover:shadow-[0_8px_24px_rgba(var(--primary),0.15)]
-                transition-all duration-300
-              `}
+              transition={{ duration: 0.5 }}
             >
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex-1">
-                  <h4 className={`
-                    text-lg font-semibold mb-1
-                    ${index % 2 === 0
-                      ? 'bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600'
-                      : 'bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600'}
-                    bg-clip-text text-transparent
-                  `}>
-                    {suggestion.title}
-                  </h4>
-                  <p className="text-base font-medium text-muted-foreground">
-                    {suggestion.artist}
-                  </p>
-                  {suggestion.suggestedBy && (
-                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                      推薦者：
-                      <span className="font-medium text-foreground">
-                        {suggestion.suggestedBy}
-                      </span>
-                    </p>
-                  )}
-                  {suggestion.notes && (
-                    <motion.p
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className={`
-                        text-sm mt-3 p-3 rounded-md
-                        ${index % 2 === 0
-                          ? 'bg-gradient-to-r from-rose-100/50 to-pink-100/50'
-                          : 'bg-gradient-to-r from-blue-100/50 to-cyan-100/50'}
-                        border border-primary/5
-                      `}
-                    >
-                      {suggestion.notes}
-                    </motion.p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
-                                    shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                                    hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                                    transition-all duration-300"
-                            asChild
-                          >
-                            <a
-                              href={generateGuitarTabsUrl(suggestion)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Music2 className="w-4 h-4" />
-                            </a>
-                          </Button>
-                        </motion.div>
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="top"
-                        className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
-                      >
-                        <p>點擊在 Google 中搜尋「{suggestion.title} - {suggestion.artist}」的吉他譜</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <motion.div
-                          whileHover={{
-                            scale: 1.05,
-                            transition: { duration: 0.2 }
-                          }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="w-8 h-8 border-2 border-primary/20 bg-white/80 hover:bg-white/90
-                                    shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                                    hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                                    transition-all duration-300 relative group"
-                            asChild
-                          >
-                            <a
-                              href={generateLyricsUrl(suggestion)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-center"
-                            >
-                              <FileText className="w-4 h-4 transition-transform group-hover:scale-110" />
-                              <span className="sr-only">搜尋歌詞</span>
-                            </a>
-                          </Button>
-                        </motion.div>
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="top"
-                        className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
-                      >
-                        <p>點擊在 Google 中搜尋「{suggestion.title} - {suggestion.artist}」的歌詞</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  {isAdmin && suggestion.status === "pending" && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-green-200 text-green-600 hover:text-green-700 hover:border-green-300 transition-colors"
-                        onClick={() => updateStatusMutation.mutate({
-                          id: suggestion.id,
-                          status: "approved"
-                        })}
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-red-200 text-red-600 hover:text-red-700 hover:border-red-300 transition-colors"
-                        onClick={() => updateStatusMutation.mutate({
-                          id: suggestion.id,
-                          status: "rejected"
-                        })}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-              {suggestion.status !== "pending" && (
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-2"
-                >
-                  <motion.span
-                    className={`
-                      text-sm px-3 py-1.5 rounded-full inline-flex items-center gap-1
-                      ${suggestion.status === "approved"
-                        ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200"
-                        : suggestion.status === "added_to_playlist"
-                          ? "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 border border-blue-200"
-                          : "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200"}
-                    `}
+              {/* 背景裝飾 */}
+              <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_80%_20%,rgba(251,191,36,0.15),transparent_30%),radial-gradient(circle_at_20%_80%,rgba(245,158,11,0.15),transparent_30%)]"></div>
+              
+              <motion.div 
+                className="flex items-center gap-3"
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <div className="relative flex items-center justify-center">
+                  <motion.div 
+                    className="absolute inset-0 rounded-full bg-amber-500/20"
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      opacity: [0.2, 0.3, 0.2]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
+                  <motion.div
+                    animate={{
+                      rotate: [0, 10, -10, 0],
+                    }}
+                    transition={{ duration: 5, repeat: Infinity }}
                   >
-                    {suggestion.status === "approved" ? (
-                      "已採納，即將新增"
-                    ) : suggestion.status === "added_to_playlist" ? (
-                      <>
-                        已新增到播放列表
-                        {suggestion.processedAt && (
-                          <span className="text-xs ml-1 opacity-70">
-                            {new Date(suggestion.processedAt).toLocaleDateString('zh-TW')}
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      "暫時無法採納"
-                    )}
-                  </motion.span>
-                  
-                  {isAdmin && suggestion.status === "approved" && (
-                    <AddToPlaylistButton suggestion={suggestion} />
-                  )}
-                </motion.div>
-              )}
-              {isAdmin && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 flex justify-end"
-                >
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => deleteSuggestionMutation.mutate(suggestion.id)}
-                    className="h-8 bg-gradient-to-r from-red-50 to-rose-50
-                             border-2 border-red-200 text-red-600
-                             hover:text-red-700 hover:border-red-300
-                             transition-all duration-300"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    刪除建議
-                  </Button>
-                </motion.div>
-              )}
+                    <Lightbulb className="w-7 h-7 text-amber-500 drop-shadow-md" />
+                  </motion.div>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-amber-700 via-orange-600 to-amber-700 bg-clip-text text-transparent">
+                  社群歌曲推薦
+                </h3>
+              </motion.div>
+              
+              <motion.div 
+                className="flex flex-wrap items-center gap-2 sm:gap-3"
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <span className="bg-gradient-to-r from-yellow-100 to-amber-100 px-3 py-1.5 rounded-full border border-yellow-200/70 shadow-sm flex items-center gap-1.5 text-sm text-yellow-700 font-medium">
+                  <motion.div 
+                    className="w-2 h-2 rounded-full bg-yellow-500"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  {suggestions.filter(s => s.status === "pending").length} 個待審核
+                </span>
+                <span className="bg-gradient-to-r from-green-100 to-emerald-100 px-3 py-1.5 rounded-full border border-green-200/70 shadow-sm flex items-center gap-1.5 text-sm text-green-700 font-medium">
+                  <motion.div 
+                    className="w-2 h-2 rounded-full bg-green-500"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                  />
+                  {suggestions.filter(s => s.status === "approved").length} 個已採納
+                </span>
+                <span className="bg-gradient-to-r from-blue-100 to-sky-100 px-3 py-1.5 rounded-full border border-blue-200/70 shadow-sm flex items-center gap-1.5 text-sm text-blue-700 font-medium">
+                  <motion.div 
+                    className="w-2 h-2 rounded-full bg-blue-500"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                  />
+                  {suggestions.filter(s => s.status === "added_to_playlist").length} 個已加入
+                </span>
+              </motion.div>
             </motion.div>
-          ))}
+          </div>
+          
+          {/* 建議列表 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {suggestions.map((suggestion, index) => {
+              // 為不同狀態選擇不同的顏色主題
+              const colors = {
+                pending: {
+                  gradient: 'from-amber-50 via-orange-50 to-amber-50',
+                  border: 'border-amber-200/40',
+                  glow: 'shadow-[0_0_30px_rgba(251,191,36,0.15)]',
+                  title: 'from-amber-600 via-orange-600 to-amber-600',
+                  noteBg: 'from-amber-100/40 to-orange-100/40',
+                  shine: 'rgba(251,191,36,0.4)'
+                },
+                approved: {
+                  gradient: 'from-emerald-50 via-green-50 to-emerald-50',
+                  border: 'border-emerald-200/40',
+                  glow: 'shadow-[0_0_30px_rgba(16,185,129,0.15)]',
+                  title: 'from-emerald-600 via-green-600 to-emerald-600',
+                  noteBg: 'from-emerald-100/40 to-green-100/40',
+                  shine: 'rgba(16,185,129,0.4)'
+                },
+                added_to_playlist: {
+                  gradient: 'from-blue-50 via-sky-50 to-blue-50',
+                  border: 'border-blue-200/40',
+                  glow: 'shadow-[0_0_30px_rgba(59,130,246,0.15)]',
+                  title: 'from-blue-600 via-sky-600 to-blue-600',
+                  noteBg: 'from-blue-100/40 to-sky-100/40',
+                  shine: 'rgba(59,130,246,0.4)'
+                },
+                rejected: {
+                  gradient: 'from-gray-50 via-slate-50 to-gray-50',
+                  border: 'border-gray-200/40',
+                  glow: 'shadow-[0_0_20px_rgba(100,116,139,0.1)]',
+                  title: 'from-slate-600 via-gray-600 to-slate-600',
+                  noteBg: 'from-gray-100/40 to-slate-100/40',
+                  shine: 'rgba(100,116,139,0.3)'
+                }
+              };
+              
+              const color = colors[suggestion.status as keyof typeof colors || 'pending'];
+              
+              return (
+                <motion.div
+                  key={suggestion.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className={`
+                    relative overflow-hidden
+                    rounded-xl
+                    bg-gradient-to-br ${color.gradient}
+                    border-2 ${color.border}
+                    ${color.glow}
+                    hover:shadow-lg hover:scale-[1.02]
+                    transition-all duration-500
+                  `}
+                >
+                  {/* 閃光效果 */}
+                  <motion.div
+                    className="absolute inset-0 opacity-0 pointer-events-none"
+                    animate={{ 
+                      background: [
+                        `radial-gradient(circle at 0% 0%, ${color.shine}, transparent 50%)`,
+                        `radial-gradient(circle at 100% 100%, ${color.shine}, transparent 50%)`,
+                        `radial-gradient(circle at 0% 0%, ${color.shine}, transparent 50%)`
+                      ],
+                      opacity: [0, 0.3, 0]
+                    }}
+                    transition={{ duration: 7, repeat: Infinity, repeatType: 'reverse' }}
+                  />
+                  
+                  {/* 狀態標籤 */}
+                  <div className="absolute top-0 right-0">
+                    {suggestion.status === 'pending' && (
+                      <div className="bg-amber-400 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-bl-md">
+                        待審核
+                      </div>
+                    )}
+                    {suggestion.status === 'approved' && (
+                      <div className="bg-green-400 text-green-900 text-xs font-bold px-2 py-0.5 rounded-bl-md">
+                        已採納
+                      </div>
+                    )}
+                    {suggestion.status === 'added_to_playlist' && (
+                      <div className="bg-blue-400 text-blue-900 text-xs font-bold px-2 py-0.5 rounded-bl-md">
+                        已加入
+                      </div>
+                    )}
+                    {suggestion.status === 'rejected' && (
+                      <div className="bg-gray-400 text-gray-900 text-xs font-bold px-2 py-0.5 rounded-bl-md">
+                        已拒絕
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-5">
+                    <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
+                      <div className="flex-1">
+                        <h4 className={`
+                          text-xl font-bold mb-1
+                          bg-gradient-to-r ${color.title}
+                          bg-clip-text text-transparent
+                        `}>
+                          {suggestion.title}
+                        </h4>
+                        <p className="text-base font-medium text-gray-700">
+                          {suggestion.artist}
+                        </p>
+                        {suggestion.suggestedBy && (
+                          <p className="text-sm text-gray-600 mt-2 flex items-center gap-1.5">
+                            <User2 className="w-3 h-3 text-gray-400" />
+                            <span className="font-medium text-gray-800">
+                              {suggestion.suggestedBy}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-2 sm:flex-col md:flex-row">
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <motion.div
+                                whileHover={{ scale: 1.1, rotate: 5 }}
+                                whileTap={{ scale: 0.9 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                              >
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="w-9 h-9 border-2 border-primary/20 bg-white/90 hover:bg-white
+                                          shadow-md hover:shadow-lg
+                                          transition-all duration-300"
+                                  asChild
+                                >
+                                  <a
+                                    href={generateGuitarTabsUrl(suggestion)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Music2 className="w-4 h-4 text-primary" />
+                                  </a>
+                                </Button>
+                              </motion.div>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="top"
+                              className="bg-white/95 backdrop-blur-sm border-2 border-primary/20 shadow-lg p-2"
+                            >
+                              <p>搜尋「{suggestion.title} - {suggestion.artist}」的吉他譜</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <motion.div
+                                whileHover={{ scale: 1.1, rotate: -5 }}
+                                whileTap={{ scale: 0.9 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                              >
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="w-9 h-9 border-2 border-primary/20 bg-white/90 hover:bg-white
+                                          shadow-md hover:shadow-lg
+                                          transition-all duration-300"
+                                  asChild
+                                >
+                                  <a
+                                    href={generateLyricsUrl(suggestion)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <FileText className="w-4 h-4 text-primary" />
+                                  </a>
+                                </Button>
+                              </motion.div>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="top"
+                              className="bg-white/95 backdrop-blur-sm border-2 border-primary/20 shadow-lg p-2"
+                            >
+                              <p>搜尋「{suggestion.title} - {suggestion.artist}」的歌詞</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
+
+                    {suggestion.notes && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className={`
+                          relative overflow-hidden
+                          text-sm mt-3 p-4 rounded-lg
+                          bg-gradient-to-r ${color.noteBg}
+                          border border-primary/5 shadow-inner
+                        `}
+                      >
+                        <div className="absolute top-0 left-0 w-full h-full bg-white/30 opacity-50"></div>
+                        <div className="relative">
+                          <p className="leading-relaxed text-gray-700">{suggestion.notes}</p>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {suggestion.status !== "pending" && (
+                      <motion.div 
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex flex-wrap items-center gap-2 mt-4"
+                      >
+                        <motion.span
+                          className={`
+                            text-sm px-3 py-1.5 rounded-full inline-flex items-center gap-1
+                            ${suggestion.status === "approved"
+                              ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200"
+                              : suggestion.status === "added_to_playlist"
+                                ? "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 border border-blue-200"
+                                : "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200"}
+                            shadow-sm
+                          `}
+                        >
+                          {suggestion.status === "approved" ? (
+                            <>
+                              <Clock className="w-3.5 h-3.5 text-green-600" />
+                              已採納，即將新增
+                            </>
+                          ) : suggestion.status === "added_to_playlist" ? (
+                            <>
+                              <HeartPulse className="w-3.5 h-3.5 text-blue-600" />
+                              已新增到播放列表
+                              {suggestion.processedAt && (
+                                <span className="text-xs ml-1 opacity-70">
+                                  {new Date(suggestion.processedAt).toLocaleDateString('zh-TW')}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <X className="w-3.5 h-3.5 text-red-600" />
+                              暫時無法採納
+                            </>
+                          )}
+                        </motion.span>
+                        
+                        {isAdmin && suggestion.status === "approved" && (
+                          <AddToPlaylistButton suggestion={suggestion} />
+                        )}
+                      </motion.div>
+                    )}
+
+                    {isAdmin && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-primary/10"
+                      >
+                        {suggestion.status === "pending" && (
+                          <>
+                            <Button
+                              onClick={() => updateStatusMutation.mutate({ id: suggestion.id, status: "approved" })}
+                              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500
+                                       hover:from-green-600 hover:to-emerald-600
+                                       border-none text-white py-5
+                                       shadow-md hover:shadow-lg
+                                       hover:scale-[1.02] active:scale-[0.98]
+                                       transition-all duration-300"
+                            >
+                              <Check className="w-4 h-4 mr-2" />
+                              採納建議
+                            </Button>
+                            <Button
+                              onClick={() => updateStatusMutation.mutate({ id: suggestion.id, status: "rejected" })}
+                              variant="outline"
+                              className="flex-1 bg-white/80 border-2 border-red-200 text-red-600 py-5
+                                       hover:text-red-700 hover:border-red-300 hover:bg-white
+                                       shadow-md hover:shadow-lg
+                                       hover:scale-[1.02] active:scale-[0.98]
+                                       transition-all duration-300"
+                            >
+                              <X className="w-4 h-4 mr-2" />
+                              拒絕建議
+                            </Button>
+                          </>
+                        )}
+                        
+                        <Button
+                          onClick={() => deleteSuggestionMutation.mutate(suggestion.id)}
+                          variant="outline"
+                          className="bg-white/80 border-2 border-red-200 text-red-600 py-2
+                                   hover:text-red-700 hover:border-red-300 hover:bg-white
+                                   shadow-md hover:shadow-lg
+                                   hover:scale-[1.02] active:scale-[0.98]
+                                   transition-all duration-300"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          刪除建議
+                        </Button>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -668,8 +827,7 @@ function AddToPlaylistButton({ suggestion }: AddToPlaylistButtonProps) {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button 
-              size="sm"
-              className="h-8 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 
+              className="h-9 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 
                        text-white border-none shadow-md 
                        hover:shadow-lg transition-all"
               onClick={() => addToPlaylistMutation.mutate()}
