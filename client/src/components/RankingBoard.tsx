@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trophy, Crown, Award, FileText, Music2, Sparkles, Star, TrendingUp, Flame, Music, Mic, Headphones } from "lucide-react";
+import { 
+  Trophy, Crown, Award, FileText, Music2, Sparkles, 
+  Star, TrendingUp, Flame, Music, Mic, Headphones, 
+  Medal, Shield, Heart, Zap
+} from "lucide-react";
 import type { Song } from "@db/schema";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -163,89 +167,16 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-4 relative overflow-hidden rounded-lg p-3 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 border border-yellow-300 shadow-md"
+        className="mb-4 relative overflow-hidden rounded-xl p-3 sm:p-4 
+                   bg-gradient-to-r from-yellow-50 via-amber-50 to-orange-50 
+                   border-2 border-amber-300/70 shadow-md"
       >
-        <div className="text-center font-semibold text-amber-800 flex items-center justify-center gap-3">
-          <motion.div
-            animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.1, 1] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            className="relative"
-          >
-            <Sparkles className="h-5 w-5 text-yellow-500" />
-            <motion.div 
-              className="absolute inset-0 bg-yellow-400 rounded-full opacity-30"
-              animate={{ scale: [0.8, 1.5, 0.8], opacity: [0.3, 0, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              style={{ filter: "blur(6px)" }}
-            />
-          </motion.div>
-          
-          <motion.div
-            className="relative"
-            animate={{ y: [0, -2, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <motion.span
-              className="inline-block text-base sm:text-lg text-transparent bg-clip-text bg-gradient-to-r from-amber-800 via-yellow-600 to-amber-800 px-1 py-0.5"
-              animate={{ backgroundPosition: ['0% center', '100% center', '0% center'] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-              style={{ backgroundSize: '200% auto' }}
-            >
-              熱門歌曲排行榜
-            </motion.span>
-            <motion.div
-              className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-amber-400 to-transparent" 
-              animate={{ scaleX: [0.3, 1, 0.3], opacity: [0.3, 0.7, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </motion.div>
-          
-          <motion.div
-            animate={{ rotate: [0, -15, 15, 0], scale: [1, 1.1, 1] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            className="relative"
-          >
-            <Headphones className="h-5 w-5 text-amber-500" />
-            <motion.div 
-              className="absolute inset-0 bg-amber-400 rounded-full opacity-30"
-              animate={{ scale: [0.8, 1.5, 0.8], opacity: [0.3, 0, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-              style={{ filter: "blur(6px)" }}
-            />
-          </motion.div>
-        </div>
-        
-        {/* 裝飾性音符泡泡 */}
-        {[...Array(3)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute text-amber-500/30 pointer-events-none"
-            initial={{ 
-              x: `${20 + (i * 30)}%`,
-              y: "100%", 
-              scale: 0.5 + (i * 0.2),
-              opacity: 0 
-            }}
-            animate={{ 
-              y: ["100%", "10%", "0%"], 
-              opacity: [0, 0.8, 0],
-              rotate: [0, 10 * (i % 2 ? 1 : -1), 0]
-            }}
-            transition={{
-              duration: 4 + (i * 1),
-              repeat: Infinity,
-              delay: i * 2,
-              ease: "easeInOut"
-            }}
-          >
-            {i % 3 === 0 ? <Music size={14} /> : i % 3 === 1 ? <Mic size={14} /> : <Music2 size={14} />}
-          </motion.div>
-        ))}
-        
+        {/* 背景光效 */}
         <motion.div 
-          className="absolute inset-0 bg-gradient-to-r from-amber-200/20 via-yellow-300/10 to-amber-100/20 -z-10 pointer-events-none"
+          className="absolute inset-0 z-0 bg-gradient-to-br from-yellow-400/10 via-amber-300/5 to-orange-200/10"
           animate={{
             backgroundPosition: ['0% 0%', '100% 100%'],
+            scale: [1, 1.05, 1],
           }}
           transition={{
             duration: 8,
@@ -255,7 +186,193 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
           }}
           style={{
             backgroundSize: "200% 200%",
-            filter: "blur(5px)",
+            filter: "blur(6px)",
+            borderRadius: "inherit",
+            transformOrigin: "center",
+          }}
+        />
+
+        {/* 標題部分 */}
+        <div className="text-center relative z-10 flex flex-col items-center">
+          {/* 上部的裝飾性圖標 */}
+          <div className="flex items-center gap-4 mb-1">
+            <motion.div
+              animate={{ 
+                rotate: [0, 10, -10, 0], 
+                scale: [1, 1.1, 1],
+                y: [0, -2, 0],
+              }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity, 
+                ease: "easeInOut",
+                times: [0, 0.25, 0.75, 1] 
+              }}
+              className="relative"
+            >
+              <Music2 className="h-5 w-5 text-amber-500" />
+              <motion.div 
+                className="absolute inset-0 bg-amber-400 rounded-full opacity-30"
+                animate={{ scale: [0.8, 1.5, 0.8], opacity: [0.3, 0, 0.3] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                style={{ filter: "blur(4px)" }}
+              />
+            </motion.div>
+
+            <motion.div
+              animate={{ 
+                rotate: [0, -5, 5, 0], 
+                scale: [1, 1.05, 1],
+                y: [0, -1, 0],
+              }}
+              transition={{ 
+                duration: 2.5, 
+                repeat: Infinity, 
+                ease: "easeInOut",
+                delay: 0.3,
+                times: [0, 0.35, 0.65, 1] 
+              }}
+              className="relative"
+            >
+              <Trophy className="h-6 w-6 text-yellow-500" />
+              <motion.div 
+                className="absolute inset-0 bg-yellow-400 rounded-full opacity-30"
+                animate={{ scale: [0.8, 1.5, 0.8], opacity: [0.3, 0, 0.3] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.1 }}
+                style={{ filter: "blur(4px)" }}
+              />
+            </motion.div>
+
+            <motion.div
+              animate={{ 
+                rotate: [0, 5, -5, 0], 
+                scale: [1, 1.08, 1],
+                y: [0, -2, 0],
+              }}
+              transition={{ 
+                duration: 3.5, 
+                repeat: Infinity, 
+                ease: "easeInOut",
+                delay: 0.5,
+                times: [0, 0.4, 0.7, 1] 
+              }}
+              className="relative"
+            >
+              <Flame className="h-5 w-5 text-orange-500" />
+              <motion.div 
+                className="absolute inset-0 bg-orange-400 rounded-full opacity-30"
+                animate={{ scale: [0.8, 1.5, 0.8], opacity: [0.3, 0, 0.3] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                style={{ filter: "blur(4px)" }}
+              />
+            </motion.div>
+          </div>
+          
+          {/* 主標題 */}
+          <motion.div
+            className="relative z-10 mt-1 mb-1"
+            animate={{ y: [0, -2, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <motion.h2
+              className="inline-block font-bold text-lg sm:text-xl text-transparent bg-clip-text 
+                         bg-gradient-to-r from-amber-800 via-yellow-600 to-amber-700 px-1"
+              animate={{ 
+                backgroundPosition: ['0% center', '100% center', '0% center'],
+                scale: [1, 1.02, 1], 
+              }}
+              transition={{ 
+                duration: 5, 
+                repeat: Infinity, 
+                ease: "linear",
+                times: [0, 0.5, 1]
+              }}
+              style={{ backgroundSize: '200% auto' }}
+            >
+              🔥 熱門歌曲排行榜 🔥
+            </motion.h2>
+            
+            {/* 下劃線裝飾 */}
+            <motion.div
+              className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full 
+                         bg-gradient-to-r from-transparent via-amber-500 to-transparent" 
+              animate={{ 
+                scaleX: [0.3, 1, 0.3], 
+                opacity: [0.3, 0.8, 0.3],
+                x: [-5, 5, -5]
+              }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity, 
+                ease: "easeInOut",
+                times: [0, 0.5, 1] 
+              }}
+            />
+          </motion.div>
+          
+          {/* 副標題 */}
+          <motion.p
+            className="text-xs sm:text-sm text-amber-800/80 mt-1 mb-0.5 italic font-medium"
+            animate={{ opacity: [0.7, 0.9, 0.7] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          >
+            最受歡迎的點播歌曲實時排名
+          </motion.p>
+        </div>
+        
+        {/* 裝飾性音符泡泡 */}
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute pointer-events-none"
+            initial={{ 
+              x: `${10 + (i * 15)}%`,
+              y: "100%", 
+              scale: 0.3 + (i % 3 * 0.1),
+              opacity: 0 
+            }}
+            animate={{ 
+              y: ["100%", "10%", "-20%"], 
+              opacity: [0, i % 2 === 0 ? 0.4 : 0.3, 0],
+              rotate: [0, 10 * (i % 2 ? 1 : -1), 0],
+              x: [`${10 + (i * 15)}%`, `${8 + (i * 15) + (i % 3 - 1) * 5}%`, `${10 + (i * 15) + (i % 2 ? 3 : -3)}%`]
+            }}
+            transition={{
+              duration: 3 + (i % 3),
+              repeat: Infinity,
+              delay: i * 0.5,
+              ease: "easeInOut"
+            }}
+          >
+            {i % 6 === 0 ? <Music className="text-amber-400/60" size={13} /> : 
+             i % 6 === 1 ? <Mic className="text-orange-400/60" size={12} /> : 
+             i % 6 === 2 ? <Music2 className="text-yellow-500/60" size={14} /> : 
+             i % 6 === 3 ? <Headphones className="text-amber-500/60" size={12} /> : 
+             i % 6 === 4 ? <Sparkles className="text-yellow-600/60" size={11} /> : 
+             <Heart className="text-orange-500/60" size={11} />}
+          </motion.div>
+        ))}
+        
+        {/* 裝飾性光芒 */}
+        <motion.div 
+          className="absolute top-1/2 left-0 w-24 h-24 -translate-y-1/2 pointer-events-none"
+          animate={{ opacity: [0.1, 0.3, 0.1], rotate: [0, 20, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          style={{
+            background: "radial-gradient(circle, rgba(251, 191, 36, 0.2), transparent 70%)",
+            filter: "blur(12px)",
+            borderRadius: "50%"
+          }}
+        />
+        
+        <motion.div 
+          className="absolute top-1/2 right-0 w-24 h-24 -translate-y-1/2 pointer-events-none"
+          animate={{ opacity: [0.1, 0.25, 0.1], rotate: [0, -20, 0] }}
+          transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+          style={{
+            background: "radial-gradient(circle, rgba(251, 191, 36, 0.2), transparent 70%)",
+            filter: "blur(12px)",
+            borderRadius: "50%"
           }}
         />
       </motion.div>
@@ -632,26 +749,109 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
               </motion.div>
 
               <div className="flex-1 min-w-0 w-full sm:w-auto">
-                <motion.h3 
+                {/* 歌曲標題 */}
+                <motion.div
+                  className="relative"
                   animate={{ 
                     scale: showRankChange[song.id] ? [1, 1.02, 1] : 1
                   }}
-                  className={cn(
-                    "font-semibold truncate text-sm sm:text-base",
-                    showRankChange[song.id] === 'up' ? "text-green-600" : 
-                    showRankChange[song.id] === 'down' ? "text-red-600" : "text-gray-900"
-                  )}
                   transition={{ duration: 0.5 }}
                 >
-                  {song.title}
-                </motion.h3>
-                <p className="text-xs sm:text-sm text-muted-foreground truncate">{song.artist}</p>
+                  <motion.h3 
+                    className={cn(
+                      "font-semibold truncate text-sm sm:text-base relative z-10",
+                      index === 0 ? "text-amber-700 sm:text-base" :
+                      index === 1 ? "text-gray-700" :
+                      index === 2 ? "text-orange-700" :
+                      showRankChange[song.id] === 'up' ? "text-green-600" : 
+                      showRankChange[song.id] === 'down' ? "text-red-600" : "text-gray-900"
+                    )}
+                  >
+                    {song.title}
+                    
+                    {/* 熱門和排名變化標籤 */}
+                    <div className="inline-flex items-center">
+                      {index === 0 && (
+                        <motion.div 
+                          className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-100 border border-amber-200"
+                          animate={{ opacity: [0.8, 1, 0.8] }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          <Flame className="w-3 h-3 text-amber-500 mr-0.5" />
+                          <span className="text-xs font-medium text-amber-700">熱門</span>
+                        </motion.div>
+                      )}
+                      
+                      {/* 新增的歌曲標籤，可根據特定條件顯示 */}
+                      {song.createdAt && new Date(song.createdAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 && (
+                        <motion.div 
+                          className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-50 border border-blue-100"
+                        >
+                          <Zap className="w-3 h-3 text-blue-500 mr-0.5" />
+                          <span className="text-xs font-medium text-blue-700">新歌</span>
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.h3>
+                  
+                  {/* 特效裝飾，僅限前三名歌曲 */}
+                  {index < 3 && (
+                    <motion.div 
+                      className={`absolute bottom-0 left-0 h-0.5 rounded-full
+                                ${index === 0 ? 'bg-amber-400' : 
+                                  index === 1 ? 'bg-gray-400' : 
+                                  'bg-orange-400'}`}
+                      initial={{ width: "0%" }}
+                      animate={{ 
+                        width: ["0%", "60%", "30%"],
+                        opacity: [0, 0.7, 0]
+                      }}
+                      transition={{ 
+                        duration: 3, 
+                        repeat: Infinity, 
+                        ease: "easeInOut",
+                        delay: index * 0.5,
+                        times: [0, 0.6, 1]
+                      }}
+                      style={{
+                        filter: "blur(0.5px)"
+                      }}
+                    />
+                  )}
+                </motion.div>
+                
+                {/* 歌手名稱 */}
+                <div className="relative">
+                  <p className={cn(
+                    "text-xs sm:text-sm truncate",
+                    index < 3 ? "font-medium" : "text-muted-foreground"
+                  )}>
+                    {song.artist}
+                  </p>
+                  
+                  {/* 首位歌手名稱下方微光效果 */}
+                  {index === 0 && (
+                    <motion.div 
+                      className="absolute -bottom-0.5 left-0 w-full h-0.5 bg-gradient-to-r from-amber-200/0 via-amber-300/30 to-amber-200/0"
+                      animate={{ 
+                        opacity: [0, 0.5, 0],
+                        width: ["0%", "80%", "0%"]
+                      }}
+                      transition={{ 
+                        duration: 4,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                      style={{ filter: "blur(1px)", transformOrigin: "left center" }}
+                    />
+                  )}
+                </div>
               </div>
               
               {/* 移動裝置上的點擊數顯示（當螢幕小於sm時顯示） */}
               <div className="flex items-center gap-1 sm:hidden ml-auto mr-2 my-1">
-                <motion.span
-                  className="text-base font-bold text-primary"
+                <motion.div
+                  className="relative"
                   animate={{ 
                     scale: (song as any).voteCount > (songs.find(s => s.id === song.id) as any)?.prevVoteCount ? [1, 1.2, 1] : 1
                   }}
@@ -662,16 +862,60 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                     damping: 10
                   }}
                 >
-                  {(song as any).voteCount || 0}
-                </motion.span>
-                <span className="text-xs text-muted-foreground">點播</span>
+                  {/* 發光背景 - 僅在有票數的情況下顯示 */}
+                  {(song as any).voteCount > 0 && (
+                    <motion.div 
+                      className={`absolute -inset-1 rounded-full opacity-70 pointer-events-none
+                                 ${index === 0 ? 'bg-yellow-400/20' : 
+                                   index === 1 ? 'bg-gray-400/20' : 
+                                   index === 2 ? 'bg-orange-400/20' : 'bg-blue-400/20'}`}
+                      animate={{ 
+                        scale: [0.8, 1.2, 0.8],
+                        opacity: [0.1, 0.25, 0.1]
+                      }}
+                      transition={{ 
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                      style={{ filter: "blur(4px)" }}
+                    />
+                  )}
+                  
+                  {/* 數字顯示 */}
+                  <motion.span
+                    className={`
+                      text-base font-bold relative z-10
+                      ${index === 0 ? 'text-amber-600' : 
+                        index === 1 ? 'text-slate-600' : 
+                        index === 2 ? 'text-orange-600' : 'text-primary'}
+                    `}
+                    animate={{ 
+                      y: showRankChange[song.id] ? [-2, 0] : 0
+                    }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {(song as any).voteCount || 0}
+                  </motion.span>
+                </motion.div>
+                <span className={`
+                  text-xs
+                  ${index === 0 ? 'text-amber-700/70' : 
+                    index === 1 ? 'text-slate-700/70' : 
+                    index === 2 ? 'text-orange-700/70' : 'text-muted-foreground'}
+                `}>
+                  點播
+                </span>
               </div>
 
               {/* 桌面版的操作區塊 */}
               <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
                 {/* 桌面版的票數顯示（僅在sm及更大的螢幕上顯示） */}
                 <motion.div 
-                  className="text-right hidden sm:block mr-2"
+                  className={`
+                    text-right hidden sm:block mr-2 relative
+                    ${index < 3 ? 'pr-1' : ''}
+                  `}
                   animate={{ 
                     scale: (song as any).voteCount > (songs.find(s => s.id === song.id) as any)?.prevVoteCount ? [1, 1.2, 1] : 1
                   }}
@@ -682,54 +926,149 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                     damping: 10
                   }}
                 >
+                  {/* 背景發光效果 - 只有前三名和有票數時顯示 */}
+                  {index < 3 && (song as any).voteCount > 0 && (
+                    <motion.div 
+                      className={`
+                        absolute -inset-2 rounded-full pointer-events-none
+                        ${index === 0 ? 'bg-yellow-400/15' : 
+                          index === 1 ? 'bg-gray-400/15' : 
+                          'bg-orange-400/15'}
+                      `}
+                      animate={{ 
+                        scale: [0.8, 1.1, 0.8],
+                        opacity: [0.1, 0.3, 0.1]
+                      }}
+                      transition={{ 
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                      style={{ filter: "blur(5px)" }}
+                    />
+                  )}
+                  
                   <motion.span 
-                    className="text-lg font-bold text-primary block"
+                    className={`
+                      text-xl font-bold block relative z-10
+                      ${index === 0 ? 'text-amber-600' : 
+                        index === 1 ? 'text-slate-600' : 
+                        index === 2 ? 'text-orange-600' : 'text-primary'}
+                    `}
                     animate={{ 
                       y: showRankChange[song.id] ? [-4, 0] : 0
                     }}
                     transition={{ duration: 0.3 }}
                   >
                     {(song as any).voteCount || 0}
+                    
+                    {/* 數字閃爍效果 - 只在數字大於0時顯示 */}
+                    {(song as any).voteCount > 0 && index < 3 && (
+                      <motion.div
+                        className={`
+                          absolute top-0 right-0 rounded-full w-1 h-1
+                          ${index === 0 ? 'bg-yellow-400' : 
+                            index === 1 ? 'bg-gray-400' : 
+                            'bg-orange-400'}
+                        `}
+                        animate={{ 
+                          opacity: [0.4, 1, 0.4],
+                          scale: [1, 1.5, 1]
+                        }}
+                        transition={{ 
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                          delay: index * 0.3
+                        }}
+                      />
+                    )}
                   </motion.span>
+                  
                   <motion.p 
-                    className="text-xs text-muted-foreground"
+                    className={`
+                      text-xs mt-0.5 relative z-10
+                      ${index === 0 ? 'text-amber-700/70' : 
+                        index === 1 ? 'text-slate-700/70' : 
+                        index === 2 ? 'text-orange-700/70' : 'text-muted-foreground'}
+                    `}
                     animate={{ 
                       y: showRankChange[song.id] ? [-2, 0] : 0
                     }}
                     transition={{ duration: 0.3, delay: 0.1 }}
                   >
-                    點播
+                    點播次數
                   </motion.p>
                 </motion.div>
 
-                {/* 操作按鈕 */}
+                {/* 操作按鈕 - 增強版 */}
                 <div className="flex gap-1 sm:gap-2">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ 
+                            scale: 1.1,
+                            rotate: [0, 5, -5, 0],
+                            transition: { 
+                              scale: { duration: 0.2 },
+                              rotate: { duration: 0.4, repeat: Infinity } 
+                            }
+                          }}
+                          whileTap={{ scale: 0.9 }}
                         >
                           <Button
                             variant="outline"
                             size="icon"
-                            className="w-8 h-8 sm:w-9 sm:h-9 relative hover:bg-amber-50 hover:text-amber-600 hover:border-amber-300 z-10"
+                            className={`
+                              w-8 h-8 sm:w-9 sm:h-9 relative z-10 overflow-hidden
+                              border-amber-200 hover:border-amber-400
+                              ${index < 2 ? 'bg-gradient-to-br from-amber-50 to-yellow-100' : ''}
+                            `}
                             asChild
                           >
                             <a
                               href={generateGuitarTabsUrl(song)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center justify-center"
+                              className="flex items-center justify-center relative"
                             >
-                              <Music2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                              {/* 按鈕光暈/發光效果 */}
+                              <motion.div 
+                                className="absolute inset-0 bg-gradient-to-br from-amber-200/20 via-yellow-300/10 to-amber-100/30 pointer-events-none"
+                                animate={{
+                                  backgroundPosition: ['0% 0%', '100% 100%'],
+                                }}
+                                transition={{
+                                  duration: 3,
+                                  repeat: Infinity,
+                                  repeatType: "reverse",
+                                  ease: "easeInOut"
+                                }}
+                                style={{
+                                  backgroundSize: "200% 200%",
+                                  opacity: 0.6,
+                                }}
+                              />
+
+                              {/* 懸停時的光芒 */}
+                              <motion.div 
+                                className="absolute inset-0 opacity-0 transition-opacity hover:opacity-100"
+                                style={{
+                                  background: "radial-gradient(circle at center, rgba(251, 191, 36, 0.4) 0%, transparent 70%)",
+                                }}
+                              />
+
+                              <Music2 className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700 relative z-10" />
                             </a>
                           </Button>
                         </motion.div>
                       </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p>搜尋「{song.title} - {song.artist}」的吉他譜</p>
+                      <TooltipContent side="top" className="font-medium text-amber-950 bg-amber-50 border-amber-200">
+                        <div className="flex items-center gap-1.5">
+                          <Music2 className="w-4 h-4 text-amber-600" />
+                          <p>搜尋「{song.title} - {song.artist}」的吉他譜</p>
+                        </div>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -738,28 +1077,68 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ 
+                            scale: 1.1,
+                            y: [0, -2, 0],
+                            transition: { 
+                              scale: { duration: 0.2 },
+                              y: { duration: 0.3, repeat: Infinity, repeatType: "mirror" } 
+                            }
+                          }}
+                          whileTap={{ scale: 0.9 }}
                         >
                           <Button
                             variant="outline"
                             size="icon"
-                            className="w-8 h-8 sm:w-9 sm:h-9 relative hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 z-10"
+                            className={`
+                              w-8 h-8 sm:w-9 sm:h-9 relative z-10 overflow-hidden
+                              border-rose-200 hover:border-rose-400
+                              ${index < 2 ? 'bg-gradient-to-br from-rose-50 to-pink-100' : ''}
+                            `}
                             asChild
                           >
                             <a
                               href={generateLyricsUrl(song)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center justify-center"
+                              className="flex items-center justify-center relative"
                             >
-                              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
+                              {/* 按鈕光暈/發光效果 */}
+                              <motion.div 
+                                className="absolute inset-0 bg-gradient-to-br from-rose-200/20 via-pink-300/10 to-rose-100/30 pointer-events-none"
+                                animate={{
+                                  backgroundPosition: ['0% 0%', '100% 100%'],
+                                }}
+                                transition={{
+                                  duration: 3.5,
+                                  repeat: Infinity,
+                                  repeatType: "reverse",
+                                  ease: "easeInOut"
+                                }}
+                                style={{
+                                  backgroundSize: "200% 200%",
+                                  opacity: 0.6,
+                                }}
+                              />
+                              
+                              {/* 懸停時的光芒 */}
+                              <motion.div 
+                                className="absolute inset-0 opacity-0 transition-opacity hover:opacity-100"
+                                style={{
+                                  background: "radial-gradient(circle at center, rgba(244, 114, 182, 0.3) 0%, transparent 70%)",
+                                }}
+                              />
+
+                              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-rose-700 relative z-10" />
                             </a>
                           </Button>
                         </motion.div>
                       </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p>搜尋「{song.title} - {song.artist}」的歌詞</p>
+                      <TooltipContent side="top" className="font-medium text-rose-950 bg-rose-50 border-rose-200">
+                        <div className="flex items-center gap-1.5">
+                          <FileText className="w-4 h-4 text-rose-600" />
+                          <p>搜尋「{song.title} - {song.artist}」的歌詞</p>
+                        </div>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
