@@ -245,7 +245,8 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                     backgroundSize: "200% 200%",
                     opacity: 0.6,
                     filter: "blur(10px)",
-                    zIndex: 0
+                    zIndex: 0,
+                    pointerEvents: "none"  // 添加這行以允許點擊穿透背景
                   }}
                 />
               )}
@@ -257,7 +258,7 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                   animate={{ opacity: [0, 0.3, 0] }}
                   transition={{ duration: 1.5, times: [0, 0.5, 1] }}
                   className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20"
-                  style={{ filter: "blur(8px)", zIndex: 0 }}
+                  style={{ filter: "blur(8px)", zIndex: 0, pointerEvents: "none" }}
                 />
               )}
               
@@ -267,7 +268,7 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                   animate={{ opacity: [0, 0.3, 0] }}
                   transition={{ duration: 1.5, times: [0, 0.5, 1] }}
                   className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-rose-500/20"
-                  style={{ filter: "blur(8px)", zIndex: 0 }}
+                  style={{ filter: "blur(8px)", zIndex: 0, pointerEvents: "none" }}
                 />
               )}
               
@@ -475,15 +476,16 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                           <Button
                             variant="outline"
                             size="icon"
-                            className="w-7 h-7 sm:w-8 sm:h-8"
+                            className="w-8 h-8 sm:w-9 sm:h-9 relative hover:bg-amber-50 hover:text-amber-600 hover:border-amber-300 z-10"
                             asChild
                           >
                             <a
                               href={generateGuitarTabsUrl(song)}
                               target="_blank"
                               rel="noopener noreferrer"
+                              className="flex items-center justify-center"
                             >
-                              <Music2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <Music2 className="w-4 h-4 sm:w-5 sm:h-5" />
                             </a>
                           </Button>
                         </motion.div>
@@ -504,15 +506,16 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
                           <Button
                             variant="outline"
                             size="icon"
-                            className="w-7 h-7 sm:w-8 sm:h-8"
+                            className="w-8 h-8 sm:w-9 sm:h-9 relative hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 z-10"
                             asChild
                           >
                             <a
                               href={generateLyricsUrl(song)}
                               target="_blank"
                               rel="noopener noreferrer"
+                              className="flex items-center justify-center"
                             >
-                              <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                             </a>
                           </Button>
                         </motion.div>
