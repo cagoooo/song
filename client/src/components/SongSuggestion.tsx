@@ -49,74 +49,77 @@ export default function SongSuggestion({ isAdmin = false }) {
         body: JSON.stringify({ title, artist, suggestedBy, notes })
       });
 
-      if (!response.ok) throw new Error('Failed to add suggestion');
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
-      setIsOpen(false);
+      toast({
+        title: "建議送出成功！",
+        description: "感謝您的推薦，我們會盡快審核！",
+      });
       setTitle("");
       setArtist("");
       setSuggestedBy("");
       setNotes("");
-      toast({
-        title: "成功",
-        description: "您的建議已送出，管理員會盡快審核",
-      });
+      setIsOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
-        title: "錯誤",
-        description: "無法送出歌曲建議",
+        title: "提交失敗",
+        description: error.message || "請稍後再試",
         variant: "destructive"
       });
     }
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: number, status: string }) => {
+    mutationFn: async ({ id, status }: { id: number, status: "approved" | "rejected" }) => {
       const response = await fetch(`/api/suggestions/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-        credentials: 'include'
+        body: JSON.stringify({ status })
       });
 
-      if (!response.ok) throw new Error('Failed to update status');
+      if (!response.ok) {
+        throw new Error('Failed to update status');
+      }
+
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
+    onSuccess: (_, variables) => {
       toast({
-        title: "成功",
-        description: "建議狀態已更新",
+        title: variables.status === "approved" ? "建議已採納" : "建議已拒絕",
+        description: variables.status === "approved" 
+          ? "該歌曲將很快加入清單" 
+          : "該建議已被標記為拒絕",
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
     }
   });
 
   const deleteSuggestionMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/suggestions/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
+        method: 'DELETE'
       });
 
-      if (!response.ok) throw new Error('Failed to delete suggestion');
+      if (!response.ok) {
+        throw new Error('Failed to delete suggestion');
+      }
+
       return response.json();
     },
     onSuccess: () => {
+      toast({
+        title: "已刪除建議",
+        description: "歌曲建議已被移除",
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
-      toast({
-        title: "成功",
-        description: "建議已刪除",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "錯誤",
-        description: "無法刪除建議",
-        variant: "destructive"
-      });
     }
   });
 
@@ -126,7 +129,7 @@ export default function SongSuggestion({ isAdmin = false }) {
   };
 
   const generateGuitarTabsUrl = (song: SongSuggestion) => {
-    const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 吉他譜 tab`);
+    const searchQuery = encodeURIComponent(`${song.title} ${song.artist} guitar tabs`);
     return `https://www.google.com/search?q=${searchQuery}`;
   };
 
@@ -137,76 +140,122 @@ export default function SongSuggestion({ isAdmin = false }) {
 
   return (
     <div className="space-y-4">
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full border-2 border-primary/20 bg-white/80 hover:bg-white/90
-                     shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                     hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                     transition-all duration-300"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            想點的歌還沒有？建議新歌給我們！
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="bg-gradient-to-br from-amber-50 via-white to-orange-50 border-2 border-amber-200/30">
-          <DialogHeader>
-            <DialogTitle>建議新歌曲</DialogTitle>
-            <DialogDescription>
-              您的建議將會送交管理員審核。審核通過後，歌曲就會出現在可點播清單中！
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">歌曲名稱</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                className="bg-gradient-to-r from-rose-50/70 to-pink-50/70 border-amber-200/50 focus:border-amber-300/60"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="artist">歌手</Label>
-              <Input
-                id="artist"
-                value={artist}
-                onChange={(e) => setArtist(e.target.value)}
-                required
-                className="bg-gradient-to-r from-amber-50/70 to-orange-50/70 border-amber-200/50 focus:border-amber-300/60"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="suggestedBy">您的稱呼 (選填)</Label>
-              <Input
-                id="suggestedBy"
-                value={suggestedBy}
-                onChange={(e) => setSuggestedBy(e.target.value)}
-                placeholder="讓大家知道是誰推薦的好歌！"
-                className="bg-gradient-to-r from-orange-50/70 to-amber-50/70 border-amber-200/50 focus:border-amber-300/60"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">為什麼想推薦這首歌？ (選填)</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="分享一下您喜歡這首歌的原因..."
-                className="bg-gradient-to-br from-amber-50/80 via-orange-50/80 to-amber-50/80 border-amber-200/50 focus:border-amber-300/60 min-h-[100px]"
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-            >
-              送出建議
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <div className="relative p-1 rounded-xl bg-gradient-to-r from-yellow-300 via-amber-500 to-orange-400 shadow-lg">
+        <motion.div 
+          animate={{ 
+            boxShadow: ['0 0 8px rgba(251, 191, 36, 0.6)', '0 0 16px rgba(251, 191, 36, 0.8)', '0 0 8px rgba(251, 191, 36, 0.6)'],
+            scale: [1, 1.02, 1]
+          }}
+          transition={{ 
+            duration: 2, 
+            repeat: Infinity, 
+            repeatType: "reverse" 
+          }}
+          className="absolute inset-0 rounded-xl opacity-70 pointer-events-none"
+        />
+        <div className="rounded-lg overflow-hidden">
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="default"
+                className="w-full text-base py-6 px-4 font-semibold
+                         border-2 border-amber-400 
+                         bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 
+                         text-white
+                         shadow-[0_4px_15px_rgba(245,158,11,0.5)]
+                         hover:shadow-[0_8px_25px_rgba(245,158,11,0.6)]
+                         transition-all duration-300"
+              >
+                <motion.div 
+                  animate={{ scale: [1, 1.08, 1], rotate: [0, 3, 0, -3, 0] }} 
+                  transition={{ 
+                    scale: { duration: 1.5, repeat: Infinity, repeatType: "reverse" },
+                    rotate: { duration: 2, repeat: Infinity }
+                  }}
+                  className="flex items-center"
+                >
+                  <Plus className="w-5 h-5 mr-3" />
+                  <span className="relative">
+                    想點的歌還沒有？
+                    <motion.span 
+                      className="absolute -top-1 -right-2 w-2 h-2 bg-white rounded-full"
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.7, 1, 0.7] }}
+                      transition={{ duration: 1.2, repeat: Infinity }}
+                    />
+                  </span>
+                  <span className="ml-1 relative">
+                    <span className="font-bold relative">
+                      建議新歌給我們！
+                      <motion.span 
+                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-white/80"
+                        animate={{ scaleX: [0, 1, 0], opacity: [0, 0.8, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 0.5 }}
+                        style={{ transformOrigin: "left" }}
+                      />
+                    </span>
+                  </span>
+                </motion.div>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-gradient-to-br from-amber-50 via-white to-orange-50 border-2 border-amber-200/30">
+              <DialogHeader>
+                <DialogTitle>建議新歌曲</DialogTitle>
+                <DialogDescription>
+                  您的建議將會送交管理員審核。審核通過後，歌曲就會出現在可點播清單中！
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">歌曲名稱</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                    className="bg-gradient-to-r from-rose-50/70 to-pink-50/70 border-amber-200/50 focus:border-amber-300/60"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="artist">歌手</Label>
+                  <Input
+                    id="artist"
+                    value={artist}
+                    onChange={(e) => setArtist(e.target.value)}
+                    required
+                    className="bg-gradient-to-r from-amber-50/70 to-orange-50/70 border-amber-200/50 focus:border-amber-300/60"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="suggestedBy">您的稱呼 (選填)</Label>
+                  <Input
+                    id="suggestedBy"
+                    value={suggestedBy}
+                    onChange={(e) => setSuggestedBy(e.target.value)}
+                    placeholder="讓大家知道是誰推薦的好歌！"
+                    className="bg-gradient-to-r from-orange-50/70 to-amber-50/70 border-amber-200/50 focus:border-amber-300/60"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">為什麼想推薦這首歌？ (選填)</Label>
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="分享一下您喜歡這首歌的原因..."
+                    className="bg-gradient-to-br from-amber-50/80 via-orange-50/80 to-amber-50/80 border-amber-200/50 focus:border-amber-300/60 min-h-[100px]"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                >
+                  送出建議
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
 
       {suggestions.length > 0 && (
         <div className="space-y-3">
