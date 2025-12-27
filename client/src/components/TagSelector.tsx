@@ -37,6 +37,8 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isRemoving, setIsRemoving] = useState<number | null>(null);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [hasLoadedTags, setHasLoadedTags] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -48,7 +50,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
     }
   }, [errorMessage]);
 
-  // 獲取所有標籤
+  // 獲取所有標籤 - 只在管理員打開彈窗時載入
   const { data: tags = [], refetch: refetchTags } = useQuery<SongTag[]>({
     queryKey: ['/api/tags'],
     queryFn: async () => {
@@ -63,10 +65,11 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
         console.error("Error fetching tags:", error);
         return [];
       }
-    }
+    },
+    enabled: isPopoverOpen
   });
 
-  // 獲取當前歌曲標籤
+  // 獲取當前歌曲標籤 - 懶加載，只在需要時才載入
   const { 
     data: songTags = [], 
     refetch: refetchSongTags,
@@ -80,12 +83,14 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
           const error = await response.json();
           throw new Error(error.error || 'Failed to fetch song tags');
         }
+        setHasLoadedTags(true);
         return response.json();
       } catch (error) {
         console.error("Error fetching song tags:", error);
         return [];
       }
-    }
+    },
+    enabled: hasLoadedTags || isPopoverOpen
   });
 
   // 新增標籤
