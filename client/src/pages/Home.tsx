@@ -13,6 +13,7 @@ import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -122,20 +123,73 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <motion.div
-          animate={{
-            rotate: 360,
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        >
-          <Music2 className="w-12 h-12 text-primary" />
-        </motion.div>
+      <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
+        <div className="container mx-auto py-3 sm:py-6 md:py-8 px-2 sm:px-4">
+          <div className="flex flex-col items-center justify-center mb-6 sm:mb-8 md:mb-10 lg:mb-12 px-3 sm:px-4 md:px-6 lg:px-8 w-full">
+            <Skeleton className="h-16 sm:h-20 md:h-24 w-full max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-3xl rounded-lg" />
+            <Skeleton className="mt-4 h-10 w-32 rounded-md" />
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <Card className="lg:col-span-3 shadow-lg bg-gradient-to-br from-amber-50/50 via-white to-amber-50/50">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="w-6 h-6 rounded-full" />
+                  <Skeleton className="h-6 w-40" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-2/3" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <Card className="shadow-lg h-full">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="w-6 h-6 rounded-full" />
+                    <Skeleton className="h-6 w-24" />
+                  </div>
+                </CardHeader>
+                <CardContent className="p-3 sm:p-6 space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between py-2">
+                      <div className="flex-1">
+                        <Skeleton className="h-5 w-3/4 mb-1" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                      <Skeleton className="h-9 w-20 rounded-md" />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+              
+              <Card className="shadow-lg h-full">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="w-6 h-6 rounded-full" />
+                    <Skeleton className="h-6 w-32" />
+                  </div>
+                </CardHeader>
+                <CardContent className="p-3 sm:p-6 space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 py-2">
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                      <div className="flex-1">
+                        <Skeleton className="h-5 w-3/4 mb-1" />
+                        <Skeleton className="h-4 w-1/3" />
+                      </div>
+                      <Skeleton className="h-6 w-12 rounded-md" />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
