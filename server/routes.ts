@@ -128,7 +128,6 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/suggestions", async (req, res) => {
     try {
       const { title, artist, suggestedBy, notes } = req.body;
-      console.log('Received suggestion:', { title, artist, suggestedBy, notes });
 
       if (!title?.trim()) {
         return res.status(400).json({ error: "歌曲名稱不能為空" });
@@ -164,7 +163,6 @@ export function registerRoutes(app: Express): Server {
         createdAt: new Date().toISOString()
       };
 
-      console.log('Created suggestion:', suggestion);
       res.json(suggestion);
     } catch (error) {
       console.error('Failed to create suggestion:', error);
@@ -328,7 +326,6 @@ export function registerRoutes(app: Express): Server {
           status: "added_to_playlist",
           processedAt: Timestamp.now() 
         });
-        console.log(`Song added from suggestion #${fromSuggestion}`);
       }
 
       await sendSongsUpdate(wss);
@@ -340,7 +337,6 @@ export function registerRoutes(app: Express): Server {
   });
 
   wss.on('connection', (ws) => {
-    console.log('New WebSocket connection established');
     const sessionId = Math.random().toString(36).substring(2);
 
     sendSongsUpdate(wss);
@@ -348,7 +344,6 @@ export function registerRoutes(app: Express): Server {
     ws.on('message', async (data) => {
       try {
         const message = JSON.parse(data.toString());
-        console.log('Received message:', message);
 
         if (message.type === 'VOTE') {
           const votesRef = collection(firestore, COLLECTIONS.votes);
@@ -369,12 +364,10 @@ export function registerRoutes(app: Express): Server {
       }
     });
 
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
+    ws.on('error', () => {
     });
 
     ws.on('close', () => {
-      console.log('WebSocket connection closed');
     });
   });
 

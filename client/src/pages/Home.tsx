@@ -45,30 +45,25 @@ export default function Home() {
       const wsUrl = `${protocol}//${window.location.host}/ws`;
 
       try {
-        console.log('Connecting to WebSocket:', wsUrl);
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            console.log('WebSocket message received:', data);
             if (data.type === 'SONGS_UPDATE') {
               setSongs(data.songs);
             }
           } catch (error) {
-            console.error('WebSocket message parsing error:', error);
           }
         };
 
         ws.onopen = () => {
-          console.log('WebSocket connection established');
           hasConnectedOnce = true;
           setWsConnection(ws);
         };
 
         ws.onclose = () => {
-          console.log('WebSocket connection closed');
           setWsConnection(null);
           
           if (isCleaningUp) return;
@@ -83,11 +78,9 @@ export default function Home() {
           setTimeout(setupWebSocket, 3000);
         };
 
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
+        ws.onerror = () => {
         };
       } catch (error) {
-        console.error('WebSocket connection error:', error);
         setTimeout(setupWebSocket, 3000);
       }
     }

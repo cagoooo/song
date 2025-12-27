@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -145,6 +146,9 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
             `}>
               ✨ 編輯歌曲 ✨
             </DialogTitle>
+            <DialogDescription className="text-center text-sm text-muted-foreground mt-1">
+              修改歌曲名稱或歌手資訊
+            </DialogDescription>
           </motion.div>
         </DialogHeader>
         
@@ -298,19 +302,15 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   };
 
   const handleVoteStart = useCallback((songId: string, song: Song) => {
-    console.log('handleVoteStart called', { songId, song: song.title, wsState: ws?.readyState });
-    
     const now = Date.now();
     const lastTime = lastVoteTime[songId] || 0;
     const timeDiff = now - lastTime;
 
     if (timeDiff < 300) {
-      console.log('Rate limited - too fast');
       return;
     }
 
     if (ws && ws.readyState === WebSocket.OPEN) {
-      console.log('Sending VOTE via WebSocket');
       setVotingId(songId);
       ws.send(JSON.stringify({ type: 'VOTE', songId }));
 
@@ -376,7 +376,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
         }, 100);
       }, 2000);
     } else {
-      console.log('WebSocket not ready', { ws: !!ws, readyState: ws?.readyState });
       toast({
         title: "連線中",
         description: "正在連線到伺服器，請稍後再試",
