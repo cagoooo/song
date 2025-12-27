@@ -622,19 +622,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                     </div>
                     <p className="text-sm text-gray-600 break-all ml-7">{song.artist}</p>
                     
-                    {/* Song tags display in pill format */}
-                    <div className="flex flex-wrap gap-1 mt-1 ml-7">
-                      {song.key && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          index % 5 === 0 ? 'bg-pink-100 text-pink-700' :
-                          index % 5 === 1 ? 'bg-blue-100 text-blue-700' : 
-                          index % 5 === 2 ? 'bg-purple-100 text-purple-700' : 
-                          index % 5 === 3 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
-                        }`}>
-                          Key: {song.key}
-                        </span>
-                      )}
-                    </div>
                   </div>
                 </div>
 

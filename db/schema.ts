@@ -15,7 +15,6 @@ export const songs = pgTable("songs", {
   id: serial("id").primaryKey(),
   title: varchar("title", { length: 255 }).notNull(),
   artist: varchar("artist", { length: 255 }).notNull(),
-  key: varchar("key", { length: 10 }),
   notes: text("notes"),
   lyrics: text("lyrics"),
   audioUrl: text("audio_url"),
