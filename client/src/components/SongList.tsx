@@ -596,9 +596,9 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
           {filteredSongs.map((song, index) => (
             <motion.div
               key={song.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
+              transition={reduceMotion ? { duration: 0.1 } : { duration: 0.3, delay: Math.min(index * 0.03, 0.5) }}
               className={`flex flex-col gap-4 p-3 sm:p-4 rounded-xl border-2 
                         ${index % 5 === 0 ? 'border-pink-300 bg-gradient-to-br from-white via-pink-50 to-white' :
                          index % 5 === 1 ? 'border-blue-300 bg-gradient-to-br from-white via-blue-50 to-white' :

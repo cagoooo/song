@@ -25,6 +25,10 @@ interface RankingBoardProps {
 }
 
 export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps) {
+  // 偵測是否為手機裝置，減少動畫
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const reduceMotion = isMobile || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  
   const [topSongs, setTopSongs] = useState<Song[]>([]);
   
   // 使用專用 API 獲取排行榜前 10 名
@@ -80,16 +84,16 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
     ((b as any).voteCount || 0) - ((a as any).voteCount || 0)
   );
 
-  // 觸發首名變更時的煙火效果
+  // 觸發首名變更時的煙火效果（手機減少粒子數）
   const triggerTopRankConfetti = () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || reduceMotion) return;
     
     const rect = containerRef.current.getBoundingClientRect();
     const x = rect.x + rect.width / 2;
     const y = rect.y + 100; // 對準第一名位置
     
     confetti({
-      particleCount: 100,
+      particleCount: isMobile ? 30 : 100,
       spread: 70,
       origin: { 
         x: x / window.innerWidth, 
@@ -204,10 +208,6 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
     const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 歌詞`);
     return `https://www.google.com/search?q=${searchQuery}`;
   };
-
-  // 偵測是否為手機裝置，減少動畫
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const reduceMotion = isMobile || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   // 載入中顯示骨架
   if (isLoading && songs.length === 0) {
