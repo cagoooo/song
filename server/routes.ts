@@ -133,13 +133,10 @@ export function registerRoutes(app: Express): Server {
       if (!title?.trim()) {
         return res.status(400).json({ error: "歌曲名稱不能為空" });
       }
-      if (!artist?.trim()) {
-        return res.status(400).json({ error: "歌手名稱不能為空" });
-      }
       if (title.length > 100) {
         return res.status(400).json({ error: "歌曲名稱不能超過100個字符" });
       }
-      if (artist.length > 100) {
+      if (artist && artist.length > 100) {
         return res.status(400).json({ error: "歌手名稱不能超過100個字符" });
       }
       if (notes && notes.length > 500) {
@@ -147,9 +144,10 @@ export function registerRoutes(app: Express): Server {
       }
 
       const suggestionsRef = collection(firestore, COLLECTIONS.songSuggestions);
+      const artistValue = artist?.trim() || "不確定";
       const newDoc = await addDoc(suggestionsRef, {
         title: title.trim(),
-        artist: artist.trim(),
+        artist: artistValue,
         suggestedBy: suggestedBy?.trim() || null,
         notes: notes?.trim() || null,
         status: 'pending',
@@ -159,7 +157,7 @@ export function registerRoutes(app: Express): Server {
       const suggestion = {
         id: newDoc.id,
         title: title.trim(),
-        artist: artist.trim(),
+        artist: artistValue,
         suggestedBy: suggestedBy?.trim() || null,
         notes: notes?.trim() || null,
         status: 'pending',

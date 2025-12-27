@@ -268,14 +268,14 @@ export default function SongSuggestion({ isAdmin = false }) {
                 >
                   <Label htmlFor="artist" className="flex items-center gap-1.5 font-medium text-purple-800">
                     <FileText className="w-4 h-4 text-purple-500" />
-                    歌手
+                    歌手 <span className="text-xs text-purple-500/80">(選填)</span>
                   </Label>
                   <div className="relative">
                     <Input
                       id="artist"
                       value={artist}
                       onChange={(e) => setArtist(e.target.value)}
-                      required
+                      placeholder="如不確定可留空或選擇下方選項"
                       className="bg-white/70 border-2 border-purple-200/50 focus:border-purple-400/70 focus:ring-2 focus:ring-purple-300/30 rounded-lg pl-3 pr-3 py-5 font-medium text-gray-800 shadow-inner"
                     />
                     <motion.span 
@@ -283,6 +283,38 @@ export default function SongSuggestion({ isAdmin = false }) {
                       animate={{ opacity: artist ? 1 : 0, scale: artist ? [1, 1.5, 1] : 1 }}
                       transition={{ duration: 1, repeat: Infinity }}
                     />
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setArtist("不確定")}
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200
+                        ${artist === "不確定" 
+                          ? 'bg-purple-500 text-white border-purple-500 shadow-md' 
+                          : 'bg-white/70 text-purple-600 border-purple-200 hover:bg-purple-100'}`}
+                    >
+                      🤔 不確定歌手
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setArtist("多人翻唱")}
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200
+                        ${artist === "多人翻唱" 
+                          ? 'bg-purple-500 text-white border-purple-500 shadow-md' 
+                          : 'bg-white/70 text-purple-600 border-purple-200 hover:bg-purple-100'}`}
+                    >
+                      🎤 多人翻唱
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setArtist("經典老歌")}
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-all duration-200
+                        ${artist === "經典老歌" 
+                          ? 'bg-purple-500 text-white border-purple-500 shadow-md' 
+                          : 'bg-white/70 text-purple-600 border-purple-200 hover:bg-purple-100'}`}
+                    >
+                      🎵 經典老歌
+                    </button>
                   </div>
                 </motion.div>
                 
