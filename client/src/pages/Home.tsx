@@ -39,6 +39,7 @@ export default function Home() {
 
   useEffect(() => {
     let hasConnectedOnce = false;
+    let wasDisconnected = false;
     let isCleaningUp = false;
     
     function setupWebSocket() {
@@ -60,8 +61,22 @@ export default function Home() {
         };
 
         ws.onopen = () => {
-          hasConnectedOnce = true;
           setWsConnection(ws);
+          
+          if (wasDisconnected) {
+            toast({
+              title: "連線成功",
+              description: "已重新連線到伺服器",
+            });
+          } else if (!hasConnectedOnce) {
+            toast({
+              title: "連線成功",
+              description: "即時更新已啟用",
+            });
+          }
+          
+          hasConnectedOnce = true;
+          wasDisconnected = false;
         };
 
         ws.onclose = () => {
@@ -70,6 +85,7 @@ export default function Home() {
           if (isCleaningUp) return;
           
           if (hasConnectedOnce) {
+            wasDisconnected = true;
             toast({
               title: "連線中斷",
               description: "正在嘗試重新連線...",
