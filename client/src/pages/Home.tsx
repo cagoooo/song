@@ -37,6 +37,9 @@ export default function Home() {
   });
 
   useEffect(() => {
+    let hasConnectedOnce = false;
+    let isCleaningUp = false;
+    
     function setupWebSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
@@ -60,17 +63,23 @@ export default function Home() {
 
         ws.onopen = () => {
           console.log('WebSocket connection established');
+          hasConnectedOnce = true;
           setWsConnection(ws);
         };
 
         ws.onclose = () => {
           console.log('WebSocket connection closed');
           setWsConnection(null);
-          toast({
-            title: "連線中斷",
-            description: "正在嘗試重新連線...",
-            variant: "destructive"
-          });
+          
+          if (isCleaningUp) return;
+          
+          if (hasConnectedOnce) {
+            toast({
+              title: "連線中斷",
+              description: "正在嘗試重新連線...",
+              variant: "destructive"
+            });
+          }
           setTimeout(setupWebSocket, 3000);
         };
 
@@ -86,6 +95,7 @@ export default function Home() {
     setupWebSocket();
 
     return () => {
+      isCleaningUp = true;
       if (wsRef.current) {
         wsRef.current.close();
       }
