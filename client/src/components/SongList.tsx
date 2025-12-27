@@ -96,7 +96,16 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
     }
   ];
 
-  const colorIndex = song.id % colorSchemes.length;
+  const getColorIndex = (id: string | number): number => {
+    if (typeof id === 'number') return id % colorSchemes.length;
+    let hash = 0;
+    for (let i = 0; i < String(id).length; i++) {
+      hash = String(id).charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return Math.abs(hash) % colorSchemes.length;
+  };
+  
+  const colorIndex = getColorIndex(song.id);
   const colorScheme = colorSchemes[colorIndex];
 
   return (

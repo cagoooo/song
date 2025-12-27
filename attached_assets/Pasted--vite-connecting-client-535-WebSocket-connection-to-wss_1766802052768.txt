@@ -1,0 +1,68 @@
+[vite] connecting...
+client:535 WebSocket connection to 'wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/' failed: 
+setupWebSocket @ client:535瞭解這個錯誤
+client:535 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/' is invalid.
+    at setupWebSocket (client:535:19)
+    at fallback (client:508:16)
+    at WebSocket.<anonymous> (client:551:7)瞭解這個錯誤
+chunk-WERSD76P.js?v=5174e4d2:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+Home.tsx:48 Connecting to WebSocket: wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws
+Home.tsx:100 WebSocket connection to 'wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws' failed: WebSocket is closed before the connection is established.
+(匿名) @ Home.tsx:100瞭解這則警告
+Home.tsx:48 Connecting to WebSocket: wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws
+Home.tsx:87 WebSocket error: Event
+ws.onerror @ Home.tsx:87瞭解這個錯誤
+Home.tsx:71 WebSocket connection closed
+Home.tsx:65 WebSocket connection established
+Home.tsx:55 WebSocket message received: Object
+2SongList.tsx:105 Uncaught TypeError: Cannot read properties of undefined (reading 'bg')
+    at EditDialog (SongList.tsx:105:40)
+    at renderWithHooks (chunk-WERSD76P.js?v=5174e4d2:11548:26)
+    at mountIndeterminateComponent (chunk-WERSD76P.js?v=5174e4d2:14926:21)
+    at beginWork (chunk-WERSD76P.js?v=5174e4d2:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-WERSD76P.js?v=5174e4d2:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-WERSD76P.js?v=5174e4d2:3699:24)
+    at invokeGuardedCallback (chunk-WERSD76P.js?v=5174e4d2:3733:39)
+    at beginWork$1 (chunk-WERSD76P.js?v=5174e4d2:19765:15)
+    at performUnitOfWork (chunk-WERSD76P.js?v=5174e4d2:19198:20)
+    at workLoopSync (chunk-WERSD76P.js?v=5174e4d2:19137:13)瞭解這個錯誤
+chunk-WERSD76P.js?v=5174e4d2:14032 The above error occurred in the <EditDialog> component:
+
+    at EditDialog (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/src/components/SongList.tsx:46:23)
+    at div
+    at SongList (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/src/components/SongList.tsx:404:36)
+    at div
+    at _c9 (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/src/components/ui/card.tsx:106:12)
+    at div
+    at _c (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at MotionComponent (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=5174e4d2:943:40)
+    at div
+    at MotionComponent (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=5174e4d2:943:40)
+    at div
+    at MotionComponent (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=5174e4d2:943:40)
+    at PresenceChild (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=5174e4d2:121:24)
+    at AnimatePresence (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=5174e4d2:210:26)
+    at div
+    at div
+    at Home (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/src/pages/Home.tsx:34:29)
+    at Route (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=5174e4d2:323:16)
+    at Switch (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=5174e4d2:379:17)
+    at App
+    at QueryClientProvider (https://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=5174e4d2:2805:3)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-WERSD76P.js?v=5174e4d2:14032瞭解這個錯誤
+chunk-WERSD76P.js?v=5174e4d2:9129 Uncaught TypeError: Cannot read properties of undefined (reading 'bg')
+    at EditDialog (SongList.tsx:105:40)
+    at renderWithHooks (chunk-WERSD76P.js?v=5174e4d2:11548:26)
+    at mountIndeterminateComponent (chunk-WERSD76P.js?v=5174e4d2:14926:21)
+    at beginWork (chunk-WERSD76P.js?v=5174e4d2:15914:22)
+    at beginWork$1 (chunk-WERSD76P.js?v=5174e4d2:19753:22)
+    at performUnitOfWork (chunk-WERSD76P.js?v=5174e4d2:19198:20)
+    at workLoopSync (chunk-WERSD76P.js?v=5174e4d2:19137:13)
+    at renderRootSync (chunk-WERSD76P.js?v=5174e4d2:19116:15)
+    at recoverFromConcurrentError (chunk-WERSD76P.js?v=5174e4d2:18736:28)
+    at performSyncWorkOnRoot (chunk-WERSD76P.js?v=5174e4d2:18879:28)瞭解這個錯誤
+Home.tsx:71 WebSocket connection closed
