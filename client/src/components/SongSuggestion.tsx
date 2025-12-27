@@ -19,6 +19,36 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SongSuggestion } from "@db/schema";
+
+const formatFirebaseDate = (timestamp: any): string => {
+  if (!timestamp) return '';
+  
+  try {
+    let date: Date;
+    
+    if (timestamp.seconds !== undefined) {
+      date = new Date(timestamp.seconds * 1000);
+    } else if (timestamp._seconds !== undefined) {
+      date = new Date(timestamp._seconds * 1000);
+    } else if (typeof timestamp === 'string') {
+      date = new Date(timestamp);
+    } else if (typeof timestamp === 'number') {
+      date = new Date(timestamp);
+    } else if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+      date = timestamp.toDate();
+    } else {
+      date = new Date(timestamp);
+    }
+    
+    if (isNaN(date.getTime())) return '';
+    
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${month}/${day}`;
+  } catch {
+    return '';
+  }
+};
 import {
   Tooltip,
   TooltipContent,
@@ -722,10 +752,11 @@ export default function SongSuggestion({ isAdmin = false }) {
                           ) : suggestion.status === "added_to_playlist" ? (
                             <>
                               <HeartPulse className="w-3.5 h-3.5 text-blue-600" />
-                              已新增到播放列表
-                              {suggestion.processedAt && (
+                              <span className="hidden sm:inline">已新增到播放列表</span>
+                              <span className="sm:hidden">已加入</span>
+                              {suggestion.processedAt && formatFirebaseDate(suggestion.processedAt) && (
                                 <span className="text-xs ml-1 opacity-70">
-                                  {new Date(suggestion.processedAt).toLocaleDateString('zh-TW')}
+                                  {formatFirebaseDate(suggestion.processedAt)}
                                 </span>
                               )}
                             </>
