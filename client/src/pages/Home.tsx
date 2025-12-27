@@ -580,6 +580,7 @@ export default function Home() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
+                className={user?.isAdmin ? "order-2 lg:order-1" : ""}
               >
                 <Card className="shadow-lg">
                   <CardHeader>
@@ -601,6 +602,7 @@ export default function Home() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.6 }}
+                className={user?.isAdmin ? "order-1 lg:order-2" : ""}
               >
                 <Card className="shadow-lg">
                   <CardHeader>
