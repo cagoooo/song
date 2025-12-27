@@ -77,6 +77,45 @@ async function sendSongsUpdate(wss: WebSocketServer) {
   }
 }
 
+async function getSuggestionsList() {
+  const suggestionsRef = collection(firestore, COLLECTIONS.songSuggestions);
+  const suggestionsSnapshot = await getDocs(suggestionsRef);
+  
+  const suggestions: any[] = [];
+  suggestionsSnapshot.forEach(doc => {
+    const data = doc.data();
+    suggestions.push({
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt?.toDate?.() || data.createdAt
+    });
+  });
+  
+  suggestions.sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime();
+    const dateB = new Date(b.createdAt).getTime();
+    return dateB - dateA;
+  });
+  
+  return suggestions;
+}
+
+async function sendSuggestionsUpdate(wss: WebSocketServer) {
+  try {
+    const suggestionsList = await getSuggestionsList();
+    wss.clients.forEach(client => {
+      if (client.readyState === 1) {
+        client.send(JSON.stringify({
+          type: 'SUGGESTIONS_UPDATE',
+          suggestions: suggestionsList
+        }));
+      }
+    });
+  } catch (error) {
+    console.error('Failed to send suggestions update:', error);
+  }
+}
+
 export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
   const wss = new WebSocketServer({
@@ -163,6 +202,7 @@ export function registerRoutes(app: Express): Server {
         createdAt: new Date().toISOString()
       };
 
+      await sendSuggestionsUpdate(wss);
       res.json(suggestion);
     } catch (error) {
       console.error('Failed to create suggestion:', error);
@@ -186,6 +226,7 @@ export function registerRoutes(app: Express): Server {
       await updateDoc(suggestionRef, { status });
 
       const updatedDoc = await getDoc(suggestionRef);
+      await sendSuggestionsUpdate(wss);
       res.json({ id, ...updatedDoc.data() });
     } catch (error) {
       console.error('Failed to update suggestion status:', error);
@@ -198,6 +239,7 @@ export function registerRoutes(app: Express): Server {
       const id = req.params.id;
       const suggestionRef = doc(firestore, COLLECTIONS.songSuggestions, id);
       await deleteDoc(suggestionRef);
+      await sendSuggestionsUpdate(wss);
       res.json({ message: "建議已刪除" });
     } catch (error) {
       console.error('Failed to delete suggestion:', error);
@@ -346,6 +388,7 @@ export function registerRoutes(app: Express): Server {
           status: "added_to_playlist",
           processedAt: Timestamp.now() 
         });
+        await sendSuggestionsUpdate(wss);
       }
 
       await sendSongsUpdate(wss);

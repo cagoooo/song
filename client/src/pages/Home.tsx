@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, Music2, Trophy, Lightbulb } from "lucide-react";
@@ -22,6 +22,7 @@ export default function Home() {
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
+  const queryClient = useQueryClient();
 
   const { isLoading } = useQuery({
     queryKey: ['/api/songs'],
@@ -55,6 +56,8 @@ export default function Home() {
             const data = JSON.parse(event.data);
             if (data.type === 'SONGS_UPDATE') {
               setSongs(data.songs);
+            } else if (data.type === 'SUGGESTIONS_UPDATE') {
+              queryClient.setQueryData(['/api/suggestions'], data.suggestions);
             }
           } catch (error) {
           }
