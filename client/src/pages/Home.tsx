@@ -17,6 +17,7 @@ import { ShareButton } from "../components/ShareButton";
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
+  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
@@ -59,10 +60,12 @@ export default function Home() {
 
         ws.onopen = () => {
           console.log('WebSocket connection established');
+          setWsConnection(ws);
         };
 
         ws.onclose = () => {
           console.log('WebSocket connection closed');
+          setWsConnection(null);
           toast({
             title: "連線中斷",
             description: "正在嘗試重新連線...",
@@ -513,7 +516,7 @@ export default function Home() {
                   <CardContent className="p-3 sm:p-6">
                     {user?.isAdmin && <SongImport />}
                     <div className="h-3 sm:h-4" />
-                    <SongList songs={songs} ws={wsRef.current} user={user || null} />
+                    <SongList songs={songs} ws={wsConnection} user={user || null} />
                   </CardContent>
                 </Card>
               </motion.div>

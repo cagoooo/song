@@ -289,13 +289,19 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   };
 
   const handleVoteStart = useCallback((songId: string, song: Song) => {
+    console.log('handleVoteStart called', { songId, song: song.title, wsState: ws?.readyState });
+    
     const now = Date.now();
     const lastTime = lastVoteTime[songId] || 0;
     const timeDiff = now - lastTime;
 
-    if (timeDiff < 300) return;
+    if (timeDiff < 300) {
+      console.log('Rate limited - too fast');
+      return;
+    }
 
     if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log('Sending VOTE via WebSocket');
       setVotingId(songId);
       ws.send(JSON.stringify({ type: 'VOTE', songId }));
 
@@ -360,6 +366,13 @@ export default function SongList({ songs, ws, user }: SongListProps) {
           });
         }, 100);
       }, 2000);
+    } else {
+      console.log('WebSocket not ready', { ws: !!ws, readyState: ws?.readyState });
+      toast({
+        title: "連線中",
+        description: "正在連線到伺服器，請稍後再試",
+        variant: "destructive"
+      });
     }
   }, [ws, clickCount, lastVoteTime, toast]);
 
@@ -627,13 +640,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                       ref={(el) => { buttonRefs.current[String(song.id)] = el; }}
                       variant="outline"
                       size="sm"
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        handleVoteStart(String(song.id), song);
-                      }}
-                      onTouchEnd={(e) => e.preventDefault()}
-                      onMouseDown={() => !isTouch && handleVoteStart(String(song.id), song)}
-                      onMouseUp={(e) => e.preventDefault()}
+                      onClick={() => handleVoteStart(String(song.id), song)}
                       className={`
                         flex gap-2 relative overflow-hidden w-full sm:w-auto
                         rounded-xl
@@ -677,9 +684,8 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         transform-gpu
                         ${clickCount[String(song.id)] > 0 ? 'scale-110' : 'scale-100'}
                         active:scale-95
-                        select-none
-                        touch-none
                         text-base font-medium
+                        cursor-pointer
                       `}
                       style={{
                         transform: `scale(${Math.min(1 + (clickCount[String(song.id)] || 0) * 0.05, 1.25)})`,

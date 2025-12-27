@@ -1,0 +1,46 @@
+[vite] connecting...
+client:535 WebSocket connection to 'wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/' failed: 
+setupWebSocket	@	client:535
+client:535 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/' is invalid.
+    at setupWebSocket (client:535:19)
+    at fallback (client:508:16)
+    at WebSocket.<anonymous> (client:551:7)
+chunk-WERSD76P.js?v=5174e4d2:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+Home.tsx:44 Connecting to WebSocket: wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws
+Home.tsx:87 WebSocket connection to 'wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws' failed: WebSocket is closed before the connection is established.
+Home.tsx:44 Connecting to WebSocket: wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws
+Home.tsx:75 WebSocket error: 
+Event
+ws.onerror	@	Home.tsx:75
+Home.tsx:65 WebSocket connection closed
+/api/user:1 
+ Failed to load resource: the server responded with a status of 401 (Unauthorized)
+Home.tsx:61 WebSocket connection established
+Home.tsx:51 WebSocket message received: 
+Object
+Home.tsx:44 Connecting to WebSocket: wss://5a1e12a8-28e1-4252-bdf1-78b7db07d076-00-cxbl8ihc4w2q.pike.replit.dev/ws
+Home.tsx:61 WebSocket connection established
+Home.tsx:51 WebSocket message received: 
+Object
+songs
+: 
+(33) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+type
+: 
+"SONGS_UPDATE"
+[[Prototype]]
+: 
+Object
+Home.tsx:51 WebSocket message received: 
+Object
+songs
+: 
+(33) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+type
+: 
+"SONGS_UPDATE"
+[[Prototype]]
+: 
+Object
+﻿
+
