@@ -1,14 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { db, initializeDatabase } from "@db";
-import { sql } from "drizzle-orm";
+import { initializeDatabase } from "../db/firebase";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Added error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Error:', err);
   const status = err.status || err.statusCode || 500;
@@ -16,7 +14,6 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(status).json({ message });
 });
 
-// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -47,7 +44,6 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Test database connection with retries
     const MAX_RETRIES = 3;
     let retries = 0;
     let success = false;
@@ -64,8 +60,7 @@ app.use((req, res, next) => {
         console.error(error);
         
         if (retries < MAX_RETRIES) {
-          // Wait for a bit before retrying
-          const waitTime = retries * 2000; // Increase wait time for each retry
+          const waitTime = retries * 2000;
           log(`Waiting ${waitTime/1000} seconds before retrying...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
@@ -79,9 +74,6 @@ app.use((req, res, next) => {
 
     const server = registerRoutes(app);
 
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {

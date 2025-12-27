@@ -4,11 +4,19 @@ import { type Express } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import bcrypt from "bcrypt";
-import { db } from "@db";
-import { eq } from "drizzle-orm";
-import { users, type User } from "@db/schema";
+import { 
+  firestore, 
+  collection, 
+  getDocs, 
+  getDoc,
+  addDoc, 
+  query, 
+  where, 
+  doc,
+  Timestamp,
+  COLLECTIONS
+} from "../db/firebase";
 
-// 使用 bcrypt 代替 scrypt
 const crypto = {
   hash: async (password: string) => {
     const saltRounds = 10;
@@ -19,15 +27,14 @@ const crypto = {
   },
 };
 
-// extend express user object with our schema
 declare global {
   namespace Express {
     interface User {
-      id: number;
+      id: string;
       username: string;
       password: string;
       isAdmin: boolean;
-      createdAt: string;
+      createdAt: any;
     }
   }
 }
@@ -40,7 +47,7 @@ export function setupAuth(app: Express) {
     saveUninitialized: false,
     cookie: {},
     store: new MemoryStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
+      checkPeriod: 86400000,
     }),
   };
 
@@ -58,15 +65,24 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        const [user] = await db
-          .select()
-          .from(users)
-          .where(eq(users.username, username))
-          .limit(1);
+        const usersRef = collection(firestore, COLLECTIONS.users);
+        const userQuery = query(usersRef, where("username", "==", username));
+        const userSnapshot = await getDocs(userQuery);
 
-        if (!user) {
+        if (userSnapshot.empty) {
           return done(null, false, { message: "帳號或密碼錯誤" });
         }
+
+        const userDoc = userSnapshot.docs[0];
+        const userData = userDoc.data();
+        const user = {
+          id: userDoc.id,
+          username: userData.username,
+          password: userData.password,
+          isAdmin: userData.isAdmin,
+          createdAt: userData.createdAt
+        };
+
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "帳號或密碼錯誤" });
@@ -82,13 +98,24 @@ export function setupAuth(app: Express) {
     done(null, user.id);
   });
 
-  passport.deserializeUser(async (id: number, done) => {
+  passport.deserializeUser(async (id: string, done) => {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, id))
-        .limit(1);
+      const userRef = doc(firestore, COLLECTIONS.users, id);
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        return done(null, null);
+      }
+      
+      const userData = userDoc.data();
+      const user = {
+        id: userDoc.id,
+        username: userData.username,
+        password: userData.password,
+        isAdmin: userData.isAdmin,
+        createdAt: userData.createdAt
+      };
+      
       done(null, user);
     } catch (err) {
       done(err);
@@ -99,31 +126,31 @@ export function setupAuth(app: Express) {
     try {
       const { username, password } = req.body;
 
-      // Check if user already exists
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
+      const usersRef = collection(firestore, COLLECTIONS.users);
+      const existingQuery = query(usersRef, where("username", "==", username));
+      const existingSnapshot = await getDocs(existingQuery);
 
-      if (existingUser) {
+      if (!existingSnapshot.empty) {
         return res.status(400).send("使用者名稱已存在");
       }
 
-      // Hash the password
       const hashedPassword = await crypto.hash(password);
 
-      // Create the new user
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          username,
-          password: hashedPassword,
-          isAdmin: false // 預設為非管理員
-        })
-        .returning();
+      const newUserRef = await addDoc(usersRef, {
+        username,
+        password: hashedPassword,
+        isAdmin: false,
+        createdAt: Timestamp.now()
+      });
 
-      // Log the user in after registration
+      const newUser = {
+        id: newUserRef.id,
+        username,
+        password: hashedPassword,
+        isAdmin: false,
+        createdAt: new Date()
+      };
+
       req.login(newUser, (err) => {
         if (err) {
           return next(err);
