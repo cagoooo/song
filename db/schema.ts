@@ -1,70 +1,69 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, serial, boolean, timestamp, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  username: text("username").unique().notNull(),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 255 }).unique().notNull(),
   password: text("password").notNull(),
-  isAdmin: integer("is_admin", { mode: "boolean" }).default(false).notNull(),
-  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`)
+  isAdmin: boolean("is_admin").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const songs = sqliteTable("songs", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  title: text("title").notNull(),
-  artist: text("artist").notNull(),
-  key: text("key"),
+export const songs = pgTable("songs", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  artist: varchar("artist", { length: 255 }).notNull(),
+  key: varchar("key", { length: 10 }),
   notes: text("notes"),
   lyrics: text("lyrics"),
   audioUrl: text("audio_url"),
-  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
   createdBy: integer("created_by").references(() => users.id),
-  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull()
+  isActive: boolean("is_active").default(true).notNull()
 });
 
-export const votes = sqliteTable("votes", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const votes = pgTable("votes", {
+  id: serial("id").primaryKey(),
   songId: integer("song_id").references(() => songs.id).notNull(),
   sessionId: text("session_id").notNull(),
-  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const songSuggestions = sqliteTable("song_suggestions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  title: text("title").notNull(),
-  artist: text("artist").notNull(),
+export const songSuggestions = pgTable("song_suggestions", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  artist: varchar("artist", { length: 255 }).notNull(),
   suggestedBy: text("suggested_by"),
-  status: text("status").default("pending").notNull(), // pending, approved, rejected, added_to_playlist
-  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-  processedAt: text("processed_at"),
+  status: varchar("status", { length: 50 }).default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
   notes: text("notes")
 });
 
-export const tags = sqliteTable("tags", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").unique().notNull(),
-  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`)
+export const tags = pgTable("tags", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).unique().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const songTags = sqliteTable("song_tags", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const songTags = pgTable("song_tags", {
+  id: serial("id").primaryKey(),
   songId: integer("song_id").references(() => songs.id).notNull(),
   tagId: integer("tag_id").references(() => tags.id).notNull(),
-  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const qrCodeScans = sqliteTable("qr_code_scans", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const qrCodeScans = pgTable("qr_code_scans", {
+  id: serial("id").primaryKey(),
   songId: integer("song_id").references(() => songs.id).notNull(),
   sessionId: text("session_id").notNull(),
   userAgent: text("user_agent"),
   referrer: text("referrer"),
-  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`)
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-// Define relationships
 export const songsRelations = relations(songs, ({ one, many }) => ({
   creator: one(users, {
     fields: [songs.createdBy],
@@ -104,7 +103,6 @@ export const qrCodeScansRelations = relations(qrCodeScans, ({ one }) => ({
   })
 }));
 
-// Schema types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
@@ -126,7 +124,6 @@ export type NewSongSuggestion = typeof songSuggestions.$inferInsert;
 export type QRCodeScan = typeof qrCodeScans.$inferSelect;
 export type NewQRCodeScan = typeof qrCodeScans.$inferInsert;
 
-// Zod schemas
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 
