@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -21,11 +21,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
-import { Music, ThumbsUp, Trash2, RotateCcw, Edit2 } from "lucide-react";
+import { Music, ThumbsUp, Trash2, RotateCcw, Edit2, CheckCircle2, Sparkles, Heart } from "lucide-react";
 import SearchBar from "./SearchBar";
 import TagSelector from "./TagSelector";
 import { AnimatePresence, motion } from "framer-motion";
 import QRCodeShareModal from "./QRCodeShareModal";
+import confetti from "canvas-confetti";
 
 interface SongListProps {
   songs: Song[];
@@ -246,14 +247,17 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
 export default function SongList({ songs, ws, user }: SongListProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [votingId, setVotingId] = useState<number | null>(null);
+  const [votingId, setVotingId] = useState<string | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedSongForShare, setSelectedSongForShare] = useState<Song | null>(null);
-  const [clickCount, setClickCount] = useState<{ [key: number]: number }>({});
+  const [clickCount, setClickCount] = useState<{ [key: string]: number }>({});
   const [isTouch, setIsTouch] = useState(false);
-  const [lastVoteTime, setLastVoteTime] = useState<{ [key: number]: number }>({});
+  const [lastVoteTime, setLastVoteTime] = useState<{ [key: string]: number }>({});
   const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [voteSuccess, setVoteSuccess] = useState<{ [key: string]: boolean }>({});
+  const [showVoteOverlay, setShowVoteOverlay] = useState<{ songId: string; title: string; artist: string } | null>(null);
+  const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
   useEffect(() => {
     const checkTouch = () => {
@@ -264,12 +268,32 @@ export default function SongList({ songs, ws, user }: SongListProps) {
     return () => window.removeEventListener('resize', checkTouch);
   }, []);
 
-  const handleVoteStart = useCallback((songId: number) => {
+  const triggerVoteConfetti = (buttonElement: HTMLButtonElement | null) => {
+    if (!buttonElement) return;
+    
+    const rect = buttonElement.getBoundingClientRect();
+    const x = (rect.left + rect.width / 2) / window.innerWidth;
+    const y = (rect.top + rect.height / 2) / window.innerHeight;
+    
+    confetti({
+      particleCount: 30,
+      spread: 60,
+      origin: { x, y },
+      colors: ['#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b'],
+      ticks: 100,
+      gravity: 1.2,
+      scalar: 0.8,
+      shapes: ['circle', 'square'],
+      zIndex: 9999,
+    });
+  };
+
+  const handleVoteStart = useCallback((songId: string, song: Song) => {
     const now = Date.now();
     const lastTime = lastVoteTime[songId] || 0;
     const timeDiff = now - lastTime;
 
-    if (timeDiff < 50) return; // 防抖動：最小間隔50ms
+    if (timeDiff < 300) return;
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       setVotingId(songId);
@@ -285,9 +309,32 @@ export default function SongList({ songs, ws, user }: SongListProps) {
         [songId]: now
       }));
 
+      setVoteSuccess(prev => ({ ...prev, [songId]: true }));
+      
+      triggerVoteConfetti(buttonRefs.current[songId]);
+      
+      setShowVoteOverlay({ songId, title: song.title, artist: song.artist });
+      
+      toast({
+        title: "🎸 點播成功！",
+        description: (
+          <div className="flex items-center gap-2">
+            <Music className="h-4 w-4 text-pink-500" />
+            <span className="font-medium">{song.title}</span>
+            <span className="text-muted-foreground">- {song.artist}</span>
+          </div>
+        ),
+        duration: 2000,
+      });
+
       setTimeout(() => {
         setVotingId(null);
-      }, 50);
+        setVoteSuccess(prev => ({ ...prev, [songId]: false }));
+      }, 800);
+      
+      setTimeout(() => {
+        setShowVoteOverlay(null);
+      }, 1500);
 
       const timeoutKey = `timeout_${songId}`;
       if ((window as any)[timeoutKey]) {
@@ -314,7 +361,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
         }, 100);
       }, 2000);
     }
-  }, [ws, clickCount, lastVoteTime]);
+  }, [ws, clickCount, lastVoteTime, toast]);
 
   const filteredSongs = useMemo(() => {
     if (!searchTerm.trim()) return songs;
@@ -414,7 +461,89 @@ export default function SongList({ songs, ws, user }: SongListProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
+      {/* 點播成功覆蓋動畫 */}
+      <AnimatePresence>
+        {showVoteOverlay && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ 
+                scale: [0.5, 1.2, 1],
+                opacity: [0, 1, 1, 0]
+              }}
+              transition={{ 
+                duration: 1.5,
+                times: [0, 0.3, 0.7, 1]
+              }}
+              className="bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-500 
+                         text-white px-8 py-6 rounded-2xl shadow-2xl
+                         flex flex-col items-center gap-3"
+            >
+              <motion.div
+                animate={{ 
+                  rotate: [0, 10, -10, 0],
+                  scale: [1, 1.2, 1]
+                }}
+                transition={{ 
+                  duration: 0.5,
+                  repeat: 2
+                }}
+              >
+                <CheckCircle2 className="h-12 w-12 text-white drop-shadow-lg" />
+              </motion.div>
+              <motion.p 
+                className="text-xl font-bold"
+                animate={{ y: [10, 0] }}
+              >
+                點播成功！
+              </motion.p>
+              <motion.div 
+                className="text-center"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <p className="text-lg font-semibold">{showVoteOverlay.title}</p>
+                <p className="text-sm opacity-80">{showVoteOverlay.artist}</p>
+              </motion.div>
+              <motion.div
+                className="flex gap-2 mt-1"
+                animate={{ 
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{ 
+                  duration: 0.6,
+                  repeat: Infinity
+                }}
+              >
+                {[...Array(3)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    animate={{ 
+                      y: [0, -5, 0],
+                      opacity: [0.5, 1, 0.5]
+                    }}
+                    transition={{ 
+                      duration: 0.4,
+                      delay: i * 0.1,
+                      repeat: Infinity
+                    }}
+                  >
+                    <Sparkles className="h-5 w-5 text-yellow-300" />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <SearchBar value={searchTerm} onChange={setSearchTerm} />
@@ -495,14 +624,15 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                     className="relative w-full sm:w-auto"
                   >
                     <Button
+                      ref={(el) => { buttonRefs.current[String(song.id)] = el; }}
                       variant="outline"
                       size="sm"
                       onTouchStart={(e) => {
                         e.preventDefault();
-                        handleVoteStart(song.id);
+                        handleVoteStart(String(song.id), song);
                       }}
                       onTouchEnd={(e) => e.preventDefault()}
-                      onMouseDown={() => !isTouch && handleVoteStart(song.id)}
+                      onMouseDown={() => !isTouch && handleVoteStart(String(song.id), song)}
                       onMouseUp={(e) => e.preventDefault()}
                       className={`
                         flex gap-2 relative overflow-hidden w-full sm:w-auto
@@ -514,20 +644,20 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                          'bg-gradient-to-r from-emerald-100 via-green-100 to-emerald-200'}
                         hover:from-opacity-80 hover:via-opacity-80 hover:to-opacity-80
                         border-2
-                        ${votingId === song.id || clickCount[song.id] > 0
+                        ${votingId === String(song.id) || clickCount[String(song.id)] > 0
                           ? `${index % 5 === 0 ? 'border-pink-500 shadow-pink-300' :
                               index % 5 === 1 ? 'border-blue-500 shadow-blue-300' :
                               index % 5 === 2 ? 'border-purple-500 shadow-purple-300' :
                               index % 5 === 3 ? 'border-amber-500 shadow-amber-300' :
                               'border-emerald-500 shadow-emerald-300'}
-                              shadow-[0_0_${Math.min(15 + (clickCount[song.id] || 0) * 5, 30)}px]
-                              ${clickCount[song.id] >= 10 ? 
+                              shadow-[0_0_${Math.min(15 + (clickCount[String(song.id)] || 0) * 5, 30)}px]
+                              ${clickCount[String(song.id)] >= 10 ? 
                                 `${index % 5 === 0 ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white' :
                                   index % 5 === 1 ? 'bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 text-white' :
                                   index % 5 === 2 ? 'bg-gradient-to-r from-purple-500 via-fuchsia-500 to-purple-600 text-white' :
                                   index % 5 === 3 ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-white' :
                                   'bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white'}` :
-                                clickCount[song.id] >= 5 ? 
+                                clickCount[String(song.id)] >= 5 ? 
                                 `${index % 5 === 0 ? 'bg-gradient-to-r from-pink-400 via-rose-400 to-pink-500' :
                                   index % 5 === 1 ? 'bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-500' :
                                   index % 5 === 2 ? 'bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-500' :
@@ -545,34 +675,34 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                               'border-emerald-300/70 hover:border-emerald-400'}`}
                         transition-all duration-150
                         transform-gpu
-                        ${clickCount[song.id] > 0 ? 'scale-110' : 'scale-100'}
+                        ${clickCount[String(song.id)] > 0 ? 'scale-110' : 'scale-100'}
                         active:scale-95
                         select-none
                         touch-none
                         text-base font-medium
                       `}
                       style={{
-                        transform: `scale(${Math.min(1 + (clickCount[song.id] || 0) * 0.05, 1.25)})`,
+                        transform: `scale(${Math.min(1 + (clickCount[String(song.id)] || 0) * 0.05, 1.25)})`,
                         willChange: 'transform',
                         WebkitTapHighlightColor: 'transparent',
                       }}
                     >
-                      <ThumbsUp className={`h-4 w-4 ${votingId === song.id ? 'text-primary' : ''}`} />
+                      <ThumbsUp className={`h-4 w-4 ${votingId === String(song.id) ? 'text-primary' : ''}`} />
                       <span className="relative">
                         點播
                         <AnimatePresence>
-                          {clickCount[song.id] > 0 && (
+                          {clickCount[String(song.id)] > 0 && (
                             <motion.div
                               className="absolute -top-1 left-1/2 -translate-x-1/2"
                               style={{ pointerEvents: "none" }}
                             >
                               <motion.span
-                                key={`count-${clickCount[song.id]}`}
+                                key={`count-${clickCount[String(song.id)]}`}
                                 initial={{ opacity: 0, y: 5, scale: 0.5 }}
                                 animate={{
                                   opacity: [0, 1, 1, 0],
                                   y: [-5, -30, -40],
-                                  scale: Math.min(1 + (clickCount[song.id] * 0.5), 3.0),
+                                  scale: Math.min(1 + (clickCount[String(song.id)] * 0.5), 3.0),
                                   rotate: [-5, 5, -5, 0],
                                   color: [
                                     index % 5 === 0 ? "#ec4899" : // pink-500
@@ -597,9 +727,9 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                                 }}
                                 className="absolute font-bold z-50"
                                 style={{
-                                  fontSize: `${Math.min(16 + clickCount[song.id] * 2, 30)}px`,
+                                  fontSize: `${Math.min(16 + clickCount[String(song.id)] * 2, 30)}px`,
                                   fontWeight: "900",
-                                  textShadow: `0 0 ${Math.min(10 + clickCount[song.id] * 3, 25)}px ${
+                                  textShadow: `0 0 ${Math.min(10 + clickCount[String(song.id)] * 3, 25)}px ${
                                     index % 5 === 0 ? "rgba(236, 72, 153, 0.8)" : // pink-500
                                     index % 5 === 1 ? "rgba(59, 130, 246, 0.8)" : // blue-500
                                     index % 5 === 2 ? "rgba(168, 85, 247, 0.8)" : // purple-500
@@ -608,7 +738,7 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                                   }`
                                 }}
                               >
-                                +{clickCount[song.id]}
+                                +{clickCount[String(song.id)]}
                               </motion.span>
                             </motion.div>
                           )}
@@ -618,9 +748,9 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                       <motion.div
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{
-                          opacity: clickCount[song.id] > 0 ? [0, Math.min(0.8 + (clickCount[song.id] * 0.05), 1), 0] : 0,
-                          scale: clickCount[song.id] > 0 ? [0.5, Math.min(1.5 + (clickCount[song.id] * 0.1), 3)] : 0,
-                          y: clickCount[song.id] > 0 ? [0, Math.min(-30 - (clickCount[song.id] * 2), -60)] : 0
+                          opacity: clickCount[String(song.id)] > 0 ? [0, Math.min(0.8 + (clickCount[String(song.id)] * 0.05), 1), 0] : 0,
+                          scale: clickCount[String(song.id)] > 0 ? [0.5, Math.min(1.5 + (clickCount[String(song.id)] * 0.1), 3)] : 0,
+                          y: clickCount[String(song.id)] > 0 ? [0, Math.min(-30 - (clickCount[String(song.id)] * 2), -60)] : 0
                         }}
                         transition={{ duration: 0.5 }}
                         className="absolute left-1/2 -translate-x-1/2 -bottom-4"
@@ -633,8 +763,8 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                         <div
                           className={`
                             w-8 h-16 rounded-full blur-sm
-                            ${clickCount[song.id] >= 10 ? 'opacity-100 scale-150' :
-                              clickCount[song.id] >= 5 ? 'opacity-90 scale-125' :
+                            ${clickCount[String(song.id)] >= 10 ? 'opacity-100 scale-150' :
+                              clickCount[String(song.id)] >= 5 ? 'opacity-90 scale-125' :
                               'opacity-80'}
                           `}
                           style={{
@@ -645,16 +775,16 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                               index % 5 === 3 ? 'rgb(217, 119, 6), rgb(245, 158, 11)' : // amber-600, amber-500
                               'rgb(5, 150, 105), rgb(16, 185, 129)' // emerald-600, emerald-500
                             }, transparent)`,
-                            animation: `pulse ${Math.max(1.5 - (clickCount[song.id] * 0.1), 0.5)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
-                            transform: `scale(${Math.min(1 + (clickCount[song.id] * 0.1), 2)})`,
-                            filter: `blur(${Math.min(3 + (clickCount[song.id] * 0.2), 8)}px)`
+                            animation: `pulse ${Math.max(1.5 - (clickCount[String(song.id)] * 0.1), 0.5)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
+                            transform: `scale(${Math.min(1 + (clickCount[String(song.id)] * 0.1), 2)})`,
+                            filter: `blur(${Math.min(3 + (clickCount[String(song.id)] * 0.2), 8)}px)`
                           }}
                         />
                         <div
                           className={`
                             absolute inset-0 w-6 h-14 rounded-full blur-sm
-                            ${clickCount[song.id] >= 10 ? 'opacity-100 scale-150' :
-                              clickCount[song.id] >= 5 ? 'opacity-90 scale-125' :
+                            ${clickCount[String(song.id)] >= 10 ? 'opacity-100 scale-150' :
+                              clickCount[String(song.id)] >= 5 ? 'opacity-90 scale-125' :
                               'opacity-80'}
                           `}
                           style={{
@@ -665,12 +795,12 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                               index % 5 === 3 ? 'rgb(245, 158, 11), rgb(251, 191, 36)' : // amber-500, amber-400
                               'rgb(16, 185, 129), rgb(52, 211, 153)' // emerald-500, emerald-400
                             }, transparent)`,
-                            animation: `pulse ${Math.max(1.2 - (clickCount[song.id] * 0.1), 0.3)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
-                            transform: `scale(${Math.min(1 + (clickCount[song.id] * 0.15), 2.2)})`,
-                            filter: `blur(${Math.min(2 + (clickCount[song.id] * 0.15), 6)}px)`
+                            animation: `pulse ${Math.max(1.2 - (clickCount[String(song.id)] * 0.1), 0.3)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
+                            transform: `scale(${Math.min(1 + (clickCount[String(song.id)] * 0.15), 2.2)})`,
+                            filter: `blur(${Math.min(2 + (clickCount[String(song.id)] * 0.15), 6)}px)`
                           }}
                         />
-                        {Array.from({ length: Math.min(5 + Math.floor(clickCount[song.id] / 2), 20) }).map((_, sparkIndex) => (
+                        {Array.from({ length: Math.min(5 + Math.floor(clickCount[String(song.id)] / 2), 20) }).map((_, sparkIndex) => (
                           <motion.div
                             key={sparkIndex}
                             className={`absolute ${
@@ -696,18 +826,18 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                               ],
                               x: [
                                 0,
-                                (Math.random() - 0.5) * 60 * (1 + clickCount[song.id] * 0.15),
-                                (Math.random() - 0.5) * 70 * (1 + clickCount[song.id] * 0.2)
+                                (Math.random() - 0.5) * 60 * (1 + clickCount[String(song.id)] * 0.15),
+                                (Math.random() - 0.5) * 70 * (1 + clickCount[String(song.id)] * 0.2)
                               ],
                               y: [
                                 0,
-                                -30 - Math.random() * 40 * (1 + clickCount[song.id] * 0.1),
-                                -20 - Math.random() * 60 * (1 + clickCount[song.id] * 0.15)
+                                -30 - Math.random() * 40 * (1 + clickCount[String(song.id)] * 0.1),
+                                -20 - Math.random() * 60 * (1 + clickCount[String(song.id)] * 0.15)
                               ]
                             }}
                             transition={{
                               duration: 0.5 + Math.random() * 0.7,
-                              repeat: clickCount[song.id] > 5 ? Infinity : 0,
+                              repeat: clickCount[String(song.id)] > 5 ? Infinity : 0,
                               repeatDelay: Math.random() * 0.3
                             }}
                             style={{
@@ -727,14 +857,14 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                           className="absolute inset-0 rounded-full"
                           style={{
                             background: `radial-gradient(circle, ${
-                              index % 5 === 0 ? `rgba(236, 72, 153, ${Math.min(0.2 + clickCount[song.id] * 0.05, 0.6)})` : // pink
-                              index % 5 === 1 ? `rgba(59, 130, 246, ${Math.min(0.2 + clickCount[song.id] * 0.05, 0.6)})` : // blue
-                              index % 5 === 2 ? `rgba(168, 85, 247, ${Math.min(0.2 + clickCount[song.id] * 0.05, 0.6)})` : // purple
-                              index % 5 === 3 ? `rgba(245, 158, 11, ${Math.min(0.2 + clickCount[song.id] * 0.05, 0.6)})` : // amber
-                              `rgba(16, 185, 129, ${Math.min(0.2 + clickCount[song.id] * 0.05, 0.6)})` // emerald
+                              index % 5 === 0 ? `rgba(236, 72, 153, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` : // pink
+                              index % 5 === 1 ? `rgba(59, 130, 246, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` : // blue
+                              index % 5 === 2 ? `rgba(168, 85, 247, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` : // purple
+                              index % 5 === 3 ? `rgba(245, 158, 11, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` : // amber
+                              `rgba(16, 185, 129, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` // emerald
                             } 0%, transparent 70%)`,
-                            transform: `scale(${Math.min(1.5 + clickCount[song.id] * 0.1, 3)})`,
-                            filter: `blur(${Math.min(5 + clickCount[song.id] * 0.5, 15)}px)`
+                            transform: `scale(${Math.min(1.5 + clickCount[String(song.id)] * 0.1, 3)})`,
+                            filter: `blur(${Math.min(5 + clickCount[String(song.id)] * 0.5, 15)}px)`
                           }}
                         />
                       </motion.div>
