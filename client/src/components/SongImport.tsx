@@ -18,7 +18,6 @@ export default function SongImport() {
     e.preventDefault();
 
     try {
-      // 建立歌曲資料
       const response = await fetch("/api/songs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -29,11 +28,23 @@ export default function SongImport() {
         })
       });
 
+      const data = await response.json();
+
+      if (response.status === 409) {
+        toast({
+          title: "歌曲已存在",
+          description: data.message || `「${title}」- ${artist} 已在歌單中`,
+          className: "bg-amber-50 border-amber-200 text-amber-800",
+        });
+        return;
+      }
+
       if (!response.ok) throw new Error("Failed to add song");
 
       toast({
         title: "成功",
         description: "歌曲新增成功",
+        className: "bg-green-50 border-green-200 text-green-800",
       });
 
       setTitle("");
@@ -83,9 +94,14 @@ export default function SongImport() {
 
       if (!response.ok) throw new Error("Failed to add songs");
 
+      const data = await response.json();
+      
       toast({
-        title: "成功",
-        description: `成功匯入 ${songs.length} 首歌曲`,
+        title: "匯入完成",
+        description: data.message || `成功匯入 ${songs.length} 首歌曲`,
+        className: data.skipped > 0 
+          ? "bg-amber-50 border-amber-200 text-amber-800"
+          : "bg-green-50 border-green-200 text-green-800",
       });
 
       setBatchSongs("");

@@ -311,6 +311,26 @@ export function registerRoutes(app: Express): Server {
       const { title, artist, notes, suggestedBy, fromSuggestion } = req.body;
       
       const songsRef = collection(firestore, COLLECTIONS.songs);
+      
+      // Check if song already exists
+      const existingSnapshot = await getDocs(songsRef);
+      let isDuplicate = false;
+      existingSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.isActive !== false && 
+            data.title.toLowerCase() === title.toLowerCase() && 
+            data.artist.toLowerCase() === artist.toLowerCase()) {
+          isDuplicate = true;
+        }
+      });
+
+      if (isDuplicate) {
+        return res.status(409).json({ 
+          error: "duplicate",
+          message: `「${title}」- ${artist} 已存在於歌單中`
+        });
+      }
+
       const newDoc = await addDoc(songsRef, {
         title,
         artist,
