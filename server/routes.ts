@@ -33,7 +33,7 @@ declare module 'express-serve-static-core' {
   }
 }
 
-async function getSongsWithVotes() {
+async function getSongsWithVotes(options?: { limit?: number; offset?: number; topOnly?: boolean }) {
   const songsRef = collection(firestore, COLLECTIONS.songs);
   const songsQuery = query(songsRef, where("isActive", "==", true));
   const songsSnapshot = await getDocs(songsQuery);
@@ -57,6 +57,20 @@ async function getSongsWithVotes() {
       voteCount: voteMap.get(doc.id) || 0
     });
   });
+  
+  // Sort by vote count for top ranking
+  if (options?.topOnly) {
+    songs.sort((a, b) => b.voteCount - a.voteCount);
+    return songs.slice(0, options.limit || 10);
+  }
+  
+  // Pagination support
+  if (options?.limit !== undefined) {
+    const offset = options.offset || 0;
+    const totalCount = songs.length;
+    const paginatedSongs = songs.slice(offset, offset + options.limit);
+    return { songs: paginatedSongs, totalCount, hasMore: offset + options.limit < totalCount };
+  }
   
   return songs;
 }
@@ -338,13 +352,34 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/songs", async (_req, res) => {
+  // 分頁載入歌曲
+  app.get("/api/songs", async (req, res) => {
     try {
-      const songsList = await getSongsWithVotes();
-      res.json(songsList);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      
+      if (limit !== undefined) {
+        const result = await getSongsWithVotes({ limit, offset });
+        res.json(result);
+      } else {
+        const songsList = await getSongsWithVotes();
+        res.json(songsList);
+      }
     } catch (error) {
       console.error('Failed to fetch songs:', error);
       res.status(500).json({ error: "無法取得歌曲清單" });
+    }
+  });
+
+  // 排行榜專用 API - 只回傳前 N 名
+  app.get("/api/songs/top", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const topSongs = await getSongsWithVotes({ limit, topOnly: true });
+      res.json(topSongs);
+    } catch (error) {
+      console.error('Failed to fetch top songs:', error);
+      res.status(500).json({ error: "無法取得排行榜" });
     }
   });
 
