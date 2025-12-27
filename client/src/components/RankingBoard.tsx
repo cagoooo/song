@@ -161,7 +161,7 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
   };
 
   return (
-    <ScrollArea className="h-[400px] sm:h-[500px] w-full pr-4">
+    <ScrollArea className="h-auto max-h-[50vh] sm:max-h-[400px] lg:h-[500px] w-full pr-4 overflow-y-auto">
       {/* 加強版頂部裝飾元素 */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
