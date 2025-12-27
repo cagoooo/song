@@ -615,7 +615,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-3 sm:p-6">
-                    <RankingBoard songs={songs} />
+                    <RankingBoard ws={wsConnection} />
                   </CardContent>
                 </Card>
               </motion.div>

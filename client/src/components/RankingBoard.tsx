@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Trophy, Crown, Award, FileText, Music2, Sparkles, 
   Star, TrendingUp, Flame, Music, Mic, Headphones, 
@@ -16,12 +17,56 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface RankingBoardProps {
-  songs: Song[];
+  songs?: Song[];
+  ws?: WebSocket | null;
 }
 
-export default function RankingBoard({ songs }: RankingBoardProps) {
+export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps) {
+  const [topSongs, setTopSongs] = useState<Song[]>([]);
+  
+  // 使用專用 API 獲取排行榜前 10 名
+  const { data: fetchedTopSongs, isLoading } = useQuery<Song[]>({
+    queryKey: ['/api/songs/top'],
+    queryFn: async () => {
+      const response = await fetch('/api/songs/top?limit=10');
+      if (!response.ok) throw new Error('Failed to fetch top songs');
+      return response.json();
+    },
+    refetchInterval: 30000, // 每 30 秒刷新一次
+  });
+
+  // 當資料更新時同步
+  useEffect(() => {
+    if (fetchedTopSongs) {
+      setTopSongs(fetchedTopSongs);
+    }
+  }, [fetchedTopSongs]);
+
+  // 監聽 WebSocket 更新排行榜
+  useEffect(() => {
+    if (!ws) return;
+    
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'SONGS_UPDATE' && data.songs) {
+          // 從完整列表中提取前 10 名
+          const sorted = [...data.songs].sort((a: any, b: any) => 
+            (b.voteCount || 0) - (a.voteCount || 0)
+          ).slice(0, 10);
+          setTopSongs(sorted);
+        }
+      } catch (error) {}
+    };
+    
+    ws.addEventListener('message', handleMessage);
+    return () => ws.removeEventListener('message', handleMessage);
+  }, [ws]);
+
+  const songs = topSongs.length > 0 ? topSongs : (propSongs || []).slice(0, 10);
   const [prevRanks, setPrevRanks] = useState<{[key: number]: number}>({});
   const [showRankChange, setShowRankChange] = useState<{[key: number]: 'up' | 'down' | null}>({});
   const [prevVotes, setPrevVotes] = useState<{[key: number]: number}>({});
@@ -160,13 +205,35 @@ export default function RankingBoard({ songs }: RankingBoardProps) {
     return `https://www.google.com/search?q=${searchQuery}`;
   };
 
+  // 偵測是否為手機裝置，減少動畫
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const reduceMotion = isMobile || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  // 載入中顯示骨架
+  if (isLoading && songs.length === 0) {
+    return (
+      <div className="space-y-3 p-4">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="w-8 h-8 rounded-full" />
+            <div className="flex-1">
+              <Skeleton className="h-5 w-3/4 mb-1" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+            <Skeleton className="w-12 h-6" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <ScrollArea className="h-[400px] sm:h-[500px] w-full pr-4">
       {/* 加強版頂部裝飾元素 */}
       <motion.div 
-        initial={{ opacity: 0, y: -10 }}
+        initial={reduceMotion ? false : { opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: reduceMotion ? 0 : 0.5 }}
         className="mb-4 relative overflow-hidden rounded-xl p-3 sm:p-4 
                    bg-gradient-to-r from-yellow-50 via-amber-50 to-orange-50 
                    border-2 border-amber-300/70 shadow-md"
