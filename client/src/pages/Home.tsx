@@ -579,7 +579,7 @@ export default function Home() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
               >
-                <Card className="shadow-lg h-full">
+                <Card className="shadow-lg">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                       <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
@@ -600,7 +600,7 @@ export default function Home() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.6 }}
               >
-                <Card className="shadow-lg lg:h-full">
+                <Card className="shadow-lg">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                       <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
