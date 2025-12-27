@@ -24,7 +24,6 @@ import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
 import { Music, ThumbsUp, Trash2, RotateCcw, Edit2, CheckCircle2, Sparkles, Heart } from "lucide-react";
 import SearchBar from "./SearchBar";
-import TagSelector from "./TagSelector";
 import { AnimatePresence, motion } from "framer-motion";
 import QRCodeShareModal from "./QRCodeShareModal";
 import confetti from "canvas-confetti";
@@ -927,7 +926,6 @@ export default function SongList({ songs, ws, user }: SongListProps) {
                 </div>
               </div>
 
-              <TagSelector song={song} isAdmin={user?.isAdmin ?? false} />
             </motion.div>
           ))}
         </div>
