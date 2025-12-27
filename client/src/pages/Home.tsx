@@ -1,11 +1,11 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Song } from "@db/schema";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Music2, Trophy, Lightbulb } from "lucide-react";
+import { LogIn, LogOut, Music2, Trophy, Lightbulb, Loader2 } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import RankingBoard from "../components/RankingBoard";
@@ -15,10 +15,15 @@ import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const PAGE_SIZE = 30;
+
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
+  const [displayedSongs, setDisplayedSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
+  const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
@@ -37,6 +42,23 @@ export default function Home() {
     },
     retry: 1
   });
+
+  // 根據顯示限制更新顯示的歌曲
+  useEffect(() => {
+    setDisplayedSongs(songs.slice(0, displayLimit));
+  }, [songs, displayLimit]);
+
+  // 載入更多歌曲
+  const loadMore = useCallback(() => {
+    if (displayLimit >= songs.length) return;
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setDisplayLimit(prev => Math.min(prev + PAGE_SIZE, songs.length));
+      setIsLoadingMore(false);
+    }, 300);
+  }, [displayLimit, songs.length]);
+
+  const hasMore = displayLimit < songs.length;
 
   useEffect(() => {
     let hasConnectedOnce = false;
@@ -595,7 +617,15 @@ export default function Home() {
                   <CardContent className="p-3 sm:p-6">
                     {user?.isAdmin && <SongImport />}
                     <div className="h-3 sm:h-4" />
-                    <SongList songs={songs} ws={wsConnection} user={user || null} />
+                    <SongList 
+                      songs={displayedSongs} 
+                      ws={wsConnection} 
+                      user={user || null}
+                      hasMore={hasMore}
+                      isLoadingMore={isLoadingMore}
+                      onLoadMore={loadMore}
+                      totalCount={songs.length}
+                    />
                   </CardContent>
                 </Card>
               </motion.div>

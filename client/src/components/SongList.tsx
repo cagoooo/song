@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
-import { Music, ThumbsUp, Trash2, RotateCcw, Edit2, CheckCircle2, Sparkles, Heart } from "lucide-react";
+import { Music, ThumbsUp, Trash2, RotateCcw, Edit2, CheckCircle2, Sparkles, Heart, Loader2, ChevronDown } from "lucide-react";
 import SearchBar from "./SearchBar";
 import { AnimatePresence, motion } from "framer-motion";
 import QRCodeShareModal from "./QRCodeShareModal";
@@ -32,6 +32,10 @@ interface SongListProps {
   songs: Song[];
   ws: WebSocket | null;
   user: User | null;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
+  totalCount?: number;
 }
 
 interface EditDialogProps {
@@ -256,9 +260,13 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
   );
 }
 
-export default function SongList({ songs, ws, user }: SongListProps) {
+export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLoadMore, totalCount }: SongListProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // 偵測是否為手機裝置，減少動畫
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const reduceMotion = isMobile || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [votingId, setVotingId] = useState<string | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
@@ -929,6 +937,33 @@ export default function SongList({ songs, ws, user }: SongListProps) {
             </motion.div>
           ))}
         </div>
+
+        {/* 載入更多按鈕 */}
+        {hasMore && onLoadMore && (
+          <div className="flex flex-col items-center py-4 mt-2">
+            <Button
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+              variant="outline"
+              className="w-full max-w-xs bg-gradient-to-r from-primary/5 to-primary/10 
+                         border-primary/20 hover:border-primary/40 
+                         hover:from-primary/10 hover:to-primary/20
+                         transition-all duration-300"
+            >
+              {isLoadingMore ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  載入中...
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4 mr-2" />
+                  載入更多歌曲 ({songs.length} / {totalCount || 0})
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </ScrollArea>
 
       {selectedSongForShare && (
