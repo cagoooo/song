@@ -536,7 +536,28 @@ export function registerRoutes(app: Express): Server {
       }
 
       const songsRef = collection(firestore, COLLECTIONS.songs);
-      const addPromises = songsList.map(song => 
+      
+      // Get existing songs to check for duplicates
+      const existingSnapshot = await getDocs(songsRef);
+      const existingSongs = new Set<string>();
+      existingSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.isActive !== false) {
+          existingSongs.add(`${data.title.toLowerCase()}|${data.artist.toLowerCase()}`);
+        }
+      });
+
+      // Filter out duplicates
+      const newSongs = songsList.filter(song => {
+        const key = `${song.title.toLowerCase()}|${song.artist.toLowerCase()}`;
+        return !existingSongs.has(key);
+      });
+
+      if (newSongs.length === 0) {
+        return res.json({ message: "所有歌曲都已存在，無需匯入", added: 0, skipped: songsList.length });
+      }
+
+      const addPromises = newSongs.map(song => 
         addDoc(songsRef, {
           title: song.title,
           artist: song.artist,
@@ -549,7 +570,11 @@ export function registerRoutes(app: Express): Server {
       await Promise.all(addPromises);
 
       await sendSongsUpdate(wss);
-      res.json({ message: `成功匯入 ${songsList.length} 首歌曲` });
+      res.json({ 
+        message: `成功匯入 ${newSongs.length} 首歌曲，跳過 ${songsList.length - newSongs.length} 首重複歌曲`,
+        added: newSongs.length,
+        skipped: songsList.length - newSongs.length
+      });
     } catch (error) {
       console.error('Failed to batch import songs:', error);
       res.status(500).json({ error: "批次匯入失敗" });
