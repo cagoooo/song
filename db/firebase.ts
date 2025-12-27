@@ -61,11 +61,81 @@ export {
 export async function initializeDatabase() {
   try {
     console.log("Initializing Firebase database...");
-    console.log("Firebase connected successfully");
+    
+    const usersRef = collection(firestore, COLLECTIONS.users);
+    const usersSnapshot = await getDocs(usersRef);
+    
+    if (usersSnapshot.empty) {
+      console.log("Inserting sample data...");
+      
+      await addDoc(usersRef, {
+        username: 'cagoo',
+        password: '$2b$10$gsypgex3yfikc9FZilmbtOTwTU3gZuhuUbt3kFS.9TD2Zx7YTKI/q',
+        isAdmin: true,
+        createdAt: Timestamp.now()
+      });
+      
+      await addDoc(usersRef, {
+        username: 'user',
+        password: '$2b$10$aW5uZXJfcGFzc3dvcmRfaO5FnJ3BMJkCJQxdlgYeGT4bOWOZwJZWS',
+        isAdmin: false,
+        createdAt: Timestamp.now()
+      });
+      
+      const songsRef = collection(firestore, COLLECTIONS.songs);
+      await addDoc(songsRef, {
+        title: 'Wonderwall',
+        artist: 'Oasis',
+        key: 'G',
+        notes: 'Beginner friendly',
+        lyrics: 'Today is gonna be the day...',
+        createdBy: null,
+        isActive: true,
+        createdAt: Timestamp.now()
+      });
+      
+      await addDoc(songsRef, {
+        title: 'Hotel California',
+        artist: 'Eagles',
+        key: 'Bm',
+        notes: 'Classic solo',
+        lyrics: 'On a dark desert highway...',
+        createdBy: null,
+        isActive: true,
+        createdAt: Timestamp.now()
+      });
+      
+      await addDoc(songsRef, {
+        title: 'Yellow',
+        artist: 'Coldplay',
+        key: 'B',
+        notes: 'Use capo on 4th fret',
+        lyrics: 'Look at the stars...',
+        createdBy: null,
+        isActive: true,
+        createdAt: Timestamp.now()
+      });
+      
+      const tagsRef = collection(firestore, COLLECTIONS.tags);
+      const tagNames = ['rock', 'acoustic', 'pop', 'beginner', 'advanced'];
+      for (const name of tagNames) {
+        await addDoc(tagsRef, {
+          name,
+          createdAt: Timestamp.now()
+        });
+      }
+      
+      console.log("Sample data inserted successfully");
+    }
+    
+    const songsRef = collection(firestore, COLLECTIONS.songs);
+    const songsSnapshot = await getDocs(songsRef);
+    console.log(`Firebase connected successfully with ${songsSnapshot.size} songs`);
+    
     return true;
   } catch (error) {
     console.error("Failed to initialize database:", error);
-    console.log("Continuing without database initialization...");
+    console.log("Continuing without sample data...");
     return true;
   }
 }
