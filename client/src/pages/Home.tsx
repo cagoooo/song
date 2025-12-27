@@ -67,11 +67,13 @@ export default function Home() {
             toast({
               title: "連線成功",
               description: "已重新連線到伺服器",
+              className: "bg-green-50 border-green-200 text-green-800",
             });
           } else if (!hasConnectedOnce) {
             toast({
               title: "連線成功",
               description: "即時更新已啟用",
+              className: "bg-green-50 border-green-200 text-green-800",
             });
           }
           
