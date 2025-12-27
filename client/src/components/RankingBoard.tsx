@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -71,17 +71,23 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
   }, [ws]);
 
   const songs = topSongs.length > 0 ? topSongs : (propSongs || []).slice(0, 10);
-  const [prevRanks, setPrevRanks] = useState<{[key: number]: number}>({});
   const [showRankChange, setShowRankChange] = useState<{[key: number]: 'up' | 'down' | null}>({});
-  const [prevVotes, setPrevVotes] = useState<{[key: number]: number}>({});
   const [showFirework, setShowFirework] = useState<{[key: number]: boolean}>({});
   const rankChangeTimeoutRef = useRef<{[key: number]: NodeJS.Timeout}>({});
   const fireWorkTimeoutRef = useRef<{[key: number]: NodeJS.Timeout}>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 排序歌曲並追蹤排名變化
-  const sortedSongs = [...songs].sort((a, b) => 
-    ((b as any).voteCount || 0) - ((a as any).voteCount || 0)
+  // 使用 useMemo 穩定排序後的歌曲列表
+  const sortedSongs = useMemo(() => 
+    [...songs].sort((a, b) => 
+      ((b as any).voteCount || 0) - ((a as any).voteCount || 0)
+    ), [songs]
+  );
+  
+  // 使用穩定的 key 來追蹤歌曲變化
+  const songsKey = useMemo(() => 
+    sortedSongs.map(s => `${s.id}:${(s as any).voteCount || 0}`).join('|'),
+    [sortedSongs]
   );
 
   // 觸發首名變更時的煙火效果（手機減少粒子數）
@@ -104,6 +110,10 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
     });
   };
 
+  // 使用 ref 來追蹤前一次的排名和投票
+  const prevRanksRef = useRef<{[key: number]: number}>({});
+  const prevVotesRef = useRef<{[key: number]: number}>({});
+  
   useEffect(() => {
     const newRanks: {[key: number]: number} = {};
     const newRankChanges: {[key: number]: 'up' | 'down' | null} = {};
@@ -111,26 +121,21 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
     const newVotes: {[key: number]: number} = {};
 
     let hasTopRankChanged = false;
-    let previousTopSongId: number | null = null;
 
     // 找出前一個第一名
-    if (Object.keys(prevRanks).length > 0) {
-      const prevTopEntry = Object.entries(prevRanks).find(([_, rank]) => rank === 0);
-      if (prevTopEntry) {
-        previousTopSongId = Number(prevTopEntry[0]);
-      }
-    }
+    const currentPrevRanks = prevRanksRef.current;
+    const currentPrevVotes = prevVotesRef.current;
 
     sortedSongs.forEach((song, index) => {
-      const prevRank = prevRanks[song.id] ?? index;
+      const prevRank = currentPrevRanks[song.id] ?? index;
       const currentVotes = (song as any).voteCount || 0;
-      const prevVote = prevVotes[song.id] || 0;
+      const prevVote = currentPrevVotes[song.id] || 0;
       
       newRanks[song.id] = index;
       newVotes[song.id] = currentVotes;
 
-      // 檢查排名變化
-      if (prevRank !== index) {
+      // 檢查排名變化（只有在 ref 已有資料時才觸發動畫）
+      if (Object.keys(currentPrevRanks).length > 0 && prevRank !== index) {
         newRankChanges[song.id] = prevRank > index ? 'up' : 'down';
         
         // 如果是升至第一名，觸發特效
@@ -161,8 +166,8 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
         }, 2000);
       }
       
-      // 檢查是否有新的投票增加
-      if (currentVotes > prevVote && prevVote > 0) {
+      // 檢查是否有新的投票增加（只有在 ref 已有資料時才觸發動畫）
+      if (Object.keys(currentPrevVotes).length > 0 && currentVotes > prevVote && prevVote > 0) {
         newFireworks[song.id] = true;
         
         if (fireWorkTimeoutRef.current[song.id]) {
@@ -175,11 +180,17 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
       }
     });
 
-    // 更新狀態
-    setPrevRanks(newRanks);
-    setShowRankChange(newRankChanges);
-    setPrevVotes(newVotes);
-    setShowFirework(newFireworks);
+    // 更新 ref（不會觸發 re-render）
+    prevRanksRef.current = newRanks;
+    prevVotesRef.current = newVotes;
+    
+    // 只在有變化時更新 state
+    if (Object.keys(newRankChanges).length > 0) {
+      setShowRankChange(newRankChanges);
+    }
+    if (Object.keys(newFireworks).length > 0) {
+      setShowFirework(newFireworks);
+    }
     
     // 如果首名變更，觸發煙火效果
     if (hasTopRankChanged) {
@@ -197,7 +208,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
         clearTimeout(timeout);
       });
     };
-  }, [songs]);
+  }, [songsKey]);
 
   const generateGuitarTabsUrl = (song: Song) => {
     const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 吉他譜 tab`);
