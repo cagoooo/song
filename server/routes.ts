@@ -352,13 +352,24 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // 分頁載入歌曲
+  // 分頁載入歌曲（支援搜尋）
   app.get("/api/songs", async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      const search = req.query.search as string | undefined;
       
-      if (limit !== undefined) {
+      // 如果有搜尋關鍵字，回傳所有符合的歌曲（不受分頁限制）
+      if (search && search.trim()) {
+        const allSongs = await getSongsWithVotes() as any[];
+        const searchTerm = search.toLowerCase().trim();
+        const filteredSongs = allSongs.filter(
+          (song: any) =>
+            song.title.toLowerCase().includes(searchTerm) ||
+            song.artist.toLowerCase().includes(searchTerm)
+        );
+        res.json(filteredSongs);
+      } else if (limit !== undefined) {
         const result = await getSongsWithVotes({ limit, offset });
         res.json(result);
       } else {

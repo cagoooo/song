@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -22,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Song, User } from "@db/schema";
-import { Music, ThumbsUp, Trash2, RotateCcw, Edit2, CheckCircle2, Sparkles, Heart, Loader2, ChevronDown } from "lucide-react";
+import { Music, ThumbsUp, Trash2, RotateCcw, Edit2, CheckCircle2, Sparkles, Heart, Loader2, ChevronDown, Search } from "lucide-react";
 import SearchBar from "./SearchBar";
 import { AnimatePresence, motion } from "framer-motion";
 import QRCodeShareModal from "./QRCodeShareModal";
@@ -263,6 +264,30 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
 export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLoadMore, totalCount }: SongListProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  // Debounce 搜尋輸入以避免過多 API 請求
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
+  // 當有搜尋關鍵字時，從後端 API 獲取所有符合的歌曲
+  const { data: searchResults, isLoading: isSearching } = useQuery<Song[]>({
+    queryKey: ['/api/songs', 'search', debouncedSearch],
+    queryFn: async () => {
+      if (!debouncedSearch.trim()) return [];
+      const response = await fetch(`/api/songs?search=${encodeURIComponent(debouncedSearch)}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to search songs');
+      return response.json();
+    },
+    enabled: !!debouncedSearch.trim(),
+    staleTime: 30000,
+  });
   
   // 偵測是否為手機裝置，減少動畫
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -391,16 +416,16 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
     }
   }, [ws, clickCount, lastVoteTime, toast]);
 
+  // 搜尋時使用 API 結果，否則使用分頁的歌曲列表
   const filteredSongs = useMemo(() => {
-    if (!searchTerm.trim()) return songs;
-
-    const term = searchTerm.toLowerCase();
-    return songs.filter(
-      song =>
-        song.title.toLowerCase().includes(term) ||
-        song.artist.toLowerCase().includes(term)
-    );
-  }, [songs, searchTerm]);
+    if (debouncedSearch.trim() && searchResults) {
+      return searchResults;
+    }
+    return songs;
+  }, [songs, debouncedSearch, searchResults]);
+  
+  // 判斷是否正在搜尋模式
+  const isInSearchMode = !!searchTerm.trim();
 
   const deleteSong = async (songId: number) => {
     try {
@@ -938,8 +963,27 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
           ))}
         </div>
 
-        {/* 載入更多按鈕 */}
-        {hasMore && onLoadMore && (
+        {/* 搜尋結果提示 */}
+        {isInSearchMode && (
+          <div className="flex items-center justify-center py-3 mt-2">
+            {isSearching ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">搜尋中...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm">
+                <Search className="h-4 w-4 text-primary" />
+                <span className="text-muted-foreground">
+                  搜尋「{searchTerm}」找到 <span className="font-semibold text-primary">{filteredSongs.length}</span> 首歌曲
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* 載入更多按鈕 - 搜尋模式下隱藏 */}
+        {!isInSearchMode && hasMore && onLoadMore && (
           <div className="flex flex-col items-center py-4 mt-2">
             <Button
               onClick={onLoadMore}
