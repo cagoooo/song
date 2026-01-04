@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { 
   Trophy, Crown, Award, FileText, Music2, Sparkles, 
   Star, TrendingUp, Flame, Music, Mic, Headphones, 
-  Medal, Shield, Heart, Zap
+  Medal, Shield, Heart, Zap, ChevronDown, ChevronUp
 } from "lucide-react";
 import type { Song } from "@db/schema";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
@@ -30,12 +30,16 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
   const reduceMotion = isMobile || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   
   const [topSongs, setTopSongs] = useState<Song[]>([]);
+  const [isExpanded, setIsExpanded] = useState(false);
   
-  // 使用專用 API 獲取排行榜前 10 名
+  // 顯示數量：收合時 10 首，展開時 30 首
+  const displayLimit = isExpanded ? 30 : 10;
+  
+  // 使用專用 API 獲取排行榜
   const { data: fetchedTopSongs, isLoading } = useQuery<Song[]>({
-    queryKey: ['/api/songs/top'],
+    queryKey: ['/api/songs/top', displayLimit],
     queryFn: async () => {
-      const response = await fetch('/api/songs/top?limit=10');
+      const response = await fetch(`/api/songs/top?limit=${displayLimit}`);
       if (!response.ok) throw new Error('Failed to fetch top songs');
       return response.json();
     },
@@ -57,10 +61,10 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'SONGS_UPDATE' && data.songs) {
-          // 從完整列表中提取前 10 名
+          // 從完整列表中提取前 N 名
           const sorted = [...data.songs].sort((a: any, b: any) => 
             (b.voteCount || 0) - (a.voteCount || 0)
-          ).slice(0, 10);
+          ).slice(0, displayLimit);
           setTopSongs(sorted);
         }
       } catch (error) {}
@@ -68,9 +72,9 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
     
     ws.addEventListener('message', handleMessage);
     return () => ws.removeEventListener('message', handleMessage);
-  }, [ws]);
+  }, [ws, displayLimit]);
 
-  const songs = topSongs.length > 0 ? topSongs : (propSongs || []).slice(0, 10);
+  const songs = topSongs.length > 0 ? topSongs : (propSongs || []).slice(0, displayLimit);
   const [showRankChange, setShowRankChange] = useState<{[key: number]: 'up' | 'down' | null}>({});
   const [showFirework, setShowFirework] = useState<{[key: number]: boolean}>({});
   const rankChangeTimeoutRef = useRef<{[key: number]: NodeJS.Timeout}>({});
@@ -1225,6 +1229,37 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
             </motion.div>
           ))}
         </AnimatePresence>
+        
+        {/* 展開/收合按鈕 */}
+        <div className="flex justify-center pt-4 pb-2">
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="w-full max-w-xs bg-gradient-to-r from-amber-50 to-orange-50 
+                         border-amber-200 hover:border-amber-400 
+                         hover:from-amber-100 hover:to-orange-100
+                         text-amber-700 hover:text-amber-800
+                         transition-all duration-300 gap-2"
+            >
+              {isExpanded ? (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  收合排行榜（顯示前 10 名）
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4" />
+                  查看更多（顯示前 30 名）
+                </>
+              )}
+            </Button>
+          </motion.div>
+        </div>
       </div>
     </ScrollArea>
   );
