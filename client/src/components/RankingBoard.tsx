@@ -211,7 +211,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
   }, [songsKey]);
 
   const generateGuitarTabsUrl = (song: Song) => {
-    const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 吉他譜 tab`);
+    const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 吉他譜 tab Chordify`);
     return `https://www.google.com/search?q=${searchQuery}`;
   };
 
