@@ -1,0 +1,11 @@
+# Railway 配置
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/api/songs"
+healthcheckTimeout = 30
+
+[[services]]
+name = "web"

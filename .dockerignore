@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+*.md
+.env
+.env.*
+!.env.example
+dist
+db-data
+.local
+.config
+attached_assets
+*.tar.gz
+.DS_Store

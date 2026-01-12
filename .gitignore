@@ -1,6 +1,38 @@
+# 依賴
 node_modules
+
+# 建置輸出
 dist
-.DS_Store
 server/public
-vite.config.ts.*
+
+# 環境變數
+.env
+.env.local
+.env.*.local
+
+# 系統檔案
+.DS_Store
 *.tar.gz
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Vite
+vite.config.ts.*
+
+# 本地資料
+db-data
+.local
+.config
+
+# Replit（可移除）
+.replit
+replit.nix
+replit.md
+
+# 日誌
+*.log
+npm-debug.log*
