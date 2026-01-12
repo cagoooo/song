@@ -10,15 +10,15 @@ import { Tag, Hash, X, Plus, Trash2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import type { Song, Tag as TagType } from "@db/schema";
+import { type Song, type Tag as TagType } from "@/lib/firestore";
 
 interface TagSelectorProps {
   song: Song;
   isAdmin: boolean;
 }
 
-interface SongTag extends TagType {
-  id: number;
+interface SongTag {
+  id: string;
   name: string;
 }
 
@@ -36,12 +36,12 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   const [newTag, setNewTag] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [isRemoving, setIsRemoving] = useState<number | null>(null);
+  const [isRemoving, setIsRemoving] = useState<string | null>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [hasLoadedTags, setHasLoadedTags] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // 清除錯誤訊息
   useEffect(() => {
     if (errorMessage) {
@@ -70,8 +70,8 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   });
 
   // 獲取當前歌曲標籤 - 懶加載，只在需要時才載入
-  const { 
-    data: songTags = [], 
+  const {
+    data: songTags = [],
     refetch: refetchSongTags,
     isLoading: isSongTagsLoading
   } = useQuery<SongTag[]>({
@@ -98,7 +98,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
     mutationFn: async () => {
       setIsAdding(true);
       setErrorMessage(null);
-      
+
       try {
         const response = await fetch('/api/tags', {
           method: 'POST',
@@ -106,12 +106,12 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
           body: JSON.stringify({ name: newTag.trim() }),
           credentials: 'include'
         });
-        
+
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error || 'Failed to add tag');
         }
-        
+
         return response.json();
       } catch (error) {
         if (error instanceof Error) {
@@ -143,9 +143,9 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
 
   // 將標籤添加到歌曲
   const addSongTagMutation = useMutation({
-    mutationFn: async (tagId: number) => {
+    mutationFn: async (tagId: string) => {
       setErrorMessage(null);
-      
+
       try {
         const response = await fetch(`/api/songs/${song.id}/tags`, {
           method: 'POST',
@@ -153,12 +153,12 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
           body: JSON.stringify({ tagId }),
           credentials: 'include'
         });
-        
+
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error || 'Failed to add song tag');
         }
-        
+
         return response.json();
       } catch (error) {
         if (error instanceof Error) {
@@ -185,21 +185,21 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
 
   // 從歌曲中移除標籤
   const removeSongTagMutation = useMutation({
-    mutationFn: async (tagId: number) => {
+    mutationFn: async (tagId: string) => {
       setIsRemoving(tagId);
       setErrorMessage(null);
-      
+
       try {
         const response = await fetch(`/api/songs/${song.id}/tags/${tagId}`, {
           method: 'DELETE',
           credentials: 'include'
         });
-        
+
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error || 'Failed to remove song tag');
         }
-        
+
         return response.json();
       } catch (error) {
         if (error instanceof Error) {
@@ -225,23 +225,23 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
       });
     }
   });
-  
+
   // 完全刪除標籤
   const deleteTagMutation = useMutation({
-    mutationFn: async (tagId: number) => {
+    mutationFn: async (tagId: string) => {
       setErrorMessage(null);
-      
+
       try {
         const response = await fetch(`/api/tags/${tagId}`, {
           method: 'DELETE',
           credentials: 'include'
         });
-        
+
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error || 'Failed to delete tag');
         }
-        
+
         return response.json();
       } catch (error) {
         if (error instanceof Error) {
@@ -271,7 +271,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   // 非管理員視圖
   if (!isAdmin) {
     return (
-      <motion.div 
+      <motion.div
         className="flex flex-wrap gap-2"
         layout
         transition={{ duration: 0.2 }}
@@ -283,7 +283,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 500 }}
           >
-            <Badge 
+            <Badge
               variant="outline"
               className={`bg-gradient-to-r ${tagColors[index % tagColors.length]} border-0
                        shadow-[0_2px_8px_rgba(0,0,0,0.05)]`}
@@ -315,8 +315,8 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
               exit={{ scale: 0, opacity: 0 }}
               transition={{ type: "spring", stiffness: 500 }}
             >
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className={`pr-1 group bg-gradient-to-r ${tagColors[index % tagColors.length]} border-0
                          hover:shadow-[0_2px_8px_rgba(0,0,0,0.1)]
                          transition-all duration-300`}
@@ -330,7 +330,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
                   onClick={() => removeSongTagMutation.mutate(tag.id)}
                   disabled={isRemoving === tag.id}
                   className={cn(
-                    "ml-1.5 opacity-70 group-hover:opacity-100 transition-all duration-200 hover:text-red-600 focus:outline-none", 
+                    "ml-1.5 opacity-70 group-hover:opacity-100 transition-all duration-200 hover:text-red-600 focus:outline-none",
                     isRemoving === tag.id && "animate-pulse opacity-50"
                   )}
                 >
@@ -349,9 +349,9 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
       {/* 管理按鈕和彈出層 */}
       <Popover>
         <PopoverTrigger asChild>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="w-full sm:w-auto border-2 border-primary/20 bg-gradient-to-r from-white to-primary/5 hover:from-primary/5 hover:to-white
                      shadow-[0_2px_10px_rgba(var(--primary),0.1)]
                      hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
@@ -362,8 +362,8 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
             管理標籤
           </Button>
         </PopoverTrigger>
-        <PopoverContent 
-          className="w-[300px] sm:w-[340px] border-2 border-primary/20 bg-gradient-to-b from-white to-primary/5 shadow-lg p-4 rounded-xl" 
+        <PopoverContent
+          className="w-[300px] sm:w-[340px] border-2 border-primary/20 bg-gradient-to-b from-white to-primary/5 shadow-lg p-4 rounded-xl"
           side="top"
           sideOffset={5}
         >
@@ -397,11 +397,11 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
                   )}
                 </Button>
               </div>
-              
+
               {/* 錯誤訊息顯示 */}
               <AnimatePresence>
                 {errorMessage && (
-                  <motion.div 
+                  <motion.div
                     className="text-xs text-red-500 flex items-center gap-1 mt-1 px-2 py-1 bg-red-50 rounded border border-red-200"
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -450,10 +450,10 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
                             <Hash className="w-3 h-3 mr-1.5 opacity-70" />
                             <span className="font-medium">{tag.name}</span>
                           </div>
-                          
+
                           <div className="flex items-center gap-1">
                             {/* 刪除標籤按鈕 */}
-                            <motion.button 
+                            <motion.button
                               type="button"
                               whileHover={{ scale: 1.2 }}
                               whileTap={{ scale: 0.9 }}
@@ -465,11 +465,11 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </motion.button>
-                          
+
                             {/* 已添加到歌曲的標籤顯示狀態和刪除選項 */}
                             {songTags.some((t: SongTag) => t.id === tag.id) ? (
                               <div className="flex items-center gap-1.5 ml-1">
-                                <motion.span 
+                                <motion.span
                                   className="text-green-600"
                                   initial={{ scale: 0 }}
                                   animate={{ scale: 1 }}
@@ -477,8 +477,8 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
                                 >
                                   ✓
                                 </motion.span>
-                                
-                                <motion.button 
+
+                                <motion.button
                                   type="button"
                                   whileHover={{ scale: 1.2 }}
                                   whileTap={{ scale: 0.9 }}

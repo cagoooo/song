@@ -38,6 +38,7 @@ export interface SongSuggestion {
     notes?: string;
     status: 'pending' | 'approved' | 'rejected' | 'added_to_playlist';
     createdAt: Date;
+    processedAt?: Date;
 }
 
 export interface Tag {

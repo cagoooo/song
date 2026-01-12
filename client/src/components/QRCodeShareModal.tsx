@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import { recordQRScan } from "@/lib/firestore";
 
 interface QRCodeShareModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface QRCodeShareModalProps {
   songTitle: string;
   songArtist: string;
   shareUrl: string;
-  songId: number;  // Add songId prop
+  songId: string;
 }
 
 export default function QRCodeShareModal({
@@ -23,19 +24,13 @@ export default function QRCodeShareModal({
   // Track QR code display
   useEffect(() => {
     if (isOpen && songId) {
-      fetch('/api/qr-scans', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ songId })
-      }).catch(console.error);
+      recordQRScan(songId).catch(console.error);
     }
   }, [isOpen, songId]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-md bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 border-2 border-primary/20"
         aria-describedby="qr-code-modal-description"
       >

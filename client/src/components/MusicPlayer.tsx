@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Play, Pause, SkipBack, Volume2, VolumeX, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Song } from "@db/schema";
+import { type Song } from "@/lib/firestore";
 import {
   Tooltip,
   TooltipContent,
@@ -36,21 +36,21 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
 
   const parsedLyrics: LyricLine[] = song.lyrics
     ? song.lyrics
-        .split('\n')
-        .map(line => {
-          const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
-          if (match) {
-            const [, minutes, seconds, milliseconds, text] = match;
-            const time =
-              parseInt(minutes) * 60 +
-              parseInt(seconds) +
-              parseInt(milliseconds) / 1000;
-            return { time, text: text.trim() };
-          }
-          return null;
-        })
-        .filter((item): item is LyricLine => item !== null)
-        .sort((a, b) => a.time - b.time)
+      .split('\n')
+      .map(line => {
+        const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
+        if (match) {
+          const [, minutes, seconds, milliseconds, text] = match;
+          const time =
+            parseInt(minutes) * 60 +
+            parseInt(seconds) +
+            parseInt(milliseconds) / 1000;
+          return { time, text: text.trim() };
+        }
+        return null;
+      })
+      .filter((item): item is LyricLine => item !== null)
+      .sort((a, b) => a.time - b.time)
     : [];
 
   const generateGoogleLyricsUrl = () => {
@@ -203,7 +203,7 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <motion.div
-                  whileHover={{ 
+                  whileHover={{
                     scale: 1.05,
                     transition: { duration: 0.2 }
                   }}
@@ -231,8 +231,8 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
                   </Button>
                 </motion.div>
               </TooltipTrigger>
-              <TooltipContent 
-                side="top" 
+              <TooltipContent
+                side="top"
                 className="bg-white/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg"
               >
                 <p>點擊在 Google 中搜尋「{song.title} - {song.artist}」的歌詞</p>

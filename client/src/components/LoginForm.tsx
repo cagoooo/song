@@ -24,7 +24,7 @@ export default function LoginForm({ onClose }: LoginFormProps) {
       if (!result.ok) {
         toast({
           title: "錯誤",
-          description: result.message,
+          description: (result as any).message || "登入失敗",
           variant: "destructive"
         });
         return;
@@ -77,8 +77,8 @@ export default function LoginForm({ onClose }: LoginFormProps) {
             />
           </div>
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
           >
             登入

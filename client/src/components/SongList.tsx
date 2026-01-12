@@ -477,7 +477,7 @@ export default function SongList({ songs, user, hasMore, isLoadingMore, onLoadMo
     setQrModalOpen(true);
   };
 
-  const getShareUrl = (songId: number) => {
+  const getShareUrl = (songId: string) => {
     const baseUrl = window.location.origin;
     return `${baseUrl}/songs/${songId}`;
   };

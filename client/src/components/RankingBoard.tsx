@@ -76,14 +76,14 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
   };
 
   // 使用 ref 來追蹤前一次的排名和投票
-  const prevRanksRef = useRef<{ [key: number]: number }>({});
-  const prevVotesRef = useRef<{ [key: number]: number }>({});
+  const prevRanksRef = useRef<{ [key: string]: number }>({});
+  const prevVotesRef = useRef<{ [key: string]: number }>({});
 
   useEffect(() => {
-    const newRanks: { [key: number]: number } = {};
-    const newRankChanges: { [key: number]: 'up' | 'down' | null } = {};
-    const newFireworks: { [key: number]: boolean } = {};
-    const newVotes: { [key: number]: number } = {};
+    const newRanks: { [key: string]: number } = {};
+    const newRankChanges: { [key: string]: 'up' | 'down' | null } = {};
+    const newFireworks: { [key: string]: boolean } = {};
+    const newVotes: { [key: string]: number } = {};
 
     let hasTopRankChanged = false;
 
