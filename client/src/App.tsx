@@ -1,18 +1,21 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Router } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import Home from "@/pages/Home";
 import { Toaster } from "@/components/ui/toaster";
 
+// GitHub Pages base path
+const base = import.meta.env.BASE_URL || "/";
+
 function App() {
   return (
-    <>
+    <Router base={base.endsWith('/') ? base.slice(0, -1) : base}>
       <Switch>
         <Route path="/" component={Home} />
         <Route component={NotFound} />
       </Switch>
       <Toaster />
-    </>
+    </Router>
   );
 }
 

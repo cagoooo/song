@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 歌曲集合 - 所有人可讀，僅管理員可寫
+    match /songs/{songId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // 投票集合 - 所有人可讀取和新增，僅管理員可刪除
+    match /votes/{voteId} {
+      allow read: if true;
+      allow create: if true;
+      allow delete: if isAdmin();
+    }
+    
+    // 歌曲建議集合 - 所有人可讀取和新增，僅管理員可更新狀態
+    match /songSuggestions/{suggestionId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+    
+    // 標籤集合 - 所有人可讀，僅管理員可寫
+    match /tags/{tagId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // 歌曲標籤關聯集合 - 所有人可讀，僅管理員可寫
+    match /songTags/{songTagId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // QR Code 掃描記錄 - 所有人可讀寫
+    match /qrCodeScans/{scanId} {
+      allow read, write: if true;
+    }
+    
+    // 使用者集合 - 僅本人或管理員可讀寫
+    match /users/{userId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == userId || isAdmin());
+      allow write: if request.auth != null && 
+        (request.auth.uid == userId || isAdmin());
+    }
+    
+    // 輔助函式：檢查是否為管理員
+    function isAdmin() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+  }
+}
