@@ -42,10 +42,10 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
 
   const songs = sortedSongs;
 
-  const [showRankChange, setShowRankChange] = useState<{ [key: number]: 'up' | 'down' | null }>({});
-  const [showFirework, setShowFirework] = useState<{ [key: number]: boolean }>({});
-  const rankChangeTimeoutRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
-  const fireWorkTimeoutRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
+  const [showRankChange, setShowRankChange] = useState<Record<string, 'up' | 'down' | null>>({});
+  const [showFirework, setShowFirework] = useState<Record<string, boolean>>({});
+  const rankChangeTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const fireWorkTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 使用穩定的 key 來追蹤歌曲變化

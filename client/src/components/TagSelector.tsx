@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,16 +9,12 @@ import { Tag, Hash, X, Plus, Trash2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { type Song, type Tag as TagType } from "@/lib/firestore";
+import { type Song } from "@/lib/firestore";
+import { useTags } from "@/hooks/use-tags";
 
 interface TagSelectorProps {
   song: Song;
   isAdmin: boolean;
-}
-
-interface SongTag {
-  id: string;
-  name: string;
 }
 
 // 標籤顏色方案
@@ -34,239 +29,102 @@ const tagColors = [
 
 export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
   const [newTag, setNewTag] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const [hasLoadedTags, setHasLoadedTags] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  // 清除錯誤訊息
-  useEffect(() => {
-    if (errorMessage) {
-      const timer = setTimeout(() => setErrorMessage(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [errorMessage]);
-
-  // 獲取所有標籤 - 只在管理員打開彈窗時載入
-  const { data: tags = [], refetch: refetchTags } = useQuery<SongTag[]>({
-    queryKey: ['/api/tags'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/tags');
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to fetch tags');
-        }
-        return response.json();
-      } catch (error) {
-        console.error("Error fetching tags:", error);
-        return [];
-      }
-    },
-    enabled: isPopoverOpen
-  });
-
-  // 獲取當前歌曲標籤 - 懶加載，只在需要時才載入
+  // 使用 Firestore hook
   const {
-    data: songTags = [],
-    refetch: refetchSongTags,
-    isLoading: isSongTagsLoading
-  } = useQuery<SongTag[]>({
-    queryKey: ['/api/songs', song.id, 'tags'],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`/api/songs/${song.id}/tags`);
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to fetch song tags');
-        }
-        setHasLoadedTags(true);
-        return response.json();
-      } catch (error) {
-        console.error("Error fetching song tags:", error);
-        return [];
-      }
-    },
-    enabled: hasLoadedTags || isPopoverOpen
-  });
+    tags,
+    songTags,
+    isLoadingTags,
+    isLoadingSongTags,
+    loadTags,
+    loadSongTags,
+    addTag,
+    deleteTag,
+    addSongTag,
+    removeSongTag,
+    error,
+    clearError,
+  } = useTags({ songId: song.id, autoLoad: false });
+
+  // 當彈窗打開時載入標籤
+  useEffect(() => {
+    if (isPopoverOpen) {
+      loadTags();
+      loadSongTags(song.id);
+    }
+  }, [isPopoverOpen, song.id, loadTags, loadSongTags]);
+
+  // 顯示錯誤訊息
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "錯誤",
+        description: error,
+        variant: "destructive"
+      });
+      clearError();
+    }
+  }, [error, toast, clearError]);
 
   // 新增標籤
-  const addTagMutation = useMutation({
-    mutationFn: async () => {
-      setIsAdding(true);
-      setErrorMessage(null);
+  const handleAddTag = async () => {
+    if (!newTag.trim()) return;
 
-      try {
-        const response = await fetch('/api/tags', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newTag.trim() }),
-          credentials: 'include'
-        });
+    setIsAdding(true);
+    const result = await addTag(newTag.trim());
+    setIsAdding(false);
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to add tag');
-        }
-
-        return response.json();
-      } catch (error) {
-        if (error instanceof Error) {
-          setErrorMessage(error.message);
-        } else {
-          setErrorMessage('標籤新增失敗');
-        }
-        throw error;
-      } finally {
-        setIsAdding(false);
-      }
-    },
-    onSuccess: () => {
-      setNewTag("");
+    if (result) {
       toast({
         title: "成功",
         description: "標籤新增成功",
       });
-      refetchTags();
-    },
-    onError: (error) => {
-      toast({
-        title: "錯誤",
-        description: error instanceof Error ? error.message : "標籤新增失敗",
-        variant: "destructive"
-      });
+      setNewTag("");
     }
-  });
+  };
 
-  // 將標籤添加到歌曲
-  const addSongTagMutation = useMutation({
-    mutationFn: async (tagId: string) => {
-      setErrorMessage(null);
-
-      try {
-        const response = await fetch(`/api/songs/${song.id}/tags`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tagId }),
-          credentials: 'include'
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to add song tag');
-        }
-
-        return response.json();
-      } catch (error) {
-        if (error instanceof Error) {
-          setErrorMessage(error.message);
-        }
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      toast({
-        title: "成功",
-        description: "標籤已加入歌曲",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/songs', song.id, 'tags'] });
-    },
-    onError: (error) => {
-      toast({
-        title: "錯誤",
-        description: error instanceof Error ? error.message : "新增歌曲標籤失敗",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // 從歌曲中移除標籤
-  const removeSongTagMutation = useMutation({
-    mutationFn: async (tagId: string) => {
-      setIsRemoving(tagId);
-      setErrorMessage(null);
-
-      try {
-        const response = await fetch(`/api/songs/${song.id}/tags/${tagId}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to remove song tag');
-        }
-
-        return response.json();
-      } catch (error) {
-        if (error instanceof Error) {
-          setErrorMessage(error.message);
-        }
-        throw error;
-      } finally {
-        setIsRemoving(null);
-      }
-    },
-    onSuccess: () => {
-      toast({
-        title: "成功",
-        description: "標籤已從歌曲移除",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/songs', song.id, 'tags'] });
-    },
-    onError: (error) => {
-      toast({
-        title: "錯誤",
-        description: error instanceof Error ? error.message : "移除歌曲標籤失敗",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // 完全刪除標籤
-  const deleteTagMutation = useMutation({
-    mutationFn: async (tagId: string) => {
-      setErrorMessage(null);
-
-      try {
-        const response = await fetch(`/api/tags/${tagId}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to delete tag');
-        }
-
-        return response.json();
-      } catch (error) {
-        if (error instanceof Error) {
-          setErrorMessage(error.message);
-        }
-        throw error;
-      }
-    },
-    onSuccess: () => {
+  // 刪除標籤
+  const handleDeleteTag = async (tagId: string) => {
+    const success = await deleteTag(tagId);
+    if (success) {
       toast({
         title: "成功",
         description: "標籤已完全刪除",
       });
-      // 重新加載所有標籤和當前歌曲的標籤
-      queryClient.invalidateQueries({ queryKey: ['/api/tags'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/songs', song.id, 'tags'] });
-    },
-    onError: (error) => {
+    }
+  };
+
+  // 為歌曲新增標籤
+  const handleAddSongTag = async (tagId: string) => {
+    // 檢查是否已存在
+    if (songTags.some(t => t.id === tagId)) return;
+
+    const success = await addSongTag(song.id, tagId);
+    if (success) {
       toast({
-        title: "錯誤",
-        description: error instanceof Error ? error.message : "刪除標籤失敗",
-        variant: "destructive"
+        title: "成功",
+        description: "標籤已加入歌曲",
       });
     }
-  });
+  };
+
+  // 從歌曲移除標籤
+  const handleRemoveSongTag = async (tagId: string) => {
+    setIsRemoving(tagId);
+    const success = await removeSongTag(song.id, tagId);
+    setIsRemoving(null);
+
+    if (success) {
+      toast({
+        title: "成功",
+        description: "標籤已從歌曲移除",
+      });
+    }
+  };
 
   // 非管理員視圖
   if (!isAdmin) {
@@ -276,7 +134,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
         layout
         transition={{ duration: 0.2 }}
       >
-        {songTags.map((tag: SongTag, index) => (
+        {songTags.map((tag, index) => (
           <motion.div
             key={tag.id}
             initial={{ scale: 0 }}
@@ -302,12 +160,12 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
     <motion.div layout transition={{ duration: 0.2 }}>
       {/* 當前歌曲標籤 */}
       <div className="flex flex-wrap gap-2 mb-2">
-        {isSongTagsLoading ? (
+        {isLoadingSongTags ? (
           <div className="animate-pulse w-full h-8 bg-gray-200 rounded"></div>
         ) : songTags.length === 0 ? (
           <div className="text-sm text-gray-500 italic">尚未添加標籤</div>
         ) : (
-          songTags.map((tag: SongTag, index) => (
+          songTags.map((tag, index) => (
             <motion.div
               key={tag.id}
               initial={{ scale: 0 }}
@@ -327,7 +185,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
                   type="button"
                   whileHover={{ scale: 1.2 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => removeSongTagMutation.mutate(tag.id)}
+                  onClick={() => handleRemoveSongTag(tag.id)}
                   disabled={isRemoving === tag.id}
                   className={cn(
                     "ml-1.5 opacity-70 group-hover:opacity-100 transition-all duration-200 hover:text-red-600 focus:outline-none",
@@ -347,7 +205,7 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
       </div>
 
       {/* 管理按鈕和彈出層 */}
-      <Popover>
+      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -380,10 +238,11 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
                   onChange={(e) => setNewTag(e.target.value)}
                   placeholder="輸入標籤名稱..."
                   className="h-9 text-sm bg-white/80 focus:bg-white focus:border-primary/40 focus:ring-1 focus:ring-primary/20 shadow-sm"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
                 />
                 <Button
                   size="sm"
-                  onClick={() => addTagMutation.mutate()}
+                  onClick={handleAddTag}
                   disabled={!newTag.trim() || isAdding}
                   className={cn(
                     "h-9 px-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-white shadow-md hover:shadow-lg transition-all duration-300",
@@ -397,22 +256,6 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
                   )}
                 </Button>
               </div>
-
-              {/* 錯誤訊息顯示 */}
-              <AnimatePresence>
-                {errorMessage && (
-                  <motion.div
-                    className="text-xs text-red-500 flex items-center gap-1 mt-1 px-2 py-1 bg-red-50 rounded border border-red-200"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <AlertTriangle className="w-3 h-3" />
-                    {errorMessage}
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
 
             {/* 現有標籤列表 */}
@@ -423,93 +266,98 @@ export default function TagSelector({ song, isAdmin }: TagSelectorProps) {
               </Label>
               <ScrollArea className="h-[180px] sm:h-[220px] w-full mt-1.5 pr-2 bg-white/70 rounded-md shadow-inner">
                 <div className="space-y-1.5 p-2">
-                  {tags.length === 0 ? (
+                  {isLoadingTags ? (
+                    <div className="animate-pulse space-y-2">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="h-8 bg-gray-200 rounded"></div>
+                      ))}
+                    </div>
+                  ) : tags.length === 0 ? (
                     <div className="text-sm text-gray-500 italic text-center py-8">尚無標籤</div>
                   ) : (
-                    tags.map((tag: SongTag, index) => (
-                      <motion.div
-                        key={tag.id}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2, delay: index * 0.03 }}
-                      >
-                        <Badge
-                          variant="outline"
-                          className={`w-full justify-between cursor-pointer
-                                  bg-gradient-to-r ${tagColors[index % tagColors.length]} border-0
-                                  hover:shadow-md hover:scale-[1.01]
-                                  transition-all duration-300 py-1.5 pl-2 pr-1`}
-                          onClick={() => {
-                            // 只有當歌曲尚未添加此標籤時才執行添加操作
-                            if (!songTags.some((t: SongTag) => t.id === tag.id)) {
-                              addSongTagMutation.mutate(tag.id);
-                            }
-                          }}
+                    tags.map((tag, index) => {
+                      const isInSong = songTags.some(t => t.id === tag.id);
+
+                      return (
+                        <motion.div
+                          key={tag.id}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2, delay: index * 0.03 }}
                         >
-                          <div className="flex items-center">
-                            <Hash className="w-3 h-3 mr-1.5 opacity-70" />
-                            <span className="font-medium">{tag.name}</span>
-                          </div>
+                          <Badge
+                            variant="outline"
+                            className={`w-full justify-between cursor-pointer
+                                    bg-gradient-to-r ${tagColors[index % tagColors.length]} border-0
+                                    hover:shadow-md hover:scale-[1.01]
+                                    transition-all duration-300 py-1.5 pl-2 pr-1`}
+                            onClick={() => !isInSong && handleAddSongTag(tag.id)}
+                          >
+                            <div className="flex items-center">
+                              <Hash className="w-3 h-3 mr-1.5 opacity-70" />
+                              <span className="font-medium">{tag.name}</span>
+                            </div>
 
-                          <div className="flex items-center gap-1">
-                            {/* 刪除標籤按鈕 */}
-                            <motion.button
-                              type="button"
-                              whileHover={{ scale: 1.2 }}
-                              whileTap={{ scale: 0.9 }}
-                              className="hover:text-red-600 focus:outline-none transition-colors duration-200"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteTagMutation.mutate(tag.id);
-                              }}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </motion.button>
-
-                            {/* 已添加到歌曲的標籤顯示狀態和刪除選項 */}
-                            {songTags.some((t: SongTag) => t.id === tag.id) ? (
-                              <div className="flex items-center gap-1.5 ml-1">
-                                <motion.span
-                                  className="text-green-600"
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ type: "spring", stiffness: 500 }}
-                                >
-                                  ✓
-                                </motion.span>
-
-                                <motion.button
-                                  type="button"
-                                  whileHover={{ scale: 1.2 }}
-                                  whileTap={{ scale: 0.9 }}
-                                  className="hover:text-red-600 focus:outline-none transition-colors duration-200"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removeSongTagMutation.mutate(tag.id);
-                                  }}
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </motion.button>
-                              </div>
-                            ) : (
-                              // 添加按鈕
+                            <div className="flex items-center gap-1">
+                              {/* 刪除標籤按鈕 */}
                               <motion.button
                                 type="button"
-                                whileHover={{ scale: 1.1 }}
+                                whileHover={{ scale: 1.2 }}
                                 whileTap={{ scale: 0.9 }}
-                                className="text-primary/70 hover:text-primary focus:outline-none ml-1"
+                                className="hover:text-red-600 focus:outline-none transition-colors duration-200"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  addSongTagMutation.mutate(tag.id);
+                                  handleDeleteTag(tag.id);
                                 }}
                               >
-                                <Plus className="w-3.5 h-3.5" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </motion.button>
-                            )}
-                          </div>
-                        </Badge>
-                      </motion.div>
-                    ))
+
+                              {/* 已添加到歌曲的標籤顯示狀態和刪除選項 */}
+                              {isInSong ? (
+                                <div className="flex items-center gap-1.5 ml-1">
+                                  <motion.span
+                                    className="text-green-600"
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: "spring", stiffness: 500 }}
+                                  >
+                                    ✓
+                                  </motion.span>
+
+                                  <motion.button
+                                    type="button"
+                                    whileHover={{ scale: 1.2 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="hover:text-red-600 focus:outline-none transition-colors duration-200"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveSongTag(tag.id);
+                                    }}
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </motion.button>
+                                </div>
+                              ) : (
+                                // 添加按鈕
+                                <motion.button
+                                  type="button"
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  className="text-primary/70 hover:text-primary focus:outline-none ml-1"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddSongTag(tag.id);
+                                  }}
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </motion.button>
+                              )}
+                            </div>
+                          </Badge>
+                        </motion.div>
+                      );
+                    })
                   )}
                 </div>
               </ScrollArea>
