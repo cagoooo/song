@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -22,17 +21,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import type { Song, User } from "@db/schema";
 import { Music, ThumbsUp, Trash2, RotateCcw, Edit2, CheckCircle2, Sparkles, Heart, Loader2, ChevronDown, Search } from "lucide-react";
 import SearchBar from "./SearchBar";
 import { AnimatePresence, motion } from "framer-motion";
 import QRCodeShareModal from "./QRCodeShareModal";
 import confetti from "canvas-confetti";
+import {
+  voteSong,
+  deleteSong as firestoreDeleteSong,
+  updateSong as firestoreUpdateSong,
+  resetAllVotes as firestoreResetAllVotes,
+  getSessionId,
+  type Song,
+} from "@/lib/firestore";
+import type { AppUser } from "@/lib/auth";
 
 interface SongListProps {
   songs: Song[];
-  ws: WebSocket | null;
-  user: User | null;
+  user: AppUser | null;
   hasMore?: boolean;
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
@@ -109,7 +115,7 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
     }
     return Math.abs(hash) % colorSchemes.length;
   };
-  
+
   const colorIndex = getColorIndex(song.id);
   const colorScheme = colorSchemes[colorIndex];
 
@@ -122,22 +128,22 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
       `}>
         {/* 背景裝飾 */}
         <div className="absolute -z-10 inset-0 bg-white/50"></div>
-        <motion.div 
+        <motion.div
           className="absolute -z-5 inset-0 opacity-20 pointer-events-none"
           initial={{ backgroundPosition: "0% 0%" }}
-          animate={{ 
-            backgroundPosition: ["0% 0%", "100% 100%"], 
+          animate={{
+            backgroundPosition: ["0% 0%", "100% 100%"],
           }}
           transition={{ duration: 15, repeat: Infinity, repeatType: "reverse" }}
-          style={{ 
+          style={{
             backgroundImage: "radial-gradient(circle at 50% 50%, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 25%)",
             backgroundSize: "120% 120%"
           }}
         />
-        
+
         {/* 頂部裝飾 */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
-        
+
         <DialogHeader>
           <motion.div
             initial={{ y: -20, opacity: 0 }}
@@ -155,24 +161,24 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
             </DialogDescription>
           </motion.div>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6 mt-2">
-          <motion.div 
+          <motion.div
             className="space-y-4"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.1 }}
           >
             <div className="space-y-2">
-              <Label 
-                htmlFor="title" 
+              <Label
+                htmlFor="title"
                 className="font-medium text-gray-700 flex items-center gap-1.5"
               >
                 <Music className="w-4 h-4 text-primary" />
                 歌曲名稱
               </Label>
               <motion.div
-                animate={animateForm ? { 
+                animate={animateForm ? {
                   y: [0, -2, 0, -2, 0],
                   x: [0, 1, -1, 1, 0]
                 } : {}}
@@ -192,9 +198,9 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
                 />
               </motion.div>
             </div>
-          
+
             <div className="space-y-2">
-              <Label 
+              <Label
                 htmlFor="artist"
                 className="font-medium text-gray-700 flex items-center gap-1.5"
               >
@@ -202,9 +208,9 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
                 歌手
               </Label>
               <motion.div
-                animate={animateForm ? { 
+                animate={animateForm ? {
                   y: [0, -2, 0, -2, 0],
-                  x: [0, 1, -1, 1, 0]  
+                  x: [0, 1, -1, 1, 0]
                 } : {}}
                 transition={{ duration: 0.4, delay: 0.1 }}
               >
@@ -223,16 +229,16 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
               </motion.div>
             </div>
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             className="flex justify-end gap-3 pt-2"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <Button 
-              variant="outline" 
-              type="button" 
+            <Button
+              variant="outline"
+              type="button"
               onClick={onClose}
               className={`
                 ${colorScheme.btnCancel}
@@ -243,7 +249,7 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
             >
               取消
             </Button>
-            <Button 
+            <Button
               type="submit"
               className={`
                 ${colorScheme.btnSave}
@@ -261,34 +267,33 @@ function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
   );
 }
 
-export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLoadMore, totalCount }: SongListProps) {
+export default function SongList({ songs, user, hasMore, isLoadingMore, onLoadMore, totalCount }: SongListProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  
-  // Debounce 搜尋輸入以避免過多 API 請求
+
+  // Debounce 搜尋輸入
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
-  
-  // 當有搜尋關鍵字時，從後端 API 獲取所有符合的歌曲
-  const { data: searchResults, isLoading: isSearching } = useQuery<Song[]>({
-    queryKey: ['/api/songs', 'search', debouncedSearch],
-    queryFn: async () => {
-      if (!debouncedSearch.trim()) return [];
-      const response = await fetch(`/api/songs?search=${encodeURIComponent(debouncedSearch)}`, {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to search songs');
-      return response.json();
-    },
-    enabled: !!debouncedSearch.trim(),
-    staleTime: 30000,
-  });
-  
+
+  // 本地搜尋過濾
+  const searchResults = useMemo(() => {
+    if (!debouncedSearch.trim()) return null;
+    const term = debouncedSearch.toLowerCase();
+    return songs.filter(
+      (song) =>
+        song.title.toLowerCase().includes(term) ||
+        song.artist.toLowerCase().includes(term)
+    );
+  }, [songs, debouncedSearch]);
+
+  const isSearching = false; // 本地搜尋不需要 loading 狀態
+
+
   // 偵測是否為手機裝置，減少動畫
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const reduceMotion = isMobile || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -315,11 +320,11 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
 
   const triggerVoteConfetti = (buttonElement: HTMLButtonElement | null) => {
     if (!buttonElement) return;
-    
+
     const rect = buttonElement.getBoundingClientRect();
     const x = (rect.left + rect.width / 2) / window.innerWidth;
     const y = (rect.top + rect.height / 2) / window.innerHeight;
-    
+
     confetti({
       particleCount: 30,
       spread: 60,
@@ -333,7 +338,8 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
     });
   };
 
-  const handleVoteStart = useCallback((songId: string, song: Song) => {
+
+  const handleVoteStart = useCallback(async (songId: string, song: Song) => {
     const now = Date.now();
     const lastTime = lastVoteTime[songId] || 0;
     const timeDiff = now - lastTime;
@@ -342,9 +348,11 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
       return;
     }
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
+    try {
       setVotingId(songId);
-      ws.send(JSON.stringify({ type: 'VOTE', songId }));
+
+      // 使用 Firestore 投票
+      await voteSong(songId, getSessionId());
 
       setClickCount(prev => ({
         ...prev,
@@ -357,11 +365,11 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
       }));
 
       setVoteSuccess(prev => ({ ...prev, [songId]: true }));
-      
+
       triggerVoteConfetti(buttonRefs.current[songId]);
-      
+
       setShowVoteOverlay({ songId, title: song.title, artist: song.artist });
-      
+
       toast({
         title: "🎸 點播成功！",
         description: (
@@ -378,7 +386,7 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
         setVotingId(null);
         setVoteSuccess(prev => ({ ...prev, [songId]: false }));
       }, 800);
-      
+
       setTimeout(() => {
         setShowVoteOverlay(null);
       }, 1500);
@@ -391,7 +399,7 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
 
       (window as any)[timeoutKey] = setTimeout(() => {
         const currentCount = clickCount[songId] || 0;
-        const steps = 10; 
+        const steps = 10;
         const decrementPerStep = Math.ceil(currentCount / steps);
 
         (window as any)[`interval_${songId}`] = setInterval(() => {
@@ -407,14 +415,16 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
           });
         }, 100);
       }, 2000);
-    } else {
+    } catch (error) {
+      setVotingId(null);
       toast({
-        title: "連線中",
-        description: "正在連線到伺服器，請稍後再試",
+        title: "錯誤",
+        description: "投票失敗，請稍後再試",
         variant: "destructive"
       });
     }
-  }, [ws, clickCount, lastVoteTime, toast]);
+  }, [clickCount, lastVoteTime, toast]);
+
 
   // 搜尋時使用 API 結果，否則使用分頁的歌曲列表
   const filteredSongs = useMemo(() => {
@@ -423,21 +433,14 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
     }
     return songs;
   }, [songs, debouncedSearch, searchResults]);
-  
+
   // 判斷是否正在搜尋模式
   const isInSearchMode = !!searchTerm.trim();
 
-  const deleteSong = async (songId: number) => {
+
+  const deleteSong = async (songId: string) => {
     try {
-      const response = await fetch(`/api/songs/${songId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete song');
-      }
-
+      await firestoreDeleteSong(songId);
       toast({
         title: "成功",
         description: "歌曲已刪除",
@@ -453,15 +456,7 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
 
   const resetAllVotes = async () => {
     try {
-      const response = await fetch('/api/songs/reset-votes', {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to reset votes');
-      }
-
+      await firestoreResetAllVotes();
       toast({
         title: "成功",
         description: "所有點播次數已歸零",
@@ -473,6 +468,7 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
         description: "無法重置點播次數",
         variant: "destructive"
       });
+
     }
   };
 
@@ -490,15 +486,7 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
     if (!editingSong) return;
 
     try {
-      const response = await fetch(`/api/songs/${editingSong.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, artist }),
-        credentials: 'include'
-      });
-
-      if (!response.ok) throw new Error('Failed to update song');
-
+      await firestoreUpdateSong(editingSong.id, title, artist);
       toast({
         title: "成功",
         description: "歌曲已更新",
@@ -513,6 +501,7 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
     }
   };
 
+
   return (
     <div className="space-y-4 relative">
       {/* 點播成功覆蓋動畫 */}
@@ -526,11 +515,11 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
           >
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ 
+              animate={{
                 scale: [0.5, 1.2, 1],
                 opacity: [0, 1, 1, 0]
               }}
-              transition={{ 
+              transition={{
                 duration: 1.5,
                 times: [0, 0.3, 0.7, 1]
               }}
@@ -539,24 +528,24 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
                          flex flex-col items-center gap-3"
             >
               <motion.div
-                animate={{ 
+                animate={{
                   rotate: [0, 10, -10, 0],
                   scale: [1, 1.2, 1]
                 }}
-                transition={{ 
+                transition={{
                   duration: 0.5,
                   repeat: 2
                 }}
               >
                 <CheckCircle2 className="h-12 w-12 text-white drop-shadow-lg" />
               </motion.div>
-              <motion.p 
+              <motion.p
                 className="text-xl font-bold"
                 animate={{ y: [10, 0] }}
               >
                 點播成功！
               </motion.p>
-              <motion.div 
+              <motion.div
                 className="text-center"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -567,10 +556,10 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
               </motion.div>
               <motion.div
                 className="flex gap-2 mt-1"
-                animate={{ 
+                animate={{
                   scale: [1, 1.1, 1]
                 }}
-                transition={{ 
+                transition={{
                   duration: 0.6,
                   repeat: Infinity
                 }}
@@ -578,11 +567,11 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
                 {[...Array(3)].map((_, i) => (
                   <motion.div
                     key={i}
-                    animate={{ 
+                    animate={{
                       y: [0, -5, 0],
                       opacity: [0.5, 1, 0.5]
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 0.4,
                       delay: i * 0.1,
                       repeat: Infinity
@@ -626,34 +615,34 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
               transition={reduceMotion ? { duration: 0.1 } : { duration: 0.3, delay: Math.min(index * 0.03, 0.5) }}
               className={`flex flex-col gap-4 p-3 sm:p-4 rounded-xl border-2 
                         ${index % 5 === 0 ? 'border-pink-300 bg-gradient-to-br from-white via-pink-50 to-white' :
-                         index % 5 === 1 ? 'border-blue-300 bg-gradient-to-br from-white via-blue-50 to-white' :
-                         index % 5 === 2 ? 'border-purple-300 bg-gradient-to-br from-white via-purple-50 to-white' :
-                         index % 5 === 3 ? 'border-amber-300 bg-gradient-to-br from-white via-amber-50 to-white' :
-                                         'border-emerald-300 bg-gradient-to-br from-white via-emerald-50 to-white'}
+                  index % 5 === 1 ? 'border-blue-300 bg-gradient-to-br from-white via-blue-50 to-white' :
+                    index % 5 === 2 ? 'border-purple-300 bg-gradient-to-br from-white via-purple-50 to-white' :
+                      index % 5 === 3 ? 'border-amber-300 bg-gradient-to-br from-white via-amber-50 to-white' :
+                        'border-emerald-300 bg-gradient-to-br from-white via-emerald-50 to-white'}
                         hover:border-opacity-100
-                        hover:shadow-lg hover:shadow-${index % 5 === 0 ? 'pink' : 
-                                                    index % 5 === 1 ? 'blue' : 
-                                                    index % 5 === 2 ? 'purple' : 
-                                                    index % 5 === 3 ? 'amber' : 'emerald'}-200/40
+                        hover:shadow-lg hover:shadow-${index % 5 === 0 ? 'pink' :
+                  index % 5 === 1 ? 'blue' :
+                    index % 5 === 2 ? 'purple' :
+                      index % 5 === 3 ? 'amber' : 'emerald'}-200/40
                         transition-all duration-300 transform-gpu`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="relative overflow-hidden">
                   <div className={`absolute left-0 top-0 w-2 h-full rounded-full 
                                ${index % 5 === 0 ? 'bg-pink-400' :
-                                index % 5 === 1 ? 'bg-blue-400' : 
-                                index % 5 === 2 ? 'bg-purple-400' : 
-                                index % 5 === 3 ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                      index % 5 === 1 ? 'bg-blue-400' :
+                        index % 5 === 2 ? 'bg-purple-400' :
+                          index % 5 === 3 ? 'bg-amber-400' : 'bg-emerald-400'}`} />
                   <div className="ml-4">
                     <div className="flex items-center gap-2">
                       <Music className={`h-5 w-5 ${index % 5 === 0 ? 'text-pink-500' :
-                                                  index % 5 === 1 ? 'text-blue-500' : 
-                                                  index % 5 === 2 ? 'text-purple-500' : 
-                                                  index % 5 === 3 ? 'text-amber-500' : 'text-emerald-500'}`} />
+                        index % 5 === 1 ? 'text-blue-500' :
+                          index % 5 === 2 ? 'text-purple-500' :
+                            index % 5 === 3 ? 'text-amber-500' : 'text-emerald-500'}`} />
                       <h3 className="font-semibold text-gray-800 break-all">{song.title}</h3>
                     </div>
                     <p className="text-sm text-gray-600 break-all ml-7">{song.artist}</p>
-                    
+
                   </div>
                 </div>
 
@@ -672,41 +661,41 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
                         flex gap-2 relative overflow-hidden w-full sm:w-auto
                         rounded-xl
                         ${index % 5 === 0 ? 'bg-gradient-to-r from-pink-100 via-rose-100 to-pink-200' :
-                         index % 5 === 1 ? 'bg-gradient-to-r from-blue-100 via-indigo-100 to-blue-200' :
-                         index % 5 === 2 ? 'bg-gradient-to-r from-purple-100 via-fuchsia-100 to-purple-200' :
-                         index % 5 === 3 ? 'bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-200' :
-                         'bg-gradient-to-r from-emerald-100 via-green-100 to-emerald-200'}
+                          index % 5 === 1 ? 'bg-gradient-to-r from-blue-100 via-indigo-100 to-blue-200' :
+                            index % 5 === 2 ? 'bg-gradient-to-r from-purple-100 via-fuchsia-100 to-purple-200' :
+                              index % 5 === 3 ? 'bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-200' :
+                                'bg-gradient-to-r from-emerald-100 via-green-100 to-emerald-200'}
                         hover:from-opacity-80 hover:via-opacity-80 hover:to-opacity-80
                         border-2
                         ${votingId === String(song.id) || clickCount[String(song.id)] > 0
                           ? `${index % 5 === 0 ? 'border-pink-500 shadow-pink-300' :
-                              index % 5 === 1 ? 'border-blue-500 shadow-blue-300' :
+                            index % 5 === 1 ? 'border-blue-500 shadow-blue-300' :
                               index % 5 === 2 ? 'border-purple-500 shadow-purple-300' :
-                              index % 5 === 3 ? 'border-amber-500 shadow-amber-300' :
-                              'border-emerald-500 shadow-emerald-300'}
+                                index % 5 === 3 ? 'border-amber-500 shadow-amber-300' :
+                                  'border-emerald-500 shadow-emerald-300'}
                               shadow-[0_0_${Math.min(15 + (clickCount[String(song.id)] || 0) * 5, 30)}px]
-                              ${clickCount[String(song.id)] >= 10 ? 
-                                `${index % 5 === 0 ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white' :
-                                  index % 5 === 1 ? 'bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 text-white' :
-                                  index % 5 === 2 ? 'bg-gradient-to-r from-purple-500 via-fuchsia-500 to-purple-600 text-white' :
+                              ${clickCount[String(song.id)] >= 10 ?
+                            `${index % 5 === 0 ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white' :
+                              index % 5 === 1 ? 'bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 text-white' :
+                                index % 5 === 2 ? 'bg-gradient-to-r from-purple-500 via-fuchsia-500 to-purple-600 text-white' :
                                   index % 5 === 3 ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-white' :
-                                  'bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white'}` :
-                                clickCount[String(song.id)] >= 5 ? 
-                                `${index % 5 === 0 ? 'bg-gradient-to-r from-pink-400 via-rose-400 to-pink-500' :
-                                  index % 5 === 1 ? 'bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-500' :
+                                    'bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white'}` :
+                            clickCount[String(song.id)] >= 5 ?
+                              `${index % 5 === 0 ? 'bg-gradient-to-r from-pink-400 via-rose-400 to-pink-500' :
+                                index % 5 === 1 ? 'bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-500' :
                                   index % 5 === 2 ? 'bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-500' :
-                                  index % 5 === 3 ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500' :
-                                  'bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500'}` :
-                                `${index % 5 === 0 ? 'bg-gradient-to-r from-pink-300 via-rose-300 to-pink-400' :
-                                  index % 5 === 1 ? 'bg-gradient-to-r from-blue-300 via-indigo-300 to-blue-400' :
+                                    index % 5 === 3 ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500' :
+                                      'bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500'}` :
+                              `${index % 5 === 0 ? 'bg-gradient-to-r from-pink-300 via-rose-300 to-pink-400' :
+                                index % 5 === 1 ? 'bg-gradient-to-r from-blue-300 via-indigo-300 to-blue-400' :
                                   index % 5 === 2 ? 'bg-gradient-to-r from-purple-300 via-fuchsia-300 to-purple-400' :
-                                  index % 5 === 3 ? 'bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400' :
-                                  'bg-gradient-to-r from-emerald-300 via-green-300 to-emerald-400'}`}`
+                                    index % 5 === 3 ? 'bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400' :
+                                      'bg-gradient-to-r from-emerald-300 via-green-300 to-emerald-400'}`}`
                           : `${index % 5 === 0 ? 'border-pink-300/70 hover:border-pink-400' :
-                              index % 5 === 1 ? 'border-blue-300/70 hover:border-blue-400' :
+                            index % 5 === 1 ? 'border-blue-300/70 hover:border-blue-400' :
                               index % 5 === 2 ? 'border-purple-300/70 hover:border-purple-400' :
-                              index % 5 === 3 ? 'border-amber-300/70 hover:border-amber-400' :
-                              'border-emerald-300/70 hover:border-emerald-400'}`}
+                                index % 5 === 3 ? 'border-amber-300/70 hover:border-amber-400' :
+                                  'border-emerald-300/70 hover:border-emerald-400'}`}
                         transition-all duration-150
                         transform-gpu
                         ${clickCount[String(song.id)] > 0 ? 'scale-110' : 'scale-100'}
@@ -739,18 +728,18 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
                                   rotate: [-5, 5, -5, 0],
                                   color: [
                                     index % 5 === 0 ? "#ec4899" : // pink-500
-                                    index % 5 === 1 ? "#3b82f6" : // blue-500
-                                    index % 5 === 2 ? "#a855f7" : // purple-500
-                                    index % 5 === 3 ? "#f59e0b" : // amber-500
-                                    "#10b981",                    // emerald-500
-                                    
+                                      index % 5 === 1 ? "#3b82f6" : // blue-500
+                                        index % 5 === 2 ? "#a855f7" : // purple-500
+                                          index % 5 === 3 ? "#f59e0b" : // amber-500
+                                            "#10b981",                    // emerald-500
+
                                     "#f43f5e", // rose-500
                                     "#eab308", // yellow-500
                                     index % 5 === 0 ? "#be185d" : // pink-700
-                                    index % 5 === 1 ? "#1d4ed8" : // blue-700
-                                    index % 5 === 2 ? "#7e22ce" : // purple-700
-                                    index % 5 === 3 ? "#b45309" : // amber-700
-                                    "#047857"                     // emerald-700
+                                      index % 5 === 1 ? "#1d4ed8" : // blue-700
+                                        index % 5 === 2 ? "#7e22ce" : // purple-700
+                                          index % 5 === 3 ? "#b45309" : // amber-700
+                                            "#047857"                     // emerald-700
                                   ]
                                 }}
                                 transition={{
@@ -762,13 +751,12 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
                                 style={{
                                   fontSize: `${Math.min(16 + clickCount[String(song.id)] * 2, 30)}px`,
                                   fontWeight: "900",
-                                  textShadow: `0 0 ${Math.min(10 + clickCount[String(song.id)] * 3, 25)}px ${
-                                    index % 5 === 0 ? "rgba(236, 72, 153, 0.8)" : // pink-500
+                                  textShadow: `0 0 ${Math.min(10 + clickCount[String(song.id)] * 3, 25)}px ${index % 5 === 0 ? "rgba(236, 72, 153, 0.8)" : // pink-500
                                     index % 5 === 1 ? "rgba(59, 130, 246, 0.8)" : // blue-500
-                                    index % 5 === 2 ? "rgba(168, 85, 247, 0.8)" : // purple-500
-                                    index % 5 === 3 ? "rgba(245, 158, 11, 0.8)" : // amber-500
-                                    "rgba(16, 185, 129, 0.8)"                     // emerald-500
-                                  }`
+                                      index % 5 === 2 ? "rgba(168, 85, 247, 0.8)" : // purple-500
+                                        index % 5 === 3 ? "rgba(245, 158, 11, 0.8)" : // amber-500
+                                          "rgba(16, 185, 129, 0.8)"                     // emerald-500
+                                    }`
                                 }}
                               >
                                 +{clickCount[String(song.id)]}
@@ -798,16 +786,15 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
                             w-8 h-16 rounded-full blur-sm
                             ${clickCount[String(song.id)] >= 10 ? 'opacity-100 scale-150' :
                               clickCount[String(song.id)] >= 5 ? 'opacity-90 scale-125' :
-                              'opacity-80'}
+                                'opacity-80'}
                           `}
                           style={{
-                            background: `linear-gradient(to top, ${
-                              index % 5 === 0 ? 'rgb(219, 39, 119), rgb(236, 72, 153)' : // pink-600, pink-500
+                            background: `linear-gradient(to top, ${index % 5 === 0 ? 'rgb(219, 39, 119), rgb(236, 72, 153)' : // pink-600, pink-500
                               index % 5 === 1 ? 'rgb(37, 99, 235), rgb(59, 130, 246)' : // blue-600, blue-500
-                              index % 5 === 2 ? 'rgb(147, 51, 234), rgb(168, 85, 247)' : // purple-600, purple-500
-                              index % 5 === 3 ? 'rgb(217, 119, 6), rgb(245, 158, 11)' : // amber-600, amber-500
-                              'rgb(5, 150, 105), rgb(16, 185, 129)' // emerald-600, emerald-500
-                            }, transparent)`,
+                                index % 5 === 2 ? 'rgb(147, 51, 234), rgb(168, 85, 247)' : // purple-600, purple-500
+                                  index % 5 === 3 ? 'rgb(217, 119, 6), rgb(245, 158, 11)' : // amber-600, amber-500
+                                    'rgb(5, 150, 105), rgb(16, 185, 129)' // emerald-600, emerald-500
+                              }, transparent)`,
                             animation: `pulse ${Math.max(1.5 - (clickCount[String(song.id)] * 0.1), 0.5)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
                             transform: `scale(${Math.min(1 + (clickCount[String(song.id)] * 0.1), 2)})`,
                             filter: `blur(${Math.min(3 + (clickCount[String(song.id)] * 0.2), 8)}px)`
@@ -818,16 +805,15 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
                             absolute inset-0 w-6 h-14 rounded-full blur-sm
                             ${clickCount[String(song.id)] >= 10 ? 'opacity-100 scale-150' :
                               clickCount[String(song.id)] >= 5 ? 'opacity-90 scale-125' :
-                              'opacity-80'}
+                                'opacity-80'}
                           `}
                           style={{
-                            background: `linear-gradient(to top, ${
-                              index % 5 === 0 ? 'rgb(236, 72, 153), rgb(244, 114, 182)' : // pink-500, pink-400
+                            background: `linear-gradient(to top, ${index % 5 === 0 ? 'rgb(236, 72, 153), rgb(244, 114, 182)' : // pink-500, pink-400
                               index % 5 === 1 ? 'rgb(59, 130, 246), rgb(96, 165, 250)' : // blue-500, blue-400
-                              index % 5 === 2 ? 'rgb(168, 85, 247), rgb(192, 132, 252)' : // purple-500, purple-400
-                              index % 5 === 3 ? 'rgb(245, 158, 11), rgb(251, 191, 36)' : // amber-500, amber-400
-                              'rgb(16, 185, 129), rgb(52, 211, 153)' // emerald-500, emerald-400
-                            }, transparent)`,
+                                index % 5 === 2 ? 'rgb(168, 85, 247), rgb(192, 132, 252)' : // purple-500, purple-400
+                                  index % 5 === 3 ? 'rgb(245, 158, 11), rgb(251, 191, 36)' : // amber-500, amber-400
+                                    'rgb(16, 185, 129), rgb(52, 211, 153)' // emerald-500, emerald-400
+                              }, transparent)`,
                             animation: `pulse ${Math.max(1.2 - (clickCount[String(song.id)] * 0.1), 0.3)}s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
                             transform: `scale(${Math.min(1 + (clickCount[String(song.id)] * 0.15), 2.2)})`,
                             filter: `blur(${Math.min(2 + (clickCount[String(song.id)] * 0.15), 6)}px)`
@@ -836,13 +822,12 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
                         {Array.from({ length: Math.min(5 + Math.floor(clickCount[String(song.id)] / 2), 20) }).map((_, sparkIndex) => (
                           <motion.div
                             key={sparkIndex}
-                            className={`absolute ${
-                              sparkIndex % 5 === 0 ? 'bg-pink-300' :
+                            className={`absolute ${sparkIndex % 5 === 0 ? 'bg-pink-300' :
                               sparkIndex % 5 === 1 ? 'bg-blue-300' :
-                              sparkIndex % 5 === 2 ? 'bg-purple-300' :
-                              sparkIndex % 5 === 3 ? 'bg-amber-300' : 
-                              'bg-yellow-300'
-                            } rounded-full`}
+                                sparkIndex % 5 === 2 ? 'bg-purple-300' :
+                                  sparkIndex % 5 === 3 ? 'bg-amber-300' :
+                                    'bg-yellow-300'
+                              } rounded-full`}
                             initial={{ opacity: 0, scale: 0 }}
                             animate={{
                               opacity: [0, 0.9, 0],
@@ -876,26 +861,24 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
                             style={{
                               left: '50%',
                               bottom: '100%',
-                              boxShadow: `0 0 ${3 + Math.random() * 5}px ${
-                                sparkIndex % 5 === 0 ? 'rgba(236, 72, 153, 0.8)' : // pink
+                              boxShadow: `0 0 ${3 + Math.random() * 5}px ${sparkIndex % 5 === 0 ? 'rgba(236, 72, 153, 0.8)' : // pink
                                 sparkIndex % 5 === 1 ? 'rgba(59, 130, 246, 0.8)' : // blue
-                                sparkIndex % 5 === 2 ? 'rgba(168, 85, 247, 0.8)' : // purple
-                                sparkIndex % 5 === 3 ? 'rgba(245, 158, 11, 0.8)' : // amber
-                                'rgba(252, 211, 77, 0.8)' // yellow
-                              }`
+                                  sparkIndex % 5 === 2 ? 'rgba(168, 85, 247, 0.8)' : // purple
+                                    sparkIndex % 5 === 3 ? 'rgba(245, 158, 11, 0.8)' : // amber
+                                      'rgba(252, 211, 77, 0.8)' // yellow
+                                }`
                             }}
                           />
                         ))}
                         <div
                           className="absolute inset-0 rounded-full"
                           style={{
-                            background: `radial-gradient(circle, ${
-                              index % 5 === 0 ? `rgba(236, 72, 153, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` : // pink
+                            background: `radial-gradient(circle, ${index % 5 === 0 ? `rgba(236, 72, 153, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` : // pink
                               index % 5 === 1 ? `rgba(59, 130, 246, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` : // blue
-                              index % 5 === 2 ? `rgba(168, 85, 247, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` : // purple
-                              index % 5 === 3 ? `rgba(245, 158, 11, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` : // amber
-                              `rgba(16, 185, 129, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` // emerald
-                            } 0%, transparent 70%)`,
+                                index % 5 === 2 ? `rgba(168, 85, 247, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` : // purple
+                                  index % 5 === 3 ? `rgba(245, 158, 11, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` : // amber
+                                    `rgba(16, 185, 129, ${Math.min(0.2 + clickCount[String(song.id)] * 0.05, 0.6)})` // emerald
+                              } 0%, transparent 70%)`,
                             transform: `scale(${Math.min(1.5 + clickCount[String(song.id)] * 0.1, 3)})`,
                             filter: `blur(${Math.min(5 + clickCount[String(song.id)] * 0.5, 15)}px)`
                           }}
@@ -917,19 +900,18 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
                           onClick={() => setEditingSong(song)}
                           className={`flex gap-2 w-full sm:w-auto rounded-xl
                                     ${index % 5 === 0 ? 'border-2 border-pink-300/50 bg-gradient-to-r from-white to-pink-50 hover:border-pink-400' :
-                                      index % 5 === 1 ? 'border-2 border-blue-300/50 bg-gradient-to-r from-white to-blue-50 hover:border-blue-400' :
-                                      index % 5 === 2 ? 'border-2 border-purple-300/50 bg-gradient-to-r from-white to-purple-50 hover:border-purple-400' :
-                                      index % 5 === 3 ? 'border-2 border-amber-300/50 bg-gradient-to-r from-white to-amber-50 hover:border-amber-400' :
-                                      'border-2 border-emerald-300/50 bg-gradient-to-r from-white to-emerald-50 hover:border-emerald-400'}
+                              index % 5 === 1 ? 'border-2 border-blue-300/50 bg-gradient-to-r from-white to-blue-50 hover:border-blue-400' :
+                                index % 5 === 2 ? 'border-2 border-purple-300/50 bg-gradient-to-r from-white to-purple-50 hover:border-purple-400' :
+                                  index % 5 === 3 ? 'border-2 border-amber-300/50 bg-gradient-to-r from-white to-amber-50 hover:border-amber-400' :
+                                    'border-2 border-emerald-300/50 bg-gradient-to-r from-white to-emerald-50 hover:border-emerald-400'}
                                     transition-all duration-300`}
                         >
-                          <Edit2 className={`h-4 w-4 ${
-                            index % 5 === 0 ? 'text-pink-500' :
+                          <Edit2 className={`h-4 w-4 ${index % 5 === 0 ? 'text-pink-500' :
                             index % 5 === 1 ? 'text-blue-500' :
-                            index % 5 === 2 ? 'text-purple-500' :
-                            index % 5 === 3 ? 'text-amber-500' :
-                            'text-emerald-500'
-                          }`} />
+                              index % 5 === 2 ? 'text-purple-500' :
+                                index % 5 === 3 ? 'text-amber-500' :
+                                  'text-emerald-500'
+                            }`} />
                           編輯
                         </Button>
                       </motion.div>
@@ -981,7 +963,7 @@ export default function SongList({ songs, ws, user, hasMore, isLoadingMore, onLo
             )}
           </div>
         )}
-        
+
         {/* 載入更多按鈕 - 搜尋模式下隱藏 */}
         {!isInSearchMode && hasMore && onLoadMore && (
           <div className="flex flex-col items-center py-4 mt-2">

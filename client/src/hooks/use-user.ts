@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { User } from "@db/schema";
+import { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { signIn, signOut, onAuthChange, type AppUser } from '@/lib/auth';
 
 type RequestResult = {
   ok: true;
@@ -8,84 +9,52 @@ type RequestResult = {
   message: string;
 };
 
-async function handleRequest(
-  url: string,
-  method: string,
-  body?: { username: string; password: string; }
-): Promise<RequestResult> {
-  try {
-    const response = await fetch(url, {
-      method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      if (response.status >= 500) {
-        return { ok: false, message: response.statusText };
-      }
-
-      const message = await response.text();
-      return { ok: false, message };
-    }
-
-    return { ok: true };
-  } catch (e: any) {
-    return { ok: false, message: e.toString() };
-  }
-}
-
-async function fetchUser(): Promise<User | null> {
-  const response = await fetch('/api/user', {
-    credentials: 'include'
-  });
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      return null;
-    }
-
-    if (response.status >= 500) {
-      throw new Error(`${response.status}: ${response.statusText}`);
-    }
-
-    throw new Error(`${response.status}: ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
 export function useUser() {
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: user, error, isLoading } = useQuery<User | null, Error>({
-    queryKey: ['user'],
-    queryFn: fetchUser,
-    staleTime: Infinity,
-    retry: false
-  });
+  useEffect(() => {
+    const unsubscribe = onAuthChange((authUser) => {
+      setUser(authUser);
+      setIsLoading(false);
+    });
 
-  const loginMutation = useMutation({
-    mutationFn: (userData: { username: string; password: string; }) => 
-      handleRequest('/api/login', 'POST', userData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-    },
-  });
+    return () => unsubscribe();
+  }, []);
 
-  const logoutMutation = useMutation({
-    mutationFn: () => handleRequest('/api/logout', 'POST'),
-    onSuccess: () => {
+  const login = useCallback(async (userData: { username: string; password: string }): Promise<RequestResult> => {
+    try {
+      // Firebase Auth 使用 email，這裡將 username 作為 email 使用
+      // 如果 username 不含 @，則附加 @admin.local
+      const email = userData.username.includes('@')
+        ? userData.username
+        : `${userData.username}@admin.local`;
+
+      await signIn(email, userData.password);
       queryClient.invalidateQueries({ queryKey: ['user'] });
-    },
-  });
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, message: err.message || '登入失敗' };
+    }
+  }, [queryClient]);
+
+  const logout = useCallback(async (): Promise<RequestResult> => {
+    try {
+      await signOut();
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, message: err.message || '登出失敗' };
+    }
+  }, [queryClient]);
 
   return {
     user,
     isLoading,
     error,
-    login: loginMutation.mutateAsync,
-    logout: logoutMutation.mutateAsync,
+    login,
+    logout,
   };
 }

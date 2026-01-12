@@ -1,11 +1,9 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Song } from "@db/schema";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Music2, Trophy, Lightbulb, Loader2 } from "lucide-react";
+import { LogIn, LogOut, Music2, Trophy, Lightbulb } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import RankingBoard from "../components/RankingBoard";
@@ -14,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { subscribeSongs, type Song } from "@/lib/firestore";
 
 const PAGE_SIZE = 30;
 
@@ -21,27 +20,36 @@ export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [displayedSongs, setDisplayedSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
-  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const wsRef = useRef<WebSocket | null>(null);
   const { user, logout } = useUser();
-  const queryClient = useQueryClient();
 
-  const { isLoading } = useQuery({
-    queryKey: ['/api/songs'],
-    queryFn: async () => {
-      const response = await fetch('/api/songs', {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch songs');
-      const data = await response.json();
-      setSongs(data);
-      return data;
-    },
-    retry: 1
-  });
+  // 使用 Firestore onSnapshot 即時監聽歌曲更新
+  useEffect(() => {
+    let hasConnectedOnce = false;
+
+    const unsubscribe = subscribeSongs((updatedSongs) => {
+      setSongs(updatedSongs);
+      setIsLoading(false);
+
+      if (!hasConnectedOnce) {
+        setIsConnected(true);
+        hasConnectedOnce = true;
+        toast({
+          title: "連線成功",
+          description: "即時更新已啟用",
+          className: "bg-green-50 border-green-200 text-green-800",
+        });
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [toast]);
 
   // 根據顯示限制更新顯示的歌曲
   useEffect(() => {
@@ -60,85 +68,6 @@ export default function Home() {
 
   const hasMore = displayLimit < songs.length;
 
-  useEffect(() => {
-    let hasConnectedOnce = false;
-    let wasDisconnected = false;
-    let isCleaningUp = false;
-    
-    function setupWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
-
-      try {
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'SONGS_UPDATE') {
-              setSongs(data.songs);
-            } else if (data.type === 'SUGGESTIONS_UPDATE') {
-              queryClient.setQueryData(['/api/suggestions'], data.suggestions);
-            }
-          } catch (error) {
-          }
-        };
-
-        ws.onopen = () => {
-          setWsConnection(ws);
-          
-          if (wasDisconnected) {
-            toast({
-              title: "連線成功",
-              description: "已重新連線到伺服器",
-              className: "bg-green-50 border-green-200 text-green-800",
-            });
-          } else if (!hasConnectedOnce) {
-            toast({
-              title: "連線成功",
-              description: "即時更新已啟用",
-              className: "bg-green-50 border-green-200 text-green-800",
-            });
-          }
-          
-          hasConnectedOnce = true;
-          wasDisconnected = false;
-        };
-
-        ws.onclose = () => {
-          setWsConnection(null);
-          
-          if (isCleaningUp) return;
-          
-          if (hasConnectedOnce) {
-            wasDisconnected = true;
-            toast({
-              title: "連線中斷",
-              description: "正在嘗試重新連線...",
-              variant: "destructive"
-            });
-          }
-          setTimeout(setupWebSocket, 3000);
-        };
-
-        ws.onerror = () => {
-        };
-      } catch (error) {
-        setTimeout(setupWebSocket, 3000);
-      }
-    }
-
-    setupWebSocket();
-
-    return () => {
-      isCleaningUp = true;
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [toast]);
-
   const handleLogout = async () => {
     try {
       const result = await logout();
@@ -153,7 +82,6 @@ export default function Home() {
       toast({
         title: "成功",
         description: "已登出",
-        variant: "info"
       });
     } catch (error) {
       toast({
@@ -172,7 +100,7 @@ export default function Home() {
             <Skeleton className="h-16 sm:h-20 md:h-24 w-full max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-3xl rounded-lg" />
             <Skeleton className="mt-4 h-10 w-32 rounded-md" />
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             <Card className="lg:col-span-3 shadow-lg bg-gradient-to-br from-amber-50/50 via-white to-amber-50/50">
               <CardHeader>
@@ -188,7 +116,7 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               <Card className="shadow-lg h-full">
                 <CardHeader>
@@ -209,7 +137,7 @@ export default function Home() {
                   ))}
                 </CardContent>
               </Card>
-              
+
               <Card className="shadow-lg h-full">
                 <CardHeader>
                   <div className="flex items-center gap-2">
@@ -239,17 +167,17 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
-      {/* Admin Logout Button - Moved outside the title container */}
+      {/* Admin Logout Button */}
       {user?.isAdmin && (
-        <motion.div 
+        <motion.div
           className="fixed top-4 right-4 z-50"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleLogout}
             className="bg-white/90 hover:bg-white border-2 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 shadow-lg hover:shadow-xl transition-all duration-300"
           >
@@ -267,12 +195,12 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="flex flex-col items-center justify-center mb-6 sm:mb-8 md:mb-10 lg:mb-12 px-3 sm:px-4 md:px-6 lg:px-8 w-full"
         >
-          <motion.div 
+          <motion.div
             className="relative p-3 sm:p-4 md:p-5 lg:p-6 rounded-lg border-2 border-primary/50 bg-gradient-to-br from-white/95 via-primary/5 to-white/90 backdrop-blur-sm shadow-[0_0_20px_rgba(var(--primary),0.4)] w-full max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-3xl mx-auto overflow-hidden hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] transition-all duration-300"
             initial={{ scale: 0.95 }}
-            animate={{ 
+            animate={{
               scale: 1,
-              transition: { 
+              transition: {
                 type: "spring",
                 stiffness: 100,
                 damping: 15
@@ -281,14 +209,14 @@ export default function Home() {
             whileHover={{ scale: 1.02 }}
           >
             <motion.div className="relative">
-              <h1 
+              <h1
                 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-center bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 px-2 sm:px-3 md:px-4 py-2 relative z-10 leading-[1.2] sm:leading-[1.2] md:leading-[1.2] lg:leading-[1.2] tracking-tight text-white shadow-lg rounded-lg"
               >
                 <motion.div
                   className="inline-block"
                   initial={{ opacity: 0, y: 20 }}
-                  animate={{ 
-                    opacity: 1, 
+                  animate={{
+                    opacity: 1,
                     y: 0
                   }}
                   transition={{
@@ -300,12 +228,12 @@ export default function Home() {
                     <motion.span
                       className="inline-block"
                       initial={{ opacity: 1 }}
-                      animate={{ 
+                      animate={{
                         y: [0, -3, 0],
                         rotate: [0, 2, 0],
                         scale: [1, 1.1, 1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 2,
                         repeat: Infinity,
                         repeatType: "loop",
@@ -318,12 +246,12 @@ export default function Home() {
                     <motion.span
                       className="inline-block"
                       initial={{ opacity: 1 }}
-                      animate={{ 
+                      animate={{
                         y: [0, -4, 0],
                         rotate: [0, -3, 0],
-                        scale: [1, 1.15, 1]  
+                        scale: [1, 1.15, 1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 1.8,
                         repeat: Infinity,
                         repeatType: "loop",
@@ -337,12 +265,12 @@ export default function Home() {
                     <motion.span
                       className="inline-block"
                       initial={{ opacity: 1 }}
-                      animate={{ 
+                      animate={{
                         y: [0, -5, 0],
                         rotate: [0, 3, 0],
                         scale: [1, 1.2, 1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 1.9,
                         repeat: Infinity,
                         repeatType: "loop",
@@ -356,12 +284,12 @@ export default function Home() {
                     <motion.span
                       className="inline-block"
                       initial={{ opacity: 1 }}
-                      animate={{ 
+                      animate={{
                         y: [0, -4, 0],
                         rotate: [0, -2, 0],
                         scale: [1, 1.15, 1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 2.1,
                         repeat: Infinity,
                         repeatType: "loop",
@@ -375,12 +303,12 @@ export default function Home() {
                     <motion.span
                       className="inline-block px-2"
                       initial={{ opacity: 1 }}
-                      animate={{ 
+                      animate={{
                         y: [0, -5, 0],
                         rotate: [0, 4, 0],
                         scale: [1, 1.25, 1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 1.5,
                         repeat: Infinity,
                         repeatType: "loop",
@@ -394,12 +322,12 @@ export default function Home() {
                     <motion.span
                       className="inline-block"
                       initial={{ opacity: 1 }}
-                      animate={{ 
+                      animate={{
                         y: [0, -3, 0],
                         rotate: [0, 2, 0],
                         scale: [1, 1.1, 1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 2,
                         repeat: Infinity,
                         repeatType: "loop",
@@ -413,12 +341,12 @@ export default function Home() {
                     <motion.span
                       className="inline-block"
                       initial={{ opacity: 1 }}
-                      animate={{ 
+                      animate={{
                         y: [0, -4, 0],
                         rotate: [0, -3, 0],
                         scale: [1, 1.15, 1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 1.7,
                         repeat: Infinity,
                         repeatType: "loop",
@@ -432,12 +360,12 @@ export default function Home() {
                     <motion.span
                       className="inline-block"
                       initial={{ opacity: 1 }}
-                      animate={{ 
+                      animate={{
                         y: [0, -5, 0],
                         rotate: [0, 3, 0],
                         scale: [1, 1.2, 1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 1.8,
                         repeat: Infinity,
                         repeatType: "loop",
@@ -451,12 +379,12 @@ export default function Home() {
                     <motion.span
                       className="inline-block"
                       initial={{ opacity: 1 }}
-                      animate={{ 
+                      animate={{
                         y: [0, -4, 0],
                         rotate: [0, -2, 0],
                         scale: [1, 1.15, 1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 2.1,
                         repeat: Infinity,
                         repeatType: "loop",
@@ -470,12 +398,12 @@ export default function Home() {
                     <motion.span
                       className="inline-block ml-1"
                       initial={{ opacity: 1 }}
-                      animate={{ 
+                      animate={{
                         y: [0, -5, 0],
                         rotate: [0, 4, 0],
                         scale: [1, 1.25, 1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 1.5,
                         repeat: Infinity,
                         repeatType: "loop",
@@ -489,18 +417,18 @@ export default function Home() {
                   </div>
                 </motion.div>
               </h1>
-              
+
               {/* 閃爍星星裝飾 */}
               {[...Array(5)].map((_, i) => (
                 <motion.div
                   key={i}
                   className="absolute text-yellow-400 text-sm pointer-events-none"
-                  initial={{ 
+                  initial={{
                     x: `${10 + (i * 20)}%`,
                     y: `${50 + (Math.sin(i * 0.5) * 20)}%`,
                     opacity: 0
                   }}
-                  animate={{ 
+                  animate={{
                     opacity: [0, 1, 0],
                     scale: [0.5, 1.2, 0.5],
                     y: [`${50 + (Math.sin(i * 0.5) * 20)}%`, `${30 + (Math.sin(i * 0.5) * 15)}%`, `${50 + (Math.sin(i * 0.5) * 20)}%`]
@@ -518,7 +446,7 @@ export default function Home() {
               ))}
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="absolute inset-0 bg-gradient-to-r from-yellow-400/20 via-rose-500/20 to-amber-400/20"
               initial={{ opacity: 0 }}
               animate={{
@@ -531,12 +459,12 @@ export default function Home() {
               }}
               style={{
                 filter: "blur(20px)",
-                transform: "translate3d(0, 0, 0)", 
+                transform: "translate3d(0, 0, 0)",
                 backfaceVisibility: "hidden",
                 pointerEvents: "none"
               }}
             />
-            <motion.div 
+            <motion.div
               className="absolute inset-0 bg-gradient-to-br from-indigo-400/15 via-purple-400/20 to-pink-400/15"
               animate={{
                 backgroundPosition: ["0% 0%", "100% 100%"],
@@ -550,14 +478,14 @@ export default function Home() {
               style={{
                 backgroundSize: "200% 200%",
                 filter: "blur(15px)",
-                transform: "translate3d(0, 0, 0)", 
+                transform: "translate3d(0, 0, 0)",
                 backfaceVisibility: "hidden",
                 pointerEvents: "none"
               }}
             />
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="mt-4 sm:mt-5 md:mt-6 lg:mt-8 scale-90 sm:scale-95 md:scale-100 lg:scale-105"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -569,7 +497,7 @@ export default function Home() {
 
         {/* Rest of the content */}
         <AnimatePresence>
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
             layout
             transition={{
@@ -597,7 +525,7 @@ export default function Home() {
             </motion.div>
 
             {/* 兩欄的平均分配容器 */}
-            <motion.div 
+            <motion.div
               className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
             >
               {/* Song list section */}
@@ -617,9 +545,8 @@ export default function Home() {
                   <CardContent className="p-3 sm:p-6">
                     {user?.isAdmin && <SongImport />}
                     <div className="h-3 sm:h-4" />
-                    <SongList 
-                      songs={displayedSongs} 
-                      ws={wsConnection} 
+                    <SongList
+                      songs={displayedSongs}
                       user={user || null}
                       hasMore={hasMore}
                       isLoadingMore={isLoadingMore}
@@ -645,7 +572,7 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-3 sm:p-6">
-                    <RankingBoard ws={wsConnection} />
+                    <RankingBoard songs={songs} />
                   </CardContent>
                 </Card>
               </motion.div>
@@ -656,15 +583,15 @@ export default function Home() {
 
       {/* Login button for non-admin users */}
       {!user && (
-        <motion.div 
+        <motion.div
           className="fixed bottom-4 right-4 z-50"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setShowLoginForm(true)}
             className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40 transition-all duration-300"
           >

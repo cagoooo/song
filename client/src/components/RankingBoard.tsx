@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useQuery } from "@tanstack/react-query";
-import { 
-  Trophy, Crown, Award, FileText, Music2, Sparkles, 
-  Star, TrendingUp, Flame, Music, Mic, Headphones, 
+import {
+  Trophy, Crown, Award, FileText, Music2, Sparkles,
+  Star, TrendingUp, Flame, Music, Mic, Headphones,
   Medal, Shield, Heart, Zap, ChevronDown, ChevronUp
 } from "lucide-react";
-import type { Song } from "@db/schema";
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import { type Song } from "@/lib/firestore";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import confetti from "canvas-confetti";
 import {
@@ -20,94 +19,56 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface RankingBoardProps {
-  songs?: Song[];
-  ws?: WebSocket | null;
+  songs: Song[];
 }
 
-export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps) {
+export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
   // 偵測是否為手機裝置，減少動畫
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const reduceMotion = isMobile || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  
-  const [topSongs, setTopSongs] = useState<Song[]>([]);
+
   const [isExpanded, setIsExpanded] = useState(false);
-  
+  const isLoading = propSongs.length === 0;
+
   // 顯示數量：收合時 10 首，展開時 30 首
   const displayLimit = isExpanded ? 30 : 10;
-  
-  // 使用專用 API 獲取排行榜
-  const { data: fetchedTopSongs, isLoading } = useQuery<Song[]>({
-    queryKey: ['/api/songs/top', displayLimit],
-    queryFn: async () => {
-      const response = await fetch(`/api/songs/top?limit=${displayLimit}`);
-      if (!response.ok) throw new Error('Failed to fetch top songs');
-      return response.json();
-    },
-    refetchInterval: 30000, // 每 30 秒刷新一次
-  });
 
-  // 當資料更新時同步
-  useEffect(() => {
-    if (fetchedTopSongs) {
-      setTopSongs(fetchedTopSongs);
-    }
-  }, [fetchedTopSongs]);
+  // 從 props 傳入的 songs 依投票數排序
+  const sortedSongs = useMemo(() =>
+    [...propSongs]
+      .sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))
+      .slice(0, displayLimit)
+    , [propSongs, displayLimit]);
 
-  // 監聽 WebSocket 更新排行榜
-  useEffect(() => {
-    if (!ws) return;
-    
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'SONGS_UPDATE' && data.songs) {
-          // 從完整列表中提取前 N 名
-          const sorted = [...data.songs].sort((a: any, b: any) => 
-            (b.voteCount || 0) - (a.voteCount || 0)
-          ).slice(0, displayLimit);
-          setTopSongs(sorted);
-        }
-      } catch (error) {}
-    };
-    
-    ws.addEventListener('message', handleMessage);
-    return () => ws.removeEventListener('message', handleMessage);
-  }, [ws, displayLimit]);
+  const songs = sortedSongs;
 
-  const songs = topSongs.length > 0 ? topSongs : (propSongs || []).slice(0, displayLimit);
-  const [showRankChange, setShowRankChange] = useState<{[key: number]: 'up' | 'down' | null}>({});
-  const [showFirework, setShowFirework] = useState<{[key: number]: boolean}>({});
-  const rankChangeTimeoutRef = useRef<{[key: number]: NodeJS.Timeout}>({});
-  const fireWorkTimeoutRef = useRef<{[key: number]: NodeJS.Timeout}>({});
+  const [showRankChange, setShowRankChange] = useState<{ [key: number]: 'up' | 'down' | null }>({});
+  const [showFirework, setShowFirework] = useState<{ [key: number]: boolean }>({});
+  const rankChangeTimeoutRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
+  const fireWorkTimeoutRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 使用 useMemo 穩定排序後的歌曲列表
-  const sortedSongs = useMemo(() => 
-    [...songs].sort((a, b) => 
-      ((b as any).voteCount || 0) - ((a as any).voteCount || 0)
-    ), [songs]
-  );
-  
   // 使用穩定的 key 來追蹤歌曲變化
-  const songsKey = useMemo(() => 
-    sortedSongs.map(s => `${s.id}:${(s as any).voteCount || 0}`).join('|'),
-    [sortedSongs]
+  const songsKey = useMemo(() =>
+    songs.map(s => `${s.id}:${s.voteCount || 0}`).join('|'),
+    [songs]
   );
+
 
   // 觸發首名變更時的煙火效果（手機減少粒子數）
   const triggerTopRankConfetti = () => {
     if (!containerRef.current || reduceMotion) return;
-    
+
     const rect = containerRef.current.getBoundingClientRect();
     const x = rect.x + rect.width / 2;
     const y = rect.y + 100; // 對準第一名位置
-    
+
     confetti({
       particleCount: isMobile ? 30 : 100,
       spread: 70,
-      origin: { 
-        x: x / window.innerWidth, 
-        y: y / window.innerHeight 
+      origin: {
+        x: x / window.innerWidth,
+        y: y / window.innerHeight
       },
       colors: ['#FFD700', '#FFA500', '#FF4500', '#FF6347'],
       zIndex: 1000,
@@ -115,14 +76,14 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
   };
 
   // 使用 ref 來追蹤前一次的排名和投票
-  const prevRanksRef = useRef<{[key: number]: number}>({});
-  const prevVotesRef = useRef<{[key: number]: number}>({});
-  
+  const prevRanksRef = useRef<{ [key: number]: number }>({});
+  const prevVotesRef = useRef<{ [key: number]: number }>({});
+
   useEffect(() => {
-    const newRanks: {[key: number]: number} = {};
-    const newRankChanges: {[key: number]: 'up' | 'down' | null} = {};
-    const newFireworks: {[key: number]: boolean} = {};
-    const newVotes: {[key: number]: number} = {};
+    const newRanks: { [key: number]: number } = {};
+    const newRankChanges: { [key: number]: 'up' | 'down' | null } = {};
+    const newFireworks: { [key: number]: boolean } = {};
+    const newVotes: { [key: number]: number } = {};
 
     let hasTopRankChanged = false;
 
@@ -134,25 +95,25 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
       const prevRank = currentPrevRanks[song.id] ?? index;
       const currentVotes = (song as any).voteCount || 0;
       const prevVote = currentPrevVotes[song.id] || 0;
-      
+
       newRanks[song.id] = index;
       newVotes[song.id] = currentVotes;
 
       // 檢查排名變化（只有在 ref 已有資料時才觸發動畫）
       if (Object.keys(currentPrevRanks).length > 0 && prevRank !== index) {
         newRankChanges[song.id] = prevRank > index ? 'up' : 'down';
-        
+
         // 如果是升至第一名，觸發特效
         if (index === 0 && prevRank > 0) {
           hasTopRankChanged = true;
           newFireworks[song.id] = true;
-          
+
           if (fireWorkTimeoutRef.current[song.id]) {
             clearTimeout(fireWorkTimeoutRef.current[song.id]);
           }
-          
+
           fireWorkTimeoutRef.current[song.id] = setTimeout(() => {
-            setShowFirework(prev => ({...prev, [song.id]: false}));
+            setShowFirework(prev => ({ ...prev, [song.id]: false }));
           }, 3000);
         }
 
@@ -169,17 +130,17 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
           }));
         }, 2000);
       }
-      
+
       // 檢查是否有新的投票增加（只有在 ref 已有資料時才觸發動畫）
       if (Object.keys(currentPrevVotes).length > 0 && currentVotes > prevVote && prevVote > 0) {
         newFireworks[song.id] = true;
-        
+
         if (fireWorkTimeoutRef.current[song.id]) {
           clearTimeout(fireWorkTimeoutRef.current[song.id]);
         }
-        
+
         fireWorkTimeoutRef.current[song.id] = setTimeout(() => {
-          setShowFirework(prev => ({...prev, [song.id]: false}));
+          setShowFirework(prev => ({ ...prev, [song.id]: false }));
         }, 3000);
       }
     });
@@ -187,7 +148,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
     // 更新 ref（不會觸發 re-render）
     prevRanksRef.current = newRanks;
     prevVotesRef.current = newVotes;
-    
+
     // 只在有變化時更新 state
     if (Object.keys(newRankChanges).length > 0) {
       setShowRankChange(newRankChanges);
@@ -195,7 +156,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
     if (Object.keys(newFireworks).length > 0) {
       setShowFirework(newFireworks);
     }
-    
+
     // 如果首名變更，觸發煙火效果
     if (hasTopRankChanged) {
       setTimeout(() => {
@@ -245,7 +206,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
   return (
     <ScrollArea className="h-[400px] sm:h-[500px] w-full pr-4">
       {/* 加強版頂部裝飾元素 */}
-      <motion.div 
+      <motion.div
         initial={reduceMotion ? false : { opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: reduceMotion ? 0 : 0.5 }}
@@ -254,7 +215,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                    border-2 border-amber-300/70 shadow-md"
       >
         {/* 背景光效 */}
-        <motion.div 
+        <motion.div
           className="absolute inset-0 z-0 bg-gradient-to-br from-yellow-400/10 via-amber-300/5 to-orange-200/10"
           animate={{
             backgroundPosition: ['0% 0%', '100% 100%'],
@@ -279,21 +240,21 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
           {/* 上部的裝飾性圖標 */}
           <div className="flex items-center gap-4 mb-1">
             <motion.div
-              animate={{ 
-                rotate: [0, 10, -10, 0], 
+              animate={{
+                rotate: [0, 10, -10, 0],
                 scale: [1, 1.1, 1],
                 y: [0, -2, 0],
               }}
-              transition={{ 
-                duration: 3, 
-                repeat: Infinity, 
+              transition={{
+                duration: 3,
+                repeat: Infinity,
                 ease: "easeInOut",
-                times: [0, 0.25, 0.75, 1] 
+                times: [0, 0.25, 0.75, 1]
               }}
               className="relative"
             >
               <Music2 className="h-5 w-5 text-amber-500" />
-              <motion.div 
+              <motion.div
                 className="absolute inset-0 bg-amber-400 rounded-full opacity-30"
                 animate={{ scale: [0.8, 1.5, 0.8], opacity: [0.3, 0, 0.3] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -302,22 +263,22 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
             </motion.div>
 
             <motion.div
-              animate={{ 
-                rotate: [0, -5, 5, 0], 
+              animate={{
+                rotate: [0, -5, 5, 0],
                 scale: [1, 1.05, 1],
                 y: [0, -1, 0],
               }}
-              transition={{ 
-                duration: 2.5, 
-                repeat: Infinity, 
+              transition={{
+                duration: 2.5,
+                repeat: Infinity,
                 ease: "easeInOut",
                 delay: 0.3,
-                times: [0, 0.35, 0.65, 1] 
+                times: [0, 0.35, 0.65, 1]
               }}
               className="relative"
             >
               <Trophy className="h-6 w-6 text-yellow-500" />
-              <motion.div 
+              <motion.div
                 className="absolute inset-0 bg-yellow-400 rounded-full opacity-30"
                 animate={{ scale: [0.8, 1.5, 0.8], opacity: [0.3, 0, 0.3] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.1 }}
@@ -326,22 +287,22 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
             </motion.div>
 
             <motion.div
-              animate={{ 
-                rotate: [0, 5, -5, 0], 
+              animate={{
+                rotate: [0, 5, -5, 0],
                 scale: [1, 1.08, 1],
                 y: [0, -2, 0],
               }}
-              transition={{ 
-                duration: 3.5, 
-                repeat: Infinity, 
+              transition={{
+                duration: 3.5,
+                repeat: Infinity,
                 ease: "easeInOut",
                 delay: 0.5,
-                times: [0, 0.4, 0.7, 1] 
+                times: [0, 0.4, 0.7, 1]
               }}
               className="relative"
             >
               <Flame className="h-5 w-5 text-orange-500" />
-              <motion.div 
+              <motion.div
                 className="absolute inset-0 bg-orange-400 rounded-full opacity-30"
                 animate={{ scale: [0.8, 1.5, 0.8], opacity: [0.3, 0, 0.3] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
@@ -349,7 +310,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
               />
             </motion.div>
           </div>
-          
+
           {/* 主標題 */}
           <motion.div
             className="relative z-10 mt-1 mb-1"
@@ -359,13 +320,13 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
             <motion.h2
               className="inline-block font-bold text-lg sm:text-xl text-transparent bg-clip-text 
                          bg-gradient-to-r from-amber-800 via-yellow-600 to-amber-700 px-1"
-              animate={{ 
+              animate={{
                 backgroundPosition: ['0% center', '100% center', '0% center'],
-                scale: [1, 1.02, 1], 
+                scale: [1, 1.02, 1],
               }}
-              transition={{ 
-                duration: 5, 
-                repeat: Infinity, 
+              transition={{
+                duration: 5,
+                repeat: Infinity,
                 ease: "linear",
                 times: [0, 0.5, 1]
               }}
@@ -373,25 +334,25 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
             >
               🔥 熱門歌曲排行榜 🔥
             </motion.h2>
-            
+
             {/* 下劃線裝飾 */}
             <motion.div
               className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full 
-                         bg-gradient-to-r from-transparent via-amber-500 to-transparent" 
-              animate={{ 
-                scaleX: [0.3, 1, 0.3], 
+                         bg-gradient-to-r from-transparent via-amber-500 to-transparent"
+              animate={{
+                scaleX: [0.3, 1, 0.3],
                 opacity: [0.3, 0.8, 0.3],
                 x: [-5, 5, -5]
               }}
-              transition={{ 
-                duration: 3, 
-                repeat: Infinity, 
+              transition={{
+                duration: 3,
+                repeat: Infinity,
                 ease: "easeInOut",
-                times: [0, 0.5, 1] 
+                times: [0, 0.5, 1]
               }}
             />
           </motion.div>
-          
+
           {/* 副標題 */}
           <motion.p
             className="text-xs sm:text-sm text-amber-800/80 mt-1 mb-0.5 italic font-medium"
@@ -401,20 +362,20 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
             最受歡迎的點播歌曲實時排名
           </motion.p>
         </div>
-        
+
         {/* 裝飾性音符泡泡 */}
         {[...Array(6)].map((_, i) => (
           <motion.div
             key={i}
             className="absolute pointer-events-none"
-            initial={{ 
+            initial={{
               x: `${10 + (i * 15)}%`,
-              y: "100%", 
+              y: "100%",
               scale: 0.3 + (i % 3 * 0.1),
-              opacity: 0 
+              opacity: 0
             }}
-            animate={{ 
-              y: ["100%", "10%", "-20%"], 
+            animate={{
+              y: ["100%", "10%", "-20%"],
               opacity: [0, i % 2 === 0 ? 0.4 : 0.3, 0],
               rotate: [0, 10 * (i % 2 ? 1 : -1), 0],
               x: [`${10 + (i * 15)}%`, `${8 + (i * 15) + (i % 3 - 1) * 5}%`, `${10 + (i * 15) + (i % 2 ? 3 : -3)}%`]
@@ -426,17 +387,17 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
               ease: "easeInOut"
             }}
           >
-            {i % 6 === 0 ? <Music className="text-amber-400/60" size={13} /> : 
-             i % 6 === 1 ? <Mic className="text-orange-400/60" size={12} /> : 
-             i % 6 === 2 ? <Music2 className="text-yellow-500/60" size={14} /> : 
-             i % 6 === 3 ? <Headphones className="text-amber-500/60" size={12} /> : 
-             i % 6 === 4 ? <Sparkles className="text-yellow-600/60" size={11} /> : 
-             <Heart className="text-orange-500/60" size={11} />}
+            {i % 6 === 0 ? <Music className="text-amber-400/60" size={13} /> :
+              i % 6 === 1 ? <Mic className="text-orange-400/60" size={12} /> :
+                i % 6 === 2 ? <Music2 className="text-yellow-500/60" size={14} /> :
+                  i % 6 === 3 ? <Headphones className="text-amber-500/60" size={12} /> :
+                    i % 6 === 4 ? <Sparkles className="text-yellow-600/60" size={11} /> :
+                      <Heart className="text-orange-500/60" size={11} />}
           </motion.div>
         ))}
-        
+
         {/* 裝飾性光芒 */}
-        <motion.div 
+        <motion.div
           className="absolute top-1/2 left-0 w-24 h-24 -translate-y-1/2 pointer-events-none"
           animate={{ opacity: [0.1, 0.3, 0.1], rotate: [0, 20, 0] }}
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
@@ -446,8 +407,8 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
             borderRadius: "50%"
           }}
         />
-        
-        <motion.div 
+
+        <motion.div
           className="absolute top-1/2 right-0 w-24 h-24 -translate-y-1/2 pointer-events-none"
           animate={{ opacity: [0.1, 0.25, 0.1], rotate: [0, -20, 0] }}
           transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
@@ -458,7 +419,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
           }}
         />
       </motion.div>
-      
+
       <div className="space-y-4" ref={containerRef}>
         <AnimatePresence mode="popLayout">
           {sortedSongs.map((song, index) => (
@@ -467,9 +428,9 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
               layout
               layoutId={`song-${song.id}`}
               initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ 
-                opacity: 1, 
-                y: 0, 
+              animate={{
+                opacity: 1,
+                y: 0,
                 scale: 1,
                 transition: {
                   type: "spring",
@@ -477,8 +438,8 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                   damping: 25
                 }
               }}
-              exit={{ 
-                opacity: 0, 
+              exit={{
+                opacity: 0,
                 scale: 0.8,
                 transition: { duration: 0.2 }
               }}
@@ -486,10 +447,10 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                 flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg border relative overflow-hidden
                 ${index === 0 ? 'bg-gradient-to-r from-amber-50 to-yellow-100 border-yellow-300 shadow-lg shadow-amber-100/50' :
                   index === 1 ? 'bg-gradient-to-r from-slate-50 to-gray-100 border-gray-300 shadow-md shadow-gray-100/50' :
-                  index === 2 ? 'bg-gradient-to-r from-orange-50 to-rose-100 border-orange-300 shadow-md shadow-orange-100/50' :
-                  'bg-gradient-to-r from-white to-gray-50 border-gray-200 hover:shadow-sm hover:shadow-gray-100/30 hover:border-gray-300/50'}
+                    index === 2 ? 'bg-gradient-to-r from-orange-50 to-rose-100 border-orange-300 shadow-md shadow-orange-100/50' :
+                      'bg-gradient-to-r from-white to-gray-50 border-gray-200 hover:shadow-sm hover:shadow-gray-100/30 hover:border-gray-300/50'}
                 transform transition-all duration-300
-                ${showRankChange[song.id] === 'up' ? 'shadow-lg shadow-green-100 scale-[1.02]' : 
+                ${showRankChange[song.id] === 'up' ? 'shadow-lg shadow-green-100 scale-[1.02]' :
                   showRankChange[song.id] === 'down' ? 'shadow-lg shadow-red-100 scale-[0.98]' : ''}
                 ${index === 0 ? 'hover:shadow-xl hover:shadow-amber-200/40 hover:scale-[1.01]' : 'hover:scale-[1.005]'}
               `}
@@ -497,7 +458,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
               {/* 增強第一名歌曲的特效 */}
               {index === 0 && (
                 <>
-                  <motion.div 
+                  <motion.div
                     className="absolute inset-0 bg-gradient-to-br from-yellow-400/15 via-amber-300/10 to-yellow-200/15"
                     animate={{
                       backgroundPosition: ['0% 0%', '100% 100%'],
@@ -516,7 +477,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                       pointerEvents: "none"
                     }}
                   />
-                  
+
                   {/* 四周光芒效果 */}
                   <motion.div
                     className="absolute top-0 right-0 w-32 h-20 pointer-events-none"
@@ -534,7 +495,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                       filter: "blur(8px)",
                     }}
                   />
-                  
+
                   <motion.div
                     className="absolute bottom-0 left-0 w-32 h-20 pointer-events-none"
                     animate={{
@@ -552,7 +513,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                       filter: "blur(8px)",
                     }}
                   />
-                  
+
                   {/* 細微星星裝飾 */}
                   {[...Array(3)].map((_, i) => (
                     <motion.div
@@ -577,7 +538,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                   ))}
                 </>
               )}
-              
+
               {/* 當有排名變化時顯示的動畫效果 */}
               {showRankChange[song.id] === 'up' && (
                 <motion.div
@@ -588,7 +549,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                   style={{ filter: "blur(8px)", zIndex: 0, pointerEvents: "none" }}
                 />
               )}
-              
+
               {showRankChange[song.id] === 'down' && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -598,17 +559,17 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                   style={{ filter: "blur(8px)", zIndex: 0, pointerEvents: "none" }}
                 />
               )}
-              
+
               {/* 特殊動畫效果，如煙火 */}
               {showFirework[song.id] && (
-                <motion.div 
+                <motion.div
                   className="absolute inset-0 pointer-events-none"
                   initial={{ opacity: 0 }}
-                  animate={{ 
+                  animate={{
                     opacity: [0, 0.8, 0],
                     scale: [0.9, 1.1, 1]
                   }}
-                  transition={{ 
+                  transition={{
                     duration: 1.5,
                     times: [0, 0.3, 1]
                   }}
@@ -617,18 +578,18 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                     <motion.div
                       key={i}
                       className="absolute w-1 h-1 bg-amber-500 rounded-full"
-                      initial={{ 
+                      initial={{
                         x: "50%",
-                        y: "50%", 
+                        y: "50%",
                         opacity: 1
                       }}
-                      animate={{ 
+                      animate={{
                         x: `${50 + (Math.random() * 100 - 50)}%`,
-                        y: `${50 + (Math.random() * 100 - 50)}%`, 
+                        y: `${50 + (Math.random() * 100 - 50)}%`,
                         opacity: 0,
                         scale: [1, 1.5, 0]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 0.8 + Math.random() * 0.7,
                         delay: Math.random() * 0.2
                       }}
@@ -636,7 +597,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                   ))}
                 </motion.div>
               )}
-              <motion.div 
+              <motion.div
                 className="relative flex items-center justify-center w-10 h-10"
                 animate={{ scale: showRankChange[song.id] ? [1, 1.1, 1] : 1 }}
                 transition={{ duration: 0.3 }}
@@ -644,7 +605,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                 {index === 0 && (
                   <motion.div
                     className="relative"
-                    animate={{ 
+                    animate={{
                       scale: [1, 1.2, 1],
                       rotate: [0, 10, -10, 0],
                       y: [0, -2, 0]
@@ -656,7 +617,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                     }}
                   >
                     {/* 光環效果 */}
-                    <motion.div 
+                    <motion.div
                       className="absolute inset-0 rounded-full"
                       animate={{
                         boxShadow: [
@@ -672,9 +633,9 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                         ease: "easeInOut"
                       }}
                     />
-                    
+
                     {/* 發光效果 */}
-                    <motion.div 
+                    <motion.div
                       className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-amber-300/30 pointer-events-none"
                       animate={{
                         opacity: [0.2, 0.7, 0.2],
@@ -689,11 +650,11 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                         filter: "blur(3px)",
                       }}
                     />
-                    
+
                     <Crown className="w-7 h-7 text-amber-500 relative z-10" />
-                    
+
                     {/* 小閃光點 */}
-                    <motion.div 
+                    <motion.div
                       className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-amber-200 rounded-full"
                       animate={{
                         opacity: [0.6, 1, 0.6],
@@ -714,7 +675,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                 {index === 1 && (
                   <motion.div
                     className="relative"
-                    animate={{ 
+                    animate={{
                       y: [0, -2, 0],
                       scale: [1, 1.1, 1]
                     }}
@@ -740,9 +701,9 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                         filter: "blur(2px)",
                       }}
                     />
-                    
+
                     <Award className="w-5 h-5 text-gray-500 relative z-10" />
-                    
+
                     {/* 微光細節 */}
                     <motion.div
                       className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-gray-200 rounded-full pointer-events-none"
@@ -760,11 +721,11 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                     />
                   </motion.div>
                 )}
-                
+
                 {index === 2 && (
                   <motion.div
                     className="relative"
-                    animate={{ 
+                    animate={{
                       rotate: [0, 5, -5, 0],
                       scale: [1, 1.05, 1]
                     }}
@@ -790,14 +751,14 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                         filter: "blur(2px)",
                       }}
                     />
-                    
+
                     <Trophy className="w-5 h-5 text-orange-500 relative z-10" />
                   </motion.div>
                 )}
                 {index > 2 && (
-                  <motion.span 
+                  <motion.span
                     className="text-sm font-medium text-gray-600"
-                    animate={{ 
+                    animate={{
                       scale: showRankChange[song.id] ? [1, 1.2, 1] : 1,
                       y: showRankChange[song.id] ? [-2, 0] : 0
                     }}
@@ -820,8 +781,8 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                     }}
                     className={`
                       absolute -left-6 text-sm font-bold
-                      ${showRankChange[song.id] === 'up' 
-                        ? 'text-green-500 bg-green-100/50 px-1.5 py-0.5 rounded-full' 
+                      ${showRankChange[song.id] === 'up'
+                        ? 'text-green-500 bg-green-100/50 px-1.5 py-0.5 rounded-full'
                         : 'text-red-500 bg-red-100/50 px-1.5 py-0.5 rounded-full'}
                     `}
                   >
@@ -834,27 +795,27 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                 {/* 歌曲標題 */}
                 <motion.div
                   className="relative"
-                  animate={{ 
+                  animate={{
                     scale: showRankChange[song.id] ? [1, 1.02, 1] : 1
                   }}
                   transition={{ duration: 0.5 }}
                 >
-                  <motion.h3 
+                  <motion.h3
                     className={cn(
                       "font-semibold truncate text-sm sm:text-base relative z-10",
                       index === 0 ? "text-amber-700 sm:text-base" :
-                      index === 1 ? "text-gray-700" :
-                      index === 2 ? "text-orange-700" :
-                      showRankChange[song.id] === 'up' ? "text-green-600" : 
-                      showRankChange[song.id] === 'down' ? "text-red-600" : "text-gray-900"
+                        index === 1 ? "text-gray-700" :
+                          index === 2 ? "text-orange-700" :
+                            showRankChange[song.id] === 'up' ? "text-green-600" :
+                              showRankChange[song.id] === 'down' ? "text-red-600" : "text-gray-900"
                     )}
                   >
                     {song.title}
-                    
+
                     {/* 熱門和排名變化標籤 */}
                     <div className="inline-flex items-center">
                       {index === 0 && (
-                        <motion.div 
+                        <motion.div
                           className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-100 border border-amber-200"
                           animate={{ opacity: [0.8, 1, 0.8] }}
                           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -863,10 +824,10 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                           <span className="text-xs font-medium text-amber-700">熱門</span>
                         </motion.div>
                       )}
-                      
+
                       {/* 新增的歌曲標籤，可根據特定條件顯示 */}
                       {song.createdAt && new Date(song.createdAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 && (
-                        <motion.div 
+                        <motion.div
                           className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-50 border border-blue-100"
                         >
                           <Zap className="w-3 h-3 text-blue-500 mr-0.5" />
@@ -875,22 +836,22 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                       )}
                     </div>
                   </motion.h3>
-                  
+
                   {/* 特效裝飾，僅限前三名歌曲 */}
                   {index < 3 && (
-                    <motion.div 
+                    <motion.div
                       className={`absolute bottom-0 left-0 h-0.5 rounded-full
-                                ${index === 0 ? 'bg-amber-400' : 
-                                  index === 1 ? 'bg-gray-400' : 
-                                  'bg-orange-400'}`}
+                                ${index === 0 ? 'bg-amber-400' :
+                          index === 1 ? 'bg-gray-400' :
+                            'bg-orange-400'}`}
                       initial={{ width: "0%" }}
-                      animate={{ 
+                      animate={{
                         width: ["0%", "60%", "30%"],
                         opacity: [0, 0.7, 0]
                       }}
-                      transition={{ 
-                        duration: 3, 
-                        repeat: Infinity, 
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
                         ease: "easeInOut",
                         delay: index * 0.5,
                         times: [0, 0.6, 1]
@@ -901,7 +862,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                     />
                   )}
                 </motion.div>
-                
+
                 {/* 歌手名稱 */}
                 <div className="relative">
                   <p className={cn(
@@ -910,16 +871,16 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                   )}>
                     {song.artist}
                   </p>
-                  
+
                   {/* 首位歌手名稱下方微光效果 */}
                   {index === 0 && (
-                    <motion.div 
+                    <motion.div
                       className="absolute -bottom-0.5 left-0 w-full h-0.5 bg-gradient-to-r from-amber-200/0 via-amber-300/30 to-amber-200/0"
-                      animate={{ 
+                      animate={{
                         opacity: [0, 0.5, 0],
                         width: ["0%", "80%", "0%"]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 4,
                         repeat: Infinity,
                         ease: "easeInOut"
@@ -929,15 +890,15 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                   )}
                 </div>
               </div>
-              
+
               {/* 移動裝置上的點擊數顯示（當螢幕小於sm時顯示） */}
               <div className="flex items-center gap-1 sm:hidden ml-auto mr-2 my-1">
                 <motion.div
                   className="relative"
-                  animate={{ 
+                  animate={{
                     scale: (song as any).voteCount > (songs.find(s => s.id === song.id) as any)?.prevVoteCount ? [1, 1.2, 1] : 1
                   }}
-                  transition={{ 
+                  transition={{
                     duration: 0.3,
                     type: "spring",
                     stiffness: 400,
@@ -946,16 +907,16 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                 >
                   {/* 發光背景 - 僅在有票數的情況下顯示 */}
                   {(song as any).voteCount > 0 && (
-                    <motion.div 
+                    <motion.div
                       className={`absolute -inset-1 rounded-full opacity-70 pointer-events-none
-                                 ${index === 0 ? 'bg-yellow-400/20' : 
-                                   index === 1 ? 'bg-gray-400/20' : 
-                                   index === 2 ? 'bg-orange-400/20' : 'bg-blue-400/20'}`}
-                      animate={{ 
+                                 ${index === 0 ? 'bg-yellow-400/20' :
+                          index === 1 ? 'bg-gray-400/20' :
+                            index === 2 ? 'bg-orange-400/20' : 'bg-blue-400/20'}`}
+                      animate={{
                         scale: [0.8, 1.2, 0.8],
                         opacity: [0.1, 0.25, 0.1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 2,
                         repeat: Infinity,
                         ease: "easeInOut"
@@ -963,16 +924,16 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                       style={{ filter: "blur(4px)" }}
                     />
                   )}
-                  
+
                   {/* 數字顯示 */}
                   <motion.span
                     className={`
                       text-base font-bold relative z-10
-                      ${index === 0 ? 'text-amber-600' : 
-                        index === 1 ? 'text-slate-600' : 
-                        index === 2 ? 'text-orange-600' : 'text-primary'}
+                      ${index === 0 ? 'text-amber-600' :
+                        index === 1 ? 'text-slate-600' :
+                          index === 2 ? 'text-orange-600' : 'text-primary'}
                     `}
-                    animate={{ 
+                    animate={{
                       y: showRankChange[song.id] ? [-2, 0] : 0
                     }}
                     transition={{ duration: 0.3 }}
@@ -982,9 +943,9 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                 </motion.div>
                 <span className={`
                   text-xs
-                  ${index === 0 ? 'text-amber-700/70' : 
-                    index === 1 ? 'text-slate-700/70' : 
-                    index === 2 ? 'text-orange-700/70' : 'text-muted-foreground'}
+                  ${index === 0 ? 'text-amber-700/70' :
+                    index === 1 ? 'text-slate-700/70' :
+                      index === 2 ? 'text-orange-700/70' : 'text-muted-foreground'}
                 `}>
                   點播
                 </span>
@@ -993,15 +954,15 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
               {/* 桌面版的操作區塊 */}
               <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
                 {/* 桌面版的票數顯示（僅在sm及更大的螢幕上顯示） */}
-                <motion.div 
+                <motion.div
                   className={`
                     text-right hidden sm:block mr-2 relative
                     ${index < 3 ? 'pr-1' : ''}
                   `}
-                  animate={{ 
+                  animate={{
                     scale: (song as any).voteCount > (songs.find(s => s.id === song.id) as any)?.prevVoteCount ? [1, 1.2, 1] : 1
                   }}
-                  transition={{ 
+                  transition={{
                     duration: 0.3,
                     type: "spring",
                     stiffness: 400,
@@ -1010,18 +971,18 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                 >
                   {/* 背景發光效果 - 只有前三名和有票數時顯示 */}
                   {index < 3 && (song as any).voteCount > 0 && (
-                    <motion.div 
+                    <motion.div
                       className={`
                         absolute -inset-2 rounded-full pointer-events-none
-                        ${index === 0 ? 'bg-yellow-400/15' : 
-                          index === 1 ? 'bg-gray-400/15' : 
-                          'bg-orange-400/15'}
+                        ${index === 0 ? 'bg-yellow-400/15' :
+                          index === 1 ? 'bg-gray-400/15' :
+                            'bg-orange-400/15'}
                       `}
-                      animate={{ 
+                      animate={{
                         scale: [0.8, 1.1, 0.8],
                         opacity: [0.1, 0.3, 0.1]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 3,
                         repeat: Infinity,
                         ease: "easeInOut"
@@ -1029,35 +990,35 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                       style={{ filter: "blur(5px)" }}
                     />
                   )}
-                  
-                  <motion.span 
+
+                  <motion.span
                     className={`
                       text-xl font-bold block relative z-10
-                      ${index === 0 ? 'text-amber-600' : 
-                        index === 1 ? 'text-slate-600' : 
-                        index === 2 ? 'text-orange-600' : 'text-primary'}
+                      ${index === 0 ? 'text-amber-600' :
+                        index === 1 ? 'text-slate-600' :
+                          index === 2 ? 'text-orange-600' : 'text-primary'}
                     `}
-                    animate={{ 
+                    animate={{
                       y: showRankChange[song.id] ? [-4, 0] : 0
                     }}
                     transition={{ duration: 0.3 }}
                   >
                     {(song as any).voteCount || 0}
-                    
+
                     {/* 數字閃爍效果 - 只在數字大於0時顯示 */}
                     {(song as any).voteCount > 0 && index < 3 && (
                       <motion.div
                         className={`
                           absolute top-0 right-0 rounded-full w-1 h-1
-                          ${index === 0 ? 'bg-yellow-400' : 
-                            index === 1 ? 'bg-gray-400' : 
-                            'bg-orange-400'}
+                          ${index === 0 ? 'bg-yellow-400' :
+                            index === 1 ? 'bg-gray-400' :
+                              'bg-orange-400'}
                         `}
-                        animate={{ 
+                        animate={{
                           opacity: [0.4, 1, 0.4],
                           scale: [1, 1.5, 1]
                         }}
-                        transition={{ 
+                        transition={{
                           duration: 2,
                           repeat: Infinity,
                           ease: "easeInOut",
@@ -1066,15 +1027,15 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                       />
                     )}
                   </motion.span>
-                  
-                  <motion.p 
+
+                  <motion.p
                     className={`
                       text-xs mt-0.5 relative z-10
-                      ${index === 0 ? 'text-amber-700/70' : 
-                        index === 1 ? 'text-slate-700/70' : 
-                        index === 2 ? 'text-orange-700/70' : 'text-muted-foreground'}
+                      ${index === 0 ? 'text-amber-700/70' :
+                        index === 1 ? 'text-slate-700/70' :
+                          index === 2 ? 'text-orange-700/70' : 'text-muted-foreground'}
                     `}
-                    animate={{ 
+                    animate={{
                       y: showRankChange[song.id] ? [-2, 0] : 0
                     }}
                     transition={{ duration: 0.3, delay: 0.1 }}
@@ -1089,12 +1050,12 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <motion.div
-                          whileHover={{ 
+                          whileHover={{
                             scale: 1.1,
                             rotate: [0, 5, -5, 0],
-                            transition: { 
+                            transition: {
                               scale: { duration: 0.2 },
-                              rotate: { duration: 0.4, repeat: Infinity } 
+                              rotate: { duration: 0.4, repeat: Infinity }
                             }
                           }}
                           whileTap={{ scale: 0.9 }}
@@ -1116,7 +1077,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                               className="flex items-center justify-center relative"
                             >
                               {/* 按鈕光暈/發光效果 */}
-                              <motion.div 
+                              <motion.div
                                 className="absolute inset-0 bg-gradient-to-br from-amber-200/20 via-yellow-300/10 to-amber-100/30 pointer-events-none"
                                 animate={{
                                   backgroundPosition: ['0% 0%', '100% 100%'],
@@ -1134,7 +1095,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                               />
 
                               {/* 懸停時的光芒 */}
-                              <motion.div 
+                              <motion.div
                                 className="absolute inset-0 opacity-0 transition-opacity hover:opacity-100"
                                 style={{
                                   background: "radial-gradient(circle at center, rgba(251, 191, 36, 0.4) 0%, transparent 70%)",
@@ -1159,12 +1120,12 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <motion.div
-                          whileHover={{ 
+                          whileHover={{
                             scale: 1.1,
                             y: [0, -2, 0],
-                            transition: { 
+                            transition: {
                               scale: { duration: 0.2 },
-                              y: { duration: 0.3, repeat: Infinity, repeatType: "mirror" } 
+                              y: { duration: 0.3, repeat: Infinity, repeatType: "mirror" }
                             }
                           }}
                           whileTap={{ scale: 0.9 }}
@@ -1186,7 +1147,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                               className="flex items-center justify-center relative"
                             >
                               {/* 按鈕光暈/發光效果 */}
-                              <motion.div 
+                              <motion.div
                                 className="absolute inset-0 bg-gradient-to-br from-rose-200/20 via-pink-300/10 to-rose-100/30 pointer-events-none"
                                 animate={{
                                   backgroundPosition: ['0% 0%', '100% 100%'],
@@ -1202,9 +1163,9 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
                                   opacity: 0.6,
                                 }}
                               />
-                              
+
                               {/* 懸停時的光芒 */}
-                              <motion.div 
+                              <motion.div
                                 className="absolute inset-0 opacity-0 transition-opacity hover:opacity-100"
                                 style={{
                                   background: "radial-gradient(circle at center, rgba(244, 114, 182, 0.3) 0%, transparent 70%)",
@@ -1229,7 +1190,7 @@ export default function RankingBoard({ songs: propSongs, ws }: RankingBoardProps
             </motion.div>
           ))}
         </AnimatePresence>
-        
+
         {/* 展開/收合按鈕 */}
         <div className="flex justify-center pt-4 pb-2">
           <motion.div

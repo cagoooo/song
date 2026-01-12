@@ -5,8 +5,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Import, List, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { addSong, batchImportSongs } from "@/lib/firestore";
 
 export default function SongImport() {
   const [title, setTitle] = useState("");
@@ -14,34 +15,15 @@ export default function SongImport() {
   const [notes, setNotes] = useState("");
   const [batchSongs, setBatchSongs] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handleSingleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/songs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          title, 
-          artist, 
-          notes,
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.status === 409) {
-        toast({
-          title: "歌曲已存在",
-          description: data.message || `「${title}」- ${artist} 已在歌單中`,
-          className: "bg-amber-50 border-amber-200 text-amber-800",
-        });
-        return;
-      }
-
-      if (!response.ok) throw new Error("Failed to add song");
+      await addSong(title, artist, notes || undefined);
 
       toast({
         title: "成功",
@@ -52,17 +34,28 @@ export default function SongImport() {
       setTitle("");
       setArtist("");
       setNotes("");
-    } catch (error) {
-      toast({
-        title: "錯誤",
-        description: "新增歌曲失敗",
-        variant: "destructive"
-      });
+    } catch (error: any) {
+      if (error.message?.includes("已存在")) {
+        toast({
+          title: "歌曲已存在",
+          description: error.message,
+          className: "bg-amber-50 border-amber-200 text-amber-800",
+        });
+      } else {
+        toast({
+          title: "錯誤",
+          description: "新增歌曲失敗",
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleBatchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     try {
       // Parse the batch input
@@ -77,7 +70,7 @@ export default function SongImport() {
             artist: match[2].trim(),
           };
         })
-        .filter(song => song !== null);
+        .filter((song): song is { title: string; artist: string } => song !== null);
 
       if (songs.length === 0) {
         toast({
@@ -88,20 +81,12 @@ export default function SongImport() {
         return;
       }
 
-      const response = await fetch("/api/songs/batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songs })
-      });
+      const result = await batchImportSongs(songs);
 
-      if (!response.ok) throw new Error("Failed to add songs");
-
-      const data = await response.json();
-      
       toast({
         title: "匯入完成",
-        description: data.message || `成功匯入 ${songs.length} 首歌曲`,
-        className: data.skipped > 0 
+        description: `成功匯入 ${result.added} 首歌曲${result.skipped > 0 ? `，跳過 ${result.skipped} 首重複` : ''}`,
+        className: result.skipped > 0
           ? "bg-amber-50 border-amber-200 text-amber-800"
           : "bg-green-50 border-green-200 text-green-800",
       });
@@ -113,6 +98,8 @@ export default function SongImport() {
         description: "批次匯入失敗",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -138,7 +125,7 @@ export default function SongImport() {
           )}
         </Button>
       </CollapsibleTrigger>
-      
+
       <CollapsibleContent>
         <motion.div
           initial={{ opacity: 0, height: 0 }}
@@ -190,9 +177,9 @@ export default function SongImport() {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                 >
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
                     <Import className="w-4 h-4 mr-2" />
-                    新增歌曲
+                    {isSubmitting ? "新增中..." : "新增歌曲"}
                   </Button>
                 </motion.div>
               </form>
@@ -222,9 +209,9 @@ export default function SongImport() {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                 >
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
                     <List className="w-4 h-4 mr-2" />
-                    批次匯入
+                    {isSubmitting ? "匯入中..." : "批次匯入"}
                   </Button>
                 </motion.div>
               </form>
