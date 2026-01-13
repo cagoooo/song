@@ -13,7 +13,7 @@ const firebaseConfig = {
 };
 
 // 初始化 Firebase
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 
 // 匯出 Firestore 和 Auth 實例
 export const db = getFirestore(app);
