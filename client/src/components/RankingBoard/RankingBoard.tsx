@@ -183,17 +183,17 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
                                     transition={{ duration: 0.3 }}
                                 >
                                     <h3 className={`font-semibold break-all ${index === 0 ? 'text-amber-900' :
-                                            index === 1 ? 'text-gray-800' :
-                                                index === 2 ? 'text-orange-900' :
-                                                    'text-gray-800'
+                                        index === 1 ? 'text-gray-800' :
+                                            index === 2 ? 'text-orange-900' :
+                                                'text-gray-800'
                                         }`}>
                                         {song.title}
                                     </h3>
                                 </motion.div>
                                 <p className={`text-sm break-all ${index === 0 ? 'text-amber-700' :
-                                        index === 1 ? 'text-gray-600' :
-                                            index === 2 ? 'text-orange-700' :
-                                                'text-gray-500'
+                                    index === 1 ? 'text-gray-600' :
+                                        index === 2 ? 'text-orange-700' :
+                                            'text-gray-500'
                                     }`}>
                                     {song.artist}
                                 </p>
@@ -203,9 +203,9 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
                             <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
                                 <motion.span
                                     className={`text-lg font-bold min-w-[3rem] text-right ${index === 0 ? 'text-amber-900' :
-                                            index === 1 ? 'text-gray-700' :
-                                                index === 2 ? 'text-orange-800' :
-                                                    'text-gray-700'
+                                        index === 1 ? 'text-gray-700' :
+                                            index === 2 ? 'text-orange-800' :
+                                                'text-gray-700'
                                         }`}
                                     animate={showRankChange[song.id] ? { scale: [1, 1.2, 1] } : {}}
                                     transition={{ duration: 0.5 }}
@@ -222,10 +222,11 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
                                                     <Button
                                                         variant="outline"
                                                         size="icon"
-                                                        className={`w-8 h-8 sm:w-9 sm:h-9 relative z-10 overflow-hidden
+                                                        className={`w-10 h-10 sm:w-11 sm:h-11 relative z-10 overflow-hidden
                               border-amber-200 hover:border-amber-400
                               ${index < 2 ? 'bg-gradient-to-br from-amber-50 to-yellow-100' : ''}`}
                                                         asChild
+                                                        aria-label={`搜尋「${song.title}」的吉他譜`}
                                                     >
                                                         <a href={generateGuitarTabsUrl(song)} target="_blank" rel="noopener noreferrer">
                                                             <Music2 className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700" />
@@ -246,10 +247,11 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
                                                     <Button
                                                         variant="outline"
                                                         size="icon"
-                                                        className={`w-8 h-8 sm:w-9 sm:h-9 relative z-10 overflow-hidden
+                                                        className={`w-10 h-10 sm:w-11 sm:h-11 relative z-10 overflow-hidden
                               border-rose-200 hover:border-rose-400
                               ${index < 2 ? 'bg-gradient-to-br from-rose-50 to-pink-100' : ''}`}
                                                         asChild
+                                                        aria-label={`搜尋「${song.title}」的歌詞`}
                                                     >
                                                         <a href={generateLyricsUrl(song)} target="_blank" rel="noopener noreferrer">
                                                             <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-rose-700" />

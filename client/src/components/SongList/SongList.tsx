@@ -66,7 +66,9 @@ export default function SongList({
         searchTerm,
         setSearchTerm,
         isInSearchMode,
-        filteredSongs: searchFilteredSongs
+        filteredSongs: searchFilteredSongs,
+        isFuzzyMode,
+        toggleFuzzyMode,
     } = useSongSearch(searchSongsSource);
 
     // 顯示的歌曲：搜尋模式下使用搜尋結果，否則使用分頁的歌曲
@@ -156,7 +158,12 @@ export default function SongList({
 
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
-                    <SearchBar value={searchTerm} onChange={setSearchTerm} />
+                    <SearchBar
+                        value={searchTerm}
+                        onChange={setSearchTerm}
+                        isFuzzyMode={isFuzzyMode}
+                        onToggleFuzzyMode={toggleFuzzyMode}
+                    />
                 </div>
                 {user?.isAdmin && (
                     <Button

@@ -60,7 +60,7 @@ export const SongCard = memo(function SongCard({
             initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={reduceMotion ? { duration: 0.1 } : { duration: 0.3, delay: Math.min(index * 0.03, 0.5) }}
-            className={`flex flex-col gap-4 p-3 sm:p-4 rounded-xl border-2 
+            className={`flex flex-col gap-3 sm:gap-4 p-4 sm:p-5 rounded-xl border-2 
                 ${colorClasses.border} bg-gradient-to-br ${colorClasses.bg}
                 hover:border-opacity-100
                 hover:shadow-lg
@@ -71,14 +71,14 @@ export const SongCard = memo(function SongCard({
                     <div className={`absolute left-0 top-0 w-2 h-full rounded-full ${getAccentColor(index)}`} />
                     <div className="ml-4">
                         <div className="flex items-center gap-2">
-                            <Music className={`h-5 w-5 ${colorClasses.accent}`} />
-                            <h3 className="font-semibold text-gray-800 break-all">{song.title}</h3>
+                            <Music className={`h-5 w-5 sm:h-6 sm:w-6 ${colorClasses.accent}`} />
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-800 break-all">{song.title}</h3>
                         </div>
-                        <p className="text-sm text-gray-600 break-all ml-7">{song.artist}</p>
+                        <p className="text-sm sm:text-base text-gray-600 break-all ml-7 mt-0.5">{song.artist}</p>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 sm:mt-0">
                     {/* 點播按鈕 */}
                     <motion.div
                         whileHover={{ scale: 1.05 }}
@@ -88,8 +88,9 @@ export const SongCard = memo(function SongCard({
                         <Button
                             ref={(el) => { buttonRefs.current[songId] = el; }}
                             variant="outline"
-                            size="sm"
+                            size="default"
                             onClick={() => onVote(songId, song)}
+                            aria-label={`為「${song.title}」投票`}
                             className={`
                 flex gap-2 relative overflow-hidden w-full sm:w-auto
                 rounded-xl
