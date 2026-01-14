@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { subscribeSongs, type Song } from "@/lib/firestore";
 import { MobileTabView } from "../components/MobileTabView";
 import { ScrollToTop } from "../components/ScrollToTop";
-import { ThemeToggle } from "../components/ThemeToggle";
 
 // 延遲載入大型元件以減少初始 bundle 大小
 const RankingBoard = lazy(() => import("../components/RankingBoard"));
@@ -507,10 +506,7 @@ export default function Home() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.5 }}
           >
-            <div className="flex items-center gap-2">
-              <ShareButton />
-              <ThemeToggle />
-            </div>
+            <ShareButton />
           </motion.div>
         </motion.div>
 
