@@ -237,6 +237,11 @@ song/
 
 ## 📜 更新日誌
 
+### v2.9.0 (2026-01-14)
+- 🔐 **LoginForm 優化**：輸入框高度 48px、密碼顯示切換、Loading 狀態
+- 🦴 **SkeletonCard 元件**：通用骨架屏，支援 song/ranking/suggestion
+- 📭 **EmptyState 元件**：空狀態提示，4 種變體和動畫效果
+
 ### v2.8.0 (2026-01-14)
 - ⬆️ **返回頂部按鈕**：滾動超過 400px 顯示，支援觸覺回饋
 - 📳 **觸覺回饋 Hook**：useHapticFeedback 支援多種震動模式
