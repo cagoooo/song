@@ -237,6 +237,10 @@ song/
 
 ## 📜 更新日誌
 
+### v2.5.0 (2026-01-14)
+- 📱 **響應式 UI 優化**：手機版新增 Tab 切換介面（歌曲/排行榜）
+- 🛡️ **Firestore 安全強化**：新增投票資料驗證、歌曲建議內容長度限制
+
 ### v2.4.0 (2026-01-14)
 - 🧪 **單元測試基礎建設**：整合 Vitest 測試框架，建立 `useSongSearch` 和 `error-handler` 測試
 - 📦 **程式碼分割**：使用 React.lazy 延遲載入 RankingBoard 和 SongSuggestion 減少初始 Bundle

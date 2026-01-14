@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShareButton } from "../components/ShareButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { subscribeSongs, type Song } from "@/lib/firestore";
+import { MobileTabView } from "../components/MobileTabView";
 
 // 延遲載入大型元件以減少初始 bundle 大小
 const RankingBoard = lazy(() => import("../components/RankingBoard"));
@@ -539,61 +540,109 @@ export default function Home() {
               </Card>
             </motion.div>
 
-            {/* 兩欄的平均分配容器 */}
+            {/* 響應式佈局：手機 Tab / 桌面平板雙欄 */}
             <motion.div
-              className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
+              className="lg:col-span-3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
             >
-              {/* Song list section */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                className={user?.isAdmin ? "order-2 lg:order-1" : ""}
-              >
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                      <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                      可選歌單
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-3 sm:p-6">
-                    {user?.isAdmin && <SongImport />}
-                    <div className="h-3 sm:h-4" />
-                    <SongList
-                      songs={displayedSongs}
-                      allSongs={songs}
-                      user={user || null}
-                      hasMore={hasMore}
-                      isLoadingMore={isLoadingMore}
-                      onLoadMore={loadMore}
-                      totalCount={songs.length}
-                    />
-                  </CardContent>
-                </Card>
-              </motion.div>
+              {/* 手機版 Tab 介面 (< 768px) */}
+              <MobileTabView
+                songListContent={
+                  <Card className="shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Music2 className="w-5 h-5 text-primary" />
+                        可選歌單
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      {user?.isAdmin && <SongImport />}
+                      <div className="h-3" />
+                      <SongList
+                        songs={displayedSongs}
+                        allSongs={songs}
+                        user={user || null}
+                        hasMore={hasMore}
+                        isLoadingMore={isLoadingMore}
+                        onLoadMore={loadMore}
+                        totalCount={songs.length}
+                      />
+                    </CardContent>
+                  </Card>
+                }
+                rankingContent={
+                  <Card className="shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Trophy className="w-5 h-5 text-primary" />
+                        人氣點播排行榜
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      <Suspense fallback={<SectionSkeleton />}>
+                        <RankingBoard songs={songs} />
+                      </Suspense>
+                    </CardContent>
+                  </Card>
+                }
+              />
 
-              {/* Ranking board section */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.6 }}
-                className={user?.isAdmin ? "order-1 lg:order-2" : ""}
-              >
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                      <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                      人氣點播排行榜
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-3 sm:p-6">
-                    <Suspense fallback={<SectionSkeleton />}>
-                      <RankingBoard songs={songs} />
-                    </Suspense>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              {/* 桌面/平板版雙欄佈局 (>= 768px) */}
+              <div className="hidden md:grid md:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {/* Song list section */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className={user?.isAdmin ? "order-2 lg:order-1" : ""}
+                >
+                  <Card className="shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                        <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                        可選歌單
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3 sm:p-6">
+                      {user?.isAdmin && <SongImport />}
+                      <div className="h-3 sm:h-4" />
+                      <SongList
+                        songs={displayedSongs}
+                        allSongs={songs}
+                        user={user || null}
+                        hasMore={hasMore}
+                        isLoadingMore={isLoadingMore}
+                        onLoadMore={loadMore}
+                        totalCount={songs.length}
+                      />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Ranking board section */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                  className={user?.isAdmin ? "order-1 lg:order-2" : ""}
+                >
+                  <Card className="shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                        <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                        人氣點播排行榜
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3 sm:p-6">
+                      <Suspense fallback={<SectionSkeleton />}>
+                        <RankingBoard songs={songs} />
+                      </Suspense>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
             </motion.div>
           </motion.div>
         </AnimatePresence>

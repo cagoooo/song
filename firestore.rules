@@ -8,17 +8,19 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
     
-    // 投票集合 - 所有人可讀取和新增，僅管理員可刪除
+    // 投票集合 - 所有人可讀取，新增需驗證，僅管理員可刪除
     match /votes/{voteId} {
       allow read: if true;
-      allow create: if true;
+      // 投票限制：需有有效資料，且限制建議內容長度
+      allow create: if isValidVote();
       allow delete: if isAdmin();
     }
     
-    // 歌曲建議集合 - 所有人可讀取和新增，僅管理員可更新狀態
+    // 歌曲建議集合 - 所有人可讀取，新增需驗證內容，僅管理員可更新狀態
     match /songSuggestions/{suggestionId} {
       allow read: if true;
-      allow create: if true;
+      // 建議內容過濾：限制標題、歌手、備註長度
+      allow create: if isValidSuggestion();
       allow update, delete: if isAdmin();
     }
     
@@ -34,7 +36,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    // QR Code 掃描記錄 - 所有人可讀寫
+    // QR Code 掃描記錄 - 所有人可讀寫（用於統計）
     match /qrCodeScans/{scanId} {
       allow read, write: if true;
     }
@@ -47,11 +49,43 @@ service cloud.firestore {
         (request.auth.uid == userId || isAdmin());
     }
     
-    // 輔助函式：檢查是否為管理員
+    // ==================== 輔助函式 ====================
+    
+    // 檢查是否為管理員
     function isAdmin() {
       return request.auth != null && 
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // 驗證投票資料有效性
+    function isValidVote() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['songId', 'sessionId', 'createdAt'])
+        && data.songId is string
+        && data.songId.size() > 0
+        && data.songId.size() <= 100
+        && data.sessionId is string
+        && data.sessionId.size() > 0
+        && data.sessionId.size() <= 100;
+    }
+    
+    // 驗證歌曲建議資料有效性
+    function isValidSuggestion() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['title', 'artist', 'status', 'createdAt'])
+        // 標題限制：必填，最長 100 字元
+        && data.title is string
+        && data.title.size() > 0
+        && data.title.size() <= 100
+        // 歌手限制：必填，最長 50 字元
+        && data.artist is string
+        && data.artist.size() > 0
+        && data.artist.size() <= 50
+        // 備註限制：選填，最長 500 字元
+        && (!data.keys().hasAny(['notes']) || data.notes.size() <= 500)
+        // 狀態必須是 pending
+        && data.status == 'pending';
     }
   }
 }
