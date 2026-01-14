@@ -32,7 +32,7 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const isLoading = propSongs.length === 0;
     const displayLimit = isExpanded ? 30 : 10;
-    const containerRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLOListElement>(null);
 
     // 使用拆分的 Hook
     const {
@@ -71,13 +71,14 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
             {/* 頂部標題裝飾區 */}
             <RankingHeader reduceMotion={reduceMotion} />
 
-            <div className="space-y-4" ref={containerRef}>
+            <ol className="space-y-4" ref={containerRef} role="list" aria-label="人氣點播排行榜">
                 <AnimatePresence mode="popLayout">
                     {sortedSongs.map((song, index) => (
-                        <motion.div
+                        <motion.li
                             key={song.id}
                             layout
                             layoutId={`song-${song.id}`}
+                            aria-label={`第 ${index + 1} 名：${song.title} - ${song.artist}，${song.voteCount || 0} 票`}
                             initial={{ opacity: 0, y: 20, scale: 0.9 }}
                             animate={{
                                 opacity: 1,
@@ -266,7 +267,7 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
                                     </TooltipProvider>
                                 </div>
                             </div>
-                        </motion.div>
+                        </motion.li>
                     ))}
                 </AnimatePresence>
 
@@ -297,7 +298,7 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
                         </Button>
                     </motion.div>
                 </div>
-            </div>
+            </ol>
         </ScrollArea>
     );
 }

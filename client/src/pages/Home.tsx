@@ -12,6 +12,7 @@ import { ShareButton } from "../components/ShareButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { subscribeSongs, type Song } from "@/lib/firestore";
 import { MobileTabView } from "../components/MobileTabView";
+import { ScrollToTop } from "../components/ScrollToTop";
 
 // 延遲載入大型元件以減少初始 bundle 大小
 const RankingBoard = lazy(() => import("../components/RankingBoard"));
@@ -667,6 +668,9 @@ export default function Home() {
           </Button>
         </motion.div>
       )}
+
+      {/* 返回頂部按鈕 */}
+      <ScrollToTop threshold={400} bottom={80} />
 
       {/* Login form modal */}
       {showLoginForm && (

@@ -11,7 +11,7 @@ interface UseRankingDataOptions {
     songs: Song[];
     displayLimit: number;
     reduceMotion: boolean;
-    containerRef: React.RefObject<HTMLDivElement>;
+    containerRef: React.RefObject<HTMLElement>;
 }
 
 export function useRankingData({
