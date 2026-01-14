@@ -547,6 +547,7 @@ export default function Home() {
                     <div className="h-3 sm:h-4" />
                     <SongList
                       songs={displayedSongs}
+                      allSongs={songs}
                       user={user || null}
                       hasMore={hasMore}
                       isLoadingMore={isLoadingMore}

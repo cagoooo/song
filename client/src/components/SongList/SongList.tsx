@@ -27,6 +27,7 @@ import { SongCard } from './SongCard';
 
 interface SongListProps {
     songs: Song[];
+    allSongs?: Song[]; // 完整歌曲列表，用於搜尋所有曲庫
     user: AppUser | null;
     hasMore?: boolean;
     isLoadingMore?: boolean;
@@ -36,6 +37,7 @@ interface SongListProps {
 
 export default function SongList({
     songs,
+    allSongs,
     user,
     hasMore,
     isLoadingMore,
@@ -58,13 +60,17 @@ export default function SongList({
         setReduceMotion(isMobile || prefersReducedMotion);
     }, []);
 
-    // 使用拆分的 Hooks
+    // 使用拆分的 Hooks - 使用完整歌曲列表 (allSongs) 進行搜尋，確保能搜尋所有曲庫
+    const searchSongsSource = allSongs || songs;
     const {
         searchTerm,
         setSearchTerm,
         isInSearchMode,
-        filteredSongs
-    } = useSongSearch(songs);
+        filteredSongs: searchFilteredSongs
+    } = useSongSearch(searchSongsSource);
+
+    // 顯示的歌曲：搜尋模式下使用搜尋結果，否則使用分頁的歌曲
+    const filteredSongs = isInSearchMode ? searchFilteredSongs : songs;
 
     const {
         votingId,
