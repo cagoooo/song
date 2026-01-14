@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,8 @@ interface LoginFormProps {
   onClose: () => void;
 }
 
-export default function LoginForm({ onClose }: LoginFormProps) {
+// 使用 memo 避免不必要的重渲染
+export default memo(function LoginForm({ onClose }: LoginFormProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -142,4 +143,4 @@ export default function LoginForm({ onClose }: LoginFormProps) {
       </DialogContent>
     </Dialog>
   );
-}
+});

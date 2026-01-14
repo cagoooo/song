@@ -1,5 +1,5 @@
-// 重構後的排行榜主元件
-import { useState, useRef, useEffect } from 'react';
+// 重構後的排行榜主元件（效能優化版）
+import { useState, useRef, useEffect, memo } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +14,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { Song } from '@/lib/firestore';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 // 拆分的子元件
 import { RankingHeader } from './RankingHeader';
@@ -24,10 +25,10 @@ interface RankingBoardProps {
     songs: Song[];
 }
 
-export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
-    // 偵測是否為手機裝置，減少動畫
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    const reduceMotion = isMobile || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+// 使用 memo 避免不必要的重渲染
+export default memo(function RankingBoard({ songs: propSongs }: RankingBoardProps) {
+    // 使用全局 Hook 檢測是否應減少動畫
+    const reduceMotion = useReduceMotion();
 
     const [isExpanded, setIsExpanded] = useState(false);
     const isLoading = propSongs.length === 0;
@@ -107,25 +108,12 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
                 ${index === 0 ? 'hover:shadow-xl hover:shadow-amber-200/40 hover:scale-[1.01]' : 'hover:scale-[1.005]'}
               `}
                         >
-                            {/* 第一名特效 */}
+                            {/* 第一名特效 - 簡化版 */}
                             {index === 0 && (
-                                <>
-                                    <motion.div
-                                        className="absolute inset-0 bg-gradient-to-br from-yellow-400/15 via-amber-300/10 to-yellow-200/15"
-                                        animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
-                                        transition={{ duration: 8, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
-                                        style={{ backgroundSize: "200% 200%", opacity: 0.7, filter: "blur(10px)", zIndex: 0, pointerEvents: "none" }}
-                                    />
-                                    {[...Array(3)].map((_, i) => (
-                                        <motion.div
-                                            key={i}
-                                            className="absolute w-1 h-1 bg-yellow-300 rounded-full pointer-events-none"
-                                            style={{ left: `${15 + i * 30}%`, top: `${20 + i * 20}%`, filter: "blur(1px)" }}
-                                            animate={{ opacity: [0.3, 0.9, 0.3], scale: [1, 1.4, 1] }}
-                                            transition={{ duration: 2 + i, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }}
-                                        />
-                                    ))}
-                                </>
+                                <div
+                                    className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 via-amber-300/5 to-yellow-200/10 rounded-lg"
+                                    style={{ zIndex: 0, pointerEvents: "none" }}
+                                />
                             )}
 
                             {/* 排名變化動畫 */}
@@ -148,30 +136,7 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
                                 />
                             )}
 
-                            {/* 煙火效果 */}
-                            {showFirework[song.id] && (
-                                <motion.div
-                                    className="absolute inset-0 pointer-events-none"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: [0, 0.8, 0], scale: [0.9, 1.1, 1] }}
-                                    transition={{ duration: 1.5, times: [0, 0.3, 1] }}
-                                >
-                                    {[...Array(12)].map((_, i) => (
-                                        <motion.div
-                                            key={i}
-                                            className="absolute w-1 h-1 bg-amber-500 rounded-full"
-                                            initial={{ x: "50%", y: "50%", opacity: 1 }}
-                                            animate={{
-                                                x: `${50 + (Math.random() * 100 - 50)}%`,
-                                                y: `${50 + (Math.random() * 100 - 50)}%`,
-                                                opacity: 0,
-                                                scale: [1, 1.5, 0]
-                                            }}
-                                            transition={{ duration: 0.8 + Math.random() * 0.7, delay: Math.random() * 0.2 }}
-                                        />
-                                    ))}
-                                </motion.div>
-                            )}
+                            {/* 煙火效果已移除以提升效能 */}
 
                             {/* 排名圖標 */}
                             <RankingBadge index={index} showRankChange={showRankChange[song.id]} />
@@ -214,26 +179,25 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
                                     {song.voteCount || 0}
                                 </motion.span>
 
-                                {/* 操作按鈕 */}
+                                {/* 操作按鈕 - 使用 CSS transition 取代 framer-motion */}
                                 <div className="flex gap-2">
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        className={`w-10 h-10 sm:w-11 sm:h-11 relative z-10 overflow-hidden
-                              border-amber-200 hover:border-amber-400
-                              ${index < 2 ? 'bg-gradient-to-br from-amber-50 to-yellow-100' : ''}`}
-                                                        asChild
-                                                        aria-label={`搜尋「${song.title}」的吉他譜`}
-                                                    >
-                                                        <a href={generateGuitarTabsUrl(song)} target="_blank" rel="noopener noreferrer">
-                                                            <Music2 className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700" />
-                                                        </a>
-                                                    </Button>
-                                                </motion.div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className={`w-10 h-10 sm:w-11 sm:h-11 relative z-10 overflow-hidden
+                                                        border-amber-200 hover:border-amber-400 hover:scale-105 active:scale-95
+                                                        transition-all duration-150
+                                                        ${index < 2 ? 'bg-gradient-to-br from-amber-50 to-yellow-100' : ''}`}
+                                                    asChild
+                                                    aria-label={`搜尋「${song.title}」的吉他譜`}
+                                                >
+                                                    <a href={generateGuitarTabsUrl(song)} target="_blank" rel="noopener noreferrer">
+                                                        <Music2 className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700" />
+                                                    </a>
+                                                </Button>
                                             </TooltipTrigger>
                                             <TooltipContent side="top" className="font-medium text-amber-950 bg-amber-50 border-amber-200">
                                                 <p>搜尋「{song.title} - {song.artist}」的吉他譜</p>
@@ -244,21 +208,20 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        className={`w-10 h-10 sm:w-11 sm:h-11 relative z-10 overflow-hidden
-                              border-rose-200 hover:border-rose-400
-                              ${index < 2 ? 'bg-gradient-to-br from-rose-50 to-pink-100' : ''}`}
-                                                        asChild
-                                                        aria-label={`搜尋「${song.title}」的歌詞`}
-                                                    >
-                                                        <a href={generateLyricsUrl(song)} target="_blank" rel="noopener noreferrer">
-                                                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-rose-700" />
-                                                        </a>
-                                                    </Button>
-                                                </motion.div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className={`w-10 h-10 sm:w-11 sm:h-11 relative z-10 overflow-hidden
+                                                        border-rose-200 hover:border-rose-400 hover:scale-105 active:scale-95
+                                                        transition-all duration-150
+                                                        ${index < 2 ? 'bg-gradient-to-br from-rose-50 to-pink-100' : ''}`}
+                                                    asChild
+                                                    aria-label={`搜尋「${song.title}」的歌詞`}
+                                                >
+                                                    <a href={generateLyricsUrl(song)} target="_blank" rel="noopener noreferrer">
+                                                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-rose-700" />
+                                                    </a>
+                                                </Button>
                                             </TooltipTrigger>
                                             <TooltipContent side="top" className="font-medium text-rose-950 bg-rose-50 border-rose-200">
                                                 <p>搜尋「{song.title} - {song.artist}」的歌詞</p>
@@ -271,34 +234,33 @@ export default function RankingBoard({ songs: propSongs }: RankingBoardProps) {
                     ))}
                 </AnimatePresence>
 
-                {/* 展開/收合按鈕 */}
+                {/* 展開/收合按鈕 - CSS transition */}
                 <div className="flex justify-center pt-4 pb-2">
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsExpanded(!isExpanded)}
-                            className="w-full max-w-xs bg-gradient-to-r from-amber-50 to-orange-50 
-                         border-amber-200 hover:border-amber-400 
-                         hover:from-amber-100 hover:to-orange-100
-                         text-amber-700 hover:text-amber-800
-                         transition-all duration-300 gap-2"
-                        >
-                            {isExpanded ? (
-                                <>
-                                    <ChevronUp className="h-4 w-4" />
-                                    收合排行榜（顯示前 10 名）
-                                </>
-                            ) : (
-                                <>
-                                    <ChevronDown className="h-4 w-4" />
-                                    查看更多（顯示前 30 名）
-                                </>
-                            )}
-                        </Button>
-                    </motion.div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="w-full max-w-xs bg-gradient-to-r from-amber-50 to-orange-50 
+                            border-amber-200 hover:border-amber-400 
+                            hover:from-amber-100 hover:to-orange-100
+                            text-amber-700 hover:text-amber-800
+                            hover:scale-[1.02] active:scale-[0.98]
+                            transition-all duration-200 gap-2"
+                    >
+                        {isExpanded ? (
+                            <>
+                                <ChevronUp className="h-4 w-4" />
+                                收合排行榜（顯示前 10 名）
+                            </>
+                        ) : (
+                            <>
+                                <ChevronDown className="h-4 w-4" />
+                                查看更多（顯示前 30 名）
+                            </>
+                        )}
+                    </Button>
                 </div>
             </ol>
         </ScrollArea>
     );
-}
+});

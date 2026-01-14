@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, X, Sparkles, Target } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import {
   Tooltip,
@@ -32,60 +32,24 @@ export default function SearchBar({
   };
 
   return (
-    <motion.div
-      className="relative"
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      {/* Animated glow effect when not focused */}
+    <div className="relative">
+      {/* 靜態光暈效果（取代無限循環動畫） */}
       {!isFocused && !value && (
-        <motion.div
-          className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-400/20 via-fuchsia-400/20 to-pink-400/20"
-          animate={{
-            opacity: [0.3, 0.6, 0.3],
-            scale: [1, 1.02, 1],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          style={{ filter: "blur(8px)" }}
+        <div
+          className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-400/15 via-fuchsia-400/15 to-pink-400/15 opacity-50"
+          style={{ filter: "blur(6px)" }}
         />
       )}
 
-      {/* Search icon */}
-      <motion.div
-        className="absolute left-3 top-1/2 -translate-y-1/2 z-10"
-        animate={!isFocused && !value ? {
-          scale: [1, 1.2, 1],
-          rotate: [0, 10, -10, 0],
-        } : {}}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      >
+      {/* Search icon - 靜態版本 */}
+      <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
         <Search className="h-5 w-5 text-primary/70" />
-      </motion.div>
+      </div>
 
-      {/* Animated guitar emoji */}
-      <motion.div
-        className="absolute left-10 top-1/2 -translate-y-1/2 text-lg z-10"
-        animate={!isFocused && !value ? {
-          rotate: [-5, 5, -5],
-          y: [0, -2, 0],
-        } : {}}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      >
+      {/* 吉他 emoji - 靜態版本 */}
+      <div className="absolute left-10 top-1/2 -translate-y-1/2 text-lg z-10">
         🎸
-      </motion.div>
+      </div>
 
       <Input
         type="search"
@@ -164,41 +128,18 @@ export default function SearchBar({
           </TooltipProvider>
         )}
 
-        {/* Animated music note emoji (only when no value) */}
+        {/* 音符 emoji - 靜態版本 */}
         {!value && (
-          <motion.div
-            className="text-lg ml-1"
-            animate={!isFocused ? {
-              y: [0, -3, 0],
-              rotate: [0, 15, 0],
-            } : {}}
-            transition={{
-              duration: 1.2,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 0.3
-            }}
-          >
-            🎵
-          </motion.div>
+          <span className="text-lg ml-1">🎵</span>
         )}
       </div>
 
-      {/* Hint text */}
+      {/* Hint text - 靜態版本 */}
       {!isFocused && !value && (
-        <motion.div
-          className="absolute -bottom-5 left-0 right-0 text-center text-xs text-primary/60"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        >
+        <div className="absolute -bottom-5 left-0 right-0 text-center text-xs text-primary/60">
           點擊上方開始搜尋 ✨
-        </motion.div>
+        </div>
       )}
-    </motion.div>
+    </div>
   );
 }

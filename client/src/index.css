@@ -12,90 +12,39 @@
   }
 }
 
+/* 靜態漸層效果（效能優化版 - 移除無限循環動畫） */
+.animate-text {
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  /* 使用單次動畫，播放完成後停止 */
+  animation: gradient 3s ease forwards;
+}
+
+/* 單次漸層動畫 - 播放一次後停止 */
 @keyframes gradient {
   0% {
     background-position: 0% 50%;
   }
 
-  50% {
+  100% {
     background-position: 100% 50%;
   }
-
-  100% {
-    background-position: 0% 50%;
-  }
 }
 
-@keyframes shadow-pulse {
+/* 尊重使用者的動畫偏好設定 - 完全停用動畫 */
+@media (prefers-reduced-motion: reduce) {
 
-  0%,
-  100% {
-    box-shadow: 0 0 15px rgba(var(--primary), 0.3);
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 
-  50% {
-    box-shadow: 0 0 25px rgba(var(--primary), 0.5);
+  .animate-text {
+    animation: none;
   }
-}
-
-@keyframes border-pulse {
-
-  0%,
-  100% {
-    border-color: rgba(var(--primary), 0.1);
-  }
-
-  50% {
-    border-color: rgba(var(--primary), 0.3);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    text-shadow: 0 0 4px rgba(255, 255, 255, 0);
-  }
-
-  50% {
-    text-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
-  }
-
-  100% {
-    text-shadow: 0 0 4px rgba(255, 255, 255, 0);
-  }
-}
-
-@keyframes float {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes sparkle {
-
-  0%,
-  100% {
-    background-size: 200% 100%;
-    background-position: right center;
-  }
-
-  50% {
-    background-size: 200% 100%;
-    background-position: left center;
-  }
-}
-
-/* Add gradient animation for the title */
-.animate-text {
-  animation: gradient 8s linear infinite,
-    shimmer 3s ease-in-out infinite,
-    sparkle 8s linear infinite;
-  background-size: 200% auto;
-  background-clip: text;
-  -webkit-background-clip: text;
 }

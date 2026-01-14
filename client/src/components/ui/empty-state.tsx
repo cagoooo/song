@@ -1,4 +1,4 @@
-// 空狀態提示元件
+// 空狀態提示元件（效能優化版）
 import { motion } from 'framer-motion';
 import { Music, Search, Lightbulb, Inbox } from 'lucide-react';
 
@@ -56,27 +56,14 @@ export function EmptyState({ variant, searchTerm, className = '' }: EmptyStatePr
             transition={{ duration: 0.4 }}
             className={`flex flex-col items-center justify-center py-12 px-4 text-center ${className}`}
         >
-            <motion.div
-                animate={{
-                    scale: [1, 1.1, 1],
-                    rotate: [0, 5, -5, 0]
-                }}
-                transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut'
-                }}
-                className="text-6xl mb-4"
-            >
+            {/* 靜態 Emoji（移除無限循環動畫） */}
+            <div className="text-6xl mb-4">
                 {config.emoji}
-            </motion.div>
+            </div>
 
             <div className="relative mb-4">
-                <motion.div
-                    className="absolute inset-0 rounded-full bg-gray-100"
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                />
+                {/* 靜態背景圓（移除無限循環動畫） */}
+                <div className="absolute inset-0 rounded-full bg-gray-100" />
                 <Icon className="relative w-12 h-12 text-gray-300" />
             </div>
 

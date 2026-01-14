@@ -1,4 +1,4 @@
-// 手機版 Tab 介面元件 - 支援手勢滑動
+// 手機版 Tab 介面元件 - 支援手勢滑動（效能優化版）
 import { useState, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Music2, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -74,21 +74,11 @@ export function MobileTabView({ songListContent, rankingContent }: MobileTabView
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                 {/* 優化的 Tab 切換區塊 */}
                 <div className="sticky top-0 z-20 bg-gradient-to-b from-background via-background to-background/95 pb-3 pt-1">
-                    {/* 提示文字 - 滑動手勢提示 */}
+                    {/* 提示文字 - 靜態版本（移除無限循環動畫） */}
                     <div className="flex items-center justify-center gap-1 mb-2 text-xs text-muted-foreground">
-                        <motion.div
-                            animate={{ x: [-3, 0, -3] }}
-                            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                        >
-                            <ChevronLeft className="w-3 h-3" />
-                        </motion.div>
+                        <ChevronLeft className="w-3 h-3" />
                         <span>左右滑動或點擊切換</span>
-                        <motion.div
-                            animate={{ x: [3, 0, 3] }}
-                            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                        >
-                            <ChevronRight className="w-3 h-3" />
-                        </motion.div>
+                        <ChevronRight className="w-3 h-3" />
                     </div>
 
                     <TabsList className="grid w-full grid-cols-2 h-14 p-1.5 bg-gradient-to-r from-amber-100/80 via-orange-50 to-amber-100/80 rounded-xl shadow-lg border-2 border-amber-200/50">
@@ -130,23 +120,21 @@ export function MobileTabView({ songListContent, rankingContent }: MobileTabView
                         </TabsTrigger>
                     </TabsList>
 
-                    {/* 當前位置指示器 */}
+                    {/* 當前位置指示器 - CSS transition（移除 framer-motion） */}
                     <div className="flex justify-center gap-2 mt-3">
-                        <motion.div
-                            className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${activeTab === 'songs'
-                                    ? 'bg-primary w-6'
-                                    : 'bg-gray-300 hover:bg-gray-400 w-2'
+                        <div
+                            className={`h-2 rounded-full transition-all duration-300 cursor-pointer hover:opacity-80 active:scale-90 ${activeTab === 'songs'
+                                ? 'bg-primary w-6'
+                                : 'bg-gray-300 hover:bg-gray-400 w-2'
                                 }`}
                             onClick={() => handleTabChange('songs')}
-                            whileTap={{ scale: 0.9 }}
                         />
-                        <motion.div
-                            className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${activeTab === 'ranking'
-                                    ? 'bg-primary w-6'
-                                    : 'bg-gray-300 hover:bg-gray-400 w-2'
+                        <div
+                            className={`h-2 rounded-full transition-all duration-300 cursor-pointer hover:opacity-80 active:scale-90 ${activeTab === 'ranking'
+                                ? 'bg-primary w-6'
+                                : 'bg-gray-300 hover:bg-gray-400 w-2'
                                 }`}
                             onClick={() => handleTabChange('ranking')}
-                            whileTap={{ scale: 0.9 }}
                         />
                     </div>
                 </div>

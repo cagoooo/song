@@ -1,4 +1,4 @@
-// 點播成功全螢幕動畫覆蓋層
+// 點播成功全螢幕動畫覆蓋層（效能優化版）
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Sparkles } from 'lucide-react';
 
@@ -32,24 +32,25 @@ export function VoteOverlay({ show, songTitle, songArtist }: VoteOverlayProps) {
                        text-white px-8 py-6 rounded-2xl shadow-2xl
                        flex flex-col items-center gap-3"
                     >
+                        {/* 打勾圖標 - 只播放一次動畫 */}
                         <motion.div
+                            initial={{ rotate: 0, scale: 1 }}
                             animate={{
                                 rotate: [0, 10, -10, 0],
                                 scale: [1, 1.2, 1]
                             }}
-                            transition={{
-                                duration: 0.5,
-                                repeat: 2
-                            }}
+                            transition={{ duration: 0.5 }}
                         >
                             <CheckCircle2 className="h-12 w-12 text-white drop-shadow-lg" />
                         </motion.div>
+
                         <motion.p
                             className="text-xl font-bold"
                             animate={{ y: [10, 0] }}
                         >
                             點播成功！
                         </motion.p>
+
                         <motion.div
                             className="text-center"
                             initial={{ opacity: 0, y: 10 }}
@@ -59,33 +60,13 @@ export function VoteOverlay({ show, songTitle, songArtist }: VoteOverlayProps) {
                             <p className="text-lg font-semibold">{songTitle}</p>
                             <p className="text-sm opacity-80">{songArtist}</p>
                         </motion.div>
-                        <motion.div
-                            className="flex gap-2 mt-1"
-                            animate={{
-                                scale: [1, 1.1, 1]
-                            }}
-                            transition={{
-                                duration: 0.6,
-                                repeat: Infinity
-                            }}
-                        >
+
+                        {/* 靜態星星裝飾（移除無限循環） */}
+                        <div className="flex gap-2 mt-1">
                             {[...Array(3)].map((_, i) => (
-                                <motion.div
-                                    key={i}
-                                    animate={{
-                                        y: [0, -5, 0],
-                                        opacity: [0.5, 1, 0.5]
-                                    }}
-                                    transition={{
-                                        duration: 0.4,
-                                        delay: i * 0.1,
-                                        repeat: Infinity
-                                    }}
-                                >
-                                    <Sparkles className="h-5 w-5 text-yellow-300" />
-                                </motion.div>
+                                <Sparkles key={i} className="h-5 w-5 text-yellow-300" />
                             ))}
-                        </motion.div>
+                        </div>
                     </motion.div>
                 </motion.div>
             )}

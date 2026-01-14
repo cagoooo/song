@@ -22,15 +22,8 @@ export default function SongSuggestion({ isAdmin = false }: SongSuggestionProps)
     return (
         <div className="space-y-4">
             {/* 新歌建議按鈕與表單 */}
-            <div className="relative p-1 rounded-xl bg-gradient-to-r from-yellow-300 via-amber-500 to-orange-400 shadow-lg">
-                <motion.div
-                    animate={{
-                        boxShadow: ['0 0 8px rgba(251, 191, 36, 0.6)', '0 0 16px rgba(251, 191, 36, 0.8)', '0 0 8px rgba(251, 191, 36, 0.6)'],
-                        scale: [1, 1.02, 1],
-                    }}
-                    transition={{ duration: 2, repeat: Infinity, repeatType: 'reverse' }}
-                    className="absolute inset-0 rounded-xl opacity-70 pointer-events-none"
-                />
+            {/* 靜態漸層外框（移除無限循環動畫） */}
+            <div className="relative p-1 rounded-xl bg-gradient-to-r from-yellow-300 via-amber-500 to-orange-400 shadow-lg shadow-amber-300/30">
                 <div className="rounded-lg overflow-hidden">
                     <SuggestionForm isOpen={isOpen} onOpenChange={setIsOpen} />
                 </div>

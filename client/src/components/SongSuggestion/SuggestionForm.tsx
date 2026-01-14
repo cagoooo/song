@@ -74,28 +74,18 @@ export function SuggestionForm({ isOpen, onOpenChange }: SuggestionFormProps) {
                    hover:shadow-[0_8px_25px_rgba(245,158,11,0.6)]
                    transition-all duration-300"
                 >
-                    <motion.div
-                        animate={{ scale: [1, 1.08, 1], rotate: [0, 3, 0, -3, 0] }}
-                        transition={{
-                            scale: { duration: 1.5, repeat: Infinity, repeatType: 'reverse' },
-                            rotate: { duration: 2, repeat: Infinity },
-                        }}
-                        className="flex items-center"
-                    >
+                    <div className="flex items-center">
                         <Plus className="w-5 h-5 mr-3" />
                         <span>想點的歌還沒有？</span>
                         <span className="ml-1 font-bold">建議新歌給我們！</span>
-                    </motion.div>
+                    </div>
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 border-none shadow-[0_10px_50px_rgba(120,100,255,0.3),0_0_0_1px_rgba(120,113,254,0.3)] overflow-hidden">
                 <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_80%_20%,rgba(120,113,255,0.2),transparent_40%),radial-gradient(circle_at_20%_80%,rgba(255,113,200,0.2),transparent_30%)]" />
 
-                <motion.div
-                    className="absolute -z-5 top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-90"
-                    animate={{ opacity: [0.4, 0.8, 0.4] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                />
+                {/* 靜態頂部裝飾條 */}
+                <div className="absolute -z-5 top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-70" />
 
                 <DialogHeader className="pb-2">
                     <motion.div

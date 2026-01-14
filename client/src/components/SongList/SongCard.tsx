@@ -79,12 +79,8 @@ export const SongCard = memo(function SongCard({
                 </div>
 
                 <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 sm:mt-0">
-                    {/* 點播按鈕 */}
-                    <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="relative w-full sm:w-auto"
-                    >
+                    {/* 點播按鈕 - CSS transition */}
+                    <div className="relative w-full sm:w-auto">
                         <Button
                             ref={(el) => { buttonRefs.current[songId] = el; }}
                             variant="outline"
@@ -92,21 +88,20 @@ export const SongCard = memo(function SongCard({
                             onClick={() => onVote(songId, song)}
                             aria-label={`為「${song.title}」投票`}
                             className={`
-                flex gap-2 relative overflow-hidden w-full sm:w-auto
-                rounded-xl
-                bg-gradient-to-r ${colorClasses.btn}
-                hover:from-opacity-80 hover:via-opacity-80 hover:to-opacity-80
-                border-2
-                ${isVoting || count > 0
+                                flex gap-2 relative overflow-hidden w-full sm:w-auto
+                                rounded-xl
+                                bg-gradient-to-r ${colorClasses.btn}
+                                hover:from-opacity-80 hover:via-opacity-80 hover:to-opacity-80
+                                border-2
+                                ${isVoting || count > 0
                                     ? `${colorClasses.border.replace('border-', 'border-').replace('-300', '-500')} shadow-lg`
                                     : `${colorClasses.border}/70 hover:${colorClasses.border.replace('-300', '-400')}`}
-                transition-all duration-150
-                transform-gpu
-                ${count > 0 ? 'scale-110' : 'scale-100'}
-                active:scale-95
-                text-base font-medium
-                cursor-pointer
-              `}
+                                transition-all duration-150
+                                transform-gpu
+                                hover:scale-105 active:scale-95
+                                text-base font-medium
+                                cursor-pointer
+                            `}
                             style={{
                                 transform: `scale(${Math.min(1 + count * 0.05, 1.25)})`,
                                 willChange: 'transform',
@@ -148,50 +143,44 @@ export const SongCard = memo(function SongCard({
                                 </AnimatePresence>
                             </span>
                         </Button>
-                    </motion.div>
+                    </div>
 
-                    {/* 管理員操作按鈕 */}
+                    {/* 管理員操作按鈕 - CSS transition */}
                     {user?.isAdmin && (
                         <>
-                            <motion.div
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="w-full sm:w-auto"
-                            >
+                            <div className="w-full sm:w-auto">
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => onEdit(song)}
                                     className={`flex gap-2 w-full sm:w-auto rounded-xl
-                            border-2 ${colorClasses.border}/50 bg-gradient-to-r from-white to-${colorClasses.accent.replace('text-', '')}/10
-                            hover:${colorClasses.border.replace('-300', '-400')}
-                            transition-all duration-300`}
+                                        border-2 ${colorClasses.border}/50 bg-gradient-to-r from-white to-${colorClasses.accent.replace('text-', '')}/10
+                                        hover:${colorClasses.border.replace('-300', '-400')}
+                                        hover:scale-105 active:scale-95
+                                        transition-all duration-150`}
                                 >
                                     <Edit2 className={`h-4 w-4 ${colorClasses.accent}`} />
                                     編輯
                                 </Button>
-                            </motion.div>
-                            <motion.div
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="w-full sm:w-auto"
-                            >
+                            </div>
+                            <div className="w-full sm:w-auto">
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => onDelete(song.id)}
                                     className="flex gap-2 w-full sm:w-auto rounded-xl
-                            border-2 border-red-300/50 
-                            bg-gradient-to-r from-white to-red-50
-                            text-red-500 hover:text-red-600
-                            hover:border-red-400/70
-                            hover:shadow-sm hover:shadow-red-200
-                            transition-all duration-300"
+                                        border-2 border-red-300/50 
+                                        bg-gradient-to-r from-white to-red-50
+                                        text-red-500 hover:text-red-600
+                                        hover:border-red-400/70
+                                        hover:shadow-sm hover:shadow-red-200
+                                        hover:scale-105 active:scale-95
+                                        transition-all duration-150"
                                 >
                                     <Trash2 className="h-4 w-4" />
                                     刪除
                                 </Button>
-                            </motion.div>
+                            </div>
                         </>
                     )}
                 </div>

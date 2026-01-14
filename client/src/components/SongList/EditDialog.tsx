@@ -94,15 +94,10 @@ export function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
         border-2 ${colorScheme.border}
         shadow-xl overflow-hidden
       `}>
-                {/* 背景裝飾 */}
+                {/* 靜態背景裝飾 */}
                 <div className="absolute -z-10 inset-0 bg-white/50"></div>
-                <motion.div
-                    className="absolute -z-5 inset-0 opacity-20 pointer-events-none"
-                    initial={{ backgroundPosition: '0% 0%' }}
-                    animate={{
-                        backgroundPosition: ['0% 0%', '100% 100%'],
-                    }}
-                    transition={{ duration: 15, repeat: Infinity, repeatType: 'reverse' }}
+                <div
+                    className="absolute -z-5 inset-0 opacity-10 pointer-events-none"
                     style={{
                         backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 25%)',
                         backgroundSize: '120% 120%'
