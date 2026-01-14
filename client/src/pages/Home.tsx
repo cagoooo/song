@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
@@ -6,13 +6,26 @@ import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, Music2, Trophy, Lightbulb } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
-import RankingBoard from "../components/RankingBoard";
 import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
-import SongSuggestion from "../components/SongSuggestion";
 import { ShareButton } from "../components/ShareButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { subscribeSongs, type Song } from "@/lib/firestore";
+
+// 延遲載入大型元件以減少初始 bundle 大小
+const RankingBoard = lazy(() => import("../components/RankingBoard"));
+const SongSuggestion = lazy(() => import("../components/SongSuggestion"));
+
+// 載入中的骨架屏
+function SectionSkeleton() {
+  return (
+    <div className="p-4 space-y-3">
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-8 w-3/4" />
+    </div>
+  );
+}
 
 const PAGE_SIZE = 30;
 
@@ -519,7 +532,9 @@ export default function Home() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <SongSuggestion isAdmin={user?.isAdmin ?? false} />
+                  <Suspense fallback={<SectionSkeleton />}>
+                    <SongSuggestion isAdmin={user?.isAdmin ?? false} />
+                  </Suspense>
                 </CardContent>
               </Card>
             </motion.div>
@@ -573,7 +588,9 @@ export default function Home() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-3 sm:p-6">
-                    <RankingBoard songs={songs} />
+                    <Suspense fallback={<SectionSkeleton />}>
+                      <RankingBoard songs={songs} />
+                    </Suspense>
                   </CardContent>
                 </Card>
               </motion.div>

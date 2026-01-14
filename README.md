@@ -237,6 +237,10 @@ song/
 
 ## 📜 更新日誌
 
+### v2.4.0 (2026-01-14)
+- 🧪 **單元測試基礎建設**：整合 Vitest 測試框架，建立 `useSongSearch` 和 `error-handler` 測試
+- 📦 **程式碼分割**：使用 React.lazy 延遲載入 RankingBoard 和 SongSuggestion 減少初始 Bundle
+
 ### v2.3.0 (2026-01-14)
 - 🔍 **搜尋功能強化**：關鍵字搜尋現在可搜尋所有曲庫內容，不再限制於前 30 首
 
