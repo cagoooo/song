@@ -44,13 +44,30 @@ const formatFirebaseDate = (timestamp: any): string => {
     }
 };
 
+// 不應加入搜尋的歌手選項
+const EXCLUDED_ARTISTS = ['不確定', '多人翻唱', '經典老歌', '未知歌手'];
+
+// 取得有效的歌手名稱（排除預設選項）
+const getValidArtist = (artist: string | undefined): string => {
+    if (!artist || EXCLUDED_ARTISTS.includes(artist)) {
+        return '';
+    }
+    return artist;
+};
+
 const generateGuitarTabsUrl = (song: SongSuggestionType) => {
-    const searchQuery = encodeURIComponent(`${song.title} ${song.artist} guitar tabs`);
+    const artist = getValidArtist(song.artist);
+    const searchQuery = artist
+        ? encodeURIComponent(`${song.title} ${artist} guitar tabs`)
+        : encodeURIComponent(`${song.title} guitar tabs`);
     return `https://www.google.com/search?q=${searchQuery}`;
 };
 
 const generateLyricsUrl = (song: SongSuggestionType) => {
-    const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 歌詞`);
+    const artist = getValidArtist(song.artist);
+    const searchQuery = artist
+        ? encodeURIComponent(`${song.title} ${artist} 歌詞`)
+        : encodeURIComponent(`${song.title} 歌詞`);
     return `https://www.google.com/search?q=${searchQuery}`;
 };
 
@@ -179,10 +196,10 @@ export const SuggestionCard = memo(function SuggestionCard({
                 </div>
             </div>
 
-            <div className="relative p-4 sm:p-5 pt-7">
-                {/* 歌曲資訊 */}
-                <div className="mb-3">
-                    <h4 className={`text-base sm:text-lg font-bold truncate bg-gradient-to-r ${color.title} bg-clip-text text-transparent`}>
+            <div className="relative p-3 sm:p-4 pt-6">
+                {/* 歌曲資訊 - 加大字體 */}
+                <div className="mb-2">
+                    <h4 className={`text-lg sm:text-base font-bold truncate bg-gradient-to-r ${color.title} bg-clip-text text-transparent leading-tight`}>
                         {suggestion.title}
                     </h4>
                     <p className="text-sm font-medium text-gray-600 truncate mt-0.5">
@@ -200,24 +217,23 @@ export const SuggestionCard = memo(function SuggestionCard({
                     )}
                 </div>
 
-                {/* 快速連結按鈕 - 獨立一行 */}
-                <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs text-gray-400 font-medium">快速連結：</span>
+                {/* 快速連結按鈕 - 加大尺寸 */}
+                <div className="flex items-center gap-2 mb-2">
                     <TooltipProvider delayDuration={100}>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-7 px-2.5 rounded-lg border border-indigo-200/70 
-                                        bg-white/90 hover:bg-indigo-50 hover:border-indigo-300
-                                        shadow-sm hover:shadow transition-all duration-150
+                                    className="h-9 sm:h-8 px-3 rounded-lg border border-indigo-200 
+                                        bg-indigo-50/80 hover:bg-indigo-100 hover:border-indigo-300
+                                        shadow-sm transition-all duration-150
                                         active:scale-95"
                                     asChild
                                 >
                                     <a href={generateGuitarTabsUrl(suggestion)} target="_blank" rel="noopener noreferrer">
-                                        <Music2 className="w-3.5 h-3.5 text-indigo-500 mr-1" />
-                                        <span className="text-xs text-indigo-600 font-medium">吉他譜</span>
+                                        <Music2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-indigo-500 mr-1.5" />
+                                        <span className="text-sm sm:text-xs text-indigo-600 font-medium">吉他譜</span>
                                     </a>
                                 </Button>
                             </TooltipTrigger>
@@ -233,15 +249,15 @@ export const SuggestionCard = memo(function SuggestionCard({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-7 px-2.5 rounded-lg border border-rose-200/70 
-                                        bg-white/90 hover:bg-rose-50 hover:border-rose-300
-                                        shadow-sm hover:shadow transition-all duration-150
+                                    className="h-9 sm:h-8 px-3 rounded-lg border border-rose-200 
+                                        bg-rose-50/80 hover:bg-rose-100 hover:border-rose-300
+                                        shadow-sm transition-all duration-150
                                         active:scale-95"
                                     asChild
                                 >
                                     <a href={generateLyricsUrl(suggestion)} target="_blank" rel="noopener noreferrer">
-                                        <FileText className="w-3.5 h-3.5 text-rose-500 mr-1" />
-                                        <span className="text-xs text-rose-600 font-medium">歌詞</span>
+                                        <FileText className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-rose-500 mr-1.5" />
+                                        <span className="text-sm sm:text-xs text-rose-600 font-medium">歌詞</span>
                                     </a>
                                 </Button>
                             </TooltipTrigger>
@@ -252,11 +268,11 @@ export const SuggestionCard = memo(function SuggestionCard({
                     </TooltipProvider>
                 </div>
 
-                {/* 推薦理由 */}
+                {/* 推薦理由 - 加大字體 */}
                 {suggestion.notes && (
-                    <div className={`p-3 rounded-xl bg-gradient-to-r ${color.noteBg} 
-                        border border-white/50 backdrop-blur-sm mb-3`}>
-                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed line-clamp-2">
+                    <div className={`p-2.5 rounded-xl bg-gradient-to-r ${color.noteBg} 
+                        border border-white/50 backdrop-blur-sm mb-2`}>
+                        <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
                             「{suggestion.notes}」
                         </p>
                     </div>

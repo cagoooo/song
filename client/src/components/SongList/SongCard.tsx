@@ -1,8 +1,7 @@
-// 歌曲卡片元件
-import { memo } from 'react';
+// 歌曲卡片元件 - 純 CSS 動畫版（手機優化）
+import { memo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Music, ThumbsUp, Trash2, Edit2 } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import type { Song } from '@/lib/firestore';
 import type { AppUser } from '@/lib/auth';
 
@@ -49,101 +48,129 @@ export const SongCard = memo(function SongCard({
     const count = clickCount[songId] || 0;
     const isVoting = votingId === songId;
 
+    // 點擊計數動畫狀態
+    const [showCount, setShowCount] = useState(false);
+
+    useEffect(() => {
+        if (count > 0) {
+            setShowCount(true);
+            const timer = setTimeout(() => setShowCount(false), 600);
+            return () => clearTimeout(timer);
+        }
+    }, [count]);
+
     return (
-        <motion.div
-            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={reduceMotion ? { duration: 0.1 } : { duration: 0.2, delay: Math.min(index * 0.02, 0.3) }}
-            className={`flex flex-col gap-3 p-4 rounded-xl 
+        <div
+            className={`flex items-center gap-3 p-3 sm:p-4 rounded-xl 
                 bg-white border border-slate-200
                 border-l-4 ${colors.border}
                 hover:shadow-md hover:border-slate-300
-                transition-shadow duration-200`}
+                transition-shadow duration-200
+                animate-in fade-in slide-in-from-bottom-1`}
+            style={{
+                animationDelay: reduceMotion ? '0ms' : `${Math.min(index * 20, 300)}ms`,
+                animationDuration: reduceMotion ? '100ms' : '200ms',
+                animationFillMode: 'backwards'
+            }}
         >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                {/* 歌曲資訊 */}
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                    <div className={`w-10 h-10 rounded-lg ${colors.bg} bg-opacity-10 flex items-center justify-center shrink-0`}>
-                        <Music className={`h-5 w-5 ${colors.accent}`} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <h3 className="text-base font-semibold text-slate-800 truncate">{song.title}</h3>
-                        <p className="text-sm text-slate-500 truncate mt-0.5">{song.artist}</p>
-                    </div>
-                </div>
+            {/* 音符圖標 - 手機端隱藏以節省空間 */}
+            <div className={`hidden sm:flex w-10 h-10 rounded-lg ${colors.bg} bg-opacity-10 items-center justify-center shrink-0`}>
+                <Music className={`h-5 w-5 ${colors.accent}`} />
+            </div>
 
-                {/* 操作按鈕 */}
-                <div className="flex flex-wrap gap-2 sm:shrink-0">
-                    {/* 點播按鈕 */}
-                    <div className="relative">
-                        <Button
-                            ref={(el) => { buttonRefs.current[songId] = el; }}
-                            variant="default"
-                            size="default"
-                            onClick={() => onVote(songId, song)}
-                            aria-label={`為「${song.title}」投票`}
-                            className={`
-                                flex gap-2 px-4
-                                bg-gradient-to-r from-amber-500 to-orange-500
-                                hover:from-amber-400 hover:to-orange-400
-                                text-white font-medium
-                                shadow-sm hover:shadow-md
-                                transition-all duration-150
-                                hover:scale-105 active:scale-95
-                                ${isVoting || count > 0 ? 'ring-2 ring-amber-300 ring-offset-1' : ''}
-                            `}
+            {/* 歌曲資訊 - 放大字體 */}
+            <div className="min-w-0 flex-1">
+                <h3 className="text-lg sm:text-base font-bold text-slate-800 truncate leading-tight">
+                    {song.title}
+                </h3>
+                <p className="text-sm sm:text-sm text-slate-500 truncate mt-0.5">
+                    {song.artist}
+                </p>
+            </div>
+
+            {/* 操作按鈕區 */}
+            <div className="flex items-center gap-2 shrink-0">
+                {/* 點播按鈕 - 加大尺寸 */}
+                <div className="relative">
+                    <Button
+                        ref={(el) => { buttonRefs.current[songId] = el; }}
+                        variant="default"
+                        size="default"
+                        onClick={() => onVote(songId, song)}
+                        aria-label={`為「${song.title}」投票`}
+                        className={`
+                            flex gap-2 px-5 py-2.5 h-11 sm:h-10
+                            text-base sm:text-sm font-semibold
+                            bg-gradient-to-r from-amber-500 to-orange-500
+                            hover:from-amber-400 hover:to-orange-400
+                            text-white
+                            shadow-md hover:shadow-lg
+                            transition-all duration-150
+                            active:scale-95
+                            ${isVoting || count > 0 ? 'ring-2 ring-amber-300 ring-offset-1' : ''}
+                        `}
+                    >
+                        <ThumbsUp className="h-5 w-5 sm:h-4 sm:w-4" />
+                        <span>點播</span>
+                    </Button>
+
+                    {/* 點擊計數 - 純 CSS 動畫 */}
+                    {showCount && (
+                        <span
+                            className="absolute -top-2 left-1/2 -translate-x-1/2 font-bold text-amber-600 text-lg pointer-events-none"
+                            style={{
+                                animation: 'countFloat 0.6s ease-out forwards'
+                            }}
                         >
-                            <ThumbsUp className="h-4 w-4" />
-                            <span>點播</span>
-                            <AnimatePresence>
-                                {count > 0 && (
-                                    <motion.span
-                                        key={`count-${count}`}
-                                        initial={{ opacity: 0, y: 5, scale: 0.5 }}
-                                        animate={{
-                                            opacity: [0, 1, 1, 0],
-                                            y: [-5, -25, -35],
-                                            scale: 1.2,
-                                        }}
-                                        transition={{
-                                            duration: 0.6,
-                                            ease: 'easeOut',
-                                            times: [0, 0.2, 0.8, 1]
-                                        }}
-                                        className="absolute -top-2 left-1/2 -translate-x-1/2 font-bold text-amber-600 text-lg pointer-events-none"
-                                    >
-                                        +{count}
-                                    </motion.span>
-                                )}
-                            </AnimatePresence>
-                        </Button>
-                    </div>
-
-                    {/* 管理員操作按鈕 */}
-                    {user?.isAdmin && (
-                        <>
-                            <Button
-                                variant="outline"
-                                size="default"
-                                onClick={() => onEdit(song)}
-                                className="flex gap-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                            >
-                                <Edit2 className="h-4 w-4 text-slate-500" />
-                                編輯
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="default"
-                                onClick={() => onDelete(song.id)}
-                                className="flex gap-2 border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                                刪除
-                            </Button>
-                        </>
+                            +{count}
+                        </span>
                     )}
                 </div>
+
+                {/* 管理員操作按鈕 - 精簡版 */}
+                {user?.isAdmin && (
+                    <div className="flex gap-1">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => onEdit(song)}
+                            className="w-10 h-10 sm:w-9 sm:h-9 border-slate-200 hover:border-slate-300 hover:bg-slate-50 active:scale-95 transition-transform duration-100"
+                        >
+                            <Edit2 className="h-4 w-4 text-slate-500" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => onDelete(song.id)}
+                            className="w-10 h-10 sm:w-9 sm:h-9 border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50 active:scale-95 transition-transform duration-100"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
             </div>
-        </motion.div>
+
+            {/* CSS 動畫定義 */}
+            <style>{`
+                @keyframes countFloat {
+                    0% {
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(0) scale(0.5);
+                    }
+                    20% {
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(-15px) scale(1.2);
+                    }
+                    80% {
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(-25px) scale(1.2);
+                    }
+                    100% {
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(-35px) scale(1);
+                    }
+                }
+            `}</style>
+        </div>
     );
 });

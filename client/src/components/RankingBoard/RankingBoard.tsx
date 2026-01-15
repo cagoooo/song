@@ -181,7 +181,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                 transition: { duration: 0.2 }
                             }}
                             className={`
-                                flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl relative overflow-hidden
+                                flex flex-wrap items-center gap-2 p-2.5 sm:p-3 rounded-xl relative overflow-hidden
                                 transition-all duration-200
                                 ${song.isPlayed ? 'bg-emerald-50/50 border-emerald-200' : ''}
                                 ${index === 0
@@ -193,7 +193,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                             : 'bg-white border border-slate-200/80 hover:border-slate-300 hover:shadow-sm'}
                                 ${showRankChange[song.id] === 'up' ? 'ring-2 ring-emerald-200 shadow-lg shadow-emerald-100/50' :
                                     showRankChange[song.id] === 'down' ? 'ring-2 ring-rose-200 shadow-lg shadow-rose-100/50' : ''}
-                                ${index < 3 ? 'hover:shadow-xl hover:scale-[1.01]' : 'hover:bg-slate-50/50'}
+                                ${index < 3 ? 'hover:shadow-xl' : 'hover:bg-slate-50/50'}
                             `}
                         >
                             {/* 前三名微光效果 */}
@@ -229,26 +229,26 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                             {/* 排名圖標 */}
                             <RankingBadge index={index} showRankChange={showRankChange[song.id]} />
 
-                            {/* 歌曲資訊 */}
-                            <div className="flex-1 min-w-0 w-full sm:w-auto">
+                            {/* 歌曲資訊 - 加大字體 */}
+                            <div className="flex-1 min-w-0">
                                 <motion.div
                                     className="relative"
                                     animate={{ scale: showRankChange[song.id] ? [1, 1.02, 1] : 1 }}
                                     transition={{ duration: 0.3 }}
                                 >
-                                    <h3 className={`font-bold text-base sm:text-lg leading-tight truncate ${index === 0 ? 'text-amber-900' :
-                                            index === 1 ? 'text-slate-800' :
-                                                index === 2 ? 'text-orange-900' :
-                                                    'text-slate-800'
+                                    <h3 className={`font-bold text-lg sm:text-base leading-tight truncate ${index === 0 ? 'text-amber-900' :
+                                        index === 1 ? 'text-slate-800' :
+                                            index === 2 ? 'text-orange-900' :
+                                                'text-slate-800'
                                         }`}>
                                         {song.title}
                                     </h3>
                                 </motion.div>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <p className={`text-sm truncate ${index === 0 ? 'text-amber-700/80' :
-                                            index === 1 ? 'text-slate-600/80' :
-                                                index === 2 ? 'text-orange-700/80' :
-                                                    'text-slate-500'
+                                        index === 1 ? 'text-slate-600/80' :
+                                            index === 2 ? 'text-orange-700/80' :
+                                                'text-slate-500'
                                         }`}>
                                         {song.artist}
                                     </p>
@@ -261,23 +261,22 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                 </div>
                             </div>
 
-                            {/* 票數區塊 */}
-                            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                                <div className="flex items-baseline gap-0.5 px-2 py-1 rounded-md bg-slate-100/70">
-                                    <span
-                                        className={`text-lg font-bold tabular-nums ${index === 0 ? 'text-amber-700' :
-                                            index === 1 ? 'text-slate-600' :
-                                                index === 2 ? 'text-orange-700' :
-                                                    'text-slate-600'
-                                            }`}
-                                    >
-                                        {song.voteCount || 0}
-                                    </span>
-                                    <span className="text-xs text-slate-500">票</span>
-                                </div>
+                            {/* 票數 - 緊湊版 */}
+                            <div className="flex items-baseline gap-0.5 px-2 py-1 rounded-lg bg-slate-100/80 ml-auto">
+                                <span
+                                    className={`text-lg font-bold tabular-nums ${index === 0 ? 'text-amber-700' :
+                                        index === 1 ? 'text-slate-600' :
+                                            index === 2 ? 'text-orange-700' :
+                                                'text-slate-600'
+                                        }`}
+                                >
+                                    {song.voteCount || 0}
+                                </span>
+                                <span className="text-xs text-slate-500">票</span>
+                            </div>
 
-                                {/* 操作按鈕 */}
-                                <div className="flex gap-1.5">
+                            {/* 操作按鈕區 */}
+                            <div className="flex items-center gap-1 w-full sm:w-auto justify-end mt-1 sm:mt-0">
                                     {/* 管理員彈奏標記按鈕 */}
                                     {user?.isAdmin && (
                                         <TooltipProvider>
@@ -287,16 +286,16 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => handleTogglePlayed(song)}
-                                                        className={`w-9 h-9 rounded-lg border border-transparent transition-colors ${song.isPlayed
+                                                        className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border transition-colors ${song.isPlayed
                                                             ? 'bg-emerald-100 hover:bg-emerald-200 border-emerald-300'
-                                                            : 'hover:bg-slate-100 hover:border-slate-200'
+                                                            : 'hover:bg-slate-100 border-transparent hover:border-slate-200'
                                                             }`}
                                                         aria-label={song.isPlayed ? '取消標記已彈奏' : '標記為已彈奏'}
                                                     >
-                                                        <Check className={`w-4 h-4 ${song.isPlayed ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                                        <Check className={`w-5 h-5 sm:w-4 sm:h-4 ${song.isPlayed ? 'text-emerald-600' : 'text-slate-400'}`} />
                                                     </Button>
                                                 </TooltipTrigger>
-                                                <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs">
+                                                <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
                                                     <p>{song.isPlayed ? '取消標記' : '標記已彈奏'}</p>
                                                 </TooltipContent>
                                             </Tooltip>
@@ -309,16 +308,16 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="w-9 h-9 rounded-lg hover:bg-amber-50 border border-transparent hover:border-amber-200"
+                                                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg bg-amber-50/80 hover:bg-amber-100 border border-amber-200/50 hover:border-amber-300"
                                                     asChild
                                                     aria-label={`搜尋「${song.title}」的吉他譜`}
                                                 >
                                                     <a href={generateGuitarTabsUrl(song)} target="_blank" rel="noopener noreferrer">
-                                                        <Music2 className="w-4 h-4 text-amber-600" />
+                                                        <Music2 className="w-5 h-5 sm:w-4 sm:h-4 text-amber-600" />
                                                     </a>
                                                 </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs">
+                                            <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
                                                 <p>搜尋吉他譜</p>
                                             </TooltipContent>
                                         </Tooltip>
@@ -330,22 +329,21 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="w-9 h-9 rounded-lg hover:bg-rose-50 border border-transparent hover:border-rose-200"
+                                                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg bg-rose-50/80 hover:bg-rose-100 border border-rose-200/50 hover:border-rose-300"
                                                     asChild
                                                     aria-label={`搜尋「${song.title}」的歌詞`}
                                                 >
                                                     <a href={generateLyricsUrl(song)} target="_blank" rel="noopener noreferrer">
-                                                        <FileText className="w-4 h-4 text-rose-600" />
+                                                        <FileText className="w-5 h-5 sm:w-4 sm:h-4 text-rose-600" />
                                                     </a>
                                                 </Button>
                                             </TooltipTrigger>
-                                            <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs">
+                                            <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
                                                 <p>搜尋歌詞</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                 </div>
-                            </div>
                         </motion.li>
                     ))}
                 </AnimatePresence>
