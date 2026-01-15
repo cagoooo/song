@@ -325,6 +325,7 @@ export default function Home() {
             >
               {/* 手機版 Tab 介面 (< 768px) */}
               <MobileTabView
+                isAdmin={user?.isAdmin ?? false}
                 songListContent={
                   <Card className="shadow-lg">
                     <CardHeader>

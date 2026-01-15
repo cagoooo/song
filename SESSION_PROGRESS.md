@@ -1,102 +1,89 @@
 # 開發進度記錄
 
-**最後更新時間**：2026-01-15 10:49 (UTC+8)
+**最後更新時間**：2026-01-15 11:42 (UTC+8)
+**版本**：v3.2.0
 
 ---
 
-## ✅ 本次會話完成的功能
+## ✅ 本次會話完成的功能 (v3.2.0)
 
-### 1. 管理員彈奏標記功能 ⭐ 新功能
+### 1. 社群歌曲推薦 UI/UX 全面優化 ⭐ 重點更新
 
-**功能說明**：管理員可在歌曲排行榜中標記歌曲為「已彈奏」，狀態即時同步到所有訪客裝置。
+**功能說明**：優化「社群歌曲推薦」區塊的視覺設計和手機端效能。
+
+**優化項目**：
+
+| 項目 | 優化內容 |
+|------|----------|
+| **表單對話框** | 移除 framer-motion 動畫、使用 CSS transition、改善置中顯示 |
+| **歌曲卡片** | 全新視覺設計、狀態標籤重構、快速連結按鈕獨立顯示 |
+| **主組件** | 簡化動畫、使用 useMemo 優化計算、CSS animate-in 取代 motion |
+| **效能提升** | 減少 JS 動畫、GPU 加速（transform/opacity）、縮短動畫時長 |
 
 **修改檔案**：
-| 檔案 | 變更 |
-|------|------|
-| `client/src/lib/firebase.ts` | 新增 `playedSongs` collection |
-| `client/src/lib/firestore.ts` | `Song` 加入 `isPlayed` 欄位、新增 `markSongAsPlayed`/`unmarkSongAsPlayed`/`resetAllPlayedSongs` API、`subscribeSongs` 監聽 playedSongs |
-| `client/src/components/RankingBoard/RankingBoard.tsx` | 新增 user prop、彈奏標記按鈕、重置按鈕、已彈奏視覺效果 |
-| `client/src/pages/Home.tsx` | 傳遞 user prop 給 RankingBoard |
-| `firestore.rules` | 新增 `playedSongs` collection 安全規則（已部署） |
-
-**使用方式**：
-- 管理員點擊歌曲右側 ✓ 按鈕標記已彈奏
-- 再次點擊取消標記
-- 標題區「重置」按鈕清除所有標記
+- `client/src/components/SongSuggestion/SongSuggestion.tsx` - 主組件效能優化
+- `client/src/components/SongSuggestion/SuggestionForm.tsx` - 表單對話框優化
+- `client/src/components/SongSuggestion/SuggestionCard.tsx` - 歌曲卡片重構
 
 ---
 
-### 2. 人氣排行榜自動展開
+### 2. 手機端管理員預設顯示排行榜
 
-**功能說明**：滾動到排行榜底部時自動展開顯示更多歌曲（前 30 名）。
+**功能說明**：管理員登入後，手機版 Tab 介面自動切換到「排行榜」頁面。
 
 **修改檔案**：
-- `client/src/components/RankingBoard/RankingBoard.tsx`
-  - 新增 `useEffect` 和 Intersection Observer
-  - 新增 `loadMoreRef` 哨兵元素
-  - 展開後顯示「收合排行榜」按鈕
+- `client/src/components/MobileTabView.tsx`
+  - 新增 `isAdmin` prop
+  - 使用 `useEffect` 監聽登入狀態變化
+  - 管理員登入時自動切換到 ranking Tab
+- `client/src/pages/Home.tsx`
+  - 傳遞 `isAdmin` prop 給 MobileTabView
+
+**使用情境**：
+- 管理員不需要點歌，預設看排行榜更實用
+- 電腦端縮小視窗後登入也會自動切換
 
 ---
 
-### 3. 已彈奏歌曲視覺優化
+### 3. 快速連結按鈕顯示優化
 
-**功能說明**：已彈奏歌曲顯示清晰的「✓ 已完成」標籤。
+**功能說明**：修正歌曲卡片上的「吉他譜」和「歌詞」按鈕被狀態標籤遮擋的問題。
 
-**視覺效果**：
+**優化內容**：
 | 原本 | 現在 |
 |------|------|
-| 刪除線 + 灰色文字 + 半透明 | 正常顯示歌名和歌手 |
-| 圓形勾選 icon | 綠色「✓ 已完成」圓角標籤 |
-| 不易辨識 | 淡綠色背景 (`bg-emerald-50/50`) |
+| 小圖標按鈕在右上角 | 獨立一行顯示在歌曲資訊下方 |
+| Tooltip 被遮擋 | Tooltip 顯示在按鈕下方，z-index 100 |
+| 只有圖標 | 圖標 + 文字標籤更清楚 |
 
 ---
 
-### 4. 人氣排行榜 UI 精簡
+### 4. 對話框置中修正
+
+**功能說明**：修正「建議新歌」對話框在不同螢幕尺寸下偏右的問題。
 
 **修改檔案**：
-- `client/src/components/RankingBoard/RankingHeader.tsx`
-  - 移除多餘火焰圖標、背景裝飾
-  - 改用獎盃方塊 + 標題的極簡設計
-- `client/src/components/RankingBoard/RankingBoard.tsx`
-  - 列表間距 `space-y-4` → `space-y-2`
-  - 操作按鈕改用 `ghost` variant
-  - 票數區塊統一樣式
+- `client/src/components/SongSuggestion/SuggestionForm.tsx`
+  - 使用 `w-[calc(100vw-2rem)]` 確保適當邊距
+  - 移除衝突的置中樣式
 
 ---
 
-### 5. 其他 UI 優化（先前完成）
-
-- **SearchBar**：移除 blur 效果和 emoji 裝飾
-- **SongCard**：簡化設計、保持左側彩色邊框
-- **ScrollToTop**：琥珀色漸層、更明顯的樣式
-- **ResetDialog**：添加警告圖標、紅色確認按鈕
-
----
-
-## 📁 專案結構重點檔案
+## 📁 本次修改檔案清單
 
 ```
 h:\song\
+├── package.json                                 # 版本 3.2.0
 ├── client/src/
-│   ├── lib/
-│   │   ├── firebase.ts      # Firebase 設定 + collection 名稱
-│   │   ├── firestore.ts     # Firestore API（含 playedSongs）
-│   │   └── auth.ts          # 認證相關
 │   ├── components/
-│   │   ├── RankingBoard/
-│   │   │   ├── RankingBoard.tsx   # 排行榜主元件（含彈奏標記）
-│   │   │   ├── RankingHeader.tsx  # 標題區（極簡版）
-│   │   │   ├── RankingBadge.tsx   # 排名徽章
-│   │   │   └── useRankingData.ts  # 排行資料 Hook
-│   │   ├── SongList/
-│   │   │   ├── SongList.tsx       # 歌曲列表（含自動載入）
-│   │   │   └── VirtualSongList.tsx # 虛擬滾動列表
-│   │   ├── SearchBar.tsx          # 搜尋欄（精簡版）
-│   │   └── ScrollToTop.tsx        # 返回頂部按鈕
+│   │   ├── MobileTabView.tsx                   # 管理員預設 Tab
+│   │   └── SongSuggestion/
+│   │       ├── SongSuggestion.tsx              # 效能優化
+│   │       ├── SuggestionForm.tsx              # 對話框優化
+│   │       └── SuggestionCard.tsx              # 卡片重構
 │   └── pages/
-│       └── Home.tsx               # 主頁面
-├── firestore.rules                # Firestore 安全規則（含 playedSongs）
-└── package.json
+│       └── Home.tsx                            # isAdmin prop
+└── SESSION_PROGRESS.md                         # 本文件
 ```
 
 ---
@@ -111,24 +98,26 @@ npm run dev
 # TypeScript 類型檢查
 npm run check
 
-# 部署 Firestore 規則
-firebase deploy --only firestore:rules --project guitar-ff931
+# 部署到 GitHub
+git add .
+git commit -m "v3.2.0: UI/UX 優化 - 社群推薦效能提升、管理員預設排行榜、快速連結修正"
+git push origin main
 ```
 
 ---
 
-## 📝 下次可繼續的方向
+## 📝 v3.2.0 更新重點
 
-1. **功能測試**：測試管理員彈奏標記的完整流程
-2. **手機測試**：確認響應式佈局在手機上的效果
-3. **效能優化**：檢查複雜動畫對手機效能的影響
-4. **新功能開發**：根據使用者回饋新增功能
+1. ⚡ **效能提升**：移除繁重的 framer-motion 動畫，手機端更流暢
+2. 🎨 **視覺優化**：歌曲推薦卡片全新設計，更現代美觀
+3. 📱 **管理員體驗**：手機端登入後自動顯示排行榜
+4. 🔧 **Bug 修正**：快速連結按鈕不再被遮擋、對話框正確置中
 
 ---
 
 ## ⚠️ 注意事項
 
 - Firebase 專案 ID：`guitar-ff931`
-- 所有 Firestore 規則已部署
 - TypeScript 編譯已通過
 - 開發伺服器 URL：`http://localhost:5173/song/`
+- GitHub Pages URL：`https://cagoooo.github.io/song/`

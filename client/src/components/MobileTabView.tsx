@@ -1,5 +1,5 @@
 // 手機版 Tab 介面元件 - 支援手勢滑動（效能優化版）
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Music2, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,14 +8,29 @@ import { useSwipeable } from 'react-swipeable';
 interface MobileTabViewProps {
     songListContent: React.ReactNode;
     rankingContent: React.ReactNode;
+    isAdmin?: boolean; // 新增：管理員預設顯示排行榜
 }
 
 type TabType = 'songs' | 'ranking';
 const TABS: TabType[] = ['songs', 'ranking'];
 
-export function MobileTabView({ songListContent, rankingContent }: MobileTabViewProps) {
-    const [activeTab, setActiveTab] = useState<TabType>('songs');
+export function MobileTabView({ songListContent, rankingContent, isAdmin = false }: MobileTabViewProps) {
+    // 管理員預設顯示排行榜，一般用戶預設顯示歌曲列表
+    const [activeTab, setActiveTab] = useState<TabType>(isAdmin ? 'ranking' : 'songs');
     const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+
+    // 追蹤上次的 isAdmin 狀態，用於偵測登入
+    const prevIsAdminRef = useRef(isAdmin);
+
+    // 監聽 isAdmin 變化：當用戶從非管理員變成管理員時，自動切換到排行榜
+    useEffect(() => {
+        if (isAdmin && !prevIsAdminRef.current) {
+            // 用戶剛剛登入為管理員，切換到排行榜
+            setSwipeDirection('left');
+            setActiveTab('ranking');
+        }
+        prevIsAdminRef.current = isAdmin;
+    }, [isAdmin]);
 
     // 切換到下一個 Tab
     const goToNextTab = useCallback(() => {
