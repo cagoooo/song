@@ -28,6 +28,7 @@ export interface Song {
     isActive: boolean;
     createdAt: Date;
     voteCount: number;
+    isPlayed?: boolean; // 管理員標記已彈奏
 }
 
 export interface SongSuggestion {
@@ -89,14 +90,15 @@ export async function getSongs(): Promise<Song[]> {
     return songs;
 }
 
-// 即時監聽歌曲更新
+// 即時監聽歌曲更新（含彈奏狀態）
 export function subscribeSongs(callback: (songs: Song[]) => void): Unsubscribe {
     const songsRef = collection(db, COLLECTIONS.songs);
     const songsQuery = query(songsRef, where('isActive', '==', true));
 
-    // 同時監聽歌曲和投票
+    // 同時監聽歌曲、投票和彈奏狀態
     let songs: Map<string, any> = new Map();
     let votes: Map<string, number> = new Map();
+    let playedSongs: Set<string> = new Set();
 
     const updateCallback = () => {
         const songList: Song[] = [];
@@ -111,6 +113,7 @@ export function subscribeSongs(callback: (songs: Song[]) => void): Unsubscribe {
                 isActive: data.isActive,
                 createdAt: data.createdAt?.toDate?.() || new Date(),
                 voteCount: votes.get(id) || 0,
+                isPlayed: playedSongs.has(id),
             });
         });
         callback(songList);
@@ -134,9 +137,20 @@ export function subscribeSongs(callback: (songs: Song[]) => void): Unsubscribe {
         updateCallback();
     });
 
+    // 監聽彈奏狀態
+    const playedRef = collection(db, COLLECTIONS.playedSongs);
+    const unsubPlayed = onSnapshot(playedRef, (snapshot) => {
+        playedSongs.clear();
+        snapshot.forEach((doc) => {
+            playedSongs.add(doc.data().songId);
+        });
+        updateCallback();
+    });
+
     return () => {
         unsubSongs();
         unsubVotes();
+        unsubPlayed();
     };
 }
 
@@ -489,4 +503,52 @@ export async function recordQRScan(songId: string): Promise<void> {
         referrer: document.referrer || null,
         createdAt: Timestamp.now(),
     });
+}
+
+// ==================== 彈奏標記相關（管理員） ====================
+
+// 標記歌曲為已彈奏
+export async function markSongAsPlayed(songId: string, adminUid: string): Promise<void> {
+    const playedRef = collection(db, COLLECTIONS.playedSongs);
+
+    // 檢查是否已標記
+    const existingQuery = query(playedRef, where('songId', '==', songId));
+    const existingSnapshot = await getDocs(existingQuery);
+
+    if (!existingSnapshot.empty) {
+        return; // 已經標記過了
+    }
+
+    await addDoc(playedRef, {
+        songId,
+        playedBy: adminUid,
+        playedAt: Timestamp.now(),
+    });
+}
+
+// 取消標記歌曲為已彈奏
+export async function unmarkSongAsPlayed(songId: string): Promise<void> {
+    const playedRef = collection(db, COLLECTIONS.playedSongs);
+    const deleteQuery = query(playedRef, where('songId', '==', songId));
+    const snapshot = await getDocs(deleteQuery);
+
+    const deletePromises: Promise<void>[] = [];
+    snapshot.forEach((docSnapshot) => {
+        deletePromises.push(deleteDoc(docSnapshot.ref));
+    });
+
+    await Promise.all(deletePromises);
+}
+
+// 重置所有彈奏狀態
+export async function resetAllPlayedSongs(): Promise<void> {
+    const playedRef = collection(db, COLLECTIONS.playedSongs);
+    const snapshot = await getDocs(playedRef);
+
+    const deletePromises: Promise<void>[] = [];
+    snapshot.forEach((docSnapshot) => {
+        deletePromises.push(deleteDoc(docSnapshot.ref));
+    });
+
+    await Promise.all(deletePromises);
 }

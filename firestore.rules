@@ -36,6 +36,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
+    // 彈奏狀態集合 - 所有人可讀（即時同步），僅管理員可寫
+    match /playedSongs/{playedId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
     // QR Code 掃描記錄 - 所有人可讀寫（用於統計）
     match /qrCodeScans/{scanId} {
       allow read, write: if true;

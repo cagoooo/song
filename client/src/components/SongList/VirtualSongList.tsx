@@ -1,8 +1,9 @@
 // 虛擬滾動歌曲列表元件
 // 使用 @tanstack/react-virtual 實現高效能的長列表渲染
-import { useRef, memo } from 'react';
+import { useRef, useCallback, memo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { SongCard } from './SongCard';
+import { Loader2 } from 'lucide-react';
 import type { Song } from '@/lib/firestore';
 import type { AppUser } from '@/lib/auth';
 
@@ -19,16 +20,27 @@ interface VirtualSongListProps {
     onShare?: (song: Song) => void;
     /** 列表容器高度 */
     height?: number;
+    /** 是否還有更多歌曲可載入 */
+    hasMore?: boolean;
+    /** 是否正在載入更多 */
+    isLoadingMore?: boolean;
+    /** 載入更多歌曲的回調函式 */
+    onLoadMore?: () => void;
+    /** 歌曲總數 */
+    totalCount?: number;
 }
 
 // 每個歌曲卡片的預估高度
 const ESTIMATED_ITEM_SIZE = 120;
+// 距離底部多少像素時觸發載入
+const LOAD_MORE_THRESHOLD = 200;
 
 /**
  * 虛擬化歌曲列表
  * 
  * 只渲染可見區域的歌曲卡片，大幅提升長列表的效能。
  * 適合歌曲數量超過 50 首的情況。
+ * 支援無限滾動自動載入功能。
  */
 export const VirtualSongList = memo(function VirtualSongList({
     songs,
@@ -42,6 +54,10 @@ export const VirtualSongList = memo(function VirtualSongList({
     onDelete,
     onShare,
     height = 500,
+    hasMore,
+    isLoadingMore,
+    onLoadMore,
+    totalCount,
 }: VirtualSongListProps) {
     const parentRef = useRef<HTMLDivElement>(null);
 
@@ -54,6 +70,21 @@ export const VirtualSongList = memo(function VirtualSongList({
 
     const virtualItems = virtualizer.getVirtualItems();
 
+    // 處理滾動事件，在接近底部時自動載入更多
+    const handleScroll = useCallback(() => {
+        if (!hasMore || !onLoadMore || isLoadingMore) return;
+
+        const scrollElement = parentRef.current;
+        if (!scrollElement) return;
+
+        const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+        const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+
+        if (distanceToBottom < LOAD_MORE_THRESHOLD) {
+            onLoadMore();
+        }
+    }, [hasMore, onLoadMore, isLoadingMore]);
+
     if (songs.length === 0) {
         return null;
     }
@@ -63,6 +94,7 @@ export const VirtualSongList = memo(function VirtualSongList({
             ref={parentRef}
             className="overflow-auto pr-4"
             style={{ height }}
+            onScroll={handleScroll}
         >
             <div
                 style={{
@@ -104,6 +136,15 @@ export const VirtualSongList = memo(function VirtualSongList({
                     );
                 })}
             </div>
+            {/* 載入更多指示器 */}
+            {hasMore && (
+                <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">
+                        載入更多歌曲中... ({songs.length} / {totalCount || 0})
+                    </span>
+                </div>
+            )}
         </div>
     );
 });

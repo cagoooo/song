@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
@@ -17,6 +17,29 @@ import { ScrollToTop } from "../components/ScrollToTop";
 // 延遲載入大型元件以減少初始 bundle 大小
 const RankingBoard = lazy(() => import("../components/RankingBoard"));
 const SongSuggestion = lazy(() => import("../components/SongSuggestion"));
+
+// Fisher-Yates 洗牌演算法 - 產生隨機排序的歌曲
+// 使用 seed 確保同一頁面瀏覽期間排序一致
+function shuffleArray<T>(array: T[], seed: number): T[] {
+  const shuffled = [...array];
+  let currentIndex = shuffled.length;
+  let currentSeed = seed;
+
+  // 使用 seed 產生偽隨機數
+  const random = () => {
+    currentSeed = (currentSeed * 1103515245 + 12345) & 0x7fffffff;
+    return currentSeed / 0x7fffffff;
+  };
+
+  while (currentIndex !== 0) {
+    const randomIndex = Math.floor(random() * currentIndex);
+    currentIndex--;
+    [shuffled[currentIndex], shuffled[randomIndex]] =
+      [shuffled[randomIndex], shuffled[currentIndex]];
+  }
+
+  return shuffled;
+}
 
 // 載入中的骨架屏
 function SectionSkeleton() {
@@ -42,7 +65,15 @@ export default function Home() {
   const { toast } = useToast();
   const { user, logout } = useUser();
 
-  // 使用 Firestore onSnapshot 即時監聽歌曲更新
+  // 每次進入頁面時產生隨機 seed（只在首次渲染時產生）
+  const [shuffleSeed] = useState(() => Math.floor(Math.random() * 1000000));
+
+  // 隨機排序的歌曲列表 - 確保同一頁面瀏覽期間排序一致
+  const shuffledSongs = useMemo(() => {
+    return shuffleArray(songs, shuffleSeed);
+  }, [songs, shuffleSeed]);
+
+  // 使用 Firestore onSnapshot 即時監聯歌曲更新
   useEffect(() => {
     let hasConnectedOnce = false;
 
@@ -66,22 +97,22 @@ export default function Home() {
     };
   }, [toast]);
 
-  // 根據顯示限制更新顯示的歌曲
+  // 根據顯示限制更新顯示的歌曲（使用隨機排序後的列表）
   useEffect(() => {
-    setDisplayedSongs(songs.slice(0, displayLimit));
-  }, [songs, displayLimit]);
+    setDisplayedSongs(shuffledSongs.slice(0, displayLimit));
+  }, [shuffledSongs, displayLimit]);
 
   // 載入更多歌曲
   const loadMore = useCallback(() => {
-    if (displayLimit >= songs.length) return;
+    if (displayLimit >= shuffledSongs.length) return;
     setIsLoadingMore(true);
     setTimeout(() => {
-      setDisplayLimit(prev => Math.min(prev + PAGE_SIZE, songs.length));
+      setDisplayLimit(prev => Math.min(prev + PAGE_SIZE, shuffledSongs.length));
       setIsLoadingMore(false);
     }, 300);
-  }, [displayLimit, songs.length]);
+  }, [displayLimit, shuffledSongs.length]);
 
-  const hasMore = displayLimit < songs.length;
+  const hasMore = displayLimit < shuffledSongs.length;
 
   const handleLogout = async () => {
     try {
@@ -327,7 +358,7 @@ export default function Home() {
                     </CardHeader>
                     <CardContent className="p-3">
                       <Suspense fallback={<SectionSkeleton />}>
-                        <RankingBoard songs={songs} />
+                        <RankingBoard songs={songs} user={user} />
                       </Suspense>
                     </CardContent>
                   </Card>
@@ -382,7 +413,7 @@ export default function Home() {
                     </CardHeader>
                     <CardContent className="p-3 sm:p-6">
                       <Suspense fallback={<SectionSkeleton />}>
-                        <RankingBoard songs={songs} />
+                        <RankingBoard songs={songs} user={user} />
                       </Suspense>
                     </CardContent>
                   </Card>

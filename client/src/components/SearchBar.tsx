@@ -33,22 +33,10 @@ export default function SearchBar({
 
   return (
     <div className="relative">
-      {/* 靜態光暈效果（取代無限循環動畫） */}
-      {!isFocused && !value && (
-        <div
-          className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-400/15 via-fuchsia-400/15 to-pink-400/15 opacity-50"
-          style={{ filter: "blur(6px)" }}
-        />
-      )}
-
-      {/* Search icon - 靜態版本 */}
+      {/* Search icon */}
       <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
-        <Search className="h-5 w-5 text-primary/70" />
-      </div>
-
-      {/* 吉他 emoji - 靜態版本 */}
-      <div className="absolute left-10 top-1/2 -translate-y-1/2 text-lg z-10">
-        🎸
+        <Search className={`h-5 w-5 transition-colors duration-200 ${isFocused ? 'text-amber-500' : 'text-slate-400'
+          }`} />
       </div>
 
       <Input
@@ -59,16 +47,14 @@ export default function SearchBar({
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         aria-label="搜尋歌曲或歌手"
-        className={`pl-16 pr-24 h-12 sm:h-11 text-base relative z-10 rounded-xl
-                 bg-gradient-to-r from-violet-50 via-fuchsia-50 to-pink-50
-                 border-2 border-primary/20 
-                 shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                 focus:border-primary/40 
-                 focus:shadow-[0_4px_20px_rgba(var(--primary),0.2)]
-                 hover:shadow-[0_4px_15px_rgba(var(--primary),0.15)]
-                 placeholder:text-gray-600
-                 placeholder:font-medium
-                 transition-all duration-300`}
+        className={`pl-11 pr-28 h-12 text-base relative z-10 rounded-xl
+                 bg-white
+                 border-2 
+                 ${isFocused
+            ? 'border-amber-400 shadow-lg shadow-amber-100/50'
+            : 'border-slate-200 hover:border-slate-300'}
+                 placeholder:text-slate-400
+                 transition-all duration-200`}
       />
 
       {/* Right side buttons */}
@@ -85,10 +71,10 @@ export default function SearchBar({
                 variant="ghost"
                 size="icon"
                 onClick={handleClear}
-                className="h-8 w-8 rounded-full hover:bg-gray-200"
+                className="h-8 w-8 rounded-full hover:bg-slate-100"
                 aria-label="清除搜尋"
               >
-                <X className="h-4 w-4 text-gray-500" />
+                <X className="h-4 w-4 text-slate-500" />
               </Button>
             </motion.div>
           )}
@@ -103,10 +89,10 @@ export default function SearchBar({
                   variant="ghost"
                   size="sm"
                   onClick={onToggleFuzzyMode}
-                  className={`h-8 px-2 rounded-lg text-xs font-medium transition-all
+                  className={`h-8 px-2.5 rounded-lg text-xs font-medium transition-all
                     ${isFuzzyMode
-                      ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                      ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                 >
                   {isFuzzyMode ? (
                     <>
@@ -121,25 +107,13 @@ export default function SearchBar({
                   )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">
+              <TooltipContent side="bottom" className="bg-slate-800 text-white border-0">
                 <p>{isFuzzyMode ? '模糊搜尋：容錯匹配相似歌曲' : '精確搜尋：完全匹配關鍵字'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}
-
-        {/* 音符 emoji - 靜態版本 */}
-        {!value && (
-          <span className="text-lg ml-1">🎵</span>
-        )}
       </div>
-
-      {/* Hint text - 靜態版本 */}
-      {!isFocused && !value && (
-        <div className="absolute -bottom-5 left-0 right-0 text-center text-xs text-primary/60">
-          點擊上方開始搜尋 ✨
-        </div>
-      )}
     </div>
   );
 }

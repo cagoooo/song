@@ -144,7 +144,7 @@ export function useRankingData({
     }, [songsKey, sortedSongs, triggerTopRankConfetti]);
 
     const generateGuitarTabsUrl = useCallback((song: Song) => {
-        const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 吉他譜 tab Chordify`);
+        const searchQuery = encodeURIComponent(`${song.title} ${song.artist} 吉他譜 tab`);
         return `https://www.google.com/search?q=${searchQuery}`;
     }, []);
 

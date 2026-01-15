@@ -1,7 +1,6 @@
 // 返回頂部按鈕元件
 import { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { ChevronUp } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ScrollToTopProps {
@@ -46,29 +45,27 @@ export function ScrollToTop({
     return (
         <AnimatePresence>
             {isVisible && (
-                <motion.div
-                    className="fixed z-50"
+                <motion.button
+                    className="fixed z-50 w-12 h-12 rounded-full 
+                        bg-gradient-to-br from-amber-500 to-orange-500
+                        hover:from-amber-400 hover:to-orange-400
+                        shadow-lg shadow-amber-500/30
+                        hover:shadow-xl hover:shadow-amber-500/40
+                        border-2 border-white/20
+                        flex items-center justify-center
+                        transition-all duration-200
+                        hover:scale-110 active:scale-95
+                        cursor-pointer"
                     style={{ bottom: `${bottom}px`, right: `${right}px` }}
                     initial={{ opacity: 0, scale: 0.8, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.8, y: 20 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
+                    onClick={scrollToTop}
+                    aria-label="返回頂部"
                 >
-                    <Button
-                        onClick={scrollToTop}
-                        size="icon"
-                        className="w-12 h-12 rounded-full shadow-lg 
-                            bg-gradient-to-br from-primary/90 to-primary
-                            hover:from-primary hover:to-primary/90
-                            border-2 border-primary/20
-                            transition-all duration-300
-                            hover:shadow-xl hover:scale-105
-                            active:scale-95"
-                        aria-label="返回頂部"
-                    >
-                        <ChevronUp className="w-6 h-6 text-white" />
-                    </Button>
-                </motion.div>
+                    <ArrowUp className="w-5 h-5 text-white" strokeWidth={2.5} />
+                </motion.button>
             )}
         </AnimatePresence>
     );

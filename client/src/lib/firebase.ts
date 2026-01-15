@@ -28,4 +28,5 @@ export const COLLECTIONS = {
     songTags: 'songTags',
     users: 'users',
     qrCodeScans: 'qrCodeScans',
+    playedSongs: 'playedSongs',
 } as const;

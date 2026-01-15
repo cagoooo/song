@@ -1,5 +1,5 @@
 // 重構後的歌曲列表主元件
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -86,6 +86,34 @@ export default function SongList({
     } = useVoting();
 
     const isSearching = false; // 本地搜尋不需要 loading 狀態
+
+    // 載入更多的哨兵元素 ref
+    const loadMoreRef = useRef<HTMLDivElement>(null);
+
+    // Intersection Observer 自動載入 - 滾動至底部時自動觸發載入更多
+    useEffect(() => {
+        if (!hasMore || !onLoadMore || isLoadingMore || isInSearchMode) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+                    onLoadMore();
+                }
+            },
+            { threshold: 0.1, rootMargin: '100px' }
+        );
+
+        const currentRef = loadMoreRef.current;
+        if (currentRef) {
+            observer.observe(currentRef);
+        }
+
+        return () => {
+            if (currentRef) {
+                observer.unobserve(currentRef);
+            }
+        };
+    }, [hasMore, onLoadMore, isLoadingMore, isInSearchMode]);
 
     // 管理員操作
     const deleteSong = useCallback(async (songId: string) => {
@@ -196,6 +224,10 @@ export default function SongList({
                     onDelete={deleteSong}
                     onShare={handleShareClick}
                     height={typeof window !== 'undefined' && window.innerWidth < 640 ? 400 : 500}
+                    hasMore={!isInSearchMode && hasMore}
+                    isLoadingMore={isLoadingMore}
+                    onLoadMore={onLoadMore}
+                    totalCount={totalCount}
                 />
             ) : (
                 <ScrollArea className="h-[400px] sm:h-[500px] w-full pr-4">
@@ -237,30 +269,18 @@ export default function SongList({
                         </div>
                     )}
 
-                    {/* 載入更多按鈕 - 搜尋模式下隱藏 */}
+                    {/* 載入更多區塊 - 自動載入，搜尋模式下隱藏 */}
                     {!isInSearchMode && hasMore && onLoadMore && (
-                        <div className="flex flex-col items-center py-4 mt-2">
-                            <Button
-                                onClick={onLoadMore}
-                                disabled={isLoadingMore}
-                                variant="outline"
-                                className="w-full max-w-xs bg-gradient-to-r from-primary/5 to-primary/10 
-                         border-primary/20 hover:border-primary/40 
-                         hover:from-primary/10 hover:to-primary/20
-                         transition-all duration-300"
-                            >
-                                {isLoadingMore ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        載入中...
-                                    </>
-                                ) : (
-                                    <>
-                                        <ChevronDown className="h-4 w-4 mr-2" />
-                                        載入更多歌曲 ({songs.length} / {totalCount || 0})
-                                    </>
-                                )}
-                            </Button>
+                        <div
+                            ref={loadMoreRef}
+                            className="flex flex-col items-center py-4 mt-2"
+                        >
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span className="text-sm">
+                                    載入更多歌曲中... ({songs.length} / {totalCount || 0})
+                                </span>
+                            </div>
                         </div>
                     )}
                 </ScrollArea>
