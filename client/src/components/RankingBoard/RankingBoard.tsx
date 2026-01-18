@@ -329,8 +329,8 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                 <span className="text-xs text-slate-500">票</span>
                             </div>
 
-                            {/* 操作按鈕區 */}
-                            <div className="flex items-center gap-1 w-full sm:w-auto justify-end mt-1 sm:mt-0">
+                            {/* 操作按鈕區 - 響應式設計 */}
+                            <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap sm:flex-nowrap justify-end basis-full sm:basis-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                                 {/* 管理員彈奏標記按鈕 */}
                                 {user?.isAdmin && (
                                     <TooltipProvider>
@@ -340,13 +340,13 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleTogglePlayed(song)}
-                                                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border transition-colors ${song.isPlayed
+                                                    className={`w-9 h-9 sm:w-9 sm:h-9 rounded-lg border transition-colors shrink-0 ${song.isPlayed
                                                         ? 'bg-emerald-100 hover:bg-emerald-200 border-emerald-300'
                                                         : 'hover:bg-slate-100 border-transparent hover:border-slate-200'
                                                         }`}
                                                     aria-label={song.isPlayed ? '取消標記已彈奏' : '標記為已彈奏'}
                                                 >
-                                                    <Check className={`w-5 h-5 sm:w-4 sm:h-4 ${song.isPlayed ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                                    <Check className={`w-4 h-4 ${song.isPlayed ? 'text-emerald-600' : 'text-slate-400'}`} />
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
@@ -360,22 +360,22 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     href={generateGuitarTabsUrl(song)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 hover:border-amber-300 text-amber-700 text-xs font-medium transition-colors"
+                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 hover:border-amber-300 text-amber-700 text-xs font-medium transition-colors whitespace-nowrap"
                                     aria-label={`搜尋「${song.title}」的吉他譜`}
                                 >
-                                    <Music2 className="w-3.5 h-3.5" />
-                                    <span>吉他譜</span>
+                                    <Music2 className="w-3.5 h-3.5 shrink-0" />
+                                    <span>譜</span>
                                 </a>
 
                                 <a
                                     href={generateLyricsUrl(song)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 hover:border-rose-300 text-rose-700 text-xs font-medium transition-colors"
+                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 hover:border-rose-300 text-rose-700 text-xs font-medium transition-colors whitespace-nowrap"
                                     aria-label={`搜尋「${song.title}」的歌詞`}
                                 >
-                                    <FileText className="w-3.5 h-3.5" />
-                                    <span>歌詞</span>
+                                    <FileText className="w-3.5 h-3.5 shrink-0" />
+                                    <span>詞</span>
                                 </a>
                             </div>
                         </motion.li>
