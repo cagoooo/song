@@ -8,29 +8,48 @@ import { useSwipeable } from 'react-swipeable';
 interface MobileTabViewProps {
     songListContent: React.ReactNode;
     rankingContent: React.ReactNode;
-    isAdmin?: boolean; // 新增：管理員預設顯示排行榜
+    isAdmin?: boolean; // 管理員預設顯示排行榜
+    activeTab?: TabType; // 外部控制的 Tab 狀態
+    onTabChange?: (tab: TabType) => void; // Tab 變更回呼
 }
 
 type TabType = 'songs' | 'ranking';
 const TABS: TabType[] = ['songs', 'ranking'];
 
-export function MobileTabView({ songListContent, rankingContent, isAdmin = false }: MobileTabViewProps) {
+export function MobileTabView({
+    songListContent,
+    rankingContent,
+    isAdmin = false,
+    activeTab: controlledActiveTab,
+    onTabChange
+}: MobileTabViewProps) {
     // 管理員預設顯示排行榜，一般用戶預設顯示歌曲列表
-    const [activeTab, setActiveTab] = useState<TabType>(isAdmin ? 'ranking' : 'songs');
+    const [internalActiveTab, setInternalActiveTab] = useState<TabType>(isAdmin ? 'ranking' : 'songs');
+
+    // 支援受控和非受控模式
+    const activeTab = controlledActiveTab ?? internalActiveTab;
+    const setActiveTab = useCallback((tab: TabType) => {
+        if (onTabChange) {
+            onTabChange(tab);
+        } else {
+            setInternalActiveTab(tab);
+        }
+    }, [onTabChange]);
     const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
 
     // 追蹤上次的 isAdmin 狀態，用於偵測登入
     const prevIsAdminRef = useRef(isAdmin);
 
     // 監聽 isAdmin 變化：當用戶從非管理員變成管理員時，自動切換到排行榜
+    // 注意：只在非受控模式下執行
     useEffect(() => {
-        if (isAdmin && !prevIsAdminRef.current) {
+        if (!controlledActiveTab && isAdmin && !prevIsAdminRef.current) {
             // 用戶剛剛登入為管理員，切換到排行榜
             setSwipeDirection('left');
             setActiveTab('ranking');
         }
         prevIsAdminRef.current = isAdmin;
-    }, [isAdmin]);
+    }, [isAdmin, controlledActiveTab, setActiveTab]);
 
     // 切換到下一個 Tab
     const goToNextTab = useCallback(() => {

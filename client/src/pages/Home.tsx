@@ -365,6 +365,8 @@ export default function Home() {
               {/* 手機版 Tab 介面 (< 768px) */}
               <MobileTabView
                 isAdmin={user?.isAdmin ?? false}
+                activeTab={activeTabForMobile}
+                onTabChange={setActiveTabForMobile}
                 songListContent={
                   <Card className="shadow-lg">
                     <CardHeader>
@@ -398,7 +400,7 @@ export default function Home() {
                     </CardHeader>
                     <CardContent className="p-3">
                       <Suspense fallback={<SectionSkeleton />}>
-                        <RankingBoard songs={songs} user={user} onNavigateToSong={handleNavigateToSong} />
+                        <RankingBoard songs={songs} user={user} />
                       </Suspense>
                     </CardContent>
                   </Card>
@@ -453,7 +455,7 @@ export default function Home() {
                     </CardHeader>
                     <CardContent className="p-3 sm:p-6">
                       <Suspense fallback={<SectionSkeleton />}>
-                        <RankingBoard songs={songs} user={user} onNavigateToSong={handleNavigateToSong} />
+                        <RankingBoard songs={songs} user={user} />
                       </Suspense>
                     </CardContent>
                   </Card>
