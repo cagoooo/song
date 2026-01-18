@@ -104,12 +104,15 @@ export function MobileTabView({ songListContent, rankingContent, isAdmin = false
                         </div>
                     </div>
 
-                    <TabsList className="grid w-full grid-cols-2 h-14 p-1.5 bg-gradient-to-r from-amber-100/80 via-orange-50 to-amber-100/80 rounded-xl shadow-lg border-2 border-amber-200/50">
+                    <TabsList className="grid w-full grid-cols-2 h-16 p-1.5 bg-gradient-to-r from-amber-100 via-orange-100 to-amber-100 rounded-2xl shadow-lg border-2 border-amber-300/60">
                         <TabsTrigger
                             value="songs"
-                            className="relative flex items-center justify-center gap-2 h-full rounded-lg font-semibold text-base
-                                data-[state=inactive]:text-amber-700/70 data-[state=inactive]:hover:text-amber-800 data-[state=inactive]:hover:bg-white/40
-                                data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-lg data-[state=active]:shadow-primary/20
+                            className="relative flex items-center justify-center gap-2.5 h-full rounded-xl font-bold text-lg
+                                data-[state=inactive]:text-amber-600/80 data-[state=inactive]:bg-transparent
+                                data-[state=inactive]:hover:text-amber-700 data-[state=inactive]:hover:bg-white/50
+                                data-[state=active]:bg-white data-[state=active]:text-orange-600 
+                                data-[state=active]:shadow-lg data-[state=active]:shadow-orange-200/50
+                                data-[state=active]:border data-[state=active]:border-orange-200
                                 transition-all duration-300 ease-out"
                         >
                             <Music2 className="w-5 h-5" />
@@ -117,7 +120,7 @@ export function MobileTabView({ songListContent, rankingContent, isAdmin = false
                             {activeTab === 'songs' && (
                                 <motion.div
                                     layoutId="activeTabIndicator"
-                                    className="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 bg-gradient-to-r from-primary to-primary/70 rounded-full"
+                                    className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
                                     initial={false}
                                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                 />
@@ -125,9 +128,12 @@ export function MobileTabView({ songListContent, rankingContent, isAdmin = false
                         </TabsTrigger>
                         <TabsTrigger
                             value="ranking"
-                            className="relative flex items-center justify-center gap-2 h-full rounded-lg font-semibold text-base
-                                data-[state=inactive]:text-amber-700/70 data-[state=inactive]:hover:text-amber-800 data-[state=inactive]:hover:bg-white/40
-                                data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-lg data-[state=active]:shadow-primary/20
+                            className="relative flex items-center justify-center gap-2.5 h-full rounded-xl font-bold text-lg
+                                data-[state=inactive]:text-amber-600/80 data-[state=inactive]:bg-transparent
+                                data-[state=inactive]:hover:text-amber-700 data-[state=inactive]:hover:bg-white/50
+                                data-[state=active]:bg-white data-[state=active]:text-orange-600 
+                                data-[state=active]:shadow-lg data-[state=active]:shadow-orange-200/50
+                                data-[state=active]:border data-[state=active]:border-orange-200
                                 transition-all duration-300 ease-out"
                         >
                             <Trophy className="w-5 h-5" />
@@ -135,7 +141,7 @@ export function MobileTabView({ songListContent, rankingContent, isAdmin = false
                             {activeTab === 'ranking' && (
                                 <motion.div
                                     layoutId="activeTabIndicator"
-                                    className="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 bg-gradient-to-r from-primary to-primary/70 rounded-full"
+                                    className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
                                     initial={false}
                                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                 />
