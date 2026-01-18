@@ -61,11 +61,12 @@ export const SongCard = memo(function SongCard({
 
     return (
         <div
+            id={`song-${songId}`}
             className={`flex items-center gap-3 p-3 sm:p-4 rounded-xl 
                 bg-white border border-slate-200
                 border-l-4 ${colors.border}
                 hover:shadow-md hover:border-slate-300
-                transition-shadow duration-200
+                transition-all duration-200
                 animate-in fade-in slide-in-from-bottom-1`}
             style={{
                 animationDelay: reduceMotion ? '0ms' : `${Math.min(index * 20, 300)}ms`,

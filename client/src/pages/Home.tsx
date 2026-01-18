@@ -62,6 +62,7 @@ export default function Home() {
   const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTabForMobile, setActiveTabForMobile] = useState<'songs' | 'ranking'>('songs');
   const { toast } = useToast();
   const { user, logout } = useUser();
 
@@ -113,6 +114,25 @@ export default function Home() {
   }, [displayLimit, shuffledSongs.length]);
 
   const hasMore = displayLimit < shuffledSongs.length;
+
+  // 跳轉到指定歌曲並切換到歌曲列表 Tab
+  const handleNavigateToSong = useCallback((songId: string) => {
+    // 切換到歌曲列表 Tab (手機版)
+    setActiveTabForMobile('songs');
+
+    // 延遲滾動，確保 Tab 切換完成
+    setTimeout(() => {
+      const songElement = document.getElementById(`song-${songId}`);
+      if (songElement) {
+        songElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // 添加高亮效果
+        songElement.classList.add('ring-2', 'ring-emerald-500', 'ring-offset-2');
+        setTimeout(() => {
+          songElement.classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-2');
+        }, 3000);
+      }
+    }, 300);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -310,7 +330,11 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <Suspense fallback={<SectionSkeleton />}>
-                    <SongSuggestion isAdmin={user?.isAdmin ?? false} />
+                    <SongSuggestion
+                      isAdmin={user?.isAdmin ?? false}
+                      songs={songs}
+                      onNavigateToSong={handleNavigateToSong}
+                    />
                   </Suspense>
                 </CardContent>
               </Card>

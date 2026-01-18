@@ -1,9 +1,10 @@
-// 重構後的 SongSuggestion 主元件 - 效能優化版
-import { useState, useMemo } from 'react';
+// 重構後的 SongSuggestion 主元件 - 含重複檢測功能
+import { useState, useMemo, useCallback } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Lightbulb, ChevronDown, Sparkles, Music } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSuggestions } from '@/hooks/use-suggestions';
+import type { Song } from '@/lib/firestore';
 
 // 拆分的子元件
 import { SuggestionForm } from './SuggestionForm';
@@ -11,9 +12,15 @@ import { SuggestionCard } from './SuggestionCard';
 
 interface SongSuggestionProps {
     isAdmin?: boolean;
+    songs?: Song[];
+    onNavigateToSong?: (songId: string) => void;
 }
 
-export default function SongSuggestion({ isAdmin = false }: SongSuggestionProps) {
+export default function SongSuggestion({
+    isAdmin = false,
+    songs = [],
+    onNavigateToSong
+}: SongSuggestionProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isListExpanded, setIsListExpanded] = useState(false);
     const { suggestions } = useSuggestions();
@@ -38,7 +45,12 @@ export default function SongSuggestion({ isAdmin = false }: SongSuggestionProps)
                 <div className="relative p-1 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 
                     shadow-xl shadow-amber-400/25">
                     <div className="rounded-xl overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50">
-                        <SuggestionForm isOpen={isOpen} onOpenChange={setIsOpen} />
+                        <SuggestionForm
+                            isOpen={isOpen}
+                            onOpenChange={setIsOpen}
+                            songs={songs}
+                            onNavigateToSong={onNavigateToSong}
+                        />
                     </div>
                 </div>
             </div>
@@ -154,4 +166,3 @@ export default function SongSuggestion({ isAdmin = false }: SongSuggestionProps)
         </div>
     );
 }
-
