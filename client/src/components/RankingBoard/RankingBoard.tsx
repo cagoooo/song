@@ -356,47 +356,27 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     </TooltipProvider>
                                 )}
 
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg bg-amber-50/80 hover:bg-amber-100 border border-amber-200/50 hover:border-amber-300"
-                                                asChild
-                                                aria-label={`搜尋「${song.title}」的吉他譜`}
-                                            >
-                                                <a href={generateGuitarTabsUrl(song)} target="_blank" rel="noopener noreferrer">
-                                                    <Music2 className="w-5 h-5 sm:w-4 sm:h-4 text-amber-600" />
-                                                </a>
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
-                                            <p>搜尋吉他譜</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                <a
+                                    href={generateGuitarTabsUrl(song)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 hover:border-amber-300 text-amber-700 text-xs font-medium transition-colors"
+                                    aria-label={`搜尋「${song.title}」的吉他譜`}
+                                >
+                                    <Music2 className="w-3.5 h-3.5" />
+                                    <span>吉他譜</span>
+                                </a>
 
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg bg-rose-50/80 hover:bg-rose-100 border border-rose-200/50 hover:border-rose-300"
-                                                asChild
-                                                aria-label={`搜尋「${song.title}」的歌詞`}
-                                            >
-                                                <a href={generateLyricsUrl(song)} target="_blank" rel="noopener noreferrer">
-                                                    <FileText className="w-5 h-5 sm:w-4 sm:h-4 text-rose-600" />
-                                                </a>
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
-                                            <p>搜尋歌詞</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                <a
+                                    href={generateLyricsUrl(song)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 hover:border-rose-300 text-rose-700 text-xs font-medium transition-colors"
+                                    aria-label={`搜尋「${song.title}」的歌詞`}
+                                >
+                                    <FileText className="w-3.5 h-3.5" />
+                                    <span>歌詞</span>
+                                </a>
                             </div>
                         </motion.li>
                     ))}
