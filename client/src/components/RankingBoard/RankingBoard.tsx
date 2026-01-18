@@ -1,10 +1,10 @@
-// 重構後的排行榜主元件（含彈奏標記功能）
+// 重構後的排行榜主元件（含彈奏標記功能及重置投票）
 import { useState, useRef, memo, useCallback, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    FileText, Music2, ChevronUp, Check, RotateCcw, Loader2
+    FileText, Music2, ChevronUp, Check, RotateCcw, Loader2, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -13,8 +13,18 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { Song } from '@/lib/firestore';
-import { markSongAsPlayed, unmarkSongAsPlayed, resetAllPlayedSongs } from '@/lib/firestore';
+import { markSongAsPlayed, unmarkSongAsPlayed, resetAllPlayedSongs, resetAllVotes } from '@/lib/firestore';
 import type { AppUser } from '@/lib/auth';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +46,9 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
     const { toast } = useToast();
 
     const [isExpanded, setIsExpanded] = useState(false);
-    const [isResetting, setIsResetting] = useState(false);
+    const [isResettingPlayed, setIsResettingPlayed] = useState(false);
+    const [isResettingVotes, setIsResettingVotes] = useState(false);
+    const [showResetVotesDialog, setShowResetVotesDialog] = useState(false);
     const isLoading = propSongs.length === 0;
     const displayLimit = isExpanded ? 30 : 10;
     const containerRef = useRef<HTMLOListElement>(null);
@@ -97,14 +109,30 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
     const handleResetAllPlayed = useCallback(async () => {
         if (!user?.isAdmin) return;
 
-        setIsResetting(true);
+        setIsResettingPlayed(true);
         try {
             await resetAllPlayedSongs();
             toast({ title: '已重置', description: '所有彈奏狀態已清除' });
         } catch (error) {
             toast({ title: '重置失敗', description: '請稍後再試', variant: 'destructive' });
         } finally {
-            setIsResetting(false);
+            setIsResettingPlayed(false);
+        }
+    }, [user?.isAdmin, toast]);
+
+    // 重置所有投票（點播次數歸零）
+    const handleResetAllVotes = useCallback(async () => {
+        if (!user?.isAdmin) return;
+
+        setIsResettingVotes(true);
+        try {
+            await resetAllVotes();
+            toast({ title: '成功', description: '所有點播次數已歸零' });
+            setShowResetVotesDialog(false);
+        } catch (error) {
+            toast({ title: '重置失敗', description: '請稍後再試', variant: 'destructive' });
+        } finally {
+            setIsResettingVotes(false);
         }
     }, [user?.isAdmin, toast]);
 
@@ -132,27 +160,53 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
             <div className="flex items-center justify-between mb-3">
                 <RankingHeader reduceMotion={reduceMotion} />
 
-                {/* 管理員重置按鈕 */}
-                {user?.isAdmin && sortedSongs.some(s => s.isPlayed) && (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={handleResetAllPlayed}
-                                    disabled={isResetting}
-                                    className="text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 gap-1"
-                                >
-                                    <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? 'animate-spin' : ''}`} />
-                                    重置
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="left" className="bg-slate-800 text-white border-0 text-xs">
-                                <p>重置所有彈奏狀態</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                {/* 管理員操作按鈕組 */}
+                {user?.isAdmin && (
+                    <div className="flex items-center gap-1">
+                        {/* 重置投票按鈕 */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setShowResetVotesDialog(true)}
+                                        disabled={isResettingVotes}
+                                        className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 gap-1"
+                                    >
+                                        <RefreshCw className={`w-3.5 h-3.5 ${isResettingVotes ? 'animate-spin' : ''}`} />
+                                        重置投票
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="bg-slate-800 text-white border-0 text-xs">
+                                    <p>將所有歌曲點播次數歸零</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {/* 重置彈奏狀態按鈕 - 只在有已彈奏歌曲時顯示 */}
+                        {sortedSongs.some(s => s.isPlayed) && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleResetAllPlayed}
+                                            disabled={isResettingPlayed}
+                                            className="text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 gap-1"
+                                        >
+                                            <RotateCcw className={`w-3.5 h-3.5 ${isResettingPlayed ? 'animate-spin' : ''}`} />
+                                            重置彈奏
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="left" className="bg-slate-800 text-white border-0 text-xs">
+                                        <p>重置所有彈奏狀態</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                    </div>
                 )}
             </div>
 
@@ -277,73 +331,73 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
 
                             {/* 操作按鈕區 */}
                             <div className="flex items-center gap-1 w-full sm:w-auto justify-end mt-1 sm:mt-0">
-                                    {/* 管理員彈奏標記按鈕 */}
-                                    {user?.isAdmin && (
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleTogglePlayed(song)}
-                                                        className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border transition-colors ${song.isPlayed
-                                                            ? 'bg-emerald-100 hover:bg-emerald-200 border-emerald-300'
-                                                            : 'hover:bg-slate-100 border-transparent hover:border-slate-200'
-                                                            }`}
-                                                        aria-label={song.isPlayed ? '取消標記已彈奏' : '標記為已彈奏'}
-                                                    >
-                                                        <Check className={`w-5 h-5 sm:w-4 sm:h-4 ${song.isPlayed ? 'text-emerald-600' : 'text-slate-400'}`} />
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
-                                                    <p>{song.isPlayed ? '取消標記' : '標記已彈奏'}</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    )}
-
+                                {/* 管理員彈奏標記按鈕 */}
+                                {user?.isAdmin && (
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg bg-amber-50/80 hover:bg-amber-100 border border-amber-200/50 hover:border-amber-300"
-                                                    asChild
-                                                    aria-label={`搜尋「${song.title}」的吉他譜`}
+                                                    onClick={() => handleTogglePlayed(song)}
+                                                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border transition-colors ${song.isPlayed
+                                                        ? 'bg-emerald-100 hover:bg-emerald-200 border-emerald-300'
+                                                        : 'hover:bg-slate-100 border-transparent hover:border-slate-200'
+                                                        }`}
+                                                    aria-label={song.isPlayed ? '取消標記已彈奏' : '標記為已彈奏'}
                                                 >
-                                                    <a href={generateGuitarTabsUrl(song)} target="_blank" rel="noopener noreferrer">
-                                                        <Music2 className="w-5 h-5 sm:w-4 sm:h-4 text-amber-600" />
-                                                    </a>
+                                                    <Check className={`w-5 h-5 sm:w-4 sm:h-4 ${song.isPlayed ? 'text-emerald-600' : 'text-slate-400'}`} />
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
-                                                <p>搜尋吉他譜</p>
+                                                <p>{song.isPlayed ? '取消標記' : '標記已彈奏'}</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
+                                )}
 
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg bg-rose-50/80 hover:bg-rose-100 border border-rose-200/50 hover:border-rose-300"
-                                                    asChild
-                                                    aria-label={`搜尋「${song.title}」的歌詞`}
-                                                >
-                                                    <a href={generateLyricsUrl(song)} target="_blank" rel="noopener noreferrer">
-                                                        <FileText className="w-5 h-5 sm:w-4 sm:h-4 text-rose-600" />
-                                                    </a>
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
-                                                <p>搜尋歌詞</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </div>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg bg-amber-50/80 hover:bg-amber-100 border border-amber-200/50 hover:border-amber-300"
+                                                asChild
+                                                aria-label={`搜尋「${song.title}」的吉他譜`}
+                                            >
+                                                <a href={generateGuitarTabsUrl(song)} target="_blank" rel="noopener noreferrer">
+                                                    <Music2 className="w-5 h-5 sm:w-4 sm:h-4 text-amber-600" />
+                                                </a>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
+                                            <p>搜尋吉他譜</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg bg-rose-50/80 hover:bg-rose-100 border border-rose-200/50 hover:border-rose-300"
+                                                asChild
+                                                aria-label={`搜尋「${song.title}」的歌詞`}
+                                            >
+                                                <a href={generateLyricsUrl(song)} target="_blank" rel="noopener noreferrer">
+                                                    <FileText className="w-5 h-5 sm:w-4 sm:h-4 text-rose-600" />
+                                                </a>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
+                                            <p>搜尋歌詞</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
                         </motion.li>
                     ))}
                 </AnimatePresence>
@@ -373,6 +427,40 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                     )}
                 </div>
             </ol>
+
+            {/* 重置投票確認對話框 */}
+            <AlertDialog open={showResetVotesDialog} onOpenChange={setShowResetVotesDialog}>
+                <AlertDialogContent className="max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-orange-600">
+                            <RefreshCw className="w-5 h-5" />
+                            確認重置所有投票？
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-600">
+                            此操作將會把所有歌曲的點播次數歸零。
+                            <br />
+                            <span className="text-orange-600 font-medium">此操作無法復原，請謹慎執行！</span>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isResettingVotes}>取消</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleResetAllVotes}
+                            disabled={isResettingVotes}
+                            className="bg-orange-600 hover:bg-orange-700"
+                        >
+                            {isResettingVotes ? (
+                                <>
+                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                    重置中...
+                                </>
+                            ) : (
+                                '確認重置'
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </ScrollArea>
     );
 });
