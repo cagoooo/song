@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    FileText, Music2, ChevronUp, Check, RotateCcw, Loader2, RefreshCw, Play, Square
+    FileText, Music2, ChevronUp, Check, RotateCcw, Loader2, RefreshCw, Play, Square, ThumbsUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -38,10 +38,11 @@ import { useRankingData } from './useRankingData';
 interface RankingBoardProps {
     songs: Song[];
     user?: AppUser | null;
+    onNavigateToSong?: (songId: string) => void;
 }
 
 // 使用 memo 避免不必要的重渲染
-export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoardProps) {
+export default memo(function RankingBoard({ songs: propSongs, user, onNavigateToSong }: RankingBoardProps) {
     // 使用全局 Hook 檢測是否應減少動畫
     const reduceMotion = useReduceMotion();
     const { toast } = useToast();
@@ -445,6 +446,18 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     <FileText className="w-3.5 h-3.5" />
                                     <span>歌詞</span>
                                 </a>
+
+                                {/* 跳轉點播按鈕 (手機版提供快速切換到歌曲列表) */}
+                                {onNavigateToSong && (
+                                    <button
+                                        onClick={() => onNavigateToSong(song.id)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300 text-emerald-700 text-xs font-medium transition-colors active:scale-95"
+                                        aria-label={`跳轉到歌曲列表點播「${song.title}」`}
+                                    >
+                                        <ThumbsUp className="w-3.5 h-3.5" />
+                                        <span>點播</span>
+                                    </button>
+                                )}
                             </div>
                         </motion.li>
                     ))}

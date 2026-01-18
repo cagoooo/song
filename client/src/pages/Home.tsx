@@ -398,7 +398,7 @@ export default function Home() {
                     </CardHeader>
                     <CardContent className="p-3">
                       <Suspense fallback={<SectionSkeleton />}>
-                        <RankingBoard songs={songs} user={user} />
+                        <RankingBoard songs={songs} user={user} onNavigateToSong={handleNavigateToSong} />
                       </Suspense>
                     </CardContent>
                   </Card>
@@ -453,7 +453,7 @@ export default function Home() {
                     </CardHeader>
                     <CardContent className="p-3 sm:p-6">
                       <Suspense fallback={<SectionSkeleton />}>
-                        <RankingBoard songs={songs} user={user} />
+                        <RankingBoard songs={songs} user={user} onNavigateToSong={handleNavigateToSong} />
                       </Suspense>
                     </CardContent>
                   </Card>
