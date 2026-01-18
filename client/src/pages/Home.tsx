@@ -115,7 +115,7 @@ export default function Home() {
 
   const hasMore = displayLimit < shuffledSongs.length;
 
-  // 跳轉到指定歌曲並切換到歌曲列表 Tab
+  // 跳轉到指定歌曲 - 透過搜尋歌曲名稱的方式
   const handleNavigateToSong = useCallback((songId: string) => {
     // 統一轉換為字串
     const targetId = String(songId);
@@ -123,12 +123,10 @@ export default function Home() {
     // 切換到歌曲列表 Tab (手機版)
     setActiveTabForMobile('songs');
 
-    // 找到歌曲在隨機排序列表中的索引（確保類型一致性比較）
-    const songIndex = shuffledSongs.findIndex(s => String(s.id) === targetId);
+    // 從完整歌曲列表中找到該歌曲
+    const targetSong = songs.find(s => String(s.id) === targetId);
 
-    console.log('[Navigate] songId:', targetId, 'songIndex:', songIndex, 'displayLimit:', displayLimit);
-
-    if (songIndex === -1) {
+    if (!targetSong) {
       toast({
         title: '找不到歌曲',
         description: '這首歌可能已被移除',
@@ -137,44 +135,17 @@ export default function Home() {
       return;
     }
 
-    // 如果歌曲不在目前顯示範圍內，擴展顯示限制
-    if (songIndex >= displayLimit) {
-      const newLimit = Math.min(songIndex + 10, shuffledSongs.length);
-      console.log('[Navigate] Expanding displayLimit to:', newLimit);
-      setDisplayLimit(newLimit);
-    }
+    // 觸發全局事件，通知 SongList 搜尋該歌曲
+    const searchEvent = new CustomEvent('searchSong', {
+      detail: { searchTerm: targetSong.title }
+    });
+    window.dispatchEvent(searchEvent);
 
-    // 使用輪詢機制等待元素出現
-    let attempts = 0;
-    const maxAttempts = 20;
-    const pollInterval = 100;
-
-    const pollForElement = () => {
-      attempts++;
-      const songElement = document.getElementById(`song-${targetId}`);
-      console.log('[Navigate] Attempt', attempts, 'Element found:', !!songElement);
-
-      if (songElement) {
-        songElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        songElement.classList.add('ring-2', 'ring-emerald-500', 'ring-offset-2');
-        setTimeout(() => {
-          songElement.classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-2');
-        }, 3000);
-      } else if (attempts < maxAttempts) {
-        setTimeout(pollForElement, pollInterval);
-      } else {
-        console.warn('[Navigate] Element not found after max attempts');
-        toast({
-          title: '跳轉失敗',
-          description: '無法定位到該歌曲，請手動搜尋',
-          variant: 'destructive',
-        });
-      }
-    };
-
-    // 給 React 時間更新 DOM
-    setTimeout(pollForElement, 200);
-  }, [shuffledSongs, displayLimit, toast]);
+    toast({
+      title: '🎵 找到了！',
+      description: `已搜尋「${targetSong.title}」，快來點播吧！`,
+    });
+  }, [songs, toast]);
 
   const handleLogout = async () => {
     try {

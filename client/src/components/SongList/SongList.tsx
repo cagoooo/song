@@ -71,6 +71,20 @@ export default function SongList({
         toggleFuzzyMode,
     } = useSongSearch(searchSongsSource);
 
+    // 監聽全局搜尋事件（來自歌曲建議的跳轉功能）
+    useEffect(() => {
+        const handleSearchSong = (event: CustomEvent<{ searchTerm: string }>) => {
+            if (event.detail?.searchTerm) {
+                setSearchTerm(event.detail.searchTerm);
+            }
+        };
+
+        window.addEventListener('searchSong', handleSearchSong as EventListener);
+        return () => {
+            window.removeEventListener('searchSong', handleSearchSong as EventListener);
+        };
+    }, [setSearchTerm]);
+
     // 顯示的歌曲：搜尋模式下使用搜尋結果，否則使用分頁的歌曲
     const filteredSongs = isInSearchMode ? searchFilteredSongs : songs;
 
