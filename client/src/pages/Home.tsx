@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { subscribeSongs, type Song } from "@/lib/firestore";
 import { MobileTabView } from "../components/MobileTabView";
 import { ScrollToTop } from "../components/ScrollToTop";
+import { NowPlayingNotification } from "../components/NowPlayingNotification";
 
 // 延遲載入大型元件以減少初始 bundle 大小
 const RankingBoard = lazy(() => import("../components/RankingBoard"));
@@ -484,6 +485,9 @@ export default function Home() {
 
       {/* 返回頂部按鈕 */}
       <ScrollToTop threshold={400} bottom={80} />
+
+      {/* 正在彈奏中通知（訪客即時接收） */}
+      <NowPlayingNotification />
 
       {/* Login form modal */}
       {showLoginForm && (

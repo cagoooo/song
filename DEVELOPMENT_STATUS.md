@@ -1,7 +1,7 @@
 # 🎸 吉他社點歌系統 - 開發進度總覽
 
-**最後更新時間**：2026-01-15 12:37 (UTC+8)  
-**當前版本**：**v3.3.0**  
+**最後更新時間**：2026-01-18 17:47 (UTC+8)  
+**當前版本**：**v3.7.0**  
 **GitHub Repo**：https://github.com/cagoooo/song  
 **線上版本**：https://cagoooo.github.io/song/  
 **Firebase 專案 ID**：`guitar-ff931`
@@ -24,6 +24,34 @@ git add .
 git commit -m "描述"
 git push origin main
 ```
+
+---
+
+## ✅ v3.7.0 已完成功能 (2026-01-18)
+
+### 「正在彈奏中」即時同步功能
+
+#### Firestore 資料層
+- ✅ 新增 `nowPlaying` Collection
+- ✅ `setNowPlaying(songId, adminUid)` - 設定當前演奏歌曲
+- ✅ `clearNowPlaying()` - 清除當前演奏狀態
+- ✅ `subscribeNowPlaying(callback)` - 即時監聽當前演奏歌曲
+- ✅ 更新 `subscribeSongs` 整合 `isNowPlaying` 狀態
+
+#### RankingBoard UI 更新
+- ✅ 新增「正在彈奏」按鈕（橘色 Play 圖標）
+- ✅ 醒目的視覺效果（橘色邊框 + 脈動動畫）
+- ✅ 「正在彈奏中」狀態標籤
+- ✅ 標記「已彈奏」時自動清除「正在彈奏」狀態
+
+#### 訪客通知元件
+- ✅ `NowPlayingNotification.tsx` - 浮動通知元件
+- ✅ `useNowPlaying.ts` Hook - 訂閱即時狀態
+- ✅ 一鍵跳轉吉他譜/歌詞搜尋
+- ✅ 響應式設計（手機/桌面）
+
+#### Firestore 安全規則
+- ✅ 新增 `nowPlaying` Collection 規則（所有人可讀，管理員可寫）
 
 ---
 

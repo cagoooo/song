@@ -7,6 +7,7 @@ import {
     addDoc,
     updateDoc,
     deleteDoc,
+    setDoc,
     query,
     where,
     orderBy,
@@ -29,6 +30,15 @@ export interface Song {
     createdAt: Date;
     voteCount: number;
     isPlayed?: boolean; // 管理員標記已彈奏
+    isNowPlaying?: boolean; // 正在彈奏中
+}
+
+// 正在彈奏中資訊
+export interface NowPlayingInfo {
+    songId: string;
+    song: Song | null;
+    startedAt: Date;
+    startedBy: string;
 }
 
 export interface SongSuggestion {
@@ -90,15 +100,16 @@ export async function getSongs(): Promise<Song[]> {
     return songs;
 }
 
-// 即時監聽歌曲更新（含彈奏狀態）
+// 即時監聽歌曲更新（含彈奏狀態及正在彈奏狀態）
 export function subscribeSongs(callback: (songs: Song[]) => void): Unsubscribe {
     const songsRef = collection(db, COLLECTIONS.songs);
     const songsQuery = query(songsRef, where('isActive', '==', true));
 
-    // 同時監聽歌曲、投票和彈奏狀態
+    // 同時監聽歌曲、投票、彈奏狀態和正在彈奏狀態
     let songs: Map<string, any> = new Map();
     let votes: Map<string, number> = new Map();
     let playedSongs: Set<string> = new Set();
+    let nowPlayingSongId: string | null = null;
 
     const updateCallback = () => {
         const songList: Song[] = [];
@@ -114,6 +125,7 @@ export function subscribeSongs(callback: (songs: Song[]) => void): Unsubscribe {
                 createdAt: data.createdAt?.toDate?.() || new Date(),
                 voteCount: votes.get(id) || 0,
                 isPlayed: playedSongs.has(id),
+                isNowPlaying: nowPlayingSongId === id,
             });
         });
         callback(songList);
@@ -147,10 +159,22 @@ export function subscribeSongs(callback: (songs: Song[]) => void): Unsubscribe {
         updateCallback();
     });
 
+    // 監聽正在彈奏狀態（使用固定文件 ID 'current'）
+    const nowPlayingRef = doc(db, COLLECTIONS.nowPlaying, 'current');
+    const unsubNowPlaying = onSnapshot(nowPlayingRef, (docSnapshot) => {
+        if (docSnapshot.exists()) {
+            nowPlayingSongId = docSnapshot.data().songId;
+        } else {
+            nowPlayingSongId = null;
+        }
+        updateCallback();
+    });
+
     return () => {
         unsubSongs();
         unsubVotes();
         unsubPlayed();
+        unsubNowPlaying();
     };
 }
 
@@ -551,4 +575,66 @@ export async function resetAllPlayedSongs(): Promise<void> {
     });
 
     await Promise.all(deletePromises);
+}
+
+// ==================== 正在彈奏中相關（管理員） ====================
+
+// 設定當前正在彈奏的歌曲（單一歌曲限制）
+export async function setNowPlaying(songId: string, adminUid: string): Promise<void> {
+    const nowPlayingRef = doc(db, COLLECTIONS.nowPlaying, 'current');
+    await setDoc(nowPlayingRef, {
+        songId,
+        startedBy: adminUid,
+        startedAt: Timestamp.now(),
+    });
+}
+
+// 清除正在彈奏狀態
+export async function clearNowPlaying(): Promise<void> {
+    const nowPlayingRef = doc(db, COLLECTIONS.nowPlaying, 'current');
+    await deleteDoc(nowPlayingRef);
+}
+
+// 即時監聽當前正在彈奏的歌曲（供訪客使用）
+export function subscribeNowPlaying(callback: (info: NowPlayingInfo | null) => void): Unsubscribe {
+    const nowPlayingRef = doc(db, COLLECTIONS.nowPlaying, 'current');
+
+    return onSnapshot(nowPlayingRef, async (docSnapshot) => {
+        if (docSnapshot.exists()) {
+            const data = docSnapshot.data();
+            const songId = data.songId;
+
+            // 取得歌曲詳細資訊
+            let song: Song | null = null;
+            try {
+                const songRef = doc(db, COLLECTIONS.songs, songId);
+                const songSnapshot = await getDoc(songRef);
+                if (songSnapshot.exists()) {
+                    const songData = songSnapshot.data();
+                    song = {
+                        id: songSnapshot.id,
+                        title: songData.title,
+                        artist: songData.artist,
+                        notes: songData.notes,
+                        lyrics: songData.lyrics,
+                        audioUrl: songData.audioUrl,
+                        isActive: songData.isActive,
+                        createdAt: songData.createdAt?.toDate?.() || new Date(),
+                        voteCount: 0,
+                    };
+                }
+            } catch (error) {
+                console.error('Failed to fetch song details:', error);
+            }
+
+            callback({
+                songId,
+                song,
+                startedAt: data.startedAt?.toDate?.() || new Date(),
+                startedBy: data.startedBy,
+            });
+        } else {
+            callback(null);
+        }
+    });
 }

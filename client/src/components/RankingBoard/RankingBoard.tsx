@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    FileText, Music2, ChevronUp, Check, RotateCcw, Loader2, RefreshCw
+    FileText, Music2, ChevronUp, Check, RotateCcw, Loader2, RefreshCw, Play, Square
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -24,7 +24,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { Song } from '@/lib/firestore';
-import { markSongAsPlayed, unmarkSongAsPlayed, resetAllPlayedSongs, resetAllVotes } from '@/lib/firestore';
+import { markSongAsPlayed, unmarkSongAsPlayed, resetAllPlayedSongs, resetAllVotes, setNowPlaying, clearNowPlaying } from '@/lib/firestore';
 import type { AppUser } from '@/lib/auth';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useToast } from '@/hooks/use-toast';
@@ -88,7 +88,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
         containerRef,
     });
 
-    // 處理彈奏標記切換
+    // 處理彈奏標記切換（標記已彈奏時自動清除正在彈奏狀態）
     const handleTogglePlayed = useCallback(async (song: Song) => {
         if (!user?.id) return;
 
@@ -97,8 +97,29 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                 await unmarkSongAsPlayed(song.id);
                 toast({ title: '已取消標記', description: `「${song.title}」` });
             } else {
+                // 標記已彈奏時，先清除正在彈奏狀態
+                if (song.isNowPlaying) {
+                    await clearNowPlaying();
+                }
                 await markSongAsPlayed(song.id, user.id);
                 toast({ title: '✓ 已彈奏', description: `「${song.title}」` });
+            }
+        } catch (error) {
+            toast({ title: '操作失敗', description: '請稍後再試', variant: 'destructive' });
+        }
+    }, [user?.id, toast]);
+
+    // 處理正在彈奏狀態切換
+    const handleSetNowPlaying = useCallback(async (song: Song) => {
+        if (!user?.id) return;
+
+        try {
+            if (song.isNowPlaying) {
+                await clearNowPlaying();
+                toast({ title: '已停止', description: `「${song.title}」` });
+            } else {
+                await setNowPlaying(song.id, user.id);
+                toast({ title: '🎸 正在彈奏', description: `「${song.title}」` });
             }
         } catch (error) {
             toast({ title: '操作失敗', description: '請稍後再試', variant: 'destructive' });
@@ -112,6 +133,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
         setIsResettingPlayed(true);
         try {
             await resetAllPlayedSongs();
+            await clearNowPlaying(); // 同時清除正在彈奏狀態
             toast({ title: '已重置', description: '所有彈奏狀態已清除' });
         } catch (error) {
             toast({ title: '重置失敗', description: '請稍後再試', variant: 'destructive' });
@@ -237,17 +259,21 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                             className={`
                                 flex flex-wrap items-center gap-2 p-2.5 sm:p-3 rounded-xl relative overflow-hidden
                                 transition-all duration-200
-                                ${song.isPlayed ? 'bg-emerald-50/50 border-emerald-200' : ''}
-                                ${index === 0
+                                ${song.isNowPlaying
+                                    ? 'bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 border-2 border-orange-400 shadow-lg shadow-orange-200/50 ring-2 ring-orange-300/50'
+                                    : song.isPlayed
+                                        ? 'bg-emerald-50/50 border-emerald-200'
+                                        : ''}
+                                ${!song.isNowPlaying && !song.isPlayed && (index === 0
                                     ? 'bg-gradient-to-r from-amber-50/90 via-yellow-50/80 to-amber-50/70 border-l-4 border-l-amber-400 border border-amber-200/60 shadow-lg shadow-amber-100/40'
                                     : index === 1
                                         ? 'bg-gradient-to-r from-slate-50/90 via-gray-50/80 to-slate-50/70 border-l-4 border-l-slate-400 border border-slate-200/60 shadow-md shadow-slate-100/40'
                                         : index === 2
                                             ? 'bg-gradient-to-r from-orange-50/90 via-amber-50/80 to-orange-50/70 border-l-4 border-l-orange-400 border border-orange-200/60 shadow-md shadow-orange-100/40'
-                                            : 'bg-white border border-slate-200/80 hover:border-slate-300 hover:shadow-sm'}
+                                            : 'bg-white border border-slate-200/80 hover:border-slate-300 hover:shadow-sm')}
                                 ${showRankChange[song.id] === 'up' ? 'ring-2 ring-emerald-200 shadow-lg shadow-emerald-100/50' :
                                     showRankChange[song.id] === 'down' ? 'ring-2 ring-rose-200 shadow-lg shadow-rose-100/50' : ''}
-                                ${index < 3 ? 'hover:shadow-xl' : 'hover:bg-slate-50/50'}
+                                ${index < 3 && !song.isNowPlaying ? 'hover:shadow-xl' : !song.isNowPlaying ? 'hover:bg-slate-50/50' : ''}
                             `}
                         >
                             {/* 前三名微光效果 */}
@@ -306,7 +332,19 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                         }`}>
                                         {song.artist}
                                     </p>
-                                    {song.isPlayed && (
+                                    {/* 正在彈奏中標籤（優先顯示） */}
+                                    {song.isNowPlaying && (
+                                        <motion.span
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-medium shrink-0 shadow-sm"
+                                            animate={{ scale: [1, 1.05, 1] }}
+                                            transition={{ duration: 1.5, repeat: Infinity }}
+                                        >
+                                            <Play className="w-3 h-3 fill-current" />
+                                            正在彈奏中
+                                        </motion.span>
+                                    )}
+                                    {/* 已彈奏標籤 */}
+                                    {song.isPlayed && !song.isNowPlaying && (
                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium shrink-0">
                                             <Check className="w-3 h-3" />
                                             已彈奏
@@ -331,7 +369,36 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
 
                             {/* 操作按鈕區 */}
                             <div className="flex items-center gap-1 w-full sm:w-auto justify-end mt-1 sm:mt-0">
-                                {/* 管理員彈奏標記按鈕 */}
+                                {/* 管理員「正在彈奏」按鈕 */}
+                                {user?.isAdmin && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleSetNowPlaying(song)}
+                                                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border transition-colors ${song.isNowPlaying
+                                                        ? 'bg-gradient-to-r from-orange-100 to-amber-100 hover:from-orange-200 hover:to-amber-200 border-orange-300'
+                                                        : 'hover:bg-orange-50 border-transparent hover:border-orange-200'
+                                                        }`}
+                                                    aria-label={song.isNowPlaying ? '停止彈奏' : '開始彈奏'}
+                                                >
+                                                    {song.isNowPlaying ? (
+                                                        <Square className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-orange-600 fill-orange-600" />
+                                                    ) : (
+                                                        <Play className="w-5 h-5 sm:w-4 sm:h-4 text-orange-500" />
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
+                                                <p>{song.isNowPlaying ? '停止彈奏' : '開始彈奏'}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
+
+                                {/* 管理員「已彈奏」標記按鈕 */}
                                 {user?.isAdmin && (
                                     <TooltipProvider>
                                         <Tooltip>
