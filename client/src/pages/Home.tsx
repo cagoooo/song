@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
@@ -70,6 +70,19 @@ export default function Home() {
 
   // 每次進入頁面時產生隨機 seed（只在首次渲染時產生）
   const [shuffleSeed] = useState(() => Math.floor(Math.random() * 1000000));
+
+  // 追蹤上次的 isAdmin 狀態，用於偵測登入
+  const prevIsAdminRef = useRef(user?.isAdmin ?? false);
+
+  // 管理員登入後自動切換到排行榜 Tab
+  useEffect(() => {
+    const currentIsAdmin = user?.isAdmin ?? false;
+    if (currentIsAdmin && !prevIsAdminRef.current) {
+      // 用戶剛剛登入為管理員，切換到排行榜
+      setActiveTabForMobile('ranking');
+    }
+    prevIsAdminRef.current = currentIsAdmin;
+  }, [user?.isAdmin]);
 
   // 隨機排序的歌曲列表 - 確保同一頁面瀏覽期間排序一致
   const shuffledSongs = useMemo(() => {
