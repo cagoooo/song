@@ -1,0 +1,30 @@
+{
+    "name": "吉他彈唱點歌系統",
+    "short_name": "吉他點歌",
+    "description": "即時點播、投票和社交音樂分享平台",
+    "start_url": "/song/",
+    "scope": "/song/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#ffffff",
+    "theme_color": "#f59e0b",
+    "categories": [
+        "music",
+        "entertainment",
+        "social"
+    ],
+    "lang": "zh-TW",
+    "icons": [
+        {
+            "src": "favicon.ico",
+            "sizes": "64x64",
+            "type": "image/x-icon"
+        },
+        {
+            "src": "playground.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
