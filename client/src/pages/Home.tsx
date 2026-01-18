@@ -117,11 +117,16 @@ export default function Home() {
 
   // 跳轉到指定歌曲並切換到歌曲列表 Tab
   const handleNavigateToSong = useCallback((songId: string) => {
+    // 統一轉換為字串
+    const targetId = String(songId);
+
     // 切換到歌曲列表 Tab (手機版)
     setActiveTabForMobile('songs');
 
-    // 找到歌曲在隨機排序列表中的索引
-    const songIndex = shuffledSongs.findIndex(s => s.id === songId);
+    // 找到歌曲在隨機排序列表中的索引（確保類型一致性比較）
+    const songIndex = shuffledSongs.findIndex(s => String(s.id) === targetId);
+
+    console.log('[Navigate] songId:', targetId, 'songIndex:', songIndex, 'displayLimit:', displayLimit);
 
     if (songIndex === -1) {
       toast({
@@ -134,35 +139,41 @@ export default function Home() {
 
     // 如果歌曲不在目前顯示範圍內，擴展顯示限制
     if (songIndex >= displayLimit) {
-      // 擴展到包含該歌曲的位置（加一些餘量）
       const newLimit = Math.min(songIndex + 10, shuffledSongs.length);
+      console.log('[Navigate] Expanding displayLimit to:', newLimit);
       setDisplayLimit(newLimit);
     }
 
-    // 延遲滾動，確保 Tab 切換和列表更新完成
-    setTimeout(() => {
-      const songElement = document.getElementById(`song-${songId}`);
+    // 使用輪詢機制等待元素出現
+    let attempts = 0;
+    const maxAttempts = 20;
+    const pollInterval = 100;
+
+    const pollForElement = () => {
+      attempts++;
+      const songElement = document.getElementById(`song-${targetId}`);
+      console.log('[Navigate] Attempt', attempts, 'Element found:', !!songElement);
+
       if (songElement) {
         songElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // 添加高亮效果
         songElement.classList.add('ring-2', 'ring-emerald-500', 'ring-offset-2');
         setTimeout(() => {
           songElement.classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-2');
         }, 3000);
+      } else if (attempts < maxAttempts) {
+        setTimeout(pollForElement, pollInterval);
       } else {
-        // 如果還是找不到，再次嘗試
-        setTimeout(() => {
-          const retryElement = document.getElementById(`song-${songId}`);
-          if (retryElement) {
-            retryElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            retryElement.classList.add('ring-2', 'ring-emerald-500', 'ring-offset-2');
-            setTimeout(() => {
-              retryElement.classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-2');
-            }, 3000);
-          }
-        }, 300);
+        console.warn('[Navigate] Element not found after max attempts');
+        toast({
+          title: '跳轉失敗',
+          description: '無法定位到該歌曲，請手動搜尋',
+          variant: 'destructive',
+        });
       }
-    }, 400);
+    };
+
+    // 給 React 時間更新 DOM
+    setTimeout(pollForElement, 200);
   }, [shuffledSongs, displayLimit, toast]);
 
   const handleLogout = async () => {
