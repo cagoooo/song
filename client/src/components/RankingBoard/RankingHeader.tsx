@@ -14,7 +14,7 @@ export function RankingHeader({ reduceMotion }: RankingHeaderProps) {
                     <Trophy className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                    <h2 className="font-bold text-base text-slate-800">
+                    <h2 className="font-bold text-base text-slate-800 whitespace-nowrap">
                         熱門歌曲排行榜
                     </h2>
                     <p className="text-xs text-slate-500">

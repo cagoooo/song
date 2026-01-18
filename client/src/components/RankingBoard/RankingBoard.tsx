@@ -309,7 +309,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     {song.isPlayed && (
                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium shrink-0">
                                             <Check className="w-3 h-3" />
-                                            已完成
+                                            已彈奏
                                         </span>
                                     )}
                                 </div>
