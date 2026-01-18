@@ -14,17 +14,6 @@ interface UseRankingDataOptions {
     containerRef: React.RefObject<HTMLElement>;
 }
 
-// 產生基於 session 的隨機種子（同一瀏覽階段內保持一致）
-const getSessionSeed = (): number => {
-    const storageKey = 'ranking_shuffle_seed';
-    let seed = sessionStorage.getItem(storageKey);
-    if (!seed) {
-        seed = Math.random().toString();
-        sessionStorage.setItem(storageKey, seed);
-    }
-    return parseFloat(seed);
-};
-
 // 使用種子的偽隨機排序函式
 const seededShuffle = <T,>(array: T[], seed: number): T[] => {
     const shuffled = [...array];
@@ -51,13 +40,8 @@ export function useRankingData({
     reduceMotion,
     containerRef
 }: UseRankingDataOptions) {
-    // 取得 session 種子（只在客戶端執行）
-    const sessionSeed = useMemo(() => {
-        if (typeof window !== 'undefined') {
-            return getSessionSeed();
-        }
-        return Math.random();
-    }, []);
+    // 頁面載入時產生新種子（使用 useState 確保在同一次渲染週期內保持一致）
+    const [shuffleSeed] = useState(() => Math.random());
 
     // 從 props 傳入的 songs 依投票數排序，0 票歌曲隨機穿插
     const sortedSongs = useMemo(() => {
@@ -70,12 +54,12 @@ export function useRankingData({
             (a, b) => (b.voteCount || 0) - (a.voteCount || 0)
         );
 
-        // 無票的使用 session 種子隨機排序
-        const shuffledWithoutVotes = seededShuffle(songsWithoutVotes, sessionSeed);
+        // 無票的使用頁面載入種子隨機排序
+        const shuffledWithoutVotes = seededShuffle(songsWithoutVotes, shuffleSeed);
 
         // 合併：有票的在前，無票的隨機排列在後
         return [...sortedWithVotes, ...shuffledWithoutVotes].slice(0, displayLimit);
-    }, [propSongs, displayLimit, sessionSeed]);
+    }, [propSongs, displayLimit, shuffleSeed]);
 
     const [showRankChange, setShowRankChange] = useState<RankChange>({});
     const [showFirework, setShowFirework] = useState<Record<string, boolean>>({});
