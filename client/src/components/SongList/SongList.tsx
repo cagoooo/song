@@ -4,13 +4,12 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
-import { Music, ThumbsUp, Trash2, RotateCcw, Edit2, Loader2, ChevronDown, Search } from 'lucide-react';
+import { Music, ThumbsUp, Trash2, Edit2, Loader2, ChevronDown, Search } from 'lucide-react';
 import SearchBar from '../SearchBar';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
     deleteSong as firestoreDeleteSong,
     updateSong as firestoreUpdateSong,
-    resetAllVotes as firestoreResetAllVotes,
     type Song,
 } from '@/lib/firestore';
 import type { AppUser } from '@/lib/auth';
@@ -22,7 +21,6 @@ import { useVoting } from './useVoting';
 
 // 延遲載入對話框以減少初始 bundle 大小
 const EditDialog = lazy(() => import('./EditDialog').then(m => ({ default: m.EditDialog })));
-const ResetDialog = lazy(() => import('./ResetDialog').then(m => ({ default: m.ResetDialog })));
 const QRCodeShareModal = lazy(() => import('../QRCodeShareModal'));
 
 // 歌曲卡片和虛擬滾動
@@ -55,7 +53,6 @@ export default function SongList({
     totalCount
 }: SongListProps) {
     const { toast } = useToast();
-    const [showResetDialog, setShowResetDialog] = useState(false);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const [selectedSongForShare, setSelectedSongForShare] = useState<Song | null>(null);
     const [editingSong, setEditingSong] = useState<Song | null>(null);
@@ -132,23 +129,6 @@ export default function SongList({
         }
     }, [toast]);
 
-    const resetAllVotes = useCallback(async () => {
-        try {
-            await firestoreResetAllVotes();
-            toast({
-                title: '成功',
-                description: '所有點播次數已歸零',
-            });
-            setShowResetDialog(false);
-        } catch (error) {
-            toast({
-                title: '錯誤',
-                description: '無法重置點播次數',
-                variant: 'destructive'
-            });
-        }
-    }, [toast]);
-
     const handleShareClick = useCallback((song: Song) => {
         setSelectedSongForShare(song);
         setQrModalOpen(true);
@@ -196,19 +176,6 @@ export default function SongList({
                         onToggleFuzzyMode={toggleFuzzyMode}
                     />
                 </div>
-                {user?.isAdmin && (
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setShowResetDialog(true)}
-                        className="w-full sm:w-12 h-12 border-2 border-primary/20 bg-white/80 hover:bg-white/90
-                     shadow-[0_2px_10px_rgba(var(--primary),0.1)]
-                     hover:shadow-[0_2px_20px_rgba(var(--primary),0.2)]
-                     transition-all duration-300"
-                    >
-                        <RotateCcw className="h-5 w-5" />
-                    </Button>
-                )}
             </div>
             {/* 條件式虛擬滾動：超過 30 首時啟用 */}
             {filteredSongs.length > VIRTUAL_SCROLL_THRESHOLD ? (
@@ -301,12 +268,6 @@ export default function SongList({
                         songId={selectedSongForShare.id}
                     />
                 )}
-
-                <ResetDialog
-                    open={showResetDialog}
-                    onOpenChange={setShowResetDialog}
-                    onConfirm={resetAllVotes}
-                />
 
                 {editingSong && (
                     <EditDialog
