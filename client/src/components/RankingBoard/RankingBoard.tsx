@@ -28,6 +28,7 @@ import { markSongAsPlayed, unmarkSongAsPlayed, resetAllPlayedSongs, resetAllVote
 import type { AppUser } from '@/lib/auth';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorToast } from '@/lib/error-handler';
 
 // 拆分的子元件
 import { RankingHeader } from './RankingHeader';
@@ -105,7 +106,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                 toast({ title: '✓ 已彈奏', description: `「${song.title}」` });
             }
         } catch (error) {
-            toast({ title: '操作失敗', description: '請稍後再試', variant: 'destructive' });
+            toast(getErrorToast(error));
         }
     }, [user?.id, toast]);
 
@@ -122,7 +123,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                 toast({ title: '🎸 正在彈奏', description: `「${song.title}」` });
             }
         } catch (error) {
-            toast({ title: '操作失敗', description: '請稍後再試', variant: 'destructive' });
+            toast(getErrorToast(error));
         }
     }, [user?.id, toast]);
 
@@ -136,7 +137,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
             await clearNowPlaying(); // 同時清除正在彈奏狀態
             toast({ title: '已重置', description: '所有彈奏狀態已清除' });
         } catch (error) {
-            toast({ title: '重置失敗', description: '請稍後再試', variant: 'destructive' });
+            toast(getErrorToast(error, '重置失敗'));
         } finally {
             setIsResettingPlayed(false);
         }
@@ -152,7 +153,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
             toast({ title: '成功', description: '所有點播次數已歸零' });
             setShowResetVotesDialog(false);
         } catch (error) {
-            toast({ title: '重置失敗', description: '請稍後再試', variant: 'destructive' });
+            toast(getErrorToast(error, '重置失敗'));
         } finally {
             setIsResettingVotes(false);
         }

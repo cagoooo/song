@@ -47,6 +47,22 @@ export function handleFirestoreError(error: unknown): string {
 }
 
 /**
+ * 便捷函式：將錯誤轉換為 toast 可用的格式
+ * 直接傳入 toast() 即可顯示統一格式的錯誤訊息
+ */
+export function getErrorToast(error: unknown, title: string = '操作失敗'): {
+    title: string;
+    description: string;
+    variant: 'destructive';
+} {
+    return {
+        title,
+        description: handleFirestoreError(error),
+        variant: 'destructive',
+    };
+}
+
+/**
  * 檢查是否為權限錯誤
  */
 export function isPermissionError(error: unknown): boolean {

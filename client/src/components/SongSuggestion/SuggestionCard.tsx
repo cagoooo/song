@@ -20,6 +20,7 @@ import {
     addToPlaylist,
     type SongSuggestion as SongSuggestionType,
 } from '@/hooks/use-suggestions';
+import { getErrorToast } from '@/lib/error-handler';
 
 // 工具函式
 const formatFirebaseDate = (timestamp: any): string => {
@@ -171,7 +172,7 @@ export const SuggestionCard = memo(function SuggestionCard({
             });
         },
         onError: (error: Error) => {
-            toast({ title: '加入歌單失敗', description: error.message || '請稍後再試', variant: 'destructive' });
+            toast(getErrorToast(error, '加入歌單失敗'));
         },
     });
 

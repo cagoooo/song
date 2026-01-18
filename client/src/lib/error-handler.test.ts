@@ -5,6 +5,7 @@ import {
     isPermissionError,
     isNetworkError,
     withRetry,
+    getErrorToast,
 } from './error-handler';
 
 // Mock firebase/app 模組
@@ -129,6 +130,45 @@ describe('isNetworkError', () => {
     it('非 FirebaseError 應該返回 false', () => {
         const error = new Error('一般錯誤');
         expect(isNetworkError(error)).toBe(false);
+    });
+});
+
+describe('getErrorToast', () => {
+    it('應該返回包含 title、description 和 variant 的物件', () => {
+        const error = createFirebaseError('firestore/permission-denied');
+        const result = getErrorToast(error);
+
+        expect(result).toHaveProperty('title');
+        expect(result).toHaveProperty('description');
+        expect(result).toHaveProperty('variant', 'destructive');
+    });
+
+    it('預設 title 應該是「操作失敗」', () => {
+        const error = createFirebaseError('firestore/unavailable');
+        const result = getErrorToast(error);
+
+        expect(result.title).toBe('操作失敗');
+    });
+
+    it('應該可以自訂 title', () => {
+        const error = createFirebaseError('firestore/unavailable');
+        const result = getErrorToast(error, '重置失敗');
+
+        expect(result.title).toBe('重置失敗');
+    });
+
+    it('description 應該是轉換後的中文錯誤訊息', () => {
+        const error = createFirebaseError('firestore/permission-denied');
+        const result = getErrorToast(error);
+
+        expect(result.description).toBe('您沒有權限執行此操作');
+    });
+
+    it('variant 應該固定為 destructive', () => {
+        const error = new Error('任何錯誤');
+        const result = getErrorToast(error);
+
+        expect(result.variant).toBe('destructive');
     });
 });
 
