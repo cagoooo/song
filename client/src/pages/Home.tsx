@@ -137,11 +137,14 @@ export default function Home() {
       return;
     }
 
-    // 觸發全局事件，通知 SongList 搜尋該歌曲
-    const searchEvent = new CustomEvent('searchSong', {
-      detail: { searchTerm: targetSong.title }
-    });
-    window.dispatchEvent(searchEvent);
+    // 延遲派發事件，確保 Tab 切換動畫完成且 SongList 元件已渲染
+    // MobileTabView 動畫時間為 250ms，加上額外 buffer
+    setTimeout(() => {
+      const searchEvent = new CustomEvent('searchSong', {
+        detail: { searchTerm: targetSong.title }
+      });
+      window.dispatchEvent(searchEvent);
+    }, 350);
 
     toast({
       title: '🎵 找到了！',
