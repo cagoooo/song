@@ -120,7 +120,26 @@ export default function Home() {
     // 切換到歌曲列表 Tab (手機版)
     setActiveTabForMobile('songs');
 
-    // 延遲滾動，確保 Tab 切換完成
+    // 找到歌曲在隨機排序列表中的索引
+    const songIndex = shuffledSongs.findIndex(s => s.id === songId);
+
+    if (songIndex === -1) {
+      toast({
+        title: '找不到歌曲',
+        description: '這首歌可能已被移除',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // 如果歌曲不在目前顯示範圍內，擴展顯示限制
+    if (songIndex >= displayLimit) {
+      // 擴展到包含該歌曲的位置（加一些餘量）
+      const newLimit = Math.min(songIndex + 10, shuffledSongs.length);
+      setDisplayLimit(newLimit);
+    }
+
+    // 延遲滾動，確保 Tab 切換和列表更新完成
     setTimeout(() => {
       const songElement = document.getElementById(`song-${songId}`);
       if (songElement) {
@@ -130,9 +149,21 @@ export default function Home() {
         setTimeout(() => {
           songElement.classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-2');
         }, 3000);
+      } else {
+        // 如果還是找不到，再次嘗試
+        setTimeout(() => {
+          const retryElement = document.getElementById(`song-${songId}`);
+          if (retryElement) {
+            retryElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            retryElement.classList.add('ring-2', 'ring-emerald-500', 'ring-offset-2');
+            setTimeout(() => {
+              retryElement.classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-2');
+            }, 3000);
+          }
+        }, 300);
       }
-    }, 300);
-  }, []);
+    }, 400);
+  }, [shuffledSongs, displayLimit, toast]);
 
   const handleLogout = async () => {
     try {
