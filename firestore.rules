@@ -88,8 +88,10 @@ service cloud.firestore {
         && data.artist is string
         && data.artist.size() > 0
         && data.artist.size() <= 50
-        // 備註限制：選填，最長 500 字元
-        && (!data.keys().hasAny(['notes']) || data.notes.size() <= 500)
+        // 備註限制：選填，可以是 null 或字串，最長 500 字元
+        && (!data.keys().hasAny(['notes']) || data.notes == null || (data.notes is string && data.notes.size() <= 500))
+        // 推薦者限制：選填，可以是 null 或字串，最長 50 字元
+        && (!data.keys().hasAny(['suggestedBy']) || data.suggestedBy == null || (data.suggestedBy is string && data.suggestedBy.size() <= 50))
         // 狀態必須是 pending
         && data.status == 'pending';
     }
