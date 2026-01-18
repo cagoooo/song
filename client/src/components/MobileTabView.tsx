@@ -89,11 +89,19 @@ export function MobileTabView({ songListContent, rankingContent, isAdmin = false
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                 {/* 優化的 Tab 切換區塊 */}
                 <div className="sticky top-0 z-20 bg-gradient-to-b from-background via-background to-background/95 pb-3 pt-1">
-                    {/* 提示文字 - 靜態版本（移除無限循環動畫） */}
-                    <div className="flex items-center justify-center gap-1 mb-2 text-xs text-muted-foreground">
-                        <ChevronLeft className="w-3 h-3" />
-                        <span>左右滑動或點擊切換</span>
-                        <ChevronRight className="w-3 h-3" />
+                    {/* 提示文字 - 更醒目的設計 */}
+                    <div className="flex items-center justify-center gap-2 mb-2 px-4 py-1.5 mx-auto w-fit rounded-full bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60">
+                        <div className="flex items-center text-amber-600">
+                            <ChevronLeft className="w-4 h-4 animate-pulse" />
+                            <ChevronLeft className="w-4 h-4 -ml-2 opacity-50" />
+                        </div>
+                        <span className="text-xs font-medium text-amber-700">
+                            👆 點擊切換 或 👈👉 左右滑動
+                        </span>
+                        <div className="flex items-center text-amber-600">
+                            <ChevronRight className="w-4 h-4 opacity-50" />
+                            <ChevronRight className="w-4 h-4 -ml-2 animate-pulse" />
+                        </div>
                     </div>
 
                     <TabsList className="grid w-full grid-cols-2 h-14 p-1.5 bg-gradient-to-r from-amber-100/80 via-orange-50 to-amber-100/80 rounded-xl shadow-lg border-2 border-amber-200/50">
