@@ -234,28 +234,29 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
             </div>
 
             <ol className="space-y-2" ref={containerRef} role="list" aria-label="人氣點播排行榜">
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="sync" initial={false}>
                     {sortedSongs.map((song, index) => (
                         <motion.li
                             key={song.id}
-                            layout
+                            layout="position"
                             layoutId={`song-${song.id}`}
                             aria-label={`第 ${index + 1} 名：${song.title} - ${song.artist}，${song.voteCount || 0} 票`}
-                            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                            initial={false}
                             animate={{
                                 opacity: 1,
-                                y: 0,
                                 scale: 1,
-                                transition: {
+                            }}
+                            transition={{
+                                layout: {
                                     type: "spring",
-                                    stiffness: 300,
-                                    damping: 25
+                                    stiffness: 500,
+                                    damping: 35,
+                                    mass: 0.8,
                                 }
                             }}
                             exit={{
                                 opacity: 0,
-                                scale: 0.8,
-                                transition: { duration: 0.2 }
+                                transition: { duration: 0.15 }
                             }}
                             className={`
                                 flex flex-wrap items-center gap-2 p-2.5 sm:p-3 rounded-xl relative overflow-hidden
