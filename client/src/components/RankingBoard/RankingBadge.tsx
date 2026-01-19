@@ -1,7 +1,7 @@
 // 排名圖標元件 (前三名特殊顯示) - 現代化設計版
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Crown, Medal, Trophy } from 'lucide-react';
+import { Crown, Medal, Trophy, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface RankingBadgeProps {
     index: number;
@@ -14,6 +14,55 @@ export const RankingBadge = memo(function RankingBadge({
 }: RankingBadgeProps) {
     return (
         <div className="relative flex items-center justify-center shrink-0">
+            {/* 排名變化指示器 - 醒目版 */}
+            {showRankChange && (
+                <motion.div
+                    initial={{ opacity: 0, y: showRankChange === 'up' ? 10 : -10, scale: 0.5 }}
+                    animate={{
+                        opacity: 1,
+                        y: 0,
+                        scale: 1,
+                    }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                    transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 20
+                    }}
+                    className={`
+                        absolute -top-2 -right-2 sm:-top-2.5 sm:-right-2.5 z-10
+                        flex items-center justify-center
+                        w-6 h-6 sm:w-7 sm:h-7
+                        rounded-full shadow-lg
+                        ${showRankChange === 'up'
+                            ? 'bg-gradient-to-br from-emerald-400 to-green-500 shadow-emerald-300/50'
+                            : 'bg-gradient-to-br from-rose-400 to-red-500 shadow-rose-300/50'}
+                    `}
+                >
+                    {showRankChange === 'up' ? (
+                        <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[3]" />
+                    ) : (
+                        <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[3]" />
+                    )}
+                </motion.div>
+            )}
+
+            {/* 上升/下降 脈動動畫背景 */}
+            {showRankChange && (
+                <motion.div
+                    initial={{ scale: 1, opacity: 0.3 }}
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
+                    transition={{ duration: 1.5, repeat: 2, ease: "easeInOut" }}
+                    className={`
+                        absolute inset-0 rounded-full
+                        ${showRankChange === 'up'
+                            ? 'bg-emerald-400'
+                            : 'bg-rose-400'}
+                    `}
+                    style={{ pointerEvents: 'none' }}
+                />
+            )}
+
             {/* 第一名 - 金色圓形徽章 */}
             {index === 0 && (
                 <div className="relative w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center">
@@ -79,28 +128,6 @@ export const RankingBadge = memo(function RankingBadge({
                         {index + 1}
                     </span>
                 </div>
-            )}
-
-            {/* 排名變化指示器 - 保留動畫（只在變化時觸發） */}
-            {showRankChange && (
-                <motion.div
-                    initial={{ opacity: 0, x: showRankChange === 'up' ? -20 : 20, scale: 0.5 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={{
-                        type: "spring",
-                        stiffness: 500,
-                        damping: 25
-                    }}
-                    className={`
-                        absolute -left-5 sm:-left-6 text-xs sm:text-sm font-bold
-                        ${showRankChange === 'up'
-                            ? 'text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full shadow-sm'
-                            : 'text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded-full shadow-sm'}
-                    `}
-                >
-                    {showRankChange === 'up' ? '↑' : '↓'}
-                </motion.div>
             )}
         </div>
     );

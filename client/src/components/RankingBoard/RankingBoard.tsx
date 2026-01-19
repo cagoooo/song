@@ -234,30 +234,31 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
             </div>
 
             <ol className="space-y-2" ref={containerRef} role="list" aria-label="人氣點播排行榜">
-                <AnimatePresence mode="sync" initial={false}>
+                <AnimatePresence mode="popLayout" initial={false}>
                     {sortedSongs.map((song, index) => (
                         <motion.li
                             key={song.id}
                             layout="position"
-                            layoutId={`song-${song.id}`}
                             aria-label={`第 ${index + 1} 名：${song.title} - ${song.artist}，${song.voteCount || 0} 票`}
-                            initial={false}
+                            initial={{ opacity: 0, y: -10 }}
                             animate={{
                                 opacity: 1,
-                                scale: 1,
+                                y: 0,
                             }}
                             transition={{
                                 layout: {
                                     type: "spring",
-                                    stiffness: 500,
-                                    damping: 35,
-                                    mass: 0.8,
-                                }
+                                    stiffness: 400,
+                                    damping: 30,
+                                },
+                                opacity: { duration: 0.2 },
+                                y: { duration: 0.2 }
                             }}
                             exit={{
                                 opacity: 0,
                                 transition: { duration: 0.15 }
                             }}
+                            style={{ originX: 0 }} // 確保縮放以左側為基準
                             className={`
                                 flex flex-wrap items-center gap-2 p-2.5 sm:p-3 rounded-xl relative overflow-hidden
                                 transition-all duration-200
