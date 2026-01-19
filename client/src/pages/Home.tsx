@@ -17,6 +17,7 @@ import { NowPlayingNotification } from "../components/NowPlayingNotification";
 import { PWAInstallPrompt } from "../components/PWAInstallPrompt";
 import InteractionOverlay from "../components/InteractionOverlay";
 import { useSuggestionNotification } from "@/hooks/useSuggestionNotification";
+import { SuggestionNotificationOverlay } from "../components/SuggestionNotificationOverlay";
 
 // 延遲載入大型元件以減少初始 bundle 大小
 const RankingBoard = lazy(() => import("../components/RankingBoard"));
@@ -91,8 +92,12 @@ export default function Home() {
     return shuffleArray(songs, shuffleSeed);
   }, [songs, shuffleSeed]);
 
-  // 歌曲建議通知 - 訪客建議新歌曲時通知管理員
-  useSuggestionNotification({
+  // 歌曲建議通知 - 訪客建議新歌曲時通知管理員（全螢幕中央顯示）
+  const {
+    currentSuggestion,
+    isVisible: isSuggestionVisible,
+    dismiss: dismissSuggestion,
+  } = useSuggestionNotification({
     isAdmin: !!user?.isAdmin,
   });
 
@@ -525,6 +530,13 @@ export default function Home() {
       {showLoginForm && (
         <LoginForm onClose={() => setShowLoginForm(false)} />
       )}
+
+      {/* 歌曲建議通知覆蓋層 - 管理員專用 */}
+      <SuggestionNotificationOverlay
+        isVisible={isSuggestionVisible}
+        suggestion={currentSuggestion}
+        onClose={dismissSuggestion}
+      />
     </div>
   );
 }

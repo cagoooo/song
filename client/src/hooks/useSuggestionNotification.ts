@@ -1,6 +1,5 @@
 // 歌曲建議通知 Hook - 監聽訪客建議新歌曲並通知管理員
-import { useEffect, useRef } from 'react';
-import { useToast } from './use-toast';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import {
     collection,
     query,
@@ -9,20 +8,59 @@ import {
 } from 'firebase/firestore';
 import { db, COLLECTIONS } from '@/lib/firebase';
 
+interface SuggestionData {
+    title: string;
+    artist: string;
+    suggestedBy?: string;
+    notes?: string;
+}
+
 interface UseSuggestionNotificationOptions {
     isAdmin: boolean;
     enabled?: boolean;
 }
 
+interface UseSuggestionNotificationReturn {
+    // 當前要顯示的建議通知
+    currentSuggestion: SuggestionData | null;
+    isVisible: boolean;
+    // 關閉通知
+    dismiss: () => void;
+}
+
 export function useSuggestionNotification({
     isAdmin,
     enabled = true,
-}: UseSuggestionNotificationOptions) {
-    const { toast } = useToast();
+}: UseSuggestionNotificationOptions): UseSuggestionNotificationReturn {
+    const [currentSuggestion, setCurrentSuggestion] = useState<SuggestionData | null>(null);
+    const [isVisible, setIsVisible] = useState(false);
+
+    // 通知佇列（多個建議時依序顯示）
+    const notificationQueue = useRef<SuggestionData[]>([]);
 
     // 追蹤已處理的建議 ID，避免重複通知
     const processedIds = useRef<Set<string>>(new Set());
     const isFirstSnapshot = useRef(true);
+
+    // 顯示下一個通知
+    const showNextNotification = useCallback(() => {
+        if (notificationQueue.current.length > 0) {
+            const next = notificationQueue.current.shift()!;
+            setCurrentSuggestion(next);
+            setIsVisible(true);
+        }
+    }, []);
+
+    // 關閉通知
+    const dismiss = useCallback(() => {
+        setIsVisible(false);
+        // 延遲清除內容，讓動畫完成
+        setTimeout(() => {
+            setCurrentSuggestion(null);
+            // 顯示下一個（如果有的話）
+            showNextNotification();
+        }, 300);
+    }, [showNextNotification]);
 
     useEffect(() => {
         // 只有管理員才需要收到建議通知
@@ -34,15 +72,13 @@ export function useSuggestionNotification({
 
         const suggestionsRef = collection(db, COLLECTIONS.songSuggestions);
 
-        // 簡化查詢 - 只監聽 pending 狀態的建議（避免索引問題）
+        // 簡化查詢 - 只監聽 pending 狀態的建議
         const q = query(
             suggestionsRef,
             where('status', '==', 'pending')
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            console.log('[SuggestionNotification] 收到快照更新，文件數:', snapshot.docs.length);
-
             // 第一次載入時，記錄所有現有建議但不通知
             if (isFirstSnapshot.current) {
                 snapshot.docs.forEach((doc) => {
@@ -55,14 +91,11 @@ export function useSuggestionNotification({
 
             // 處理新增的建議
             snapshot.docChanges().forEach((change) => {
-                console.log('[SuggestionNotification] 文件變化:', change.type, change.doc.id);
-
                 if (change.type === 'added') {
                     const docId = change.doc.id;
 
                     // 避免重複通知
                     if (processedIds.current.has(docId)) {
-                        console.log('[SuggestionNotification] 已處理過，跳過:', docId);
                         return;
                     }
 
@@ -70,15 +103,23 @@ export function useSuggestionNotification({
 
                     const data = change.doc.data();
 
-                    console.log('[SuggestionNotification] 發送通知:', data.title, data.artist);
+                    console.log('[SuggestionNotification] 新建議:', data.title, data.artist);
 
-                    // 顯示 toast 通知
-                    toast({
-                        title: '🎵 新歌曲建議！',
-                        description: `訪客建議了「${data.title}」- ${data.artist}`,
-                        className: 'bg-amber-50 border-amber-200 text-amber-800',
-                        duration: 5000, // 5 秒後自動關閉
-                    });
+                    const suggestionData: SuggestionData = {
+                        title: data.title,
+                        artist: data.artist,
+                        suggestedBy: data.suggestedBy,
+                        notes: data.notes,
+                    };
+
+                    // 如果目前沒有顯示通知，直接顯示
+                    if (!isVisible && notificationQueue.current.length === 0) {
+                        setCurrentSuggestion(suggestionData);
+                        setIsVisible(true);
+                    } else {
+                        // 否則加入佇列
+                        notificationQueue.current.push(suggestionData);
+                    }
                 }
             });
         }, (error) => {
@@ -89,5 +130,11 @@ export function useSuggestionNotification({
             console.log('[SuggestionNotification] 停止監聯');
             unsubscribe();
         };
-    }, [isAdmin, enabled, toast]);
+    }, [isAdmin, enabled, isVisible]);
+
+    return {
+        currentSuggestion,
+        isVisible,
+        dismiss,
+    };
 }
