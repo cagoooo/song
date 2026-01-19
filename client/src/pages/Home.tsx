@@ -15,6 +15,7 @@ import { MobileTabView } from "../components/MobileTabView";
 import { ScrollToTop } from "../components/ScrollToTop";
 import { NowPlayingNotification } from "../components/NowPlayingNotification";
 import { PWAInstallPrompt } from "../components/PWAInstallPrompt";
+import InteractionOverlay from "../components/InteractionOverlay";
 
 // 延遲載入大型元件以減少初始 bundle 大小
 const RankingBoard = lazy(() => import("../components/RankingBoard"));
@@ -507,6 +508,9 @@ export default function Home() {
 
       {/* 正在彈奏中通知（訪客即時接收） */}
       <NowPlayingNotification />
+
+      {/* 互動動畫覆蓋層（全螢幕） */}
+      <InteractionOverlay />
 
       {/* PWA 安裝提示 */}
       <PWAInstallPrompt />

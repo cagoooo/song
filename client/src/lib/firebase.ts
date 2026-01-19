@@ -41,4 +41,5 @@ export const COLLECTIONS = {
     qrCodeScans: 'qrCodeScans',
     playedSongs: 'playedSongs',
     nowPlaying: 'nowPlaying',
+    interactions: 'interactions', // 打賞和評分互動事件
 } as const;

@@ -53,6 +53,15 @@ service cloud.firestore {
       allow read, write: if true;
     }
     
+    // 互動集合 - 打賞和評分（所有人可讀取、新增需驗證格式、更新評分需驗證）
+    match /interactions/{interactionId} {
+      allow read: if true;
+      allow create: if isValidInteraction();
+      // 允許更新評分（只能更新 rating 和 createdAt，sessionId 不能變）
+      allow update: if isValidRatingUpdate();
+      allow delete: if isAdmin();
+    }
+    
     // 使用者集合 - 僅本人或管理員可讀寫
     match /users/{userId} {
       allow read: if request.auth != null && 
@@ -100,6 +109,43 @@ service cloud.firestore {
         && (!data.keys().hasAny(['suggestedBy']) || data.suggestedBy == null || (data.suggestedBy is string && data.suggestedBy.size() <= 50))
         // 狀態必須是 pending
         && data.status == 'pending';
+    }
+    
+    // 驗證互動資料有效性（打賞和評分）
+    function isValidInteraction() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['songId', 'type', 'sessionId', 'createdAt'])
+        // songId 限制：必填字串
+        && data.songId is string
+        && data.songId.size() > 0
+        && data.songId.size() <= 100
+        // type 限制：必須是 tip 或 rating
+        && data.type in ['tip', 'rating']
+        // sessionId 限制：必填字串
+        && data.sessionId is string
+        && data.sessionId.size() > 0
+        && data.sessionId.size() <= 100
+        // tipType 限制：選填，必須是有效 emoji
+        && (!data.keys().hasAny(['tipType']) || data.tipType == null || (data.tipType is string && data.tipType.size() <= 10))
+        // rating 限制：選填，必須是 1-5
+        && (!data.keys().hasAny(['rating']) || data.rating == null || (data.rating is int && data.rating >= 1 && data.rating <= 5));
+    }
+    
+    // 驗證評分更新（只能更新自己的評分，且只能修改 rating 和 createdAt）
+    function isValidRatingUpdate() {
+      let data = request.resource.data;
+      let existing = resource.data;
+      return existing.type == 'rating'
+        // sessionId 不能變更
+        && data.sessionId == existing.sessionId
+        // songId 不能變更
+        && data.songId == existing.songId
+        // type 不能變更
+        && data.type == existing.type
+        // rating 必須是 1-5
+        && data.rating is int
+        && data.rating >= 1
+        && data.rating <= 5;
     }
   }
 }

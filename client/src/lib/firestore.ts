@@ -638,3 +638,207 @@ export function subscribeNowPlaying(callback: (info: NowPlayingInfo | null) => v
         }
     });
 }
+
+// ==================== 互動相關（打賞和評分） ====================
+
+// 打賞類型定義
+export type TipType = '❤️' | '🌟' | '🎉' | '🔥' | '💎';
+
+export interface Interaction {
+    id: string;
+    songId: string;
+    type: 'tip' | 'rating';
+    tipType?: TipType;
+    rating?: 1 | 2 | 3 | 4 | 5;
+    sessionId: string;
+    createdAt: Date;
+}
+
+export interface RatingStats {
+    average: number;
+    count: number;
+    total: number;
+}
+
+// 發送打賞
+export async function sendTip(
+    songId: string,
+    tipType: TipType,
+    sessionId: string
+): Promise<string> {
+    const interactionsRef = collection(db, COLLECTIONS.interactions);
+
+    const newDoc = await addDoc(interactionsRef, {
+        songId,
+        type: 'tip',
+        tipType,
+        sessionId,
+        createdAt: Timestamp.now(),
+    });
+
+    return newDoc.id;
+}
+
+// 發送評分
+export async function sendRating(
+    songId: string,
+    rating: 1 | 2 | 3 | 4 | 5,
+    sessionId: string
+): Promise<string> {
+    const interactionsRef = collection(db, COLLECTIONS.interactions);
+
+    // 檢查是否已評分過
+    const existingQuery = query(
+        interactionsRef,
+        where('songId', '==', songId),
+        where('sessionId', '==', sessionId),
+        where('type', '==', 'rating')
+    );
+    const existingSnapshot = await getDocs(existingQuery);
+
+    if (!existingSnapshot.empty) {
+        // 更新現有評分
+        const existingDoc = existingSnapshot.docs[0];
+        await updateDoc(existingDoc.ref, {
+            rating,
+            createdAt: Timestamp.now(),
+        });
+        return existingDoc.id;
+    }
+
+    // 新增評分
+    const newDoc = await addDoc(interactionsRef, {
+        songId,
+        type: 'rating',
+        rating,
+        sessionId,
+        createdAt: Timestamp.now(),
+    });
+
+    return newDoc.id;
+}
+
+// 即時監聯互動事件（用於觸發動畫）
+export function subscribeInteractions(
+    songId: string,
+    callback: (interaction: Interaction) => void
+): Unsubscribe {
+    const interactionsRef = collection(db, COLLECTIONS.interactions);
+
+    // 簡化查詢 - 只按 songId 過濾，避免需要複合索引
+    const songQuery = query(
+        interactionsRef,
+        where('songId', '==', songId),
+        orderBy('createdAt', 'desc')
+    );
+
+    // 追蹤已處理的互動（用 id + timestamp 組合避免重複）
+    const processedEvents = new Set<string>();
+    let isFirstSnapshot = true;
+
+    return onSnapshot(songQuery, (snapshot) => {
+        // 第一次快照時，標記所有現有文件為已處理（避免觸發舊動畫）
+        if (isFirstSnapshot) {
+            snapshot.docs.forEach((doc) => {
+                const data = doc.data();
+                const timestamp = data.createdAt?.toMillis?.() || 0;
+                processedEvents.add(`${doc.id}_${timestamp}`);
+            });
+            isFirstSnapshot = false;
+            return;
+        }
+
+        snapshot.docChanges().forEach((change) => {
+            // 處理新增和更新事件（讓評分更新也能觸發動畫）
+            if (change.type === 'added' || change.type === 'modified') {
+                const docId = change.doc.id;
+                const data = change.doc.data();
+                const createdAt = data.createdAt?.toDate?.() || new Date();
+                const timestamp = data.createdAt?.toMillis?.() || 0;
+                const eventKey = `${docId}_${timestamp}`;
+
+                // 避免重複觸發相同事件
+                if (!processedEvents.has(eventKey)) {
+                    processedEvents.add(eventKey);
+
+                    // 只觸發最近 60 秒內的互動動畫
+                    const ageMs = Date.now() - createdAt.getTime();
+                    if (ageMs < 60000) {
+                        callback({
+                            id: docId,
+                            songId: data.songId,
+                            type: data.type,
+                            tipType: data.tipType,
+                            rating: data.rating,
+                            sessionId: data.sessionId,
+                            createdAt,
+                        });
+                    }
+                }
+            }
+        });
+    });
+}
+
+// 取得歌曲評分統計
+export async function getSongRatingStats(songId: string): Promise<RatingStats> {
+    const interactionsRef = collection(db, COLLECTIONS.interactions);
+    const ratingQuery = query(
+        interactionsRef,
+        where('songId', '==', songId),
+        where('type', '==', 'rating')
+    );
+    const snapshot = await getDocs(ratingQuery);
+
+    if (snapshot.empty) {
+        return { average: 0, count: 0, total: 0 };
+    }
+
+    let total = 0;
+    let count = 0;
+    snapshot.forEach((doc) => {
+        const rating = doc.data().rating;
+        if (rating && rating >= 1 && rating <= 5) {
+            total += rating;
+            count++;
+        }
+    });
+
+    return {
+        average: count > 0 ? total / count : 0,
+        count,
+        total,
+    };
+}
+
+// 即時監聽歌曲評分統計
+export function subscribeRatingStats(
+    songId: string,
+    callback: (stats: RatingStats) => void
+): Unsubscribe {
+    const interactionsRef = collection(db, COLLECTIONS.interactions);
+    const ratingQuery = query(
+        interactionsRef,
+        where('songId', '==', songId),
+        where('type', '==', 'rating')
+    );
+
+    return onSnapshot(ratingQuery, (snapshot) => {
+        let total = 0;
+        let count = 0;
+        snapshot.forEach((doc) => {
+            const rating = doc.data().rating;
+            if (rating && rating >= 1 && rating <= 5) {
+                total += rating;
+                count++;
+            }
+        });
+
+        callback({
+            average: count > 0 ? total / count : 0,
+            count,
+            total,
+        });
+    });
+}
+
