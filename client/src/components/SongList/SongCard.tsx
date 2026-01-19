@@ -89,9 +89,9 @@ export const SongCard = memo(function SongCard({
                 </p>
             </div>
 
-            {/* 操作按鈕區 */}
-            <div className="flex items-center gap-2 shrink-0">
-                {/* 點播按鈕 - 加大尺寸 */}
+            {/* 操作按鈕區 - 手機端更緊湊 */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {/* 點播按鈕 - 手機端緊湊版 */}
                 <div className="relative">
                     <Button
                         ref={(el) => { buttonRefs.current[songId] = el; }}
@@ -100,8 +100,10 @@ export const SongCard = memo(function SongCard({
                         onClick={() => onVote(songId, song)}
                         aria-label={`為「${song.title}」投票`}
                         className={`
-                            flex gap-2 px-5 py-2.5 h-11 sm:h-10
-                            text-base sm:text-sm font-semibold
+                            flex items-center justify-center gap-1.5 sm:gap-2
+                            px-3 sm:px-5 py-2 sm:py-2.5
+                            h-10 sm:h-10 min-w-[70px] sm:min-w-[90px]
+                            text-sm sm:text-sm font-semibold
                             bg-gradient-to-r from-amber-500 to-orange-500
                             hover:from-amber-400 hover:to-orange-400
                             text-white
@@ -111,7 +113,7 @@ export const SongCard = memo(function SongCard({
                             ${isVoting || count > 0 ? 'ring-2 ring-amber-300 ring-offset-1' : ''}
                         `}
                     >
-                        <ThumbsUp className="h-5 w-5 sm:h-4 sm:w-4" />
+                        <ThumbsUp className="h-4 w-4" />
                         <span>點播</span>
                     </Button>
 
@@ -128,24 +130,24 @@ export const SongCard = memo(function SongCard({
                     )}
                 </div>
 
-                {/* 管理員操作按鈕 - 精簡版 */}
+                {/* 管理員操作按鈕 - 手機端更小 */}
                 {user?.isAdmin && (
                     <div className="flex gap-1">
                         <Button
                             variant="outline"
                             size="icon"
                             onClick={() => onEdit(song)}
-                            className="w-10 h-10 sm:w-9 sm:h-9 border-slate-200 hover:border-slate-300 hover:bg-slate-50 active:scale-95 transition-transform duration-100"
+                            className="w-8 h-8 sm:w-9 sm:h-9 border-slate-200 hover:border-slate-300 hover:bg-slate-50 active:scale-95 transition-transform duration-100"
                         >
-                            <Edit2 className="h-4 w-4 text-slate-500" />
+                            <Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-500" />
                         </Button>
                         <Button
                             variant="outline"
                             size="icon"
                             onClick={() => onDelete(song.id)}
-                            className="w-10 h-10 sm:w-9 sm:h-9 border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50 active:scale-95 transition-transform duration-100"
+                            className="w-8 h-8 sm:w-9 sm:h-9 border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50 active:scale-95 transition-transform duration-100"
                         >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                     </div>
                 )}
