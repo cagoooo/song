@@ -44,13 +44,13 @@ function StarRating({
     const [hoverValue, setHoverValue] = useState(0);
 
     return (
-        <div className="relative flex gap-0.5">
+        <div className="relative flex gap-px">
             {[1, 2, 3, 4, 5].map((star) => (
                 <motion.button
                     key={star}
                     type="button"
                     disabled={disabled}
-                    className="p-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-0 disabled:opacity-50 disabled:cursor-not-allowed"
                     onMouseEnter={() => setHoverValue(star)}
                     onMouseLeave={() => setHoverValue(0)}
                     onClick={() => onChange(star as 1 | 2 | 3 | 4 | 5)}
@@ -58,7 +58,7 @@ function StarRating({
                     whileTap={{ scale: 0.9 }}
                 >
                     <Star
-                        className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${star <= (hoverValue || value)
+                        className={`w-4 h-4 transition-colors ${star <= (hoverValue || value)
                             ? 'text-yellow-400 fill-yellow-400'
                             : 'text-slate-300'
                             }`}
@@ -242,21 +242,21 @@ export function NowPlayingNotification() {
                             </div>
 
                             {/* 打賞按鈕 + 評分 - 同一行 */}
-                            <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center justify-between gap-1">
                                 {/* 打賞按鈕 */}
-                                <div className="flex gap-0.5 sm:gap-1 shrink-0">
+                                <div className="flex gap-0 shrink-0">
                                     {TIP_TYPES.map(({ type, label }) => (
                                         <motion.button
                                             key={type}
                                             type="button"
                                             disabled={isSending}
                                             onClick={() => onTip(type)}
-                                            className="relative p-1 sm:p-1.5 rounded-full hover:bg-slate-100 transition-colors disabled:opacity-50"
+                                            className="relative p-0.5 sm:p-1 rounded-full hover:bg-slate-100 transition-colors disabled:opacity-50"
                                             whileHover={{ scale: 1.1 }}
                                             whileTap={{ scale: 0.9 }}
                                             title={label}
                                         >
-                                            <span className="text-lg sm:text-xl">{type}</span>
+                                            <span className="text-base sm:text-lg">{type}</span>
                                             {showTipSent === type && (
                                                 <motion.span
                                                     className="absolute -top-0.5 -right-0.5 text-[10px] text-green-500"
@@ -272,7 +272,7 @@ export function NowPlayingNotification() {
                                 </div>
 
                                 {/* 評分區域 - 管理員和訪客顯示不同 */}
-                                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                                <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
                                     {isAdmin ? (
                                         /* 管理員：顯示平均星等 */
                                         <>
