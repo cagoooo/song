@@ -242,9 +242,9 @@ export function NowPlayingNotification() {
                             </div>
 
                             {/* 打賞按鈕 + 評分 - 同一行 */}
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-2">
                                 {/* 打賞按鈕 */}
-                                <div className="flex gap-0.5 sm:gap-1">
+                                <div className="flex gap-0.5 sm:gap-1 shrink-0">
                                     {TIP_TYPES.map(({ type, label }) => (
                                         <motion.button
                                             key={type}
@@ -272,7 +272,7 @@ export function NowPlayingNotification() {
                                 </div>
 
                                 {/* 評分區域 - 管理員和訪客顯示不同 */}
-                                <div className="flex items-center gap-1 sm:gap-2">
+                                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                                     {isAdmin ? (
                                         /* 管理員：顯示平均星等 */
                                         <>
@@ -280,23 +280,23 @@ export function NowPlayingNotification() {
                                                 {[1, 2, 3, 4, 5].map((star) => (
                                                     <Star
                                                         key={star}
-                                                        className={`w-4 h-4 sm:w-5 sm:h-5 ${star <= Math.round(ratingStats.average)
+                                                        className={`w-4 h-4 ${star <= Math.round(ratingStats.average)
                                                             ? 'text-yellow-400 fill-yellow-400'
                                                             : 'text-slate-300'
                                                             }`}
                                                     />
                                                 ))}
                                             </div>
-                                            <span className="text-xs sm:text-sm text-slate-500">
+                                            <span className="text-xs text-slate-500 whitespace-nowrap">
                                                 {ratingStats.count > 0 ? (
                                                     <>
                                                         <span className="font-bold text-amber-600">
                                                             {ratingStats.average.toFixed(1)}
                                                         </span>
-                                                        <span className="ml-1">({ratingStats.count} 人)</span>
+                                                        <span className="ml-0.5">({ratingStats.count})</span>
                                                     </>
                                                 ) : (
-                                                    <span className="text-slate-400">尚無評分</span>
+                                                    <span className="text-slate-400">尚無</span>
                                                 )}
                                             </span>
                                         </>
@@ -309,13 +309,11 @@ export function NowPlayingNotification() {
                                                 disabled={isSending}
                                                 showSuccess={showRatingSent}
                                             />
-                                            <span className="text-xs sm:text-sm text-slate-500">
-                                                {ratingStats.count > 0 ? (
-                                                    <span className="font-medium text-amber-600">
-                                                        {ratingStats.average.toFixed(1)}
-                                                    </span>
-                                                ) : null}
-                                            </span>
+                                            {ratingStats.count > 0 && (
+                                                <span className="text-xs text-amber-600 font-medium whitespace-nowrap">
+                                                    {ratingStats.average.toFixed(1)}
+                                                </span>
+                                            )}
                                         </>
                                     )}
                                 </div>

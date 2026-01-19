@@ -72,7 +72,7 @@ describe('TipAnimation', () => {
     });
 
     describe('onComplete 回調', () => {
-        it('動畫結束後應該呼叫 onComplete', async () => {
+        it('動畫結束後應該呼叫 onComplete', () => {
             const onComplete = vi.fn();
 
             render(
@@ -86,12 +86,13 @@ describe('TipAnimation', () => {
             // 快進時間（愛心動畫 duration 為 2 秒）
             vi.advanceTimersByTime(2500);
 
-            await waitFor(() => {
-                expect(onComplete).toHaveBeenCalled();
-            });
+            // 使用 runAllTimers 確保所有 timers 都執行完畢
+            vi.runAllTimers();
+
+            expect(onComplete).toHaveBeenCalled();
         });
 
-        it('不同打賞類型有不同的動畫時長', async () => {
+        it('不同打賞類型有不同的動畫時長', () => {
             const onComplete = vi.fn();
 
             // 鑽石動畫 duration 為 2.5 秒
@@ -110,9 +111,10 @@ describe('TipAnimation', () => {
             // 再過 1 秒應該完成
             vi.advanceTimersByTime(1000);
 
-            await waitFor(() => {
-                expect(onComplete).toHaveBeenCalled();
-            });
+            // 確保所有 timers 執行完畢
+            vi.runAllTimers();
+
+            expect(onComplete).toHaveBeenCalled();
         });
     });
 

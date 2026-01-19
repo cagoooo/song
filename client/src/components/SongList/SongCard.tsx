@@ -100,10 +100,9 @@ export const SongCard = memo(function SongCard({
                         onClick={() => onVote(songId, song)}
                         aria-label={`為「${song.title}」投票`}
                         className={`
-                            flex items-center justify-center gap-1.5 sm:gap-2
-                            px-3 sm:px-5 py-2 sm:py-2.5
-                            h-10 sm:h-10 min-w-[70px] sm:min-w-[90px]
-                            text-sm sm:text-sm font-semibold
+                            inline-flex items-center justify-center gap-1.5
+                            px-3 py-2 h-9
+                            text-sm font-semibold
                             bg-gradient-to-r from-amber-500 to-orange-500
                             hover:from-amber-400 hover:to-orange-400
                             text-white
@@ -113,8 +112,8 @@ export const SongCard = memo(function SongCard({
                             ${isVoting || count > 0 ? 'ring-2 ring-amber-300 ring-offset-1' : ''}
                         `}
                     >
-                        <ThumbsUp className="h-4 w-4" />
-                        <span>點播</span>
+                        <ThumbsUp className="h-4 w-4 shrink-0" />
+                        <span className="whitespace-nowrap">點播</span>
                     </Button>
 
                     {/* 點擊計數 - 純 CSS 動畫 */}

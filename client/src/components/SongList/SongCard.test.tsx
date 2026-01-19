@@ -14,7 +14,7 @@ const createMockSong = (overrides?: Partial<Song>): Song => ({
     createdAt: new Date('2026-01-01'),
     isActive: true,
     ...overrides,
-});
+} as Song);
 
 // 建立測試用的使用者資料
 const createMockUser = (isAdmin = false): AppUser => ({
@@ -54,7 +54,8 @@ describe('SongCard', () => {
 
         it('應該顯示點播按鈕', () => {
             render(<SongCard {...defaultProps} />);
-            expect(screen.getByRole('button', { name: /點播/i })).toBeInTheDocument();
+            // 使用 aria-label 包含歌曲標題來查找投票按鈕
+            expect(screen.getByRole('button', { name: /投票/i })).toBeInTheDocument();
         });
 
         it('應該設定正確的 id 屬性', () => {
@@ -94,7 +95,8 @@ describe('SongCard', () => {
             const onVote = vi.fn();
             render(<SongCard {...defaultProps} onVote={onVote} />);
 
-            fireEvent.click(screen.getByRole('button', { name: /點播/i }));
+            // 使用 aria-label 查找投票按鈕
+            fireEvent.click(screen.getByRole('button', { name: /投票/i }));
 
             expect(onVote).toHaveBeenCalledTimes(1);
             expect(onVote).toHaveBeenCalledWith('song-1', defaultProps.song);
@@ -189,14 +191,16 @@ describe('SongCard', () => {
         it('votingId 匹配時按鈕應該有 ring 樣式', () => {
             render(<SongCard {...defaultProps} votingId="song-1" />);
 
-            const button = screen.getByRole('button', { name: /點播/i });
+            // 使用 aria-label 查找投票按鈕
+            const button = screen.getByRole('button', { name: /投票/i });
             expect(button.className).toContain('ring-2');
         });
 
         it('有點擊計數時按鈕應該有 ring 樣式', () => {
             render(<SongCard {...defaultProps} clickCount={{ 'song-1': 3 }} />);
 
-            const button = screen.getByRole('button', { name: /點播/i });
+            // 使用 aria-label 查找投票按鈕
+            const button = screen.getByRole('button', { name: /投票/i });
             expect(button.className).toContain('ring-2');
         });
     });
