@@ -16,6 +16,8 @@ import { ScrollToTop } from "../components/ScrollToTop";
 import { NowPlayingNotification } from "../components/NowPlayingNotification";
 import { PWAInstallPrompt } from "../components/PWAInstallPrompt";
 import InteractionOverlay from "../components/InteractionOverlay";
+import { NotificationBell } from "../components/NotificationBell";
+import { useVoteNotification } from "@/hooks/useVoteNotification";
 
 // 延遲載入大型元件以減少初始 bundle 大小
 const RankingBoard = lazy(() => import("../components/RankingBoard"));
@@ -89,6 +91,12 @@ export default function Home() {
   const shuffledSongs = useMemo(() => {
     return shuffleArray(songs, shuffleSeed);
   }, [songs, shuffleSeed]);
+
+  // 投票通知 - 管理員有人投票時收到桌面通知
+  useVoteNotification({
+    songs,
+    isAdmin: !!user?.isAdmin,
+  });
 
   // 使用 Firestore onSnapshot 即時監聯歌曲更新
   useEffect(() => {
@@ -328,12 +336,14 @@ export default function Home() {
           </motion.div>
 
           <motion.div
-            className="mt-4 sm:mt-5 md:mt-6 lg:mt-8 scale-90 sm:scale-95 md:scale-100 lg:scale-105"
+            className="mt-4 sm:mt-5 md:mt-6 lg:mt-8 scale-90 sm:scale-95 md:scale-100 lg:scale-105 flex items-center gap-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.5 }}
           >
             <ShareButton />
+            {/* 管理員專用通知鈴鐺 */}
+            {user?.isAdmin && <NotificationBell />}
           </motion.div>
         </motion.div>
 
