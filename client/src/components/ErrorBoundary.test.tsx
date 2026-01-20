@@ -61,9 +61,10 @@ describe('ErrorBoundary', () => {
             // 應該不顯示正常內容
             expect(screen.queryByTestId('child-content')).not.toBeInTheDocument();
 
-            // 應該顯示錯誤畫面 - 使用 emoji 來查找更穩定
+            // 應該顯示錯誤畫面 - 使用 emoji 和標題來查找
             expect(screen.getByText(/😵/)).toBeInTheDocument();
-            expect(screen.getByText(/問題/i)).toBeInTheDocument();
+            // 使用更精確的選擇器：標題 h1 中的「發生錯誤」
+            expect(screen.getByRole('heading', { name: /發生錯誤/ })).toBeInTheDocument();
         });
 
         it('應該顯示重新載入按鈕', () => {
@@ -122,30 +123,35 @@ describe('ErrorBoundary', () => {
             expect(mockReload).toHaveBeenCalledTimes(1);
         });
 
-        it('點擊再試一次應該嘗試重新渲染', () => {
+        it('點擊再試一次應該嘗試重新渲染', async () => {
+            // 使用可控制的錯誤狀態
+            let shouldThrowError = true;
+
+            const ConditionalThrow = () => {
+                if (shouldThrowError) {
+                    throw new Error('測試錯誤');
+                }
+                return <div data-testid="child-content">正常內容</div>;
+            };
+
             const { rerender } = render(
                 <ErrorBoundary>
-                    <ThrowError shouldThrow={true} />
+                    <ConditionalThrow />
                 </ErrorBoundary>
             );
 
             // 確認顯示錯誤畫面
             expect(screen.getByText(/😵/)).toBeInTheDocument();
 
-            // 點擊再試一次
+            // 修改狀態為不拋出錯誤
+            shouldThrowError = false;
+
+            // 點擊「再試一次」按鈕，這會呼叫 handleReset 清除錯誤狀態並重新渲染
             fireEvent.click(screen.getByRole('button', { name: /再試一次/i }));
 
-            // 注意：由於 ThrowError 仍然會拋出錯誤，錯誤畫面會再次顯示
-            // 但這裡主要測試 handleReset 被正確觸發
-            // 重新渲染時不拋出錯誤
-            rerender(
-                <ErrorBoundary>
-                    <ThrowError shouldThrow={false} />
-                </ErrorBoundary>
-            );
-
-            // 現在應該顯示正常內容
+            // 因為 shouldThrowError 已經變成 false，重新渲染後應該顯示正常內容
             expect(screen.getByTestId('child-content')).toBeInTheDocument();
+            expect(screen.getByText('正常內容')).toBeInTheDocument();
         });
     });
 });
