@@ -10,6 +10,8 @@ import { TagFilterBar } from "../components/TagFilterBar";
 import { useAllSongTags } from "@/hooks/useAllSongTags";
 import { useVoteHistory, type VoteHistoryEntry } from "@/hooks/useVoteHistory";
 import { VoteHistoryButton } from "../components/VoteHistoryButton";
+import { SortSelector } from "../components/SortSelector";
+import { useSortMode } from "@/hooks/useSortMode";
 
 // VoteHistoryModal 不在首屏關鍵路徑，lazy load
 const VoteHistoryModal = lazy(() =>
@@ -31,29 +33,6 @@ import { SuggestionNotificationOverlay } from "../components/SuggestionNotificat
 // 延遲載入大型元件以減少初始 bundle 大小
 const RankingBoard = lazy(() => import("../components/RankingBoard"));
 const SongSuggestion = lazy(() => import("../components/SongSuggestion"));
-
-// Fisher-Yates 洗牌演算法 - 產生隨機排序的歌曲
-// 使用 seed 確保同一頁面瀏覽期間排序一致
-function shuffleArray<T>(array: T[], seed: number): T[] {
-  const shuffled = [...array];
-  let currentIndex = shuffled.length;
-  let currentSeed = seed;
-
-  // 使用 seed 產生偽隨機數
-  const random = () => {
-    currentSeed = (currentSeed * 1103515245 + 12345) & 0x7fffffff;
-    return currentSeed / 0x7fffffff;
-  };
-
-  while (currentIndex !== 0) {
-    const randomIndex = Math.floor(random() * currentIndex);
-    currentIndex--;
-    [shuffled[currentIndex], shuffled[randomIndex]] =
-      [shuffled[randomIndex], shuffled[currentIndex]];
-  }
-
-  return shuffled;
-}
 
 // 載入中的骨架屏
 function SectionSkeleton() {
@@ -132,10 +111,8 @@ export default function Home() {
     prevIsAdminRef.current = currentIsAdmin;
   }, [user?.isAdmin]);
 
-  // 隨機排序的歌曲列表 - 確保同一頁面瀏覽期間排序一致
-  const shuffledSongs = useMemo(() => {
-    return shuffleArray(songs, shuffleSeed);
-  }, [songs, shuffleSeed]);
+  // 排序模式（隨機 / 票數 / 最新 / 字母）— URL 同步 + localStorage 持久化
+  const { sortMode, setSortMode, sortedSongs } = useSortMode(songs, shuffleSeed);
 
   // 歌曲建議通知 - 訪客建議新歌曲時通知管理員（全螢幕中央顯示）
   const {
@@ -172,20 +149,20 @@ export default function Home() {
 
   // 根據顯示限制更新顯示的歌曲（使用隨機排序後的列表）
   useEffect(() => {
-    setDisplayedSongs(shuffledSongs.slice(0, displayLimit));
-  }, [shuffledSongs, displayLimit]);
+    setDisplayedSongs(sortedSongs.slice(0, displayLimit));
+  }, [sortedSongs, displayLimit]);
 
   // 載入更多歌曲
   const loadMore = useCallback(() => {
-    if (displayLimit >= shuffledSongs.length) return;
+    if (displayLimit >= sortedSongs.length) return;
     setIsLoadingMore(true);
     setTimeout(() => {
-      setDisplayLimit(prev => Math.min(prev + PAGE_SIZE, shuffledSongs.length));
+      setDisplayLimit(prev => Math.min(prev + PAGE_SIZE, sortedSongs.length));
       setIsLoadingMore(false);
     }, 300);
-  }, [displayLimit, shuffledSongs.length]);
+  }, [displayLimit, sortedSongs.length]);
 
-  const hasMore = displayLimit < shuffledSongs.length;
+  const hasMore = displayLimit < sortedSongs.length;
 
   // 跳轉到指定歌曲 - 透過搜尋歌曲名稱的方式
   const handleNavigateToSong = useCallback((songId: string) => {
@@ -458,11 +435,14 @@ export default function Home() {
                           <Music2 className="w-5 h-5 text-primary" />
                           可選歌單
                         </CardTitle>
-                        <VoteHistoryButton
-                          todayCount={voteTodayCount}
-                          totalCount={voteHistory.length}
-                          onClick={() => setHistoryOpen(true)}
-                        />
+                        <div className="flex items-center gap-1.5">
+                          <SortSelector value={sortMode} onChange={setSortMode} />
+                          <VoteHistoryButton
+                            todayCount={voteTodayCount}
+                            totalCount={voteHistory.length}
+                            onClick={() => setHistoryOpen(true)}
+                          />
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="p-3">
@@ -524,11 +504,14 @@ export default function Home() {
                           <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                           可選歌單
                         </CardTitle>
-                        <VoteHistoryButton
-                          todayCount={voteTodayCount}
-                          totalCount={voteHistory.length}
-                          onClick={() => setHistoryOpen(true)}
-                        />
+                        <div className="flex items-center gap-1.5">
+                          <SortSelector value={sortMode} onChange={setSortMode} />
+                          <VoteHistoryButton
+                            todayCount={voteTodayCount}
+                            totalCount={voteHistory.length}
+                            onClick={() => setHistoryOpen(true)}
+                          />
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="p-3 sm:p-6">
