@@ -1,13 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Favicon Tags -->
+    <!-- Performance: 預連 Firestore / Auth，省 ~150ms TLS handshake -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://firebaseinstallations.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin />
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+
+    <!-- Favicon — 由 scripts/generate-og-image.mjs 產生 -->
     <link rel="icon" type="image/x-icon" href="/song/favicon.ico" />
-    <link rel="shortcut icon" type="image/x-icon" href="/song/favicon.ico" />
-    <link rel="apple-touch-icon" href="/song/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/song/favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/song/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/song/apple-touch-icon.png" />
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/song/manifest.json" />
@@ -16,34 +23,47 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="吉他點歌" />
 
-    <!-- 基本 SEO Meta Tags -->
-    <title>互動式吉他彈唱社交點播平台</title>
-    <meta name="description" content="提供創新的音樂社交互動體驗，讓用戶能即時點播、分享和探索音樂。平台結合社交互動、實時點播和個性化音樂探索功能。" />
+    <!-- 基本 SEO -->
+    <title>吉他彈唱點歌系統 — 即時點播・現場互動・社群分享</title>
+    <meta name="description" content="互動式吉他彈唱點歌平台：訪客即時點播、評分、互動，表演者現場接收。內建排行榜、PWA 離線支援、QR 掃碼分享。" />
     <meta name="theme-color" content="#f59e0b" />
 
-    <!-- Open Graph / Facebook Meta Tags -->
+    <!--
+      ⚠️ og:image / twitter:image 的 ?v=__OG_HASH__ 會由 scripts/generate-og-image.mjs
+      自動替換為 PNG 內容的 SHA-256 短雜湊。改圖內容才會換 URL，
+      FB / LINE 的 CDN 才會重抓；改文案不換 URL，避免無謂重抓。
+      若手動編輯，務必保留 __OG_HASH__ placeholder（除非你已經跑過 npm run gen:og）。
+    -->
+
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://guitar-social-platform.repl.co/" />
-    <meta property="og:title" content="互動式吉他彈唱社交點播平台" />
-    <meta property="og:description" content="提供創新的音樂社交互動體驗，讓用戶能即時點播、分享和探索音樂。平台結合社交互動、實時點播和個性化音樂探索功能。" />
-    <meta property="og:image" content="/playground.png" />
+    <meta property="og:url" content="https://cagoooo.github.io/song/" />
+    <meta property="og:title" content="吉他彈唱點歌系統 — 即時點播・現場互動" />
+    <meta property="og:description" content="互動式吉他彈唱點歌平台：訪客即時點播、評分、互動，表演者現場接收。" />
+    <meta property="og:image" content="https://cagoooo.github.io/song/og-preview.png?v=ff6a20f8666b" />
+    <meta property="og:image:secure_url" content="https://cagoooo.github.io/song/og-preview.png?v=ff6a20f8666b" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:site_name" content="互動式吉他彈唱社交點播平台" />
+    <meta property="og:image:alt" content="吉他彈唱點歌系統 — cagoooo.github.io/song" />
+    <meta property="og:site_name" content="吉他彈唱點歌系統" />
+    <meta property="og:locale" content="zh_TW" />
 
-    <!-- Twitter Card Meta Tags -->
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://guitar-social-platform.repl.co/" />
-    <meta name="twitter:title" content="互動式吉他彈唱社交點播平台" />
-    <meta name="twitter:description" content="提供創新的音樂社交互動體驗，讓用戶能即時點播、分享和探索音樂。平台結合社交互動、實時點播和個性化音樂探索功能。" />
-    <meta name="twitter:image" content="/playground.png" />
-    <meta name="twitter:image:alt" content="互動式吉他彈唱社交點播平台預覽圖" />
+    <meta name="twitter:url" content="https://cagoooo.github.io/song/" />
+    <meta name="twitter:title" content="吉他彈唱點歌系統 — 即時點播・現場互動" />
+    <meta name="twitter:description" content="互動式吉他彈唱點歌平台：訪客即時點播、評分、互動，表演者現場接收。" />
+    <meta name="twitter:image" content="https://cagoooo.github.io/song/og-preview.png?v=ff6a20f8666b" />
+    <meta name="twitter:image:alt" content="吉他彈唱點歌系統預覽圖" />
 
-    <!-- LinkedIn Meta Tags -->
+    <!-- LinkedIn -->
     <meta property="linkedin:card" content="summary_large_image" />
-    <meta property="linkedin:title" content="互動式吉他彈唱社交點播平台" />
-    <meta property="linkedin:description" content="提供創新的音樂社交互動體驗，讓用戶能即時點播、分享和探索音樂。平台結合社交互動、實時點播和個性化音樂探索功能。" />
-    <meta property="linkedin:image" content="/playground.png" />
+    <meta property="linkedin:title" content="吉他彈唱點歌系統" />
+    <meta property="linkedin:description" content="互動式吉他彈唱點歌平台" />
+    <meta property="linkedin:image" content="https://cagoooo.github.io/song/og-preview.png?v=ff6a20f8666b" />
+
+    <link rel="canonical" href="https://cagoooo.github.io/song/" />
   </head>
   <body>
     <div id="root"></div>

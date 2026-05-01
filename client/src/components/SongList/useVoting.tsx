@@ -2,6 +2,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { voteSong, getSessionId, type Song } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { useVoteHistory } from '@/hooks/useVoteHistory';
 import confetti from 'canvas-confetti';
 
 interface VoteOverlayInfo {
@@ -21,6 +22,7 @@ interface UseVotingReturn {
 
 export function useVoting(): UseVotingReturn {
     const { toast } = useToast();
+    const { addVote } = useVoteHistory();
     const [votingId, setVotingId] = useState<string | null>(null);
     const [clickCount, setClickCount] = useState<Record<string, number>>({});
     const [lastVoteTime, setLastVoteTime] = useState<Record<string, number>>({});
@@ -62,6 +64,9 @@ export function useVoting(): UseVotingReturn {
 
             // 使用 Firestore 投票
             await voteSong(songId, getSessionId());
+
+            // 寫進本機點播歷史（不影響投票成功訊息）
+            addVote({ songId, title: song.title, artist: song.artist });
 
             setClickCount(prev => ({
                 ...prev,
@@ -129,7 +134,7 @@ export function useVoting(): UseVotingReturn {
                 variant: 'destructive'
             });
         }
-    }, [clickCount, lastVoteTime, toast, triggerVoteConfetti]);
+    }, [clickCount, lastVoteTime, toast, triggerVoteConfetti, addVote]);
 
     return {
         votingId,

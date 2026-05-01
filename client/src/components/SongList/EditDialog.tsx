@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Music, ThumbsUp } from 'lucide-react';
 import type { Song } from '@/lib/firestore';
+import TagSelector from '../TagSelector';
 
 interface EditDialogProps {
     song: Song;
@@ -190,6 +191,15 @@ export function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
                   `}
                                 />
                             </motion.div>
+                        </div>
+
+                        {/* 標籤管理 — 即時儲存，不需 submit */}
+                        <div className="space-y-2 pt-1">
+                            <Label className="font-medium text-gray-700 flex items-center gap-1.5">
+                                <ThumbsUp className="w-4 h-4 text-primary" />
+                                標籤
+                            </Label>
+                            <TagSelector song={song} isAdmin={true} />
                         </div>
                     </motion.div>
 

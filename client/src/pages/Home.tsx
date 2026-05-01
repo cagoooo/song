@@ -3,9 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Music2, Trophy, Lightbulb } from "lucide-react";
+import { LogIn, LogOut, Music2, Trophy, Lightbulb, Tv } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
+import { TagFilterBar } from "../components/TagFilterBar";
+import { useAllSongTags } from "@/hooks/useAllSongTags";
+import { useVoteHistory, type VoteHistoryEntry } from "@/hooks/useVoteHistory";
+import { VoteHistoryButton } from "../components/VoteHistoryButton";
+
+// VoteHistoryModal 不在首屏關鍵路徑，lazy load
+const VoteHistoryModal = lazy(() =>
+  import("../components/VoteHistoryModal").then((m) => ({ default: m.VoteHistoryModal }))
+);
 import LoginForm from "../components/LoginForm";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShareButton } from "../components/ShareButton";
@@ -68,8 +77,44 @@ export default function Home() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTabForMobile, setActiveTabForMobile] = useState<'songs' | 'ranking'>('songs');
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { toast } = useToast();
   const { user, logout } = useUser();
+  const { allTags, songTagsMap, tagSongCount } = useAllSongTags();
+  const {
+    history: voteHistory,
+    todayCount: voteTodayCount,
+    todayUniqueCount: voteTodayUnique,
+    clearHistory: clearVoteHistory,
+  } = useVoteHistory();
+
+  // 從歷史按「再點」：切到歌單 Tab → 派發搜尋事件，讓 SongList 顯示該首歌
+  const handleReVoteFromHistory = useCallback((entry: VoteHistoryEntry) => {
+    setHistoryOpen(false);
+    setActiveTabForMobile('songs');
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('searchSong', {
+        detail: { searchTerm: entry.title },
+      }));
+    }, 350);
+  }, []);
+
+  const toggleTag = useCallback((tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  }, []);
+  const clearAllTags = useCallback(() => setSelectedTagIds([]), []);
+
+  // 篩選後符合所有勾選標籤的歌曲總數（給 TagFilterBar 顯示）
+  const tagMatchedCount = useMemo(() => {
+    if (selectedTagIds.length === 0) return songs.length;
+    return songs.filter((s) => {
+      const ids = songTagsMap.get(s.id) ?? [];
+      return selectedTagIds.every((sel) => ids.includes(sel));
+    }).length;
+  }, [songs, selectedTagIds, songTagsMap]);
 
   // 每次進入頁面時產生隨機 seed（只在首次渲染時產生）
   const [shuffleSeed] = useState(() => Math.floor(Math.random() * 1000000));
@@ -276,14 +321,24 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
-      {/* Admin Logout Button */}
+      {/* Admin: 登出 + 演出模式入口 */}
       {user?.isAdmin && (
         <motion.div
-          className="fixed top-4 right-4 z-50"
+          className="fixed top-4 right-4 z-50 flex items-center gap-2"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open('?mode=stage', '_blank', 'noopener')}
+            className="bg-white/90 hover:bg-white border-2 border-amber-300 hover:border-amber-400 text-amber-700 hover:text-amber-800 shadow-lg hover:shadow-xl transition-all duration-300"
+            title="在新分頁開啟演出模式（適合外接螢幕 / 投影）"
+          >
+            <Tv className="w-4 h-4 mr-2" />
+            演出模式
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -398,14 +453,30 @@ export default function Home() {
                 songListContent={
                   <Card className="shadow-lg">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Music2 className="w-5 h-5 text-primary" />
-                        可選歌單
-                      </CardTitle>
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <Music2 className="w-5 h-5 text-primary" />
+                          可選歌單
+                        </CardTitle>
+                        <VoteHistoryButton
+                          todayCount={voteTodayCount}
+                          totalCount={voteHistory.length}
+                          onClick={() => setHistoryOpen(true)}
+                        />
+                      </div>
                     </CardHeader>
                     <CardContent className="p-3">
                       {user?.isAdmin && <SongImport />}
                       <div className="h-3" />
+                      <TagFilterBar
+                        allTags={allTags}
+                        selectedTagIds={selectedTagIds}
+                        onToggleTag={toggleTag}
+                        onClearAll={clearAllTags}
+                        tagSongCount={tagSongCount}
+                        matchedCount={tagMatchedCount}
+                        isFiltering={selectedTagIds.length > 0}
+                      />
                       <SongList
                         songs={displayedSongs}
                         allSongs={songs}
@@ -414,6 +485,8 @@ export default function Home() {
                         isLoadingMore={isLoadingMore}
                         onLoadMore={loadMore}
                         totalCount={songs.length}
+                        selectedTagIds={selectedTagIds}
+                        songTagsMap={songTagsMap}
                       />
                     </CardContent>
                   </Card>
@@ -446,14 +519,30 @@ export default function Home() {
                 >
                   <Card className="shadow-lg">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                        <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                        可選歌單
-                      </CardTitle>
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                          <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                          可選歌單
+                        </CardTitle>
+                        <VoteHistoryButton
+                          todayCount={voteTodayCount}
+                          totalCount={voteHistory.length}
+                          onClick={() => setHistoryOpen(true)}
+                        />
+                      </div>
                     </CardHeader>
                     <CardContent className="p-3 sm:p-6">
                       {user?.isAdmin && <SongImport />}
                       <div className="h-3 sm:h-4" />
+                      <TagFilterBar
+                        allTags={allTags}
+                        selectedTagIds={selectedTagIds}
+                        onToggleTag={toggleTag}
+                        onClearAll={clearAllTags}
+                        tagSongCount={tagSongCount}
+                        matchedCount={tagMatchedCount}
+                        isFiltering={selectedTagIds.length > 0}
+                      />
                       <SongList
                         songs={displayedSongs}
                         allSongs={songs}
@@ -462,6 +551,8 @@ export default function Home() {
                         isLoadingMore={isLoadingMore}
                         onLoadMore={loadMore}
                         totalCount={songs.length}
+                        selectedTagIds={selectedTagIds}
+                        songTagsMap={songTagsMap}
                       />
                     </CardContent>
                   </Card>
@@ -537,6 +628,21 @@ export default function Home() {
         suggestion={currentSuggestion}
         onClose={dismissSuggestion}
       />
+
+      {/* 點播歷史 Modal — lazy load，未開啟時不影響首屏 */}
+      {historyOpen && (
+        <Suspense fallback={null}>
+          <VoteHistoryModal
+            isOpen={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            history={voteHistory}
+            todayCount={voteTodayCount}
+            todayUniqueCount={voteTodayUnique}
+            onClearHistory={clearVoteHistory}
+            onReVote={handleReVoteFromHistory}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

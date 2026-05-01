@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Switch, Route, Router } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
@@ -8,7 +9,24 @@ import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 // GitHub Pages base path
 const base = import.meta.env.BASE_URL || "/";
 
+// 演出模式 lazy load — 不影響首頁 bundle
+const StagePage = lazy(() => import("@/pages/StagePage"));
+
+function isStageMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('mode') === 'stage';
+}
+
 function App() {
+  // ?mode=stage 進入演出模式 — 畫面全黑乾淨，無 Toaster / Banner / 管理 UI
+  if (isStageMode()) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-stone-950" />}>
+        <StagePage />
+      </Suspense>
+    );
+  }
+
   return (
     <Router base={base.endsWith('/') ? base.slice(0, -1) : base}>
       <Switch>

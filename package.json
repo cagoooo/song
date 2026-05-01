@@ -1,16 +1,25 @@
 {
   "name": "guitar-social-platform",
-  "version": "4.1.2",
+  "version": "4.2.0",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/generate-og-image.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "check": "tsc",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "lighthouse": "lhci autorun",
+    "webp": "node scripts/convert-to-webp.mjs",
+    "subset-og-font": "node scripts/subset-og-font.mjs",
+    "gen:og": "node scripts/generate-og-image.mjs",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -72,6 +81,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^0.1.100",
     "@tailwindcss/typography": "^0.5.15",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
@@ -85,6 +95,8 @@
     "autoprefixer": "^10.4.20",
     "jsdom": "^27.4.0",
     "postcss": "^8.4.47",
+    "sharp": "^0.34.5",
+    "subset-font": "^2.5.0",
     "tailwindcss": "^3.4.14",
     "typescript": "5.6.3",
     "vite": "^5.4.9",

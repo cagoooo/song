@@ -36,3 +36,6 @@ replit.md
 # 日誌
 *.log
 npm-debug.log*
+
+# OG 圖原始字型（11 MB 太大）— 只 commit 精簡版 NotoSansTC-Subset.ttf
+scripts/fonts/NotoSansTC-Bold.ttf

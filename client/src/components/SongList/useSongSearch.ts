@@ -6,6 +6,10 @@ import type { Song } from '@/lib/firestore';
 interface UseSongSearchOptions {
     useFuzzySearch?: boolean;
     fuzzyThreshold?: number;
+    /** 已勾選的 tagId 陣列；篩選邏輯為「歌曲必須包含所有勾選的標籤」(AND) */
+    selectedTagIds?: string[];
+    /** songId → tagId[] 對應表 */
+    songTagsMap?: Map<string, string[]>;
 }
 
 interface UseSongSearchReturn {
@@ -14,6 +18,8 @@ interface UseSongSearchReturn {
     debouncedSearch: string;
     searchResults: Song[] | null;
     isInSearchMode: boolean;
+    /** 是否套用任何過濾（搜尋字串 OR 標籤） */
+    isFilteringActive: boolean;
     filteredSongs: Song[];
     isFuzzyMode: boolean;
     toggleFuzzyMode: () => void;
@@ -80,13 +86,22 @@ export function useSongSearch(
     // 判斷是否正在搜尋模式
     const isInSearchMode = !!searchTerm.trim();
 
-    // 搜尋時使用結果，否則使用分頁的歌曲列表
+    const selectedTagIds = options.selectedTagIds ?? [];
+    const songTagsMap = options.songTagsMap;
+    const hasTagFilter = selectedTagIds.length > 0;
+
+    // 搜尋時使用結果，否則使用分頁的歌曲列表；再套標籤篩選
     const filteredSongs = useMemo(() => {
-        if (debouncedSearch.trim() && searchResults) {
-            return searchResults;
-        }
-        return songs;
-    }, [songs, debouncedSearch, searchResults]);
+        const base = (debouncedSearch.trim() && searchResults) ? searchResults : songs;
+        if (!hasTagFilter || !songTagsMap) return base;
+        return base.filter((song) => {
+            const tagIds = songTagsMap.get(song.id) ?? [];
+            // AND 邏輯：所有勾選的 tag 都要在這首歌身上
+            return selectedTagIds.every((sel) => tagIds.includes(sel));
+        });
+    }, [songs, debouncedSearch, searchResults, hasTagFilter, songTagsMap, selectedTagIds]);
+
+    const isFilteringActive = isInSearchMode || hasTagFilter;
 
     // 切換模糊搜尋模式
     const toggleFuzzyMode = useCallback(() => {
@@ -99,6 +114,7 @@ export function useSongSearch(
         debouncedSearch,
         searchResults,
         isInSearchMode,
+        isFilteringActive,
         filteredSongs,
         isFuzzyMode,
         toggleFuzzyMode,

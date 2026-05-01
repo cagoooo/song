@@ -41,6 +41,10 @@ interface SongListProps {
     isLoadingMore?: boolean;
     onLoadMore?: () => void;
     totalCount?: number;
+    /** 已勾選的 tagId（從 Home 傳入，給 useSongSearch 過濾用） */
+    selectedTagIds?: string[];
+    /** songId → tagId[] 映射 */
+    songTagsMap?: Map<string, string[]>;
 }
 
 export default function SongList({
@@ -50,7 +54,9 @@ export default function SongList({
     hasMore,
     isLoadingMore,
     onLoadMore,
-    totalCount
+    totalCount,
+    selectedTagIds,
+    songTagsMap,
 }: SongListProps) {
     const { toast } = useToast();
     const [qrModalOpen, setQrModalOpen] = useState(false);
@@ -66,10 +72,11 @@ export default function SongList({
         searchTerm,
         setSearchTerm,
         isInSearchMode,
+        isFilteringActive,
         filteredSongs: searchFilteredSongs,
         isFuzzyMode,
         toggleFuzzyMode,
-    } = useSongSearch(searchSongsSource);
+    } = useSongSearch(searchSongsSource, { selectedTagIds, songTagsMap });
 
     // 監聽全局搜尋事件（來自歌曲建議的跳轉功能）
     useEffect(() => {
@@ -85,8 +92,8 @@ export default function SongList({
         };
     }, [setSearchTerm]);
 
-    // 顯示的歌曲：搜尋模式下使用搜尋結果，否則使用分頁的歌曲
-    const filteredSongs = isInSearchMode ? searchFilteredSongs : songs;
+    // 顯示的歌曲：套用任何過濾（搜尋字串 OR 標籤）時用過濾結果，否則用分頁的歌曲
+    const filteredSongs = isFilteringActive ? searchFilteredSongs : songs;
 
     const {
         votingId,

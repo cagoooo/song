@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# 先做型別檢查（快），再跑測試（慢但守規模）
+npm run check && npm run test:run
