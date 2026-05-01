@@ -78,6 +78,7 @@ export function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
             const timer = setTimeout(() => setAnimateForm(false), 1500);
             return () => clearTimeout(timer);
         }
+        return undefined;
     }, [isOpen]);
 
     const handleSubmit = async (e: React.FormEvent) => {

@@ -262,6 +262,7 @@ export default function TipAnimation({ tipType, isVisible, onComplete }: TipAnim
             }, config.duration * 1000);
             return () => clearTimeout(timer);
         }
+        return undefined;
     }, [isVisible, config.duration, onComplete]);
 
     if (!showAnimation) return null;

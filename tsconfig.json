@@ -19,6 +19,7 @@
     "strictFunctionTypes": true,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
     "lib": [
       "esnext",
       "dom",

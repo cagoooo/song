@@ -15,6 +15,7 @@ export function NetworkStatusBanner() {
             const timer = setTimeout(() => setShowReconnected(false), 3000);
             return () => clearTimeout(timer);
         }
+        return undefined;
     }, [isOnline, lastOnlineAt]);
 
     return (

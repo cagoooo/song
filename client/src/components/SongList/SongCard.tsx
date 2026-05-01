@@ -57,6 +57,7 @@ export const SongCard = memo(function SongCard({
             const timer = setTimeout(() => setShowCount(false), 600);
             return () => clearTimeout(timer);
         }
+        return undefined;
     }, [count]);
 
     return (

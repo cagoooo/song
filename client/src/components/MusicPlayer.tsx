@@ -79,6 +79,7 @@ export function MusicPlayer({ song, onClose }: MusicPlayerProps) {
         }
       };
     }
+    return undefined;
   }, [song.audioUrl]);
 
   useEffect(() => {

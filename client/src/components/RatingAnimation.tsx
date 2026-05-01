@@ -134,6 +134,7 @@ export default function RatingAnimation({ rating, isVisible, onComplete }: Ratin
             }, duration);
             return () => clearTimeout(timer);
         }
+        return undefined;
     }, [isVisible, duration, onComplete]);
 
     if (!showAnimation) return null;
