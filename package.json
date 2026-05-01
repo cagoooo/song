@@ -16,7 +16,7 @@
     "webp": "node scripts/convert-to-webp.mjs",
     "subset-og-font": "node scripts/subset-og-font.mjs",
     "gen:og": "node scripts/generate-og-image.mjs",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "lint-staged": {
     "*.{ts,tsx}": "tsc --noEmit -p tsconfig.json"
