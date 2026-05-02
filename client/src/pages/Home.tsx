@@ -16,6 +16,19 @@ import { useComboCounter } from "@/hooks/useComboCounter";
 import { ComboOverlay } from "../components/ComboOverlay";
 import { useDarkHorse } from "@/hooks/useDarkHorse";
 import { DarkHorseOverlay } from "../components/DarkHorseOverlay";
+import { useGlobalHype } from "@/hooks/useGlobalHype";
+import { GlobalHypeOverlay } from "../components/GlobalHypeOverlay";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+
+const VoterLeaderboardModal = lazy(() =>
+  import("../components/VoterLeaderboardModal").then((m) => ({ default: m.VoterLeaderboardModal }))
+);
+const CommandPalette = lazy(() =>
+  import("../components/CommandPalette").then((m) => ({ default: m.CommandPalette }))
+);
+const ShortcutsHelpModal = lazy(() =>
+  import("../components/ShortcutsHelpModal").then((m) => ({ default: m.ShortcutsHelpModal }))
+);
 
 // VoteHistoryModal 不在首屏關鍵路徑，lazy load
 const VoteHistoryModal = lazy(() =>
@@ -62,8 +75,46 @@ export default function Home() {
   const [activeTabForMobile, setActiveTabForMobile] = useState<'songs' | 'ranking'>('songs');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
   const { combo } = useComboCounter();
+
+  // 用 useMemo 包起來避免每次 render 都重綁 listener
+  const shortcuts = useMemo(() => ([
+    {
+      keys: 'cmd+k',
+      description: '開啟命令面板',
+      handler: () => setPaletteOpen(true),
+      allowInInput: true,
+    },
+    {
+      keys: '/',
+      description: '聚焦搜尋框',
+      handler: () => {
+        // 派發既有的搜尋事件 — SongList 會接到並 setSearchTerm
+        const input = document.querySelector<HTMLInputElement>('input[type="search"], input[placeholder*="搜尋"]');
+        input?.focus();
+      },
+    },
+    {
+      keys: '?',
+      description: '顯示快捷鍵說明',
+      handler: () => setShortcutsHelpOpen(true),
+    },
+    {
+      keys: 'escape',
+      description: '關閉對話框',
+      handler: () => {
+        setPaletteOpen(false);
+        setShortcutsHelpOpen(false);
+      },
+      allowInInput: true,
+    },
+  ]), []);
+  useKeyboardShortcuts(shortcuts);
   const darkHorseEvent = useDarkHorse(songs);
+  const hypeEvent = useGlobalHype(songs);
   const { toast } = useToast();
   const { user, logout } = useUser();
   const { allTags, songTagsMap, tagSongCount } = useAllSongTags();
@@ -480,10 +531,24 @@ export default function Home() {
                 rankingContent={
                   <Card className="shadow-lg">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Trophy className="w-5 h-5 text-primary" />
-                        人氣點播排行榜
-                      </CardTitle>
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <Trophy className="w-5 h-5 text-primary" />
+                          人氣點播排行榜
+                        </CardTitle>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setLeaderboardOpen(true)}
+                          aria-label="投票領袖板"
+                          title="看誰灌票最猛"
+                          className="h-8 px-2 text-xs gap-1.5 shrink-0"
+                        >
+                          <Trophy className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">領袖板</span>
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent className="p-3">
                       <Suspense fallback={<SectionSkeleton />}>
@@ -556,10 +621,24 @@ export default function Home() {
                 >
                   <Card className="shadow-lg">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                        <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                        人氣點播排行榜
-                      </CardTitle>
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                          <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                          人氣點播排行榜
+                        </CardTitle>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setLeaderboardOpen(true)}
+                          aria-label="投票領袖板"
+                          title="看誰灌票最猛"
+                          className="h-8 px-2 text-xs gap-1.5 shrink-0"
+                        >
+                          <Trophy className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">領袖板</span>
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent className="p-3 sm:p-6">
                       <Suspense fallback={<SectionSkeleton />}>
@@ -624,6 +703,9 @@ export default function Home() {
       {/* 黑馬時刻全螢幕慶祝 */}
       <DarkHorseOverlay event={darkHorseEvent} />
 
+      {/* 全站投票熱度（1 分鐘 50/100/200 票觸發） */}
+      <GlobalHypeOverlay event={hypeEvent} />
+
       {/* 點播歷史 Modal — lazy load，未開啟時不影響首屏 */}
       {historyOpen && (
         <Suspense fallback={null}>
@@ -635,6 +717,48 @@ export default function Home() {
             todayUniqueCount={voteTodayUnique}
             onClearHistory={clearVoteHistory}
             onReVote={handleReVoteFromHistory}
+          />
+        </Suspense>
+      )}
+
+      {/* 投票領袖板 Modal — lazy load */}
+      {leaderboardOpen && (
+        <Suspense fallback={null}>
+          <VoterLeaderboardModal
+            isOpen={leaderboardOpen}
+            onClose={() => setLeaderboardOpen(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Cmd+K 命令面板 */}
+      {paletteOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette
+            isOpen={paletteOpen}
+            onClose={() => setPaletteOpen(false)}
+            songs={songs}
+            onSearchSong={(q) => {
+              setActiveTabForMobile('songs');
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('searchSong', { detail: { searchTerm: q } }));
+              }, 100);
+            }}
+            onOpenHistory={() => setHistoryOpen(true)}
+            onOpenLeaderboard={() => setLeaderboardOpen(true)}
+            onOpenStage={() => window.open('?mode=stage', '_blank', 'noopener')}
+            onShowShortcutsHelp={() => setShortcutsHelpOpen(true)}
+            isAdmin={!!user?.isAdmin}
+          />
+        </Suspense>
+      )}
+
+      {/* ? 快捷鍵說明 */}
+      {shortcutsHelpOpen && (
+        <Suspense fallback={null}>
+          <ShortcutsHelpModal
+            isOpen={shortcutsHelpOpen}
+            onClose={() => setShortcutsHelpOpen(false)}
           />
         </Suspense>
       )}

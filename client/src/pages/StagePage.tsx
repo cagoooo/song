@@ -10,6 +10,8 @@ import { useVoteSurge, SURGE_META, type SurgeLevel } from '@/hooks/useVoteSurge'
 import { SurgeBadge } from '@/components/SurgeBadge';
 import { useDarkHorse } from '@/hooks/useDarkHorse';
 import { DarkHorseOverlay } from '@/components/DarkHorseOverlay';
+import { useGlobalHype } from '@/hooks/useGlobalHype';
+import { GlobalHypeOverlay } from '@/components/GlobalHypeOverlay';
 
 const TOP_N = 10;
 const RANK_EMOJI = ['🥇', '🥈', '🥉'];
@@ -187,6 +189,7 @@ export default function StagePage() {
     );
     const surgeMap = useVoteSurge(songs);
     const darkHorseEvent = useDarkHorse(songs);
+    const hypeEvent = useGlobalHype(songs);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-stone-950 via-stone-900 to-amber-950/40 text-white overflow-hidden relative">
@@ -286,6 +289,9 @@ export default function StagePage() {
 
             {/* 黑馬時刻慶祝 (演出模式同步顯示) */}
             <DarkHorseOverlay event={darkHorseEvent} />
+
+            {/* 全站熱度 banner (演出模式同步) */}
+            <GlobalHypeOverlay event={hypeEvent} />
         </div>
     );
 }
