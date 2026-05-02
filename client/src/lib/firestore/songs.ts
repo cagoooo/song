@@ -32,6 +32,7 @@ export async function getSongs(): Promise<Song[]> {
             notes: data.notes,
             lyrics: data.lyrics,
             audioUrl: data.audioUrl,
+            difficulty: data.difficulty,
             isActive: data.isActive,
             createdAt: data.createdAt?.toDate?.() || new Date(),
             voteCount: voteMap.get(doc.id) || 0,
@@ -135,9 +136,19 @@ export async function addSong(title: string, artist: string, notes?: string): Pr
     return newDoc.id;
 }
 
-export async function updateSong(songId: string, title: string, artist: string): Promise<void> {
+export async function updateSong(
+    songId: string,
+    title: string,
+    artist: string,
+    extra?: { difficulty?: 1 | 2 | 3 | null }
+): Promise<void> {
     const songRef = doc(db, COLLECTIONS.songs, songId);
-    await updateDoc(songRef, { title, artist });
+    const payload: Record<string, string | number | null> = { title, artist };
+    // null 表示「清除」, undefined 表示「不更動」
+    if (extra && 'difficulty' in extra) {
+        payload.difficulty = extra.difficulty ?? null;
+    }
+    await updateDoc(songRef, payload);
 }
 
 export async function deleteSong(songId: string): Promise<void> {

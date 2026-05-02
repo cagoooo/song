@@ -8,10 +8,11 @@ service cloud.firestore {
     // 把寫入規則加回 && hasAppCheck() 即可重新加上機器人防護。
     // hasAppCheck() 函式定義保留在最下方供之後使用。
 
-    // 歌曲集合 - 所有人可讀，僅管理員 + App Check 可寫
+    // 歌曲集合 - 所有人可讀，僅管理員可寫；寫入時 difficulty 須為 1/2/3 或 null
     match /songs/{songId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, update: if isAdmin() && isValidSongPayload();
+      allow delete: if isAdmin();
     }
 
     // 投票集合 - 所有人可讀取，新增需 App Check + 資料驗證
@@ -83,6 +84,16 @@ service cloud.firestore {
     // 才會擋掉沒帶 token 的請求。
     function hasAppCheck() {
       return request.app != null;
+    }
+
+    // 檢查歌曲 payload — 主要驗證 difficulty 欄位 (若有)
+    function isValidSongPayload() {
+      // delete 操作沒有 resource.data, 所以 keys() 會 fail; 用 hasAny 防呆
+      return !('difficulty' in request.resource.data.keys())
+        || request.resource.data.difficulty == null
+        || (request.resource.data.difficulty is int
+            && request.resource.data.difficulty >= 1
+            && request.resource.data.difficulty <= 3);
     }
 
     // 檢查是否為管理員

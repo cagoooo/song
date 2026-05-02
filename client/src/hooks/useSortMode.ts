@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Song } from '@/lib/firestore';
 
-export type SortMode = 'shuffle' | 'votes' | 'alphabet' | 'newest';
+export type SortMode = 'shuffle' | 'votes' | 'alphabet' | 'newest' | 'difficulty';
 
 export const SORT_OPTIONS: { value: SortMode; label: string; icon: string }[] = [
     { value: 'shuffle', label: '隨機', icon: '🎲' },
     { value: 'votes', label: '票數最高', icon: '🏆' },
     { value: 'newest', label: '最新加入', icon: '🆕' },
     { value: 'alphabet', label: 'A-Z 字母', icon: '🔤' },
+    { value: 'difficulty', label: '簡單→困難', icon: '⭐' },
 ];
 
 const STORAGE_KEY = 'song_sort_mode_v1';
 const QUERY_KEY = 'sort';
-const VALID: readonly SortMode[] = ['shuffle', 'votes', 'alphabet', 'newest'];
+const VALID: readonly SortMode[] = ['shuffle', 'votes', 'alphabet', 'newest', 'difficulty'];
 
 function readInitial(): SortMode {
     if (typeof window === 'undefined') return 'shuffle';
@@ -85,6 +86,11 @@ export function useSortMode(songs: Song[], shuffleSeed: number) {
                 // zh-Hant 比較器，正確處理中英混排
                 return [...songs].sort((a, b) =>
                     a.title.localeCompare(b.title, 'zh-Hant')
+                );
+            case 'difficulty':
+                // 未標註難度的排在最後 (用 99)
+                return [...songs].sort(
+                    (a, b) => (a.difficulty ?? 99) - (b.difficulty ?? 99)
                 );
             case 'shuffle':
             default:

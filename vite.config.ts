@@ -45,6 +45,8 @@ export default defineConfig({
           'charts': ['recharts'],
           // 其他工具
           'utils': ['date-fns', 'fuse.js', 'zod', 'clsx', 'tailwind-merge'],
+          // 拼音字典 (pinyin-pro ~200KB, 拆 vendor chunk 不阻塞首屏)
+          'pinyin': ['pinyin-pro'],
         },
       },
     },

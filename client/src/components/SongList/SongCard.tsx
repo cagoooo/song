@@ -82,9 +82,20 @@ export const SongCard = memo(function SongCard({
 
             {/* 歌曲資訊 - 放大字體 */}
             <div className="min-w-0 flex-1">
-                <h3 className="text-lg sm:text-base font-bold text-slate-800 truncate leading-tight">
-                    {song.title}
-                </h3>
+                <div className="flex items-center gap-1.5">
+                    <h3 className="text-lg sm:text-base font-bold text-slate-800 truncate leading-tight">
+                        {song.title}
+                    </h3>
+                    {song.difficulty && (
+                        <span
+                            className="text-xs shrink-0"
+                            title={`難度 ${song.difficulty}/3`}
+                            aria-label={`難度 ${song.difficulty}/3`}
+                        >
+                            {'⭐'.repeat(song.difficulty)}
+                        </span>
+                    )}
+                </div>
                 <p className="text-sm sm:text-sm text-slate-500 truncate mt-0.5">
                     {song.artist}
                 </p>

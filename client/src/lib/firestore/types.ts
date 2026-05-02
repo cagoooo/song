@@ -10,6 +10,8 @@ export interface Song {
     voteCount: number;
     isPlayed?: boolean;
     isNowPlaying?: boolean;
+    /** 演奏難度: 1=入門 ⭐ / 2=中等 ⭐⭐ / 3=進階 ⭐⭐⭐ */
+    difficulty?: 1 | 2 | 3;
 }
 
 export interface NowPlayingInfo {

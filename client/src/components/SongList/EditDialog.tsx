@@ -11,16 +11,24 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Music, ThumbsUp } from 'lucide-react';
+import { Music, ThumbsUp, Star } from 'lucide-react';
 import type { Song } from '@/lib/firestore';
 import TagSelector from '../TagSelector';
+import { cn } from '@/lib/utils';
 
 interface EditDialogProps {
     song: Song;
     isOpen: boolean;
     onClose: () => void;
-    onSave: (title: string, artist: string) => Promise<void>;
+    onSave: (title: string, artist: string, difficulty: 1 | 2 | 3 | null) => Promise<void>;
 }
+
+const DIFFICULTY_OPTIONS: { value: 1 | 2 | 3 | null; label: string; stars: string; color: string }[] = [
+    { value: null, label: '未標記', stars: '—', color: 'text-slate-500' },
+    { value: 1, label: '入門', stars: '⭐', color: 'text-emerald-600' },
+    { value: 2, label: '中等', stars: '⭐⭐', color: 'text-amber-600' },
+    { value: 3, label: '進階', stars: '⭐⭐⭐', color: 'text-red-600' },
+];
 
 // 顏色方案
 const colorSchemes = [
@@ -70,6 +78,7 @@ function getColorIndex(id: string | number): number {
 export function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
     const [title, setTitle] = useState(song.title);
     const [artist, setArtist] = useState(song.artist);
+    const [difficulty, setDifficulty] = useState<1 | 2 | 3 | null>(song.difficulty ?? null);
     const [animateForm, setAnimateForm] = useState(false);
 
     useEffect(() => {
@@ -83,7 +92,7 @@ export function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await onSave(title, artist);
+        await onSave(title, artist, difficulty);
     };
 
     const colorIndex = getColorIndex(song.id);
@@ -192,6 +201,36 @@ export function EditDialog({ song, isOpen, onClose, onSave }: EditDialogProps) {
                   `}
                                 />
                             </motion.div>
+                        </div>
+
+                        {/* 演奏難度 (本地 state, 跟著 submit 一起存) */}
+                        <div className="space-y-2 pt-1">
+                            <Label className="font-medium text-gray-700 flex items-center gap-1.5">
+                                <Star className="w-4 h-4 text-primary" />
+                                演奏難度
+                            </Label>
+                            <div className="flex flex-wrap gap-2">
+                                {DIFFICULTY_OPTIONS.map((opt) => {
+                                    const selected = difficulty === opt.value;
+                                    return (
+                                        <button
+                                            key={String(opt.value)}
+                                            type="button"
+                                            onClick={() => setDifficulty(opt.value)}
+                                            aria-pressed={selected}
+                                            className={cn(
+                                                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all',
+                                                selected
+                                                    ? 'bg-white shadow-md ring-2 ring-primary/40 ' + opt.color
+                                                    : 'bg-white/40 border-slate-200 text-slate-500 hover:bg-white hover:shadow-sm'
+                                            )}
+                                        >
+                                            <span>{opt.stars}</span>
+                                            <span>{opt.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         {/* 標籤管理 — 即時儲存，不需 submit */}
