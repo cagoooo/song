@@ -39,3 +39,7 @@ npm-debug.log*
 
 # OG 圖原始字型（11 MB 太大）— 只 commit 精簡版 NotoSansTC-Subset.ttf
 scripts/fonts/NotoSansTC-Bold.ttf
+
+# 管理員工具腳本 — 含使用者帳號 / 直接操作 Firebase Auth, 只本地保留
+scripts/reset-admin-password.mjs
+scripts/list-admins.mjs
