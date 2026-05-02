@@ -21,34 +21,33 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 
 // ==================== App Check（防機器人 / 假流量） ====================
-// 必須在使用 Firestore / Auth 之前初始化
+// ⚠️ 暫時停用 — Firebase Console 那邊「應用程式註冊」未完成導致
+// exchangeRecaptchaV3Token 400, 同時讓 Firestore 把所有請求視為
+// 「App Check 失敗」拒絕 (即使 enforce 是 UNENFORCED)。
+//
+// 復用流程:
+// 1. Firebase Console > App Check > 應用程式 註冊本 web app +
+//    貼上 site key 6LcWuNQs...
+// 2. 測試 console 不再出現 400
+// 3. 把下方 ENABLE_APP_CHECK 改為 true 重新部署
+// 4. 觀察 24h 沒問題 -> Console > API > Firestore 切「強制執行」
+const ENABLE_APP_CHECK = false;
 const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
 
-// dev 模式可選擇用 debug token；正式部署必須用真 reCAPTCHA。
-// 設定 window.FIREBASE_APPCHECK_DEBUG_TOKEN = true 後，第一次 console
-// 會印出一組 debug token；到 Firebase Console > App Check 加入該 token，
-// localhost 即可順利通過驗證。
 if (import.meta.env.DEV && typeof window !== 'undefined') {
-    // @ts-expect-error — Firebase 提供的全域旗標，型別未公開
+    // @ts-expect-error — Firebase 全域旗標
     window.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
 }
 
-if (recaptchaSiteKey) {
+if (ENABLE_APP_CHECK && recaptchaSiteKey) {
     try {
         initializeAppCheck(app, {
             provider: new ReCaptchaV3Provider(recaptchaSiteKey),
-            // 自動續 token，避免使用一段時間後過期被拒
             isTokenAutoRefreshEnabled: true,
         });
     } catch (err) {
-        // 已初始化過（HMR 場景）會丟錯，可安全忽略
         console.warn('[Firebase] App Check 初始化跳過:', err);
     }
-} else {
-    console.warn(
-        '[Firebase] 未設 VITE_RECAPTCHA_SITE_KEY — App Check 未啟用。' +
-        '若 Firestore 規則開了 enforce 會被擋，請參考 .env.example。'
-    );
 }
 
 // ==================== Firestore（離線持久化新 API） ====================
