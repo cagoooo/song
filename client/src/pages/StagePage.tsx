@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Music2, Maximize2, Minimize2, X, Star, Trophy } from 'lucide-react';
 import { subscribeSongs, subscribeRatingStats, type Song, type RatingStats } from '@/lib/firestore';
 import { useNowPlaying } from '@/hooks/useNowPlaying';
+import { useVoteSurge, SURGE_META, type SurgeLevel } from '@/hooks/useVoteSurge';
+import { SurgeBadge } from '@/components/SurgeBadge';
 
 const TOP_N = 10;
 const RANK_EMOJI = ['🥇', '🥈', '🥉'];
@@ -114,13 +116,14 @@ function NowPlayingMarquee() {
     );
 }
 
-function RankRow({ song, rank }: { song: Song; rank: number }) {
+function RankRow({ song, rank, surgeLevel }: { song: Song; rank: number; surgeLevel: SurgeLevel }) {
     const isPodium = rank < 3;
     const podiumColors = [
         'from-yellow-400 to-amber-500 text-stone-900',
         'from-slate-300 to-slate-400 text-stone-900',
         'from-orange-400 to-orange-600 text-white',
     ];
+    const surgeRing = surgeLevel > 0 ? SURGE_META[surgeLevel as 1 | 2 | 3].ringClass : '';
 
     return (
         <motion.div
@@ -133,14 +136,15 @@ function RankRow({ song, rank }: { song: Song; rank: number }) {
                 isPodium
                     ? `bg-gradient-to-r ${podiumColors[rank]} border-white/30 shadow-2xl`
                     : 'bg-white/5 border-white/10'
-            }`}
+            } ${surgeRing}`}
         >
             <div className={`text-5xl md:text-6xl font-black ${isPodium ? '' : 'text-amber-400/80'} w-20 text-center shrink-0`}>
                 {isPodium ? RANK_EMOJI[rank] : rank + 1}
             </div>
             <div className="flex-1 min-w-0">
-                <div className={`text-3xl md:text-4xl font-extrabold truncate ${isPodium ? '' : 'text-white'}`}>
-                    {song.title}
+                <div className={`text-3xl md:text-4xl font-extrabold truncate ${isPodium ? '' : 'text-white'} flex items-center gap-3`}>
+                    <span className="truncate">{song.title}</span>
+                    <SurgeBadge level={surgeLevel} size="lg" />
                 </div>
                 <div className={`text-xl md:text-2xl mt-1 truncate ${isPodium ? 'opacity-80' : 'text-amber-200/70'}`}>
                     {song.artist}
@@ -179,6 +183,7 @@ export default function StagePage() {
         () => [...songs].sort((a, b) => b.voteCount - a.voteCount).slice(0, TOP_N),
         [songs]
     );
+    const surgeMap = useVoteSurge(songs);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-stone-950 via-stone-900 to-amber-950/40 text-white overflow-hidden relative">
@@ -261,7 +266,12 @@ export default function StagePage() {
                     <div className="space-y-3">
                         <AnimatePresence mode="popLayout">
                             {top.map((song, i) => (
-                                <RankRow key={song.id} song={song} rank={i} />
+                                <RankRow
+                                    key={song.id}
+                                    song={song}
+                                    rank={i}
+                                    surgeLevel={surgeMap.get(song.id) ?? 0}
+                                />
                             ))}
                         </AnimatePresence>
                     </div>

@@ -34,6 +34,8 @@ import { getErrorToast } from '@/lib/error-handler';
 import { RankingHeader } from './RankingHeader';
 import { RankingBadge } from './RankingBadge';
 import { useRankingData } from './useRankingData';
+import { useVoteSurge, SURGE_META } from '@/hooks/useVoteSurge';
+import { SurgeBadge } from '../SurgeBadge';
 
 interface RankingBoardProps {
     songs: Song[];
@@ -74,6 +76,9 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
 
         return () => observer.disconnect();
     }, [isExpanded, isLoading]);
+
+    // 偵測票數飆升 (60s 內 5/10/20 票觸發三階等級)
+    const surgeMap = useVoteSurge(propSongs);
 
     // 使用拆分的 Hook
     const {
@@ -235,11 +240,14 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
 
             <ol className="space-y-2" ref={containerRef} role="list" aria-label="人氣點播排行榜">
                 <AnimatePresence mode="popLayout" initial={false}>
-                    {sortedSongs.map((song, index) => (
+                    {sortedSongs.map((song, index) => {
+                        const surgeLevel = surgeMap.get(song.id) ?? 0;
+                        const surgeRing = surgeLevel > 0 ? SURGE_META[surgeLevel as 1 | 2 | 3].ringClass : '';
+                        return (
                         <motion.li
                             key={song.id}
                             layout="position"
-                            aria-label={`第 ${index + 1} 名：${song.title} - ${song.artist}，${song.voteCount || 0} 票`}
+                            aria-label={`第 ${index + 1} 名：${song.title} - ${song.artist}，${song.voteCount || 0} 票${surgeLevel > 0 ? `（${SURGE_META[surgeLevel as 1 | 2 | 3].label}）` : ''}`}
                             initial={{ opacity: 0, y: -10 }}
                             animate={{
                                 opacity: 1,
@@ -277,6 +285,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                 ${showRankChange[song.id] === 'up' ? 'ring-2 ring-emerald-200 shadow-lg shadow-emerald-100/50' :
                                     showRankChange[song.id] === 'down' ? 'ring-2 ring-rose-200 shadow-lg shadow-rose-100/50' : ''}
                                 ${index < 3 && !song.isNowPlaying ? 'hover:shadow-xl' : !song.isNowPlaying ? 'hover:bg-slate-50/50' : ''}
+                                ${surgeRing}
                             `}
                         >
                             {/* 前三名微光效果 */}
@@ -353,6 +362,8 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                             已彈奏
                                         </span>
                                     )}
+                                    {/* 飆升等級徽章 */}
+                                    <SurgeBadge level={surgeLevel} />
                                 </div>
                             </div>
 
@@ -449,7 +460,8 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                 </a>
                             </div>
                         </motion.li>
-                    ))}
+                    );
+                    })}
                 </AnimatePresence>
 
                 {/* 展開/收合區塊 */}
