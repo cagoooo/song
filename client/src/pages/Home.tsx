@@ -19,6 +19,7 @@ import { DarkHorseOverlay } from "../components/DarkHorseOverlay";
 import { useGlobalHype } from "@/hooks/useGlobalHype";
 import { GlobalHypeOverlay } from "../components/GlobalHypeOverlay";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { BarChart3 } from "lucide-react";
 
 const VoterLeaderboardModal = lazy(() =>
   import("../components/VoterLeaderboardModal").then((m) => ({ default: m.VoterLeaderboardModal }))
@@ -28,6 +29,9 @@ const CommandPalette = lazy(() =>
 );
 const ShortcutsHelpModal = lazy(() =>
   import("../components/ShortcutsHelpModal").then((m) => ({ default: m.ShortcutsHelpModal }))
+);
+const StatsDashboard = lazy(() =>
+  import("../components/StatsDashboard").then((m) => ({ default: m.StatsDashboard }))
 );
 
 // VoteHistoryModal 不在首屏關鍵路徑，lazy load
@@ -78,6 +82,7 @@ export default function Home() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
   const { combo } = useComboCounter();
 
   // 用 useMemo 包起來避免每次 render 都重綁 listener
@@ -363,6 +368,16 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setStatsOpen(true)}
+            className="bg-white/90 hover:bg-white border-2 border-blue-300 hover:border-blue-400 text-blue-700 hover:text-blue-800 shadow-lg hover:shadow-xl transition-all duration-300"
+            title="查看投票統計（熱門歌曲、趨勢、時段、歌手分布）"
+          >
+            <BarChart3 className="w-4 h-4 mr-2" />
+            統計
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -759,6 +774,17 @@ export default function Home() {
           <ShortcutsHelpModal
             isOpen={shortcutsHelpOpen}
             onClose={() => setShortcutsHelpOpen(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* 統計儀表板 (管理員) */}
+      {statsOpen && (
+        <Suspense fallback={null}>
+          <StatsDashboard
+            isOpen={statsOpen}
+            onClose={() => setStatsOpen(false)}
+            songs={songs}
           />
         </Suspense>
       )}
