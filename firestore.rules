@@ -1,65 +1,71 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // 歌曲集合 - 所有人可讀，僅管理員可寫
+
+    // ==================== App Check 政策 ====================
+    // 寫入(create/update/delete)一律要求 hasAppCheck()，
+    // 也就是有效的 App Check token (reCAPTCHA v3 / debug token)。
+    // 讀取維持公開，讓 SEO 爬蟲、初次未驗證使用者也能 fetch 資料。
+    // 若需暫時關閉強制執行 (新版觀察期)，到 Firebase Console >
+    // App Check > API > Cloud Firestore 切回「未強制」即可。
+
+    // 歌曲集合 - 所有人可讀，僅管理員 + App Check 可寫
     match /songs/{songId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if isAdmin() && hasAppCheck();
     }
-    
-    // 投票集合 - 所有人可讀取，新增需驗證，僅管理員可刪除
+
+    // 投票集合 - 所有人可讀取，新增需 App Check + 資料驗證
     match /votes/{voteId} {
       allow read: if true;
-      // 投票限制：需有有效資料，且限制建議內容長度
-      allow create: if isValidVote();
-      allow delete: if isAdmin();
+      allow create: if hasAppCheck() && isValidVote();
+      allow delete: if isAdmin() && hasAppCheck();
     }
-    
-    // 歌曲建議集合 - 所有人可讀取，新增需驗證內容，僅管理員可更新狀態
+
+    // 歌曲建議集合 - 所有人可讀取，新增需 App Check + 內容驗證
     match /songSuggestions/{suggestionId} {
       allow read: if true;
-      // 建議內容過濾：限制標題、歌手、備註長度
-      allow create: if isValidSuggestion();
-      allow update, delete: if isAdmin();
+      allow create: if hasAppCheck() && isValidSuggestion();
+      allow update, delete: if isAdmin() && hasAppCheck();
     }
-    
-    // 標籤集合 - 所有人可讀，僅管理員可寫
+
+    // 標籤集合 - 所有人可讀，僅管理員 + App Check 可寫
     match /tags/{tagId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && hasAppCheck();
     }
-    
-    // 歌曲標籤關聯集合 - 所有人可讀，僅管理員可寫
+
+    // 歌曲標籤關聯集合 - 所有人可讀，僅管理員 + App Check 可寫
     match /songTags/{songTagId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && hasAppCheck();
     }
-    
-    // 彈奏狀態集合 - 所有人可讀（即時同步），僅管理員可寫
+
+    // 彈奏狀態集合 - 所有人可讀（即時同步），僅管理員 + App Check 可寫
     match /playedSongs/{playedId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && hasAppCheck();
     }
-    
-    // 正在彈奏狀態集合 - 所有人可讀（即時同步），僅管理員可寫
+
+    // 正在彈奏狀態集合 - 所有人可讀（即時同步），僅管理員 + App Check 可寫
     match /nowPlaying/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && hasAppCheck();
     }
-    
-    // QR Code 掃描記錄 - 所有人可讀寫（用於統計）
+
+    // QR Code 掃描記錄 - 讀公開（管理員看統計），寫需 App Check
     match /qrCodeScans/{scanId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if hasAppCheck();
+      allow update, delete: if isAdmin();
     }
-    
-    // 互動集合 - 打賞和評分（所有人可讀取、新增需驗證格式、更新評分需驗證）
+
+    // 互動集合 - 打賞和評分（讀公開，寫需 App Check + 資料驗證）
     match /interactions/{interactionId} {
       allow read: if true;
-      allow create: if isValidInteraction();
-      // 允許更新評分（只能更新 rating 和 createdAt，sessionId 不能變）
-      allow update: if isValidRatingUpdate();
-      allow delete: if isAdmin();
+      allow create: if hasAppCheck() && isValidInteraction();
+      allow update: if hasAppCheck() && isValidRatingUpdate();
+      allow delete: if isAdmin() && hasAppCheck();
     }
     
     // 使用者集合 - 僅本人或管理員可讀寫
@@ -71,7 +77,15 @@ service cloud.firestore {
     }
     
     // ==================== 輔助函式 ====================
-    
+
+    // 檢查是否帶有效 App Check token
+    // request.app 在已通過 App Check 驗證的請求中為 non-null
+    // (Web SDK 自動帶上)。Firebase Console 必須啟用「強制執行」
+    // 才會擋掉沒帶 token 的請求。
+    function hasAppCheck() {
+      return request.app != null;
+    }
+
     // 檢查是否為管理員
     function isAdmin() {
       return request.auth != null && 
