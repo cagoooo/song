@@ -3,69 +3,68 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ==================== App Check 政策 ====================
-    // 寫入(create/update/delete)一律要求 hasAppCheck()，
-    // 也就是有效的 App Check token (reCAPTCHA v3 / debug token)。
-    // 讀取維持公開，讓 SEO 爬蟲、初次未驗證使用者也能 fetch 資料。
-    // 若需暫時關閉強制執行 (新版觀察期)，到 Firebase Console >
-    // App Check > API > Cloud Firestore 切回「未強制」即可。
+    // 目前 App Check 暫未啟用 hasAppCheck() 守護 (Firebase Console
+    // 註冊完成後再啟用)。等 Console 那側設好 + 觀察 24h 沒問題後，
+    // 把寫入規則加回 && hasAppCheck() 即可重新加上機器人防護。
+    // hasAppCheck() 函式定義保留在最下方供之後使用。
 
     // 歌曲集合 - 所有人可讀，僅管理員 + App Check 可寫
     match /songs/{songId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin() && hasAppCheck();
+      allow create, update, delete: if isAdmin();
     }
 
     // 投票集合 - 所有人可讀取，新增需 App Check + 資料驗證
     match /votes/{voteId} {
       allow read: if true;
-      allow create: if hasAppCheck() && isValidVote();
-      allow delete: if isAdmin() && hasAppCheck();
+      allow create: if isValidVote();
+      allow delete: if isAdmin();
     }
 
     // 歌曲建議集合 - 所有人可讀取，新增需 App Check + 內容驗證
     match /songSuggestions/{suggestionId} {
       allow read: if true;
-      allow create: if hasAppCheck() && isValidSuggestion();
-      allow update, delete: if isAdmin() && hasAppCheck();
+      allow create: if isValidSuggestion();
+      allow update, delete: if isAdmin();
     }
 
     // 標籤集合 - 所有人可讀，僅管理員 + App Check 可寫
     match /tags/{tagId} {
       allow read: if true;
-      allow write: if isAdmin() && hasAppCheck();
+      allow write: if isAdmin();
     }
 
     // 歌曲標籤關聯集合 - 所有人可讀，僅管理員 + App Check 可寫
     match /songTags/{songTagId} {
       allow read: if true;
-      allow write: if isAdmin() && hasAppCheck();
+      allow write: if isAdmin();
     }
 
     // 彈奏狀態集合 - 所有人可讀（即時同步），僅管理員 + App Check 可寫
     match /playedSongs/{playedId} {
       allow read: if true;
-      allow write: if isAdmin() && hasAppCheck();
+      allow write: if isAdmin();
     }
 
     // 正在彈奏狀態集合 - 所有人可讀（即時同步），僅管理員 + App Check 可寫
     match /nowPlaying/{docId} {
       allow read: if true;
-      allow write: if isAdmin() && hasAppCheck();
+      allow write: if isAdmin();
     }
 
-    // QR Code 掃描記錄 - 讀公開（管理員看統計），寫需 App Check
+    // QR Code 掃描記錄 - 讀公開（管理員看統計），所有人可寫
     match /qrCodeScans/{scanId} {
       allow read: if true;
-      allow create: if hasAppCheck();
+      allow create: if true;
       allow update, delete: if isAdmin();
     }
 
     // 互動集合 - 打賞和評分（讀公開，寫需 App Check + 資料驗證）
     match /interactions/{interactionId} {
       allow read: if true;
-      allow create: if hasAppCheck() && isValidInteraction();
-      allow update: if hasAppCheck() && isValidRatingUpdate();
-      allow delete: if isAdmin() && hasAppCheck();
+      allow create: if isValidInteraction();
+      allow update: if isValidRatingUpdate();
+      allow delete: if isAdmin();
     }
     
     // 使用者集合 - 僅本人或管理員可讀寫
