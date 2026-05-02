@@ -104,30 +104,32 @@ export function StatsDashboard({ isOpen, onClose, songs }: StatsDashboardProps) 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden flex flex-col">
-                <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
-                    <div className="flex items-start justify-between gap-3">
-                        <div>
-                            <DialogTitle className="flex items-center gap-2">
-                                <BarChart3 className="w-5 h-5 text-primary" />
+                <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 shrink-0">
+                    <div className="flex items-start justify-between gap-2 sm:gap-3">
+                        <div className="min-w-0 flex-1">
+                            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                                <BarChart3 className="w-5 h-5 text-primary shrink-0" />
                                 統計儀表板
                             </DialogTitle>
-                            <DialogDescription>
-                                即時聚合所有投票資料 — 純客戶端計算，不寫 Firestore
+                            <DialogDescription className="text-xs sm:text-sm">
+                                即時聚合所有投票資料 — 純客戶端計算
                             </DialogDescription>
                         </div>
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={handleExportCsv}
-                            className="shrink-0 gap-1.5"
+                            aria-label="匯出 CSV"
+                            className="shrink-0 gap-1 sm:gap-1.5 px-2 sm:px-3"
                         >
                             <Download className="w-3.5 h-3.5" />
-                            匯出 CSV
+                            <span className="hidden sm:inline">匯出 CSV</span>
+                            <span className="sm:hidden">CSV</span>
                         </Button>
                     </div>
                 </DialogHeader>
 
-                <ScrollArea className="flex-1 px-6 pb-6">
+                <ScrollArea className="flex-1 px-3 sm:px-6 pb-4 sm:pb-6">
                     {/* KPI 卡片 */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                         <KpiCard
@@ -155,21 +157,26 @@ export function StatsDashboard({ isOpen, onClose, songs }: StatsDashboardProps) 
                     </div>
 
                     <Tabs defaultValue="top">
-                        <TabsList className="grid w-full grid-cols-5 mb-4">
-                            <TabsTrigger value="top" className="text-xs">
-                                <BarChart3 className="w-3.5 h-3.5 mr-1" /> Top 10
+                        <TabsList className="grid w-full grid-cols-5 mb-4 h-auto">
+                            <TabsTrigger value="top" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-1 sm:px-2 py-1.5">
+                                <BarChart3 className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">Top 10</span>
                             </TabsTrigger>
-                            <TabsTrigger value="trend" className="text-xs">
-                                <TrendingUp className="w-3.5 h-3.5 mr-1" /> 趨勢
+                            <TabsTrigger value="trend" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-1 sm:px-2 py-1.5">
+                                <TrendingUp className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">趨勢</span>
                             </TabsTrigger>
-                            <TabsTrigger value="hourly" className="text-xs">
-                                <Clock className="w-3.5 h-3.5 mr-1" /> 時段
+                            <TabsTrigger value="hourly" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-1 sm:px-2 py-1.5">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">時段</span>
                             </TabsTrigger>
-                            <TabsTrigger value="artist" className="text-xs">
-                                <PieIcon className="w-3.5 h-3.5 mr-1" /> 歌手
+                            <TabsTrigger value="artist" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-1 sm:px-2 py-1.5">
+                                <PieIcon className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">歌手</span>
                             </TabsTrigger>
-                            <TabsTrigger value="tags" className="text-xs">
-                                <Hash className="w-3.5 h-3.5 mr-1" /> 標籤
+                            <TabsTrigger value="tags" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-1 sm:px-2 py-1.5">
+                                <Hash className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">標籤</span>
                             </TabsTrigger>
                         </TabsList>
 
@@ -181,10 +188,10 @@ export function StatsDashboard({ isOpen, onClose, songs }: StatsDashboardProps) 
                                     <EmptyChart />
                                 ) : (
                                     <ResponsiveContainer width="100%" height={400}>
-                                        <BarChart data={stats.topSongs.map(s => ({ name: s.song.title, votes: s.voteCount, artist: s.song.artist }))} layout="vertical" margin={{ left: 20 }}>
+                                        <BarChart data={stats.topSongs.map(s => ({ name: s.song.title, votes: s.voteCount, artist: s.song.artist }))} layout="vertical" margin={{ left: 4, right: 12 }}>
                                             <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                            <XAxis type="number" />
-                                            <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+                                            <XAxis type="number" tick={{ fontSize: 10 }} />
+                                            <YAxis type="category" dataKey="name" width={88} tick={{ fontSize: 10 }} interval={0} />
                                             <Tooltip
                                                 content={({ active, payload }) => active && payload?.[0] ? (
                                                     <div className="rounded-md border bg-background p-2 shadow-md text-xs">
@@ -310,10 +317,10 @@ export function StatsDashboard({ isOpen, onClose, songs }: StatsDashboardProps) 
                                     </div>
                                 ) : (
                                     <ResponsiveContainer width="100%" height={Math.max(220, stats.tagBars.length * 35)}>
-                                        <BarChart data={stats.tagBars} layout="vertical">
+                                        <BarChart data={stats.tagBars} layout="vertical" margin={{ left: 4, right: 12 }}>
                                             <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                            <XAxis type="number" tick={{ fontSize: 11 }} />
-                                            <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
+                                            <XAxis type="number" tick={{ fontSize: 10 }} />
+                                            <YAxis type="category" dataKey="name" width={64} tick={{ fontSize: 10 }} />
                                             <Tooltip />
                                             <Legend wrapperStyle={{ fontSize: 12 }} />
                                             <Bar dataKey="songs" name="歌曲數" fill="#06b6d4" radius={[0, 4, 4, 0]} />

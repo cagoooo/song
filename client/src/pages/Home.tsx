@@ -363,7 +363,7 @@ export default function Home() {
       {/* Admin: 登出 + 演出模式入口 */}
       {user?.isAdmin && (
         <motion.div
-          className="fixed top-4 right-4 z-50 flex items-center gap-2"
+          className="fixed top-2 right-2 sm:top-4 sm:right-4 z-50 flex items-center gap-1.5 sm:gap-2"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -372,30 +372,34 @@ export default function Home() {
             variant="outline"
             size="sm"
             onClick={() => setStatsOpen(true)}
-            className="bg-white/90 hover:bg-white border-2 border-blue-300 hover:border-blue-400 text-blue-700 hover:text-blue-800 shadow-lg hover:shadow-xl transition-all duration-300"
+            aria-label="統計儀表板"
+            className="bg-white/90 hover:bg-white border-2 border-blue-300 hover:border-blue-400 text-blue-700 hover:text-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
             title="查看投票統計（熱門歌曲、趨勢、時段、歌手分布）"
           >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            統計
+            <BarChart3 className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">統計</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => window.open('?mode=stage', '_blank', 'noopener')}
-            className="bg-white/90 hover:bg-white border-2 border-amber-300 hover:border-amber-400 text-amber-700 hover:text-amber-800 shadow-lg hover:shadow-xl transition-all duration-300"
+            aria-label="演出模式"
+            className="bg-white/90 hover:bg-white border-2 border-amber-300 hover:border-amber-400 text-amber-700 hover:text-amber-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
             title="在新分頁開啟演出模式（適合外接螢幕 / 投影）"
           >
-            <Tv className="w-4 h-4 mr-2" />
-            演出模式
+            <Tv className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">演出模式</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleLogout}
-            className="bg-white/90 hover:bg-white border-2 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 shadow-lg hover:shadow-xl transition-all duration-300"
+            aria-label="登出管理"
+            title="登出管理"
+            className="bg-white/90 hover:bg-white border-2 border-red-200 hover:border-red-300 text-red-600 hover:text-red-700 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
           >
-            <LogOut className="w-4 h-4 mr-2" />
-            登出管理
+            <LogOut className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">登出</span>
           </Button>
         </motion.div>
       )}

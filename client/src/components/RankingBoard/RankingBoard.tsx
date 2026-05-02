@@ -200,10 +200,11 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                         size="sm"
                                         onClick={() => setShowResetVotesDialog(true)}
                                         disabled={isResettingVotes}
-                                        className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 gap-1"
+                                        aria-label="重置投票"
+                                        className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 gap-1 px-2 sm:px-3"
                                     >
                                         <RefreshCw className={`w-3.5 h-3.5 ${isResettingVotes ? 'animate-spin' : ''}`} />
-                                        重置投票
+                                        <span className="hidden sm:inline">重置投票</span>
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="left" className="bg-slate-800 text-white border-0 text-xs">
@@ -222,10 +223,11 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                             size="sm"
                                             onClick={handleResetAllPlayed}
                                             disabled={isResettingPlayed}
-                                            className="text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 gap-1"
+                                            aria-label="重置彈奏狀態"
+                                            className="text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 gap-1 px-2 sm:px-3"
                                         >
                                             <RotateCcw className={`w-3.5 h-3.5 ${isResettingPlayed ? 'animate-spin' : ''}`} />
-                                            重置彈奏
+                                            <span className="hidden sm:inline">重置彈奏</span>
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent side="left" className="bg-slate-800 text-white border-0 text-xs">
