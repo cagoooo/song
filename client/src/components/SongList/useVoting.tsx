@@ -3,6 +3,7 @@ import { useState, useCallback, useRef } from 'react';
 import { voteSong, getSessionId, type Song } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useVoteHistory } from '@/hooks/useVoteHistory';
+import { broadcastVote } from '@/hooks/useComboCounter';
 import confetti from 'canvas-confetti';
 
 interface VoteOverlayInfo {
@@ -67,6 +68,9 @@ export function useVoting(): UseVotingReturn {
 
             // 寫進本機點播歷史（不影響投票成功訊息）
             addVote({ songId, title: song.title, artist: song.artist });
+
+            // 廣播 combo 事件給 ComboOverlay 計數
+            broadcastVote(songId, song.title, song.artist);
 
             setClickCount(prev => ({
                 ...prev,

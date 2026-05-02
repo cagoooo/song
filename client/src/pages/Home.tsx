@@ -12,6 +12,8 @@ import { useVoteHistory, type VoteHistoryEntry } from "@/hooks/useVoteHistory";
 import { VoteHistoryButton } from "../components/VoteHistoryButton";
 import { SortSelector } from "../components/SortSelector";
 import { useSortMode } from "@/hooks/useSortMode";
+import { useComboCounter } from "@/hooks/useComboCounter";
+import { ComboOverlay } from "../components/ComboOverlay";
 
 // VoteHistoryModal 不在首屏關鍵路徑，lazy load
 const VoteHistoryModal = lazy(() =>
@@ -58,6 +60,7 @@ export default function Home() {
   const [activeTabForMobile, setActiveTabForMobile] = useState<'songs' | 'ranking'>('songs');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const { combo } = useComboCounter();
   const { toast } = useToast();
   const { user, logout } = useUser();
   const { allTags, songTagsMap, tagSongCount } = useAllSongTags();
@@ -611,6 +614,9 @@ export default function Home() {
         suggestion={currentSuggestion}
         onClose={dismissSuggestion}
       />
+
+      {/* 連擊計數中央大字效果 */}
+      <ComboOverlay combo={combo} />
 
       {/* 點播歷史 Modal — lazy load，未開啟時不影響首屏 */}
       {historyOpen && (
