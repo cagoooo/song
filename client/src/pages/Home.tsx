@@ -14,6 +14,8 @@ import { SortSelector } from "../components/SortSelector";
 import { useSortMode } from "@/hooks/useSortMode";
 import { useComboCounter } from "@/hooks/useComboCounter";
 import { ComboOverlay } from "../components/ComboOverlay";
+import { useDarkHorse } from "@/hooks/useDarkHorse";
+import { DarkHorseOverlay } from "../components/DarkHorseOverlay";
 
 // VoteHistoryModal 不在首屏關鍵路徑，lazy load
 const VoteHistoryModal = lazy(() =>
@@ -61,6 +63,7 @@ export default function Home() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { combo } = useComboCounter();
+  const darkHorseEvent = useDarkHorse(songs);
   const { toast } = useToast();
   const { user, logout } = useUser();
   const { allTags, songTagsMap, tagSongCount } = useAllSongTags();
@@ -617,6 +620,9 @@ export default function Home() {
 
       {/* 連擊計數中央大字效果 */}
       <ComboOverlay combo={combo} />
+
+      {/* 黑馬時刻全螢幕慶祝 */}
+      <DarkHorseOverlay event={darkHorseEvent} />
 
       {/* 點播歷史 Modal — lazy load，未開啟時不影響首屏 */}
       {historyOpen && (

@@ -8,6 +8,8 @@ import { subscribeSongs, subscribeRatingStats, type Song, type RatingStats } fro
 import { useNowPlaying } from '@/hooks/useNowPlaying';
 import { useVoteSurge, SURGE_META, type SurgeLevel } from '@/hooks/useVoteSurge';
 import { SurgeBadge } from '@/components/SurgeBadge';
+import { useDarkHorse } from '@/hooks/useDarkHorse';
+import { DarkHorseOverlay } from '@/components/DarkHorseOverlay';
 
 const TOP_N = 10;
 const RANK_EMOJI = ['🥇', '🥈', '🥉'];
@@ -184,6 +186,7 @@ export default function StagePage() {
         [songs]
     );
     const surgeMap = useVoteSurge(songs);
+    const darkHorseEvent = useDarkHorse(songs);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-stone-950 via-stone-900 to-amber-950/40 text-white overflow-hidden relative">
@@ -280,6 +283,9 @@ export default function StagePage() {
 
             {/* 底部正在彈奏跑馬燈 */}
             <NowPlayingMarquee />
+
+            {/* 黑馬時刻慶祝 (演出模式同步顯示) */}
+            <DarkHorseOverlay event={darkHorseEvent} />
         </div>
     );
 }
