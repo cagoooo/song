@@ -29,18 +29,8 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
       .register('/song/sw.js', { scope: '/song/' })
       .then((registration) => {
         console.log('[PWA] Service Worker 註冊成功:', registration.scope);
-
-        // 檢查更新
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('[PWA] 新版本可用，請重新整理頁面');
-              }
-            });
-          }
-        });
+        // 新版偵測 + 更新 banner 由 useServiceWorkerUpdate hook 與
+        // UpdatePrompt 元件處理 (Home.tsx 渲染), 此處只負責註冊。
       })
       .catch((error) => {
         console.warn('[PWA] Service Worker 註冊失敗:', error);

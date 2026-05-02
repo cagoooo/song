@@ -1,6 +1,7 @@
 // Service Worker - 吉他點歌系統 PWA
-// 版本號用於緩存更新
-const CACHE_VERSION = 'v1.0.0';
+// 版本號於 build 時由 scripts/stamp-sw-version.mjs 自動取代
+// (從 package.json 讀 version + git short hash + 時間戳)
+const CACHE_VERSION = '4.2.0-1be02ef-od1i';
 const CACHE_NAME = `guitar-song-${CACHE_VERSION}`;
 
 // 需要預緩存的核心資源
@@ -24,8 +25,10 @@ const EXCLUDE_PATTERNS = [
 ];
 
 // 安裝事件 - 預緩存核心資源
+// ⚠️ 故意不呼叫 self.skipWaiting() — 讓使用者主動點「立刻更新」按鈕
+//    才透過 message 'SKIP_WAITING' 觸發, 避免使用中突然頁面被換掉
 self.addEventListener('install', (event) => {
-    console.log('[SW] 安裝中...');
+    console.log(`[SW] 安裝中... 版本: ${CACHE_VERSION}`);
 
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -34,13 +37,23 @@ self.addEventListener('install', (event) => {
                 return cache.addAll(PRECACHE_ASSETS);
             })
             .then(() => {
-                console.log('[SW] 安裝完成');
-                return self.skipWaiting();
+                console.log('[SW] 安裝完成 (等待使用者確認後再啟用)');
             })
             .catch((error) => {
                 console.error('[SW] 預緩存失敗:', error);
             })
     );
+});
+
+// 接收前端訊息 — 主要用於使用者點「立刻更新」後跳過等待
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        console.log('[SW] 收到 SKIP_WAITING, 立刻啟用新版本');
+        self.skipWaiting();
+    } else if (event.data && event.data.type === 'GET_VERSION') {
+        // 回報目前版本給前端顯示
+        event.ports[0]?.postMessage({ version: CACHE_VERSION });
+    }
 });
 
 // 啟動事件 - 清理舊版本緩存
@@ -180,11 +193,4 @@ async function staleWhileRevalidate(request) {
     return fetchPromise;
 }
 
-// 監聽來自主線程的消息
-self.addEventListener('message', (event) => {
-    if (event.data === 'skipWaiting') {
-        self.skipWaiting();
-    }
-});
-
-console.log('[SW] Service Worker 腳本已載入');
+console.log(`[SW] Service Worker 腳本已載入 (版本: ${CACHE_VERSION})`);

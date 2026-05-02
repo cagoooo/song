@@ -19,6 +19,7 @@ import { DarkHorseOverlay } from "../components/DarkHorseOverlay";
 import { useGlobalHype } from "@/hooks/useGlobalHype";
 import { GlobalHypeOverlay } from "../components/GlobalHypeOverlay";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { UpdatePrompt } from "../components/UpdatePrompt";
 import { BarChart3 } from "lucide-react";
 
 const VoterLeaderboardModal = lazy(() =>
@@ -724,6 +725,9 @@ export default function Home() {
 
       {/* 全站投票熱度（1 分鐘 50/100/200 票觸發） */}
       <GlobalHypeOverlay event={hypeEvent} />
+
+      {/* SW 新版本通知 banner (右下角) */}
+      <UpdatePrompt />
 
       {/* 點播歷史 Modal — lazy load，未開啟時不影響首屏 */}
       {historyOpen && (

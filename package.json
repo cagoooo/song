@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/generate-og-image.mjs",
+    "prebuild": "node scripts/stamp-sw-version.mjs && node scripts/generate-og-image.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "check": "tsc",
