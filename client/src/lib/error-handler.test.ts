@@ -222,6 +222,9 @@ describe('withRetry', () => {
         const operation = vi.fn().mockRejectedValue(networkError);
 
         const promise = withRetry(operation, 2, 100);
+        // 立刻附上 .catch 標記為「已處理」，避免 vitest 偵測為 unhandled rejection
+        // (CI 的 vitest 4 對 unhandled rejection 嚴格, 即使 185 個測試都過也會 exit 1)
+        promise.catch(() => {});
 
         // 快進所有重試時間
         await vi.advanceTimersByTimeAsync(100);
