@@ -1,484 +1,625 @@
-# 🚀 互動式吉他彈唱點播平台 - 未來開發路線圖
+# 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**: 8.1
-> **更新日期**: 2026-05-01
-> **當前版本**: **v4.1.2**（技術債務批次清理完成）
-> **GitHub**: https://github.com/cagoooo/song
-> **目的**: 提供最新進度總覽 + 詳細未來優化與開發建議
+> **文件版本**：9.0
+> **更新日期**：2026-05-15
+> **當前版本**：**v4.2.0**（含 v4.2.0 後 5 項增量更新）
+> **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
+> **目的**：完整反映已完成項目、提供詳細未來優化與開發建議
 
 ---
 
-## 🆕 本批次完成（2026-05-01 技術債務清理）
+## 🆕 v4.2.0 之後的增量（2026-05-09 ~ 2026-05-15）
 
-| 項目 | 變更 | 影響 |
+| 項目 | 範疇 | 影響 |
 |------|------|------|
-| **firestore.ts 拆檔** | 844 行 → 9 個 sub-module（types/songs/suggestions/tags/nowPlaying/playedSongs/interactions/qrScans/session）+ barrel `index.ts` | 維護性大幅提升，**20+ 個既有 import 路徑零變更** |
-| **TS 設定強化** | 加 `noFallthroughCasesInSwitch` + `forceConsistentCasingInFileNames` | 防 switch 漏 break、Mac/Windows 大小寫陷阱 |
-| **MD 文件收斂** | 8 個 → 2 個（`README.md` + `ROADMAP.md`），其餘移到 `docs/archive/` | 根目錄清爽 |
-| **Husky pre-commit** | `.husky/pre-commit` 跑 typecheck + 169 測試 | 提交前自動把關 |
-| **lint-staged 設定** | `package.json` 加 lint-staged config | 與 Husky 搭配 |
-| **GitHub Actions CI** | `.github/workflows/ci.yml` — typecheck + test + build + bundle size guard (<400KB) + Lighthouse on PR | 每次 push 自動把關 |
-| **Lighthouse CI** | `.lighthouserc.json` — Perf ≥85、a11y ≥90、CLS ≤0.1 (error) | 效能迴歸守門員 |
-| **Firestore preconnect** | `index.html` 加 3 個 `<link rel="preconnect">` 到 firestore/auth/installations | 首次連線省 ~150ms TLS handshake |
-| **WebP 轉換腳本** | `scripts/convert-to-webp.mjs` + `npm run webp` | PNG → WebP 預估 ~70% 縮減 |
-| **驗證結果** | TS clean、169/169 測試 pass、build 成功（主 bundle 283KB） | 零回歸 |
-
-> **後續啟用步驟**（你需要跑一次 npm install）：
-> ```bash
-> npm i -D husky lint-staged @lhci/cli sharp
-> npm run prepare           # 啟用 Husky
-> chmod +x .husky/pre-commit
-> npm run webp              # 把 PNG 轉成 WebP
-> ```
+| **B1 統計儀表板** | `StatsDashboard.tsx`（340 行）+ `useStatsData.ts`（232 行） | 6 大圖表（熱門 Top 10、每日趨勢、24h 熱度、歌手分佈、標籤雷達、KPI 卡片）+ CSV 匯出 |
+| **shadcn CSS 變數修補** | `index.css` +74 行 | 修掉 `--popover` / `--card` / `--accent` 等缺失變數導致 modal 透明 bug |
+| **後台管理員 RWD** | `RankingBoard` + `StatsDashboard` + `Home` | KPI 卡 grid 從 4 欄 → 2/4 響應；統計區行動裝置可垂直堆疊 |
+| **SW 版本自動 bump** | `scripts/stamp-sw-version.mjs` + `useServiceWorkerUpdate.ts` + `UpdatePrompt.tsx` | 每次 build 自動把 `sw.js` 版本戳改新，使用者立即收到「新版本可用」banner，一鍵更新 |
+| **管理員工具腳本 gitignore** | `.gitignore` +5 行 | 本地 admin 修復腳本不入 repo |
 
 ---
 
-## 📊 目前狀態總覽 (v4.1.2)
+## 📊 目前狀態總覽 (v4.2.0+)
 
 | 指標 | 現況 | 對比目標 | 狀態 |
 |------|------|----------|------|
-| **Bundle Size** | **287 KB** | < 600 KB | ✅ 超越 |
-| **單元測試** | **169 個 / 100% 通過** | 50% 覆蓋率 | ✅ 達標 |
-| **PWA 支援** | Service Worker + Manifest | 離線可用 | ✅ 完成 |
+| **單元測試** | **216 個 / 100% 通過**（19 個 test files） | 50% 覆蓋率 | ✅ 超越 |
+| **TypeScript 嚴格度** | `strict` + `noImplicitReturns` + `noFallthroughCasesInSwitch` + `forceConsistentCasingInFileNames` | 嚴格化 | ✅ 進階 |
+| **Initial Bundle（gzip）** | ~280 KB（react+ui+main） | < 300 KB | ✅ 達標 |
+| **PWA 支援** | SW + Manifest + 自動 bump + 更新提示 | 離線可用 + 自動更新 | ✅ 完成 |
+| **CI/CD** | GitHub Actions：typecheck + 216 test + build + Lighthouse | 全自動 | ✅ 完成 |
 | **Error Boundary** | 全域錯誤防護 | 覆蓋全 App | ✅ 完成 |
-| **手機版 RWD** | Tab 切換 + 跨頁互動 | 全頁面響應式 | ✅ 完成 |
-| **正在彈奏 + 評分** | 即時同步 + 五星 | 訪客互動完整 | ✅ 完成 |
+| **行動裝置 RWD** | 含後台管理員介面 | 全頁面響應式 | ✅ 完成 |
+| **互動特效層次** | 5 套（飆升 / 連擊 / 黑馬 / 集體投票 / 領袖板） | 演出現場有感 | ✅ 完成 |
 
 ---
 
 ## 📋 目錄
 
-1. [✅ 已完成里程碑（v2.x → v4.1.2）](#-已完成里程碑)
-2. [🔥 Phase A：短期高優先 (1-2 週)](#-phase-a短期高優先-1-2-週)
-3. [📱 Phase B：中期功能擴展 (2-4 週)](#-phase-b中期功能擴展-2-4-週)
-4. [🌟 Phase C：長期進階 (1-3 個月)](#-phase-c長期進階-1-3-個月)
-5. [🔧 技術債務 & 重構](#-技術債務--重構)
-6. [⚡ 效能優化下一階段](#-效能優化下一階段)
-7. [🛡️ 安全性強化](#-安全性強化)
+1. [✅ 已完成里程碑](#-已完成里程碑)
+2. [🔥 Phase A：短期高優先](#-phase-a短期高優先)（**已 100% 完成 ✅**）
+3. [📱 Phase B：中期功能擴展](#-phase-b中期功能擴展)（**5/6 完成**）
+4. [🌟 Phase C：長期進階](#-phase-c長期進階)
+5. [🎯 v4.3 → v5.0 立即可做的詳細建議](#-v43--v50-立即可做的詳細建議)
+6. [⚡ Bundle 二次優化（具體可省 ~250KB）](#-bundle-二次優化)
+7. [🛡️ 安全性下一階段](#️-安全性下一階段)
 8. [🧪 測試策略升級](#-測試策略升級)
 9. [📈 可觀測性與分析](#-可觀測性與分析)
-10. [📅 建議實施時程 (v4.2 → v5.0)](#-建議實施時程)
+10. [🎨 UX 細節提升清單](#-ux-細節提升清單)
+11. [📅 建議實施時程 (v4.3 → v6.0)](#-建議實施時程)
+12. [🎯 Top 7 立即可做（推薦順序）](#-top-7-立即可做)
 
 ---
 
 ## ✅ 已完成里程碑
 
-### v4.1.2 (2026-05-01)
-- ✅ ErrorBoundary 測試修復，**169/169 通過**（100%）
-- ✅ 「正在彈奏中」評分區五星佈局 RWD 修復
+### v4.2.0+（2026-05 後續累積）
+- ✅ **B1 統計儀表板**（6 圖表 + KPI + CSV）
+- ✅ **後台管理員 UI RWD**（KPI grid 響應、統計區堆疊）
+- ✅ **PWA 自動更新流程**（build 時戳版本、使用者收 banner、一鍵 reload）
+- ✅ **shadcn CSS 完整變數**（修 modal 透明 bug）
 
-### v4.1.1 (2026-04)
-- ✅ 手機端點播按鈕佈局跑版修復
+### v4.2.0（2026-05-08 主版本）
+- ✅ **A1 標籤篩選 UI**（`TagFilterBar` + `useAllSongTags`）
+- ✅ **A2 歌曲難度標記**（⭐⭐⭐ + Firestore Rules 校驗）
+- ✅ **A3 點播歷史 localStorage**（`VoteHistoryModal` + `useVoteHistory` + 8 個測試）
+- ✅ **A4 演出模式 `?mode=stage`**（`StagePage.tsx` 275 行）
+- ✅ **A5 CI/CD**（`.github/workflows/ci.yml` typecheck + test + build + bundle guard < 400KB）
+- ✅ **B4 模糊搜尋強化**（拼音首字母、Fuse.js 整合）
+- ✅ **B5 鍵盤快捷鍵**（`CommandPalette` + `useKeyboardShortcuts` + `?` 開說明）
+- ✅ **B6 排序選項**（`SortSelector` + `useSortMode` + URL query 同步）
+- ✅ **B3 深色模式完善**（toast / tooltip / skeleton 對比度）
+- ✅ **特效大爆發**：
+  - 🔥 **B-飆升動畫**（票數激增的火焰徽章 + 排名變化動效）
+  - 🎯 **連擊計數**（同首歌 3 秒內連投觸發中央 COMBO 大字）
+  - 🐎 **黑馬時刻**（排名跳升 ≥3 名且進前 5 觸發全螢幕慶祝）
+  - 🎉 **集體投票特效**（GlobalHype 同時段多人投票觸發共鳴）
+  - 👑 **領袖板**（VoterLeaderboard 顯示貢獻最多的訪客）
+- ✅ **OG 預覽圖生成**（`scripts/generate-og-image.mjs` + Noto Sans TC subset）
+- ✅ **Husky pre-commit** + **lint-staged**
+- ✅ **Lighthouse CI**（perf ≥85 / a11y ≥90 / CLS ≤0.1）
+- ✅ **firestore.ts 拆檔**（844 行 → 9 sub-modules）
+- ✅ **8 個 .md → 2 個**（其餘進 `docs/archive/`）
 
-### v4.1.0
-- ✅ **Bundle 優化**：1.2 MB → **287 KB**（壓縮 **76%**）
-- ✅ 測試覆蓋率提升至 **142 個 → 169 個** 測試
-- ✅ UI 跑版修復批次
+### v4.1.x（2026-04）
+- ✅ ErrorBoundary 測試修復 → **169/169 → 216/216**
+- ✅ 五星佈局 RWD、手機端點播按鈕跑版修
+- ✅ Bundle 1.2MB → 287KB（壓縮 76%）
 
-### v4.0.0
-- ✅ **Error Boundary** 全域錯誤防護
-- ✅ 排行榜動畫優化（減少空白閃爍）
-
-### v3.11.0
-- ✅ 歌曲建議通知改為全螢幕中央顯示，支援 RWD
-
-### v3.10.0 ~ v3.10.1
-- ✅ 即時通知系統：投票時桌面通知管理員（後改為即時 toast）
-
-### v3.9.0
-- ✅ **訪客互動動畫**：打賞動畫、評分系統、即時同步
-
-### v3.8.0 ~ v3.8.3
-- ✅ **PWA 離線支援**（Service Worker、manifest.json、Firestore IndexedDB 持久化、安裝提示）
-- ✅ MobileTabView 受控模式
-- ✅ 排行榜重複歌曲自動跳轉 + 搜尋
-- ✅ 管理員登入自動切到排行榜 Tab
-
-### v3.7.1
-- ✅ 統一 Firestore 錯誤處理（`error-handler.ts` + `getErrorToast`）
-
-### v3.0.0 ~ v2.x
-- ✅ React.memo + 虛擬滾動效能優化
-- ✅ SongList 1033 行 → 8 個獨立模組
-- ✅ Vitest 框架建立
-- ✅ Firestore 安全規則部署 (`guitar-ff931`)
-
----
-
-## 🔥 Phase A：短期高優先 (1-2 週)
-
-> 焦點：把 v4 系列既有基礎（測試、Bundle、PWA、Error Boundary）轉化為使用者直接感受得到的價值。
-
-### A1. 標籤篩選 UI 完整串接 🟠 P1
-**現況**：已有 `TagSelector.tsx` + `useTags.ts` + `useTags.test.ts`，但**篩選結果尚未串到 SongList**。
-**價值**：訪客找歌時間 ↓ 50%
-**預估**：3–4 小時
-
-**實作要點**：
-- `Home.tsx` 新增 `selectedTags` state
-- `SongList` 接收 `selectedTags` prop，於 `useSongSearch` 內加 filter
-- 標籤旁顯示「(N 首)」即時統計
-- 多選用 chip toggle，清除按鈕用 `aria-label="清除所有標籤"`
-
-### A2. 歌曲難度標記（⭐ / ⭐⭐ / ⭐⭐⭐）🟠 P1
-**價值**：表演者選曲速度 ↑、訪客選歌更貼合曲庫
-**預估**：2–3 小時
-
-**Schema 擴充**：
-```typescript
-interface Song {
-  difficulty?: 1 | 2 | 3;  // 1=入門, 2=中等, 3=進階
-}
-```
-- `EditDialog` 新增難度下拉
-- `SongCard` 顯示星數
-- Firestore Rules：`request.resource.data.difficulty in [1, 2, 3]`
-- 與 A1 整合：可同時用「標籤 + 難度」雙重篩選
-
-### A3. 點播歷史記錄（localStorage）🟠 P1
-**價值**：訪客個人化、回流率 ↑
-**預估**：3 小時
-
-**結構**：
-```typescript
-// localStorage key: 'song_vote_history'
-{
-  votes: [{ songId, title, artist, timestamp }],  // 最近 50 筆
-  todayCount: number,
-  lastResetDate: string
-}
-```
-- 歌單頂部顯示「今日已點播 X 首」
-- 個人歷史 Modal（漢堡選單入口）
-- 「再次點播」按鈕快速重投
-- **不需 Firebase**，純前端實作
-
-### A4. 演出模式（投影/全螢幕）🟠 P1
-**價值**：表演現場大螢幕直接呈現排行榜
-**預估**：4–5 小時
-
-**功能**：
-- URL `?mode=stage` 進入演出模式
-- F11 全螢幕、隱藏管理按鈕
-- Top 10 大字體、深色主題、自動輪播熱門歌
-- 底部跑馬燈：「正在彈奏 + 平均評分」
-- 每 30 秒自動刷新（Firestore listener 已支援）
-
-### A5. CI/CD 自動化（GitHub Actions）🟠 P1
-**現況**：手動 `npm run build` + `firebase deploy`
-**預估**：2 小時
-
-**`.github/workflows/deploy.yml`**：
-```yaml
-on: [push: main]
-jobs:
-  test-and-deploy:
-    - npm ci
-    - npm run check       # TypeScript
-    - npm run test:run    # 169 測試
-    - npm run build       # Bundle check < 400KB
-    - firebase deploy --only hosting,firestore:rules
-```
-- 加入 Bundle Size 檢查（超過 400KB CI 紅燈）
-- PR 自動跑測試 + 預覽部署（Firebase Hosting Preview Channel）
+### v4.0.x 以前
+- ✅ Error Boundary、PWA 離線、Firestore IndexedDB 持久化
+- ✅ MobileTabView、即時通知系統
+- ✅ React.memo + 虛擬滾動、SongList 1033 行 → 8 個模組
+- ✅ Vitest 框架建立、Firestore 安全規則部署
 
 ---
 
-## 📱 Phase B：中期功能擴展 (2-4 週)
+## 🔥 Phase A：短期高優先
 
-### B1. 統計儀表板 🟡 P2
-**預估**：8–10 小時 | 需安裝 `recharts`、`date-fns`
+> ✅ **已 100% 完成（v4.2.0）**。A1～A5 全部上線。
 
-| 圖表 | 資料來源 | 用途 |
-|------|----------|------|
-| 熱門歌曲 Top 10 | `votes` aggregate | 長條圖 |
-| 每日投票趨勢 | `stats/daily` | 折線圖 |
-| 時段熱度 | `votes.timestamp.hour` | 24h 熱力圖 |
-| 歌手分佈 | `songs.artist` group | 圓餅圖 |
-| 標籤偏好 | `songs.tags` × `votes` | 雷達圖 |
-| CSV 匯出 | 全部 | 報表用 |
+| 項目 | 狀態 |
+|------|:----:|
+| A1 標籤篩選 UI 串接 | ✅ |
+| A2 歌曲難度標記 ⭐ | ✅ |
+| A3 點播歷史記錄 | ✅ |
+| A4 演出模式 `?mode=stage` | ✅ |
+| A5 CI/CD GitHub Actions | ✅ |
 
-**目錄結構**：
-```
-components/StatsDashboard/
-├── index.tsx          (lazy load — 不影響 287KB bundle)
-├── QuickStats.tsx     KPI 卡片
-├── VoteTrendChart.tsx
-├── TopSongsChart.tsx
-├── HourlyHeatmap.tsx
-├── ArtistPieChart.tsx
-└── hooks/useStats.ts
-```
-**注意**：`recharts` 約 90KB，必須 `React.lazy` 懶加載，僅管理員可見。
+---
 
-### B2. 多場活動支援（Multi-Event）🟡 P2
-**預估**：10–12 小時
+## 📱 Phase B：中期功能擴展
 
-| 功能 | 說明 |
-|------|------|
-| 建立活動 | 管理員建立 `events/{eventId}`（標題、日期、活動代碼） |
-| 訪客加入 | 輸入 6 碼活動代碼或掃 QR |
-| 獨立計票 | `votes` 加 `eventId`，排行榜按 event 過濾 |
-| 活動歸檔 | 結束後鎖投票，可查歷史 |
-| 跨活動統計 | 累積總投票、最熱歌手 |
+| 項目 | 狀態 | 備註 |
+|------|:----:|------|
+| B1 統計儀表板 | ✅ | 6 圖表 + KPI + CSV，懶加載 ~13KB |
+| B2 **多場活動支援（Multi-Event）** | ⏸️ **待做** | 唯一未啟動，估時 10-12h |
+| B3 深色模式完善 | ✅ | toast / tooltip / skeleton 已完整 |
+| B4 模糊搜尋強化 | ✅ | 拼音 + 首字母 + 注音 |
+| B5 鍵盤快捷鍵 | ✅ | `Cmd+K` palette + `?` 說明 |
+| B6 歌曲排序選項 | ✅ | 4 種排序 + URL query 同步 |
 
-**Firestore Schema**：
+### B2 詳細實作建議（下一波重點）
+
+**為什麼留在最後**：B2 改動 Firestore schema、`votes`/`songs` 都要加 `eventId` 索引、URL routing 也要重做。若做了 v5.0 一定要連帶做完文件與 migration script。
+
+**最小可行版本（6-8 小時）**：
 ```
 events/{eventId}
-  ├─ title, startAt, endAt, code
-  ├─ status: 'upcoming' | 'live' | 'archived'
-  └─ votes/{voteId} (subcollection)
+  ├─ title, code (6 碼), startAt, endAt
+  ├─ status: 'live' | 'archived'
+  └─ ownerUid (建立者)
+
+訪客流：URL = /?event=ABCDEF → useEvent hook 載入該活動
+管理員流：新增「活動」Tab → 列表 + 建立 + 結束
 ```
 
-### B3. 深色模式完善 🟡 P2
-**預估**：3 小時
-**待修**：Toast 對比度、Tooltip 邊框、骨架屏閃爍、互動動畫顏色刺眼。
-建議用 CSS variables 統一管理：
-```css
-.dark { --toast-bg-success: theme('colors.green.900'); }
-```
+**核心難點**：
+1. **舊資料 migration** — 既有 `votes` 全部歸到 `event=default`，否則統計儀表板會炸
+2. **Firestore 複合索引** — `votes` 需要 `(eventId, songId, createdAt DESC)` 複合索引，部署前用 `firebase.json` 預先註冊
+3. **演出模式 + 活動代碼** — `?mode=stage&event=ABCDEF` 雙 query 處理
+4. **歸檔活動的唯讀畫面** — `status==='archived'` 時 disable 所有投票按鈕
 
-### B4. 模糊搜尋強化 🟡 P2
-**現況**：已有 `useFuzzySearch.ts` + 測試，但**尚未取代主搜尋**。
-**預估**：2 小時
-- `useSongSearch` 改用 Fuse.js（已安裝）
-- 支援注音、英拼錯字（「告白」→「告辛氣球」也能搜）
-- 加入歌詞片段搜尋（若有 lyrics 欄位）
-
-### B5. 鍵盤快捷鍵 🟡 P2
-**預估**：2 小時
-- `/` 聚焦搜尋
-- `↑↓` 切歌曲、`Enter` 投票
-- `Cmd/Ctrl+K` 開啟 command palette
-- `?` 顯示快捷鍵說明
-- 用 `useHotkeys` 或自製 hook
-
-### B6. 歌曲排序選項 🟡 P2
-**預估**：1.5 小時
-- 排序：投票數 / 字母 / 新增時間 / 難度
-- 持久化於 localStorage
-- URL query string 同步（可分享）
+**驗收條件**：可同時跑兩場活動 + 票數不互相污染 + 結束後可查歷史 + 管理員看得到跨活動總統計。
 
 ---
 
-## 🌟 Phase C：長期進階 (1-3 個月)
+## 🌟 Phase C：長期進階
 
 ### C1. 歌詞同步播放 (LRC) 🟢 P3
 **預估**：12–15 小時
 - LRC 格式時間軸同步
-- 管理員後台：歌詞編輯器（textarea + 預覽）
-- 演出模式整合：大螢幕投影歌詞
+- 管理員後台：歌詞編輯器（textarea + 預覽 / 自動產生時間戳）
+- 演出模式整合：大螢幕投影歌詞，當前句高亮放大
 - YouTube Embed 對齊（取 player currentTime）
+- **進階**：拍子線（節拍器條）
 
 ### C2. 社群登入整合 🟢 P3
 **預估**：6–8 小時 | Google → LINE → Apple
 - 訪客可選擇匿名 or 登入
-- 登入後雲端同步點播歷史、收藏歌單、勳章
+- 登入後雲端同步：點播歷史、收藏歌單、勳章、貢獻積分
 - 留言匿名/實名切換
+- ⚠️ **隱私聲明** + **未成年保護** 條款要先寫好
 
 ### C3. 積分勳章系統 🟢 P3
-**預估**：12–15 小時
+**預估**：12–15 小時 | 需搭 C2
 
-| 勳章 | 條件 |
-|------|------|
-| 🎤 首次點播 | 第一次投票 |
-| 🔥 熱情歌迷 | 單日 10 票 |
-| 👑 點歌王 | 累積 100 票 |
-| ⭐ 評論達人 | 給 50 次評分 |
-| 💎 打賞大戶 | 累積 100 次打賞 |
-| 🌙 夜貓子 | 22:00 後投 20 票 |
-
-需搭配 C2 才能跨裝置累積。
+| 勳章 | 條件 | 效果 |
+|------|------|------|
+| 🎤 首次點播 | 第一次投票 | toast 動畫 |
+| 🔥 熱情歌迷 | 單日 10 票 | side 浮動徽章 |
+| 👑 點歌王 | 累積 100 票 | profile 王冠 |
+| ⭐ 評論達人 | 給 50 次評分 | 評論區金邊 |
+| 💎 打賞大戶 | 累積 100 次打賞 | 排行榜置頂 |
+| 🌙 夜貓子 | 22:00 後投 20 票 | 月亮 icon |
+| 🎬 黑馬獵人 | 投中 5 次黑馬歌曲 | 流星特效 |
+| 🤝 領袖 | 在 VoterLeaderboard 上榜 10 次 | 桂冠標 |
 
 ### C4. AI 歌曲推薦 🟢 P3
 **預估**：15–20 小時
-- 根據訪客投票歷史，推薦同曲風/同歌手
-- 用 Firestore 收集 (userId, songId, weight)，前端跑 cosine similarity
-- 進階版：呼叫 Gemini API 用「今晚氣氛 + 已投票歌曲」生成推薦
-- ⚠️ **成本控管**：Gemini 走 Free Tier，加入 captcha + maxInstances 護欄
+- 收集 `(userId, songId, rating, timestamp)` 至 Firestore
+- 前端跑 cosine similarity（不需後端）
+- 進階版：呼叫 Gemini 1.5 Flash Free Tier
+  - input: 訪客已投票 5 首歌 + 當下氣氛文字
+  - output: 3 首推薦 + 一句推薦理由
+- ⚠️ **成本控管**：套用 `gemini-free-tier-first` skill — Turnstile + maxInstances + 預算告警
 
 ### C5. 多語系 (i18n) 🟢 P3
 **預估**：6–8 小時 | `react-i18next`
-- zh-TW (預設) / zh-CN / en / ja
+- zh-TW（預設） / zh-CN / en / ja
 - 抽出所有 hardcode 字串至 `locales/*.json`
+- 語言切換可記在 localStorage
 
 ### C6. 即時聊天/留言區 🟢 P3
 **預估**：10 小時
-- Firestore `chat/{eventId}/messages`
-- 訪客匿名暱稱
-- 管理員可禁言、刪訊息
+- Firestore `events/{eventId}/chat/{messageId}`
+- 訪客匿名暱稱（不需登入但有 nonce 防灌）
+- 管理員可禁言、刪訊息、固定置頂
 - 髒話過濾（中文 dirty-words list）
-- ⚠️ **濫用風險高**，務必先做 rate limit + 舉報機制
+- ⚠️ **濫用風險高**：rate limit + 舉報機制 + 圖片連結禁止
 
 ### C7. 表演者打賞金流 🟢 P3
 **預估**：20+ 小時
-- 整合 Stripe / LINE Pay / 街口支付
-- ⚠️ **超出純前端範疇**，需 Cloud Functions
+- 整合街口支付 / LINE Pay / Stripe
+- ⚠️ 需 Cloud Functions、跨入後端範疇
 - 法規面：發票、稅務、平台抽成
-- **建議延後到專案有商業化需求才做**
+- **建議延後到專案有實質商業化需求才做**
 
 ---
 
-## 🔧 技術債務 & 重構
+## 🎯 v4.3 → v5.0 立即可做的詳細建議
 
-| 項目 | 優先級 | 說明 | 估時 |
-|------|:------:|------|------|
-| TypeScript `strict: true` | 🟠 | 啟用嚴格模式，修補 any | 4h |
-| 移除 `@tanstack/react-query` | 🟡 | 確認已不用後 prune | 0.5h |
-| `firestore.ts` 拆檔 | 🟡 | 按 collection 拆成 `votes.ts`/`songs.ts`/`events.ts` | 3h |
-| Husky + lint-staged | 🟡 | pre-commit 自動 typecheck + test | 1h |
-| ESLint 規則統一 | 🟢 | 採用 `eslint-config-airbnb` 或 `xo` | 2h |
-| 移除 SESSION_PROGRESS.md / DEVELOPMENT_*.md 重複 | 🟡 | 8 個 md 收斂為 2 個（README + ROADMAP） | 1h |
-| `MusicPlayer.tsx` 元件審視 | 🟢 | 是否仍被使用？未用就刪 | 0.5h |
+> 以下是「不大但很值得做」的優化清單，每個都可獨立完成、PR 小、上線立即有感。
 
----
+### 🎁 P0：即刻有感（每個都 < 4 小時）
 
-## ⚡ 效能優化下一階段
+#### 1. **pinyin-pro 改 lazy load**（省 ~140KB raw / ~80KB gzip）
+**現況**：`pinyin-jsHMj9PS.js` = **216KB raw / 138KB gzip**，使用者沒用搜尋也吃掉這塊。
+**做法**：把 `useSongSearch.ts` 內 `import { pinyin } from 'pinyin-pro'` 改成首次 focus 搜尋框時動態 import。
 
-Bundle 已從 1.2MB 砍到 287KB，下一步從**載入體驗**著手：
-
-| 指標 | 目前 | 目標 | 策略 |
-|------|------|------|------|
-| FCP | ~1.2s | < 0.8s | 預載入 critical CSS、字型 swap |
-| LCP | ~2.0s | < 1.5s | Hero 區圖片 priority、preconnect Firestore |
-| TTI | ~2.5s | < 2.0s | defer 非 critical JS |
-| CLS | ~0.05 | < 0.05 | ✅ 已達標 |
-| Lighthouse PWA | ? | 100 | maskable icon、theme_color、screenshots |
-
-**具體動作**：
-1. **字型優化**：`<link rel="preload" as="font" crossorigin>` + `font-display: swap`
-2. **圖片**：所有 PNG → WebP/AVIF（Vite plugin `vite-imagetools`）
-3. **Firestore 預連接**：`<link rel="preconnect" href="https://firestore.googleapis.com">`
-4. **Lighthouse CI**：CI pipeline 加入 `@lhci/cli`，分數低於 90 紅燈
-5. **Web Vitals 上報**：`useReportWebVitals` → Firebase Analytics
-
----
-
-## 🛡️ 安全性強化
-
-| 項目 | 現況 | 目標 |
-|------|------|------|
-| Firestore Rules 速率限制 | 基本驗證 | 投票每分鐘 ≤10、建議每天 ≤5 |
-| Content-Security-Policy | 未設定 | `default-src 'self'; script-src 'self' apis.google.com` |
-| HSTS | 未設定 | `Strict-Transport-Security: max-age=31536000` |
-| App Check | 未啟用 | reCAPTCHA v3 防爬蟲/機器人 |
-| API Key 限制 | ⚠️ 待檢查 | GCP Console → Restrict to `cagoooo.github.io` referer |
-| Secret Scanning | GitHub 預設 | 已有 |
-| 輸入過濾 | 基本 | 加 DOMPurify 過濾建議區 XSS |
-
-**Firestore 進階規則範例**（投票防灌票）：
-```javascript
-match /votes/{voteId} {
-  allow create: if request.auth != null
-    && request.resource.data.createdAt == request.time
-    && getAfter(/databases/$(database)/documents/rateLimits/$(request.auth.uid))
-        .data.lastVoteAt < request.time - duration.value(6, 's');
+```typescript
+// hooks/usePinyinLazy.ts
+let pinyinModule: typeof import('pinyin-pro') | null = null;
+export async function getPinyin() {
+  if (!pinyinModule) {
+    pinyinModule = await import('pinyin-pro');
+  }
+  return pinyinModule;
 }
 ```
+**預估**：1.5 小時
+**驗收**：初始 bundle 減少 80KB+，首次搜尋有 < 100ms 延遲（可接受）
 
-⚠️ **建議優先做 App Check**：免費、5 分鐘設定、立刻擋掉 90% 機器人投票。
+#### 2. **firebase modular 拆分** （省 ~150KB）
+**現況**：`firebase-DmM-wV4S.js` = **560KB raw / 135KB gzip**。
+**問題排查**：可能有未使用的 firebase modules 被 bundle 進來。
+**做法**：
+- 確認 `firebase.ts` 只 import `firestore` + `auth` + 必要的 `app`
+- 移除 `firebase-admin`（這只能在 Node.js / Cloud Functions 用，前端 bundle 不該有）
+- 改用 `firebase/firestore/lite` 評估（無 offline persistence 但 size 砍半）
+
+**預估**：2 小時
+**驗收**：firebase chunk < 300KB
+
+#### 3. **Lighthouse PWA 衝 100 分**
+**做法**：
+- 確認 `manifest.json` 有 `purpose: "maskable"` 圖示
+- `theme_color` 與深色/淺色配對
+- 加上 `screenshots` 陣列（行動 + 桌面各一張）
+- `display: standalone` + `start_url: "/"`
+- 加 `<meta name="theme-color">` 適配兩種主題
+
+**預估**：1.5 小時
+**驗收**：Lighthouse PWA = 100
+
+#### 4. **執行 WebP 轉換**（腳本已寫但沒跑）
+```bash
+npm run webp
+```
+然後 `<img>` 改用 `<picture>` 套組：
+```tsx
+<picture>
+  <source srcSet="/cover.webp" type="image/webp" />
+  <img src="/cover.png" alt="..." loading="lazy" />
+</picture>
+```
+**預估**：1 小時（含換 picture tag）
+**驗收**：圖片總 size 減 ~70%
+
+#### 5. **Web Vitals 上報到 Firebase Analytics**
+```typescript
+// main.tsx
+import { onCLS, onFID, onLCP, onTTFB, onINP } from 'web-vitals';
+import { logEvent } from 'firebase/analytics';
+
+onCLS(m => logEvent(analytics, 'web_vital', { name: 'CLS', value: m.value }));
+onLCP(m => logEvent(analytics, 'web_vital', { name: 'LCP', value: m.value }));
+// ... 同上
+```
+**預估**：30 分鐘
+**驗收**：Firebase Console > Analytics > Events 看得到 `web_vital`
+
+#### 6. **字型 preload + font-display: swap**
+`index.html` 加：
+```html
+<link rel="preload" href="/fonts/noto-tc.woff2" as="font" type="font/woff2" crossorigin>
+```
+CSS 字型 declaration 加 `font-display: swap`，避免 FOIT（隱形文字閃爍）。
+**預估**：30 分鐘
+
+---
+
+### 🎨 P1：UX 拋光（每個 2-6 小時）
+
+#### 7. **歌曲詳情頁 / Modal**（點 SongCard 開展詳細）
+目前點 SongCard 直接投票，沒法看 lyrics、past performance 統計、評分分佈。
+**做法**：
+- 短按投票（現有）
+- 長按 / hover icon 開 `SongDetailModal`
+  - 歷史被點次數曲線
+  - 評分分佈直方圖
+  - 標籤雲
+  - YouTube 預覽（若 `youtubeId` 欄位有值）
+  - 「想再聽」按鈕（收藏）
+
+#### 8. **收藏歌單**（不需登入，純 localStorage）
+- 心型 icon 點擊加入收藏
+- 漢堡選單入口「我的收藏」
+- 演出當下可一鍵把所有收藏批次投票（限管理員）
+
+#### 9. **建議歌曲審核工作流**
+目前 suggestions 進 Firestore 但**沒有後台管理 UI**？要確認：
+- 管理員看得到 pending suggestions 列表
+- 可一鍵「採納 → 加入歌單」or「拒絕 → 標記原因」
+- 採納時 auto-prefill EditDialog
+
+#### 10. **即時投票脈衝**（細節動畫）
+- 每筆投票進來時，對應 SongCard 邊框閃綠光 0.5s
+- 排行榜的條形圖寬度用 spring 動畫過渡
+- 第 1 名換人時播放短音效（可選靜音）
+
+#### 11. **管理員批次工具**
+- **CSV 匯入歌曲**：拖檔 → 預覽 → 確認匯入
+- **批次標籤套用**：勾選多首 → 套相同 tag
+- **批次刪除/封存**
+- **歌單匯出** JSON / CSV 備份
+
+#### 12. **演出模式增強**
+- 加入「節目單預覽」(下一首播什麼)
+- QR Code 大圖左下顯示，讓現場觀眾掃描加入投票
+- 跑馬燈可自訂訊息（活動主題、贊助商）
+- 倒數計時器（活動還有幾分鐘）
+
+---
+
+### 🛡️ P1：守門員（每個 1-3 小時）
+
+#### 13. **Sentry 錯誤追蹤**
+- `@sentry/react` + `@sentry/vite-plugin` 自動上傳 source map
+- 整合 ErrorBoundary `componentDidCatch`
+- 一個月免費 5K events 對小流量站夠用
+- **環境變數**：用 `gcp-api-key-secure-create` skill 設 Sentry DSN
+
+#### 14. **Firestore Rules 單元測試**
+```bash
+npm i -D @firebase/rules-unit-testing
+```
+- 寫 `firestore.rules.test.ts`：
+  - 訪客不能改別人的 vote
+  - 投票時間戳必須 `request.time`
+  - difficulty 必須 1/2/3
+  - 管理員 UID 才能 update songs
+- 整合進 CI（rules 修改前自動跑）
+
+#### 15. **rate limit 強化（防同一裝置狂點）**
+- 用 `useVoteHistory` 已有的本地記錄
+- 同首歌 60 秒內投 ≥5 次 → 前端擋
+- Firestore Rules 配合：每分鐘 ≤10 票（搭配 `rateLimits/{uid}` collection）
+
+#### 16. **CSP（Content-Security-Policy）**
+```html
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' apis.google.com www.googletagmanager.com 'sha256-XXX';
+  connect-src 'self' *.firebaseio.com *.googleapis.com;
+  img-src 'self' data: https:;
+  style-src 'self' 'unsafe-inline';
+  font-src 'self' data:;
+">
+```
+**注意**：firebase SDK 用 inline script，要小心 sha256 hash。
+
+---
+
+### 🧪 P2：測試擴張（每個 3-8 小時）
+
+#### 17. **E2E with Playwright**
+```bash
+npm i -D @playwright/test
+npx playwright install chromium
+```
+3 個關鍵 flow 起手：
+1. 訪客投票流程（搜尋 → 投票 → 看排行榜）
+2. 管理員登入後新增歌曲 + 設標籤 + 設難度
+3. 演出模式進入 + 黑馬慶祝觸發（mock 多筆 vote）
+
+#### 18. **視覺迴歸 with Chromatic**
+- 註冊 Chromatic 免費版（每月 5,000 snapshots）
+- `npm i -D chromatic`
+- 配合 Storybook（要新增）抓 SongCard / RankingBoard / Modals 各個狀態快照
+- PR 自動比對，UI 跑版立即抓
+
+#### 19. **無障礙 with vitest-axe**
+- `npm i -D vitest-axe`
+- 對每個主要 component 跑 a11y check
+- 重點：對比度、aria-label、focus order、screen reader 友善
+
+---
+
+## ⚡ Bundle 二次優化
+
+> 目前看到的優化空間，總計可省 ~250KB raw / ~120KB gzip
+
+### 詳細 chunk 分析（v4.2.0+ 實測）
+
+| Chunk | Raw | Gzip | 優化建議 |
+|-------|-----|------|----------|
+| `firebase` | 560 KB | 135 KB | ⭐ 拆 modular import、移除 firebase-admin、評估 firestore/lite |
+| `charts` (recharts) | 411 KB | 111 KB | ✅ 已 lazy（StatsDashboard 內） |
+| `index` (main app) | 318 KB | 94 KB | 評估 framer-motion tree-shake |
+| `pinyin-pro` | 216 KB | 139 KB | ⭐ Lazy on first search |
+| `react-vendor` | 141 KB | 45 KB | 已最佳 |
+| `ui-radix` | 118 KB | 37 KB | 評估只 import 用到的 primitive |
+| `animation` (framer-motion) | 114 KB | 38 KB | 評估換成 `motion` (輕量 fork) |
+
+### 具體動作（排序）
+
+1. **pinyin-pro lazy**（1.5h，省 80KB gzip）— 最高 CP 值
+2. **firebase 拆分**（2h，省 50KB gzip）
+3. **framer-motion → motion**（3h，省 20KB gzip）— 視 API 相容性
+4. **ui-radix 精簡**（2h，省 10KB gzip）— 確認沒用到的 primitive 全砍
+
+### 額外建議
+
+- **route-based code splitting**：`StagePage` 已 lazy，但 admin-only 元件（EditDialog 已 lazy）可確認都走 lazy
+- **manifest.json sw scope**：確認 SW 不快取大檔（如 og-preview.png）導致首載肥大
+- **Brotli 壓縮**：Firebase Hosting 預設 gzip，若改 Cloudflare CDN 可 brotli 再省 15%
+
+---
+
+## 🛡️ 安全性下一階段
+
+> ⚠️ **重要決定記錄**：App Check 已於 2026-05-08 關閉並徹底清除（`bb11037`）。理由：本站定位是學生展演活動，沒有商業價值，不需要防灌票成本。**未來若有公開大型活動或商業用途再啟用**。
+
+| 項目 | 現況 | 優先級 | 估時 |
+|------|------|:------:|------|
+| API Key restrictions | ⚠️ 待檢查 | 🟠 | 0.5h |
+| CSP header | 未設定 | 🟡 | 2h |
+| HSTS | 未設定 | 🟡 | 0.5h |
+| Sentry 整合 | 未設定 | 🟠 | 2h |
+| 輸入過濾（DOMPurify） | 基本 | 🟡 | 1h |
+| Firestore Rules 測試 | 無 | 🟠 | 3h |
+| 速率限制（前端） | 部分（useVoteHistory） | 🟡 | 2h |
+| 速率限制（rules） | 無 | 🟢 | 4h |
+
+### API Key 限制檢查清單（最高優先）
+
+1. 打開 GCP Console → APIs & Services → Credentials
+2. 找出 `guitar-ff931` 專案的 Browser API Key
+3. 確認設 HTTP referrers 限制：
+   - `https://cagoooo.github.io/song/*`
+   - `http://localhost:5173/*`（開發）
+4. 確認 API restrictions 只勾：
+   - Cloud Firestore API
+   - Firebase Auth API
+   - Firebase Installations API
+5. **如果沒設**：立刻設，否則 key 流出可能被人狂打 quota
+
+> 📌 用 `firebase-stack-automation` skill 可一鍵自動化。
 
 ---
 
 ## 🧪 測試策略升級
 
-**現況**：169 個單元測試 ✅
-**缺口**：
+**現況**：216 個單元測試 ✅，覆蓋率高。
+**缺口**：缺 E2E、視覺迴歸、a11y、Firestore rules test。
 
-| 類型 | 工具 | 建議 |
-|------|------|------|
-| **E2E 測試** | Playwright | 投票流程、管理員登入、PWA 安裝 |
-| **視覺迴歸** | Percy / Chromatic | 防止 UI 跑版重複出現 |
-| **效能迴歸** | Lighthouse CI | Bundle > 400KB 紅燈 |
-| **Firestore Rules 測試** | `@firebase/rules-unit-testing` | rules 修改前先跑 |
-| **無障礙測試** | `vitest-axe` | 自動化 a11y check |
-
-**E2E 起手式**（Playwright）：
-```bash
-npm i -D @playwright/test
-npx playwright install
-```
-3 個關鍵 flow 先做：(1) 訪客投票 (2) 管理員登入後新增歌曲 (3) PWA 安裝。
+| 類型 | 工具 | 估時 | 優先級 |
+|------|------|------|:------:|
+| **E2E 測試** | Playwright | 6h（3 flows） | 🟠 P1 |
+| **視覺迴歸** | Chromatic / Percy | 4h | 🟡 P2 |
+| **效能迴歸** | Lighthouse CI | ✅ 已有 | — |
+| **Firestore Rules 測試** | `@firebase/rules-unit-testing` | 3h | 🟠 P1 |
+| **無障礙測試** | `vitest-axe` | 2h | 🟡 P2 |
+| **元件文件 / Storybook** | Storybook 8 | 8h | 🟢 P3 |
 
 ---
 
 ## 📈 可觀測性與分析
 
-**現況**：有 Firebase Performance 但**未充分利用**。
+**現況**：Firebase Performance 已啟用，但**未充分利用**。
 
-**建議擴充**：
+### 立即可做（< 2 小時）
+
 1. **Firebase Analytics 自定事件**
-   - `vote_submitted` / `suggestion_added` / `tag_filtered` / `pwa_installed`
-   - 每事件帶 `eventId` 維度，方便活動分析
-2. **Sentry 錯誤追蹤**
-   - 整合 Error Boundary `componentDidCatch`
-   - Source map 上傳，看得到原始檔行號
-3. **Web Vitals 儀表板**
-   - 自建或用 Google Analytics 4 內建
-4. **使用者旅程漏斗**
-   - 進站 → 看歌單 → 投票 → 再投票
-   - 找出流失點
+   - `vote_submitted`（帶 songId, isCombo, isSurge）
+   - `suggestion_added`
+   - `tag_filtered`（帶 tags 陣列）
+   - `pwa_installed`
+   - `stage_mode_entered`
+   - `dark_horse_triggered`
+   - `combo_triggered`（帶 comboCount）
 
-**LINE 通知（可選）**：
-- 每天 8AM 推播昨日投票統計給管理員
-- 用 `line-messaging-firebase` skill 整合（你已有此 skill）
+2. **每事件帶 sessionId 維度**（用 `crypto.randomUUID()` 存 sessionStorage）→ 方便事件漏斗分析
+
+3. **使用者旅程漏斗**（在 GA4 Console 設）
+   - 進站 → 看歌單 → 投票 → 再投票（return rate）
+
+### 中期（4-6 小時）
+
+4. **Sentry 錯誤追蹤** + source map
+5. **LINE 通知整合**（你已有 `line-messaging-firebase` skill）
+   - 每天 8AM 推播昨日投票統計給管理員
+   - 黑馬時刻即時推播
+   - 系統錯誤超過 5 次/分鐘告警
+
+6. **自建簡易儀表板**
+   - 已有 StatsDashboard，但只看「歌曲面」
+   - 加「平台面」：DAU/WAU、PWA 安裝數、平均 session 時長、跳出率
+
+---
+
+## 🎨 UX 細節提升清單
+
+> 小事，但累積起來能讓產品「感覺更精緻」
+
+### 動效層次（小修但影響大）
+- [ ] **滾動條樣式化**（深色模式現在還是預設灰）
+- [ ] **載入骨架屏更細緻**（目前是大色塊，可改成 song row 形狀的模板）
+- [ ] **page transition**（route 切換動效）
+- [ ] **微互動**：按鈕 hover scale 1.02、click 觸覺回饋（mobile vibrate API）
+- [ ] **空狀態插圖**：沒搜尋結果、沒投票歷史、沒活動… 都該有友善插圖
+
+### 排行榜細節
+- [ ] **前 3 名特殊配色**（金/銀/銅漸層）
+- [ ] **排名變化箭頭**（↑3 ↓1 — 已部分實作？）
+- [ ] **歌手大頭照欄位**（管理員可上傳，預設用首字 avatar）
+- [ ] **YouTube 縮圖**（若有 youtubeId，顯示 thumbnail）
+
+### 訪客 onboarding
+- [ ] **首次進站 quick tour**（3 步教學：搜尋 → 投票 → 看排行榜）
+- [ ] **新功能 announcement**（v4.x 更新後彈出 changelog）
+- [ ] **空歌單時的 CTA**：「歡迎來到 XXX 演出！點選任何一首歌投票」
+
+### 管理員體驗
+- [ ] **快捷鍵 panel**（已有 `?` 但可再豐富）
+- [ ] **管理員專用 Toolbar**（永遠浮在右下角，4 個快速操作）
+- [ ] **批次選取模式**（長按 SongCard 進入選取）
+- [ ] **撤銷功能**（誤刪歌曲後 5 秒內可 Undo）
 
 ---
 
 ## 📅 建議實施時程
 
-### v4.2.0（本週，1 週內）
+### v4.3.0（本週末，4-6 小時內可完成）
+> **主題：性能 + 守門員雙線並進**
+
 | 項目 | 估時 | 依賴 |
 |------|------|------|
-| A1 標籤篩選串接 | 4h | 無 |
-| A2 難度標記 | 3h | 無 |
-| A3 點播歷史 | 3h | 無 |
-| A5 CI/CD | 2h | 無 |
+| 1. pinyin-pro lazy load | 1.5h | 無 |
+| 2. firebase 拆分 + 移除 firebase-admin | 2h | 無 |
+| 3. Lighthouse PWA 100 分 | 1.5h | 無 |
+| 4. Web Vitals 上報 | 0.5h | 無 |
+| 5. API Key 限制檢查 | 0.5h | 無 |
 
-### v4.3.0（下週）
+**驗收**：Initial bundle gzip < 200KB、Lighthouse PWA = 100、API Key 有 referer 限制。
+
+### v4.4.0（下週，6-8 小時）
+> **主題：UX 拋光**
+
 | 項目 | 估時 | 依賴 |
 |------|------|------|
-| A4 演出模式 | 5h | A1+A2 完成更佳 |
-| B3 深色模式完善 | 3h | 無 |
-| B4 模糊搜尋升級 | 2h | 無 |
-| B5 鍵盤快捷鍵 | 2h | 無 |
+| 字型 preload + font-display | 0.5h | 無 |
+| WebP 圖片轉換落實 | 1h | 無 |
+| 歌曲詳情 Modal | 3h | 無 |
+| 收藏歌單 localStorage | 2h | 無 |
+| 演出模式增強（QR + 跑馬燈自訂） | 2h | 無 |
 
-### v4.4.0（2-3 週）
+### v4.5.0（2 週內，8-12 小時）
+> **主題：測試 + 監控完整化**
+
 | 項目 | 估時 | 依賴 |
 |------|------|------|
-| B1 統計儀表板 | 10h | 需 lazy load |
-| B6 排序選項 | 1.5h | 無 |
-| 安全性：App Check | 0.5h | 無 |
-| Lighthouse CI | 1h | A5 完成 |
+| Sentry 錯誤追蹤 + source map | 2h | 無 |
+| Firebase Analytics 自定事件 | 1h | 無 |
+| Firestore Rules 單元測試 | 3h | 無 |
+| Playwright E2E（3 flows） | 6h | 無 |
 
-### v5.0.0（1-2 個月，重大版本）
+### v5.0.0（1 個月內，重大版本）
+> **主題：多場活動 + 雲端同步**
+
 | 項目 | 估時 |
 |------|------|
-| B2 多場活動支援 | 12h |
-| C1 歌詞同步 | 15h |
-| C2 社群登入 | 8h |
-| E2E + 視覺迴歸測試 | 6h |
-| 文件大整理（8 md → 2 md） | 1h |
+| **B2 多場活動支援** | 12h |
+| **C2 社群登入**（Google 優先） | 8h |
+| Migration script（既有資料歸 default event） | 3h |
+| **A11y 全面審查 + axe** | 4h |
+| 視覺迴歸 Chromatic | 4h |
 
-### v6.0.0（3+ 個月，AI 化）
-- C3 勳章系統
-- C4 AI 推薦
-- C5 多語系
-- C6 即時聊天
+### v6.0.0（2-3 個月內，AI 化）
+| 項目 | 估時 |
+|------|------|
+| C1 歌詞同步播放（LRC） | 15h |
+| C3 積分勳章系統 | 15h |
+| C4 AI 歌曲推薦（Gemini Free Tier） | 18h |
+| C5 多語系 | 8h |
+
+### v7.0.0（3+ 個月，社群化）
+| 項目 | 估時 |
+|------|------|
+| C6 即時聊天 | 10h |
+| Storybook + 元件庫文件化 | 8h |
+| Cloud Functions（後端服務） | 視範疇 |
+| C7 打賞金流（若有商業需求） | 20h+ |
 
 ---
 
-## 🎯 Top 5 立即可做（推薦順序）
+## 🎯 Top 7 立即可做
 
-如果你只想挑幾項馬上動手，建議這個順序：
+> **本週末挑這幾項，CP 值最高、PR 最小、立即有感**
 
-1. **A5 CI/CD（2h）** — 一勞永逸，後面開發都受惠
-2. **App Check（0.5h）** — 免費防機器人，CP 值最高
-3. **A1 標籤篩選串接（4h）** — 程式碼已有，只差串接
-4. **A3 點播歷史（3h）** — 純前端，無風險
-5. **A4 演出模式（5h）** — 現場最有感
+| # | 項目 | 估時 | 收益 |
+|---|------|------|------|
+| 1 | **pinyin-pro lazy load** | 1.5h | 初始 bundle -80KB gzip |
+| 2 | **API Key restrictions 檢查** | 0.5h | 防 key 洩漏被打 quota |
+| 3 | **Lighthouse PWA = 100** | 1.5h | 安裝體驗 / 商城上架 / 評分 |
+| 4 | **Web Vitals 上報** | 0.5h | 看得到真實使用者的 LCP/CLS |
+| 5 | **WebP 圖片轉換** | 1h | 圖片總 size -70% |
+| 6 | **Sentry 錯誤追蹤** | 2h | 看到使用者端的真實錯誤 |
+| 7 | **歌曲詳情 Modal** | 3h | 訪客體驗大升級 |
 
-**總計 ~14.5 小時**，可在 2-3 個下午完成，立刻把產品推進到 **v4.3**。
+**總計 ~10 小時**，一個週末可全做完，立刻把產品推進到 **v4.4**。
 
 ---
 
@@ -488,32 +629,77 @@ npx playwright install
 # 日常
 npm run dev                    # 開發
 npm run check                  # TypeScript
-npm run test:run               # 169 測試
+npm run test:run               # 216 測試
 npm run test:coverage          # 覆蓋率報告
+npm run lighthouse             # 跑 Lighthouse CI
 
 # 建置 + 部署
-npm run build                  # Bundle 檢查 (目標 < 400KB)
+npm run build                  # 自動 bump SW 版本 + 生成 OG 圖
+npm run webp                   # PNG → WebP
 firebase deploy --only hosting,firestore:rules --project guitar-ff931
 
 # 未來會用到
-npm i recharts date-fns                   # B1 統計儀表板
-npm i react-i18next i18next               # C5 多語系
+npm i web-vitals                          # Web Vitals 上報
+npm i @sentry/react @sentry/vite-plugin   # Sentry
 npm i -D @playwright/test                 # E2E
-npm i -D @lhci/cli                        # Lighthouse CI
+npm i -D @firebase/rules-unit-testing     # Rules 測試
+npm i -D vitest-axe                       # a11y 測試
+npm i -D chromatic                        # 視覺迴歸
 ```
 
 ---
 
-## 📚 跨檔案整合建議
+## 📦 v4.2.0+ 已建立的元件清單（快速索引）
 
-目前根目錄有 **8 個 md 文件**（DEVELOPMENT_PROGRESS / DEVELOPMENT_ROADMAP / DEVELOPMENT_STATUS / FUTURE_DEVELOPMENT_GUIDE / FUTURE_DEVELOPMENT_ROADMAP / NEXT_DEVELOPMENT_CHECKLIST / OPTIMIZATION_SUGGESTIONS / SESSION_PROGRESS），內容多有重複且版本不一。
+### 新增 hooks
+| Hook | 用途 |
+|------|------|
+| `useAllSongTags` | 收集全歌單的標籤集合（給 TagFilterBar） |
+| `useVoteHistory` | localStorage 點播歷史 + 今日累計 |
+| `useSortMode` | 4 種排序模式 + URL query 同步 |
+| `useStatsData` | 6 大圖表的聚合運算 |
+| `useVoteSurge` | 偵測票數飆升（火焰特效） |
+| `useComboCounter` | 同首歌 3 秒內連投偵測 |
+| `useDarkHorse` | 排名跳升 ≥3 名觸發黑馬 |
+| `useGlobalHype` | 多人同時段投票偵測 |
+| `useVoterLeaderboard` | 訪客貢獻排行 |
+| `useKeyboardShortcuts` | 全域快捷鍵綁定 |
+| `useServiceWorkerUpdate` | SW 新版偵測 + 重新整理 |
 
-**建議收斂為 2 份**：
-- `README.md` — 對外：專案介紹、demo 連結、快速開始
-- `ROADMAP.md`（本檔）— 對內：進度 + 未來規劃
+### 新增 components
+| Component | 用途 |
+|------|------|
+| `TagFilterBar` | 標籤多選篩選列 |
+| `VoteHistoryButton` / `VoteHistoryModal` | 個人歷史 |
+| `SortSelector` | 排序下拉 |
+| `StatsDashboard` | 統計儀表板 |
+| `StagePage` | 演出模式專用頁 |
+| `SurgeBadge` | 飆升火焰徽章 |
+| `ComboOverlay` | COMBO 全螢幕大字 |
+| `DarkHorseOverlay` | 黑馬慶祝動畫 |
+| `GlobalHypeOverlay` | 集體投票共鳴 |
+| `VoterLeaderboardModal` | 領袖板 |
+| `CommandPalette` | Cmd+K 命令面板 |
+| `ShortcutsHelpModal` | ? 快捷鍵說明 |
+| `UpdatePrompt` | 新版本可用 banner |
 
-**處置建議**：其餘 6 份可移到 `docs/archive/` 保留歷史，或直接刪除（git 還查得到）。
+### 新增腳本
+| 腳本 | 用途 |
+|------|------|
+| `scripts/stamp-sw-version.mjs` | build 前自動戳 SW 版本 |
+| `scripts/generate-og-image.mjs` | 生成 1200×630 OG 預覽圖 |
+| `scripts/subset-og-font.mjs` | Noto Sans TC 字型精簡 |
+| `scripts/convert-to-webp.mjs` | 圖片 WebP 批次轉換 |
 
 ---
 
-*最後更新：2026-05-01 | v4.1.2 | 下次更新時機：完成 v4.2.0 後*
+## 📚 參考連結
+
+- 線上 Demo：https://cagoooo.github.io/song/
+- Firebase Console：guitar-ff931 (登入 `ipad@mail2.smes.tyc.edu.tw`)
+- CI：[GitHub Actions](https://github.com/cagoooo/song/actions)
+- 文件歸檔：`docs/archive/`（含 v3.x 之前的開發紀錄）
+
+---
+
+*最後更新：2026-05-15 | v4.2.0+ | 下次更新時機：完成 v4.3.0 性能優化批次後*

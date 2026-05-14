@@ -1,7 +1,7 @@
 // Service Worker - 吉他點歌系統 PWA
 // 版本號於 build 時由 scripts/stamp-sw-version.mjs 自動取代
 // (從 package.json 讀 version + git short hash + 時間戳)
-const CACHE_VERSION = '4.2.0-1be02ef-od1i';
+const CACHE_VERSION = '4.2.0-ac1f138-wdxq';
 const CACHE_NAME = `guitar-song-${CACHE_VERSION}`;
 
 // 需要預緩存的核心資源
@@ -11,6 +11,12 @@ const PRECACHE_ASSETS = [
     '/song/favicon.ico',
     '/song/playground.png',
     '/song/manifest.json',
+    // PWA icons (splash screen + 安裝後 app icon)
+    '/song/icon-192.png',
+    '/song/icon-512.png',
+    '/song/icon-maskable-192.png',
+    '/song/icon-maskable-512.png',
+    '/song/apple-touch-icon.png',
 ];
 
 // 不需要緩存的請求模式

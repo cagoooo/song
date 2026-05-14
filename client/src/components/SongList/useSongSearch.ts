@@ -1,16 +1,26 @@
 // 搜尋過濾邏輯 Hook - 支援模糊搜尋 + 拼音/注音/歌詞片段
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Fuse, { type IFuseOptions } from 'fuse.js';
-import { pinyin } from 'pinyin-pro';
 import type { Song } from '@/lib/firestore';
 
+// pinyin-pro 字典 ~216KB raw / 138KB gzip — 改為動態載入，
+// 避免阻塞首屏。Module-level 快取確保只 fetch 一次。
+type PinyinModule = typeof import('pinyin-pro');
+let pinyinModulePromise: Promise<PinyinModule> | null = null;
+function loadPinyinModule(): Promise<PinyinModule> {
+    if (!pinyinModulePromise) {
+        pinyinModulePromise = import('pinyin-pro');
+    }
+    return pinyinModulePromise;
+}
+
 /** 將中文轉成無音調拼音 (空白分隔), 支援多音字 + 加聲母前綴 (gbqz) 方便注音輸入法用戶 */
-function toPinyin(s: string): string {
-    if (!s) return '';
+function toPinyin(s: string, mod: PinyinModule | null): string {
+    if (!s || !mod) return '';
     try {
-        const py = pinyin(s, { toneType: 'none', type: 'string', nonZh: 'consecutive' }).toLowerCase();
+        const py = mod.pinyin(s, { toneType: 'none', type: 'string', nonZh: 'consecutive' }).toLowerCase();
         // 順便加首字母組合 (gbq → 「告白氣球」), 涵蓋一些使用者只記住聲母的場景
-        const initials = pinyin(s, { pattern: 'first', type: 'string', toneType: 'none', nonZh: 'consecutive' }).toLowerCase();
+        const initials = mod.pinyin(s, { pattern: 'first', type: 'string', toneType: 'none', nonZh: 'consecutive' }).toLowerCase();
         return `${py} ${initials}`;
     } catch {
         return '';
@@ -65,19 +75,59 @@ export function useSongSearch(
     songs: Song[],
     options: UseSongSearchOptions = {}
 ): UseSongSearchReturn {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTermState] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [isFuzzyMode, setIsFuzzyMode] = useState(options.useFuzzySearch ?? true);
+    // pinyin-pro 動態載入後存到 state，觸發 enrichedSongs 重新計算
+    const [pinyinMod, setPinyinMod] = useState<PinyinModule | null>(null);
+
+    // 閒置時間預先載入 pinyin-pro（不阻塞首屏，但通常在使用者搜尋前就準備好）
+    useEffect(() => {
+        if (typeof window === 'undefined' || pinyinMod) return;
+        let cancelled = false;
+        const trigger = () => {
+            loadPinyinModule().then((mod) => {
+                if (!cancelled) setPinyinMod(mod);
+            }).catch(() => {
+                // 載入失敗時 fallback 為純精確搜尋，不影響核心功能
+            });
+        };
+        const win = window as Window & {
+            requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number;
+            cancelIdleCallback?: (id: number) => void;
+        };
+        if (typeof win.requestIdleCallback === 'function') {
+            const id = win.requestIdleCallback(trigger, { timeout: 3000 });
+            return () => {
+                cancelled = true;
+                win.cancelIdleCallback?.(id);
+            };
+        }
+        const id = window.setTimeout(trigger, 1500);
+        return () => {
+            cancelled = true;
+            window.clearTimeout(id);
+        };
+    }, [pinyinMod]);
+
+    // 使用者搜尋時若模組還沒到位，立刻強制觸發載入（不等 idle）
+    const setSearchTerm = useCallback((term: string) => {
+        if (term && !pinyinMod) {
+            loadPinyinModule().then((mod) => setPinyinMod(mod)).catch(() => {});
+        }
+        setSearchTermState(term);
+    }, [pinyinMod]);
 
     // 預先計算每首歌的拼音 (含首字母), 比對時 Fuse.js 多欄一起 fuzzy
     // 純中文歌曲 1000 首 ≈ 50-100ms 一次性計算; useMemo 確保只算一次
+    // 在 pinyinMod 載入前 _titlePy/_artistPy 為空，Fuse 仍可用 title/artist 比對
     const enrichedSongs = useMemo<SongWithPhonetic[]>(
         () => songs.map((s) => ({
             ...s,
-            _titlePy: toPinyin(s.title),
-            _artistPy: toPinyin(s.artist),
+            _titlePy: toPinyin(s.title, pinyinMod),
+            _artistPy: toPinyin(s.artist, pinyinMod),
         })),
-        [songs]
+        [songs, pinyinMod]
     );
 
     // 建立 Fuse 實例

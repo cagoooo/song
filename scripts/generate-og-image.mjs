@@ -180,6 +180,117 @@ function generateFaviconSource(size) {
     return canvas.toBuffer('image/png');
 }
 
+// ==================== Maskable Icon (full-bleed + 60% safe zone) ====================
+/**
+ * Maskable icon 規範：Android 會以圓 / squircle / teardrop 等形狀 mask icon，
+ * 重要元素必須在中央 80% 圓形安全區內，邊緣 10% 隨時會被裁掉。
+ * 做法：full-bleed 純色背景（無圓角，平台自己 mask 形狀）+ 吉他縮到 ~65%。
+ */
+function generateMaskableIconSource(size) {
+    const canvas = createCanvas(size, size);
+    const ctx = canvas.getContext('2d');
+
+    // 全幅背景填色（不留圓角，Android 自己 mask）
+    ctx.fillStyle = THEME.primary;
+    ctx.fillRect(0, 0, size, size);
+
+    // 中央吉他 — 縮到 size/350 (約原本 65%)，內含於 80% 安全圓內
+    drawGuitarIcon(ctx, size / 2, size / 2 + size * 0.04, size / 350, '#fff');
+
+    return canvas.toBuffer('image/png');
+}
+
+// ==================== Screenshot (PWA install dialog 用) ====================
+/**
+ * 畫一張 mock 排行榜介面，讓 PWA install prompt 更專業。
+ * Lighthouse PWA 100 不強制，但有 screenshots 的話 install dialog 較豐富。
+ */
+function generateScreenshot(width, height, formFactor) {
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    // 背景漸層
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, THEME.bgFrom);
+    grad.addColorStop(1, '#ffffff');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // 頂部 app bar
+    const barH = Math.round(height * 0.1);
+    ctx.fillStyle = THEME.primary;
+    ctx.fillRect(0, 0, width, barH);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${Math.round(barH * 0.4)}px "NotoSansTC"`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('吉他點歌系統', 32, barH / 2);
+
+    // 區塊標題
+    ctx.fillStyle = THEME.text;
+    ctx.font = `900 ${Math.round(height * 0.038)}px "NotoSansTC"`;
+    ctx.textBaseline = 'top';
+    ctx.fillText('熱門排行榜', 32, barH + 24);
+
+    // 排行榜卡片
+    const cards = formFactor === 'wide' ? 5 : 4;
+    const startY = barH + 80;
+    const gap = 16;
+    const cardW = width - 64;
+    const cardH = Math.round((height - startY - 32) / cards - gap);
+    const colors = ['#fbbf24', '#9ca3af', '#d97706', '#cbd5e1', '#cbd5e1'];
+    const votes = [42, 38, 33, 29, 21];
+
+    for (let i = 0; i < cards; i++) {
+        const y = startY + i * (cardH + gap);
+        // 卡片底
+        ctx.fillStyle = '#ffffff';
+        roundRect(ctx, 32, y, cardW, cardH, 18);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(180,83,9,0.15)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // 排名徽章
+        const badgeR = cardH * 0.32;
+        const badgeX = 32 + 24 + badgeR;
+        const badgeY = y + cardH / 2;
+        ctx.fillStyle = colors[i] || '#cbd5e1';
+        ctx.beginPath();
+        ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `900 ${Math.round(badgeR * 0.9)}px "NotoSansTC"`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${i + 1}`, badgeX, badgeY);
+        // 歌名 + 歌手 placeholder bars（用灰條避免誤導使用者像真歌單）
+        const textStartX = badgeX + badgeR + 24;
+        const textMaxW = width - textStartX - 32 - 140; // 預留右側給票數膠囊
+        ctx.fillStyle = 'rgba(28,25,23,0.85)';
+        roundRect(ctx, textStartX, y + cardH * 0.28, textMaxW * 0.7, cardH * 0.18, 4);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(87,83,78,0.4)';
+        roundRect(ctx, textStartX, y + cardH * 0.58, textMaxW * 0.5, cardH * 0.14, 4);
+        ctx.fill();
+        // 票數膠囊（純數字 + 主題色）
+        const voteText = `${votes[i] || 10}`;
+        ctx.font = `900 ${Math.round(cardH * 0.32)}px "NotoSansTC"`;
+        ctx.fillStyle = THEME.primary;
+        const tw = ctx.measureText(voteText).width;
+        const px = 22, ph = cardH * 0.55;
+        const pillX = width - 32 - tw - px * 2 - 16;
+        const pillY = y + (cardH - ph) / 2;
+        roundRect(ctx, pillX, pillY, tw + px * 2, ph, ph / 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(voteText, pillX + (tw + px * 2) / 2, y + cardH / 2);
+    }
+
+    return canvas.toBuffer('image/png');
+}
+
 // ==================== 主流程 ====================
 async function main() {
     console.log('🎨 開始產生 OG 圖與 favicon...\n');
@@ -228,6 +339,29 @@ async function main() {
     const ico32 = await sharp(sourcePng).resize(32, 32).png().toBuffer();
     writeFileSync(resolve(PUBLIC, 'favicon.ico'), ico32);
     console.log(`✓ favicon.ico        32×32     ${(ico32.length / 1024).toFixed(1)} KB  (PNG-as-ICO)`);
+
+    // 4) Maskable icons (Android PWA 適配各種形狀 mask)
+    const maskableSource = generateMaskableIconSource(SOURCE_SIZE);
+    const maskableSizes = [
+        { name: 'icon-maskable-512.png', size: 512 },
+        { name: 'icon-maskable-192.png', size: 192 },
+    ];
+    for (const { name, size } of maskableSizes) {
+        const buf = await sharp(maskableSource).resize(size, size).png().toBuffer();
+        writeFileSync(resolve(PUBLIC, name), buf);
+        console.log(`✓ ${name.padEnd(22)} ${size}×${size}    ${(buf.length / 1024).toFixed(1)} KB  (maskable)`);
+    }
+
+    // 5) Screenshots (narrow + wide) — PWA install dialog 用
+    const screenshots = [
+        { name: 'screenshot-narrow.png', width: 540, height: 720, formFactor: 'narrow' },
+        { name: 'screenshot-wide.png',   width: 1280, height: 720, formFactor: 'wide' },
+    ];
+    for (const { name, width, height, formFactor } of screenshots) {
+        const buf = generateScreenshot(width, height, formFactor);
+        writeFileSync(resolve(PUBLIC, name), buf);
+        console.log(`✓ ${name.padEnd(22)} ${width}×${height}   ${(buf.length / 1024).toFixed(1)} KB  (${formFactor})`);
+    }
 
     console.log('\n✨ 完成！檔案輸出至 client/public/');
 }
