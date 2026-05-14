@@ -5,7 +5,7 @@ import {
     persistentLocalCache,
     persistentMultipleTabManager,
 } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import type { Auth } from 'firebase/auth';
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -28,7 +28,16 @@ export const db = initializeFirestore(app, {
     }),
 });
 
-export const auth = getAuth(app);
+// ==================== Auth（lazy load） ====================
+// firebase/auth ~150KB 只給管理員登入用，訪客 99% 不需要。
+// 改 dynamic import 後從主 bundle 移出，首屏少載 ~40KB gzip。
+let authPromise: Promise<Auth> | null = null;
+export function getAuthLazy(): Promise<Auth> {
+    if (!authPromise) {
+        authPromise = import('firebase/auth').then((m) => m.getAuth(app));
+    }
+    return authPromise;
+}
 
 // Collection 名稱常數
 export const COLLECTIONS = {

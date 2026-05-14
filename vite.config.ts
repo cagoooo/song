@@ -27,8 +27,10 @@ export default defineConfig({
         manualChunks: {
           // React 核心
           'react-vendor': ['react', 'react-dom'],
-          // Firebase 相關
-          'firebase': ['firebase/app', 'firebase/firestore', 'firebase/auth'],
+          // Firebase 核心 (app + firestore) — auth 已改為 dynamic import, 不放這
+          'firebase': ['firebase/app', 'firebase/firestore'],
+          // Firebase Auth (~150KB) — 只給管理員用, lazy load 不在 modulepreload
+          'firebase-auth': ['firebase/auth'],
           // UI 元件庫
           'ui-radix': [
             '@radix-ui/react-dialog',
