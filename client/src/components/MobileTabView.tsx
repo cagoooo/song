@@ -1,75 +1,72 @@
-// 手機版 Tab 介面元件 - 支援手勢滑動（效能優化版）
+// 手機版 Tab 介面 — Editorial 雜誌風（№02 歌單 / №03 排行 / №04 催歌王）
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Music2, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSwipeable } from 'react-swipeable';
+import { VoterBoard } from './VoterBoard';
 
 interface MobileTabViewProps {
     songListContent: React.ReactNode;
     rankingContent: React.ReactNode;
-    isAdmin?: boolean; // 管理員預設顯示排行榜
-    activeTab?: TabType; // 外部控制的 Tab 狀態
-    onTabChange?: (tab: TabType) => void; // Tab 變更回呼
+    isAdmin?: boolean;
+    activeTab?: TabType;
+    onTabChange?: (tab: TabType) => void;
 }
 
-type TabType = 'songs' | 'ranking';
-const TABS: TabType[] = ['songs', 'ranking'];
+type TabType = 'songs' | 'ranking' | 'voters';
+const TABS: TabType[] = ['songs', 'ranking', 'voters'];
+
+const TAB_META: Record<TabType, { chap: string; label: string }> = {
+    songs:   { chap: 'No. 02', label: '歌單' },
+    ranking: { chap: 'No. 03', label: '排行' },
+    voters:  { chap: 'No. 04', label: '催歌王' },
+};
 
 export function MobileTabView({
     songListContent,
     rankingContent,
     isAdmin = false,
     activeTab: controlledActiveTab,
-    onTabChange
+    onTabChange,
 }: MobileTabViewProps) {
-    // 管理員預設顯示排行榜，一般用戶預設顯示歌曲列表
     const [internalActiveTab, setInternalActiveTab] = useState<TabType>(isAdmin ? 'ranking' : 'songs');
 
-    // 支援受控和非受控模式
     const activeTab = controlledActiveTab ?? internalActiveTab;
     const setActiveTab = useCallback((tab: TabType) => {
-        if (onTabChange) {
+        if (onTabChange && (tab === 'songs' || tab === 'ranking')) {
             onTabChange(tab);
         } else {
             setInternalActiveTab(tab);
         }
     }, [onTabChange]);
-    const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
 
-    // 追蹤上次的 isAdmin 狀態，用於偵測登入
+    const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
     const prevIsAdminRef = useRef(isAdmin);
 
-    // 監聽 isAdmin 變化：當用戶從非管理員變成管理員時，自動切換到排行榜
-    // 注意：只在非受控模式下執行
     useEffect(() => {
         if (!controlledActiveTab && isAdmin && !prevIsAdminRef.current) {
-            // 用戶剛剛登入為管理員，切換到排行榜
             setSwipeDirection('left');
             setActiveTab('ranking');
         }
         prevIsAdminRef.current = isAdmin;
     }, [isAdmin, controlledActiveTab, setActiveTab]);
 
-    // 切換到下一個 Tab
     const goToNextTab = useCallback(() => {
         const currentIndex = TABS.indexOf(activeTab);
         if (currentIndex < TABS.length - 1) {
             setSwipeDirection('left');
             setActiveTab(TABS[currentIndex + 1]);
         }
-    }, [activeTab]);
+    }, [activeTab, setActiveTab]);
 
-    // 切換到上一個 Tab
     const goToPrevTab = useCallback(() => {
         const currentIndex = TABS.indexOf(activeTab);
         if (currentIndex > 0) {
             setSwipeDirection('right');
             setActiveTab(TABS[currentIndex - 1]);
         }
-    }, [activeTab]);
+    }, [activeTab, setActiveTab]);
 
-    // 手勢滑動設定
     const swipeHandlers = useSwipeable({
         onSwipedLeft: goToNextTab,
         onSwipedRight: goToPrevTab,
@@ -80,25 +77,20 @@ export function MobileTabView({
         preventScrollOnSwipe: false,
     });
 
-    // 處理 Tab 變更（點擊）
     const handleTabChange = (value: string) => {
         const newTab = value as TabType;
         setSwipeDirection(TABS.indexOf(newTab) > TABS.indexOf(activeTab) ? 'left' : 'right');
         setActiveTab(newTab);
     };
 
-    // 滑動動畫變體
     const slideVariants = {
         enter: (direction: 'left' | 'right' | null) => ({
-            x: direction === 'left' ? 100 : direction === 'right' ? -100 : 0,
+            x: direction === 'left' ? 60 : direction === 'right' ? -60 : 0,
             opacity: 0,
         }),
-        center: {
-            x: 0,
-            opacity: 1,
-        },
+        center: { x: 0, opacity: 1 },
         exit: (direction: 'left' | 'right' | null) => ({
-            x: direction === 'left' ? -100 : direction === 'right' ? 100 : 0,
+            x: direction === 'left' ? -60 : direction === 'right' ? 60 : 0,
             opacity: 0,
         }),
     };
@@ -106,92 +98,72 @@ export function MobileTabView({
     return (
         <div className="md:hidden" {...swipeHandlers}>
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                {/* 優化的 Tab 切換區塊 */}
-                <div className="sticky top-0 z-20 bg-gradient-to-b from-background via-background to-background/95 pb-3 pt-1">
-                    {/* 提示文字 - 更醒目的設計 */}
-                    <div className="flex items-center justify-center gap-2 mb-2 px-4 py-1.5 mx-auto w-fit rounded-full bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60">
-                        <div className="flex items-center text-amber-600">
-                            <ChevronLeft className="w-4 h-4 animate-pulse" />
-                            <ChevronLeft className="w-4 h-4 -ml-2 opacity-50" />
-                        </div>
-                        <span className="text-xs font-medium text-amber-700">
-                            👆 點擊切換 或 👈👉 左右滑動
-                        </span>
-                        <div className="flex items-center text-amber-600">
-                            <ChevronRight className="w-4 h-4 opacity-50" />
-                            <ChevronRight className="w-4 h-4 -ml-2 animate-pulse" />
-                        </div>
-                    </div>
-
-                    <TabsList className="grid w-full grid-cols-2 h-16 p-1.5 bg-gradient-to-r from-amber-100 via-orange-100 to-amber-100 rounded-2xl shadow-lg border-2 border-amber-300/60">
-                        <TabsTrigger
-                            value="songs"
-                            className="relative flex items-center justify-center gap-2.5 h-full rounded-xl font-bold text-lg
-                                data-[state=inactive]:text-amber-600/80 data-[state=inactive]:bg-transparent
-                                data-[state=inactive]:hover:text-amber-700 data-[state=inactive]:hover:bg-white/50
-                                data-[state=active]:bg-white data-[state=active]:text-orange-700 
-                                data-[state=active]:shadow-lg data-[state=active]:shadow-orange-200/50
-                                data-[state=active]:border data-[state=active]:border-orange-200
-                                transition-all duration-300 ease-out"
-                        >
-                            <Music2 className="w-5 h-5" />
-                            <span>歌曲列表</span>
-                            {activeTab === 'songs' && (
-                                <motion.div
-                                    layoutId="activeTabIndicator"
-                                    className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
-                                    initial={false}
-                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                />
-                            )}
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="ranking"
-                            className="relative flex items-center justify-center gap-2.5 h-full rounded-xl font-bold text-lg
-                                data-[state=inactive]:text-amber-600/80 data-[state=inactive]:bg-transparent
-                                data-[state=inactive]:hover:text-amber-700 data-[state=inactive]:hover:bg-white/50
-                                data-[state=active]:bg-white data-[state=active]:text-orange-700 
-                                data-[state=active]:shadow-lg data-[state=active]:shadow-orange-200/50
-                                data-[state=active]:border data-[state=active]:border-orange-200
-                                transition-all duration-300 ease-out"
-                        >
-                            <Trophy className="w-5 h-5" />
-                            <span>排行榜</span>
-                            {activeTab === 'ranking' && (
-                                <motion.div
-                                    layoutId="activeTabIndicator"
-                                    className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full"
-                                    initial={false}
-                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                />
-                            )}
-                        </TabsTrigger>
+                {/* Editorial 雜誌風 tab 列 */}
+                <div
+                    className="sticky top-0 z-20 bg-white pb-3 pt-2"
+                    style={{ borderBottom: '2px solid var(--ed-ink-1)' }}
+                >
+                    <TabsList
+                        className="grid w-full grid-cols-3 h-auto p-0 bg-transparent gap-0"
+                        style={{ borderRadius: 0 }}
+                    >
+                        {TABS.map((t) => {
+                            const meta = TAB_META[t];
+                            const isActive = activeTab === t;
+                            return (
+                                <TabsTrigger
+                                    key={t}
+                                    value={t}
+                                    className="relative flex flex-col items-start py-2 px-3 gap-0.5 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none focus-visible:outline-none focus-visible:ring-0"
+                                    style={{ textAlign: 'left' }}
+                                >
+                                    <span
+                                        style={{
+                                            fontFamily: 'var(--font-mono)',
+                                            fontSize: 9,
+                                            letterSpacing: '0.24em',
+                                            textTransform: 'uppercase',
+                                            color: isActive ? 'var(--ed-accent)' : 'var(--ed-ink-3)',
+                                        }}
+                                    >
+                                        {meta.chap}
+                                    </span>
+                                    <span
+                                        style={{
+                                            fontFamily: 'var(--font-display)',
+                                            fontStyle: 'italic',
+                                            fontWeight: 800,
+                                            fontSize: 17,
+                                            letterSpacing: '-0.01em',
+                                            lineHeight: 1.1,
+                                            color: isActive ? 'var(--ed-ink-1)' : 'var(--ed-ink-3)',
+                                        }}
+                                    >
+                                        {meta.label}
+                                    </span>
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="mobileTabUnderline"
+                                            className="absolute -bottom-[2px] left-0 right-0"
+                                            style={{
+                                                height: 3,
+                                                background: 'var(--ed-accent)',
+                                            }}
+                                            initial={false}
+                                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                        />
+                                    )}
+                                </TabsTrigger>
+                            );
+                        })}
                     </TabsList>
-
-                    {/* 當前位置指示器 - CSS transition（移除 framer-motion） */}
-                    <div className="flex justify-center gap-2 mt-3">
-                        <div
-                            className={`h-2 rounded-full transition-all duration-300 cursor-pointer hover:opacity-80 active:scale-90 ${activeTab === 'songs'
-                                ? 'bg-primary w-6'
-                                : 'bg-gray-300 hover:bg-gray-400 w-2'
-                                }`}
-                            onClick={() => handleTabChange('songs')}
-                        />
-                        <div
-                            className={`h-2 rounded-full transition-all duration-300 cursor-pointer hover:opacity-80 active:scale-90 ${activeTab === 'ranking'
-                                ? 'bg-primary w-6'
-                                : 'bg-gray-300 hover:bg-gray-400 w-2'
-                                }`}
-                            onClick={() => handleTabChange('ranking')}
-                        />
-                    </div>
                 </div>
 
-                {/* Tab 內容區域 - 滑動動畫 */}
+                {/* Tab 內容區 — 滑動動畫 */}
                 <div className="overflow-hidden">
                     <AnimatePresence mode="wait" custom={swipeDirection}>
                         {activeTab === 'songs' && (
-                            <TabsContent value="songs" className="mt-0 focus-visible:outline-none" forceMount>
+                            <TabsContent value="songs" className="mt-3 focus-visible:outline-none" forceMount>
                                 <motion.div
                                     key="songs"
                                     custom={swipeDirection}
@@ -199,7 +171,7 @@ export function MobileTabView({
                                     initial="enter"
                                     animate="center"
                                     exit="exit"
-                                    transition={{ duration: 0.25, ease: "easeOut" }}
+                                    transition={{ duration: 0.25, ease: 'easeOut' }}
                                 >
                                     {songListContent}
                                 </motion.div>
@@ -207,7 +179,7 @@ export function MobileTabView({
                         )}
 
                         {activeTab === 'ranking' && (
-                            <TabsContent value="ranking" className="mt-0 focus-visible:outline-none" forceMount>
+                            <TabsContent value="ranking" className="mt-3 focus-visible:outline-none" forceMount>
                                 <motion.div
                                     key="ranking"
                                     custom={swipeDirection}
@@ -215,9 +187,41 @@ export function MobileTabView({
                                     initial="enter"
                                     animate="center"
                                     exit="exit"
-                                    transition={{ duration: 0.25, ease: "easeOut" }}
+                                    transition={{ duration: 0.25, ease: 'easeOut' }}
                                 >
                                     {rankingContent}
+                                </motion.div>
+                            </TabsContent>
+                        )}
+
+                        {activeTab === 'voters' && (
+                            <TabsContent value="voters" className="mt-3 focus-visible:outline-none" forceMount>
+                                <motion.div
+                                    key="voters"
+                                    custom={swipeDirection}
+                                    variants={slideVariants}
+                                    initial="enter"
+                                    animate="center"
+                                    exit="exit"
+                                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                                    className="px-3 pb-4"
+                                >
+                                    {/* 雜誌風章節 + 催歌王內容 */}
+                                    <div className="editorial-section-head" style={{ marginBottom: 12, paddingBottom: 8 }}>
+                                        <div className="h-title">
+                                            <span className="chap">№ 04 / 催 歌 王</span>
+                                            <h2>今晚最會催歌的人</h2>
+                                        </div>
+                                    </div>
+                                    <div
+                                        className="rounded-2xl p-4"
+                                        style={{
+                                            background: 'var(--ed-paper)',
+                                            border: '1px solid rgba(17, 17, 17, 0.14)',
+                                        }}
+                                    >
+                                        <VoterBoard topN={20} height={460} />
+                                    </div>
                                 </motion.div>
                             </TabsContent>
                         )}

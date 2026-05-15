@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Music2, Trophy, Lightbulb, Tv } from "lucide-react";
+import { LogIn, LogOut, Trophy, Tv } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import { TagFilterBar } from "../components/TagFilterBar";
@@ -50,6 +50,7 @@ import { NowPlayingNotification } from "../components/NowPlayingNotification";
 import { PWAInstallPrompt } from "../components/PWAInstallPrompt";
 import InteractionOverlay from "../components/InteractionOverlay";
 import { useSuggestionNotification } from "@/hooks/useSuggestionNotification";
+import { SongDetailModal } from "../components/SongDetail";
 import { SuggestionNotificationOverlay } from "../components/SuggestionNotificationOverlay";
 
 // 延遲載入大型元件以減少初始 bundle 大小
@@ -77,13 +78,14 @@ export default function Home() {
   const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTabForMobile, setActiveTabForMobile] = useState<'songs' | 'ranking'>('songs');
+  const [activeTabForMobile, setActiveTabForMobile] = useState<'songs' | 'ranking' | 'voters'>('songs');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [detailSong, setDetailSong] = useState<Song | null>(null);
   const { combo } = useComboCounter();
 
   // 用 useMemo 包起來避免每次 render 都重綁 listener
@@ -406,56 +408,116 @@ export default function Home() {
       )}
 
       <div className="container mx-auto py-3 sm:py-6 md:py-8 px-2 sm:px-4">
-        {/* Title container */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
+        {/* Editorial topbar — 雜誌品牌列：黑膠圓圈 + 阿凱 · Guitar Singalong + ISSUE №12 mono divider */}
+        <div className="editorial-topbar">
+          <div className="editorial-topbar-brand">
+            <span className="editorial-brand-mark" aria-hidden="true" />
+            <span>阿凱 · Guitar Singalong</span>
+            <span className="editorial-topbar-issue">ISSUE №12 · {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()}</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+            <ShareButton />
+          </div>
+        </div>
+
+        {/* Editorial Masthead — 雜誌風大標：眉標 + 義式襯線大字 + 統計帶 + 90 MIN 卡帶 */}
+        <motion.header
+          initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col items-center justify-center mb-6 sm:mb-8 md:mb-10 lg:mb-12 px-3 sm:px-4 md:px-6 lg:px-8 w-full"
+          className="editorial-hero mb-4 sm:mb-6"
         >
-          <motion.div
-            className="relative p-3 sm:p-4 md:p-5 lg:p-6 rounded-lg border-2 border-primary/50 bg-gradient-to-br from-white/95 via-primary/5 to-white/90 backdrop-blur-sm shadow-[0_0_20px_rgba(var(--primary),0.4)] w-full max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-3xl mx-auto overflow-hidden hover:shadow-[0_0_30px_rgba(var(--primary),0.5)] transition-all duration-300"
-            initial={{ scale: 0.95 }}
-            animate={{
-              scale: 1,
-              transition: {
-                type: "spring",
-                stiffness: 100,
-                damping: 15
-              }
-            }}
-            whileHover={{ scale: 1.02 }}
-          >
-            {/* 簡化版標題 - 移除複雜動畫以提升效能 */}
-            <div className="relative">
-              <h1
-                className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-black text-center bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 px-2 sm:px-3 md:px-4 py-2 relative z-10 leading-[1.2] sm:leading-[1.2] md:leading-[1.2] lg:leading-[1.2] tracking-tight text-white shadow-lg rounded-lg"
-              >
-                <div className="flex justify-center items-baseline">
-                  <span>吉他彈唱</span>
-                  <span className="px-2">🎸</span>
-                  <span>點歌系統</span>
-                  <span className="ml-1">🎵</span>
-                </div>
-              </h1>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-4 sm:mb-5">
+              <span className="live-dot" aria-hidden="true" />
+              <span className="eyebrow">ISSUE №12 · SIDE A · 阿凱彈唱之夜</span>
             </div>
 
-            {/* 簡化背景效果 - 使用靜態漸層取代動態blur */}
-            <div
-              className="absolute inset-0 bg-gradient-to-r from-yellow-400/10 via-rose-500/10 to-amber-400/10 rounded-lg"
-              style={{ pointerEvents: "none" }}
-            />
-          </motion.div>
+            <h1 className="editorial-hero-title">
+              吉他彈唱<br />
+              <span className="ital">點歌系統</span>
+            </h1>
 
-          <motion.div
-            className="mt-4 sm:mt-5 md:mt-6 lg:mt-8 scale-90 sm:scale-95 md:scale-100 lg:scale-105"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-          >
-            <ShareButton />
-          </motion.div>
-        </motion.div>
+            <p className="editorial-hero-sub">
+              像一卷 90 分鐘卡帶。<br />
+              翻面、按下錄音鍵、把你想聽的歌寫進今晚的歌單。
+            </p>
+
+            <div className="editorial-hero-stats">
+              <div className="editorial-hero-stat">
+                <div className="n">{songs.length}</div>
+                <div className="l">Setlist</div>
+              </div>
+              <div className="editorial-hero-stat-divider" aria-hidden="true" />
+              <div className="editorial-hero-stat">
+                <div className="n">{songs.reduce((a, s) => a + (s.voteCount || 0), 0)}</div>
+                <div className="l">Votes Tonight</div>
+              </div>
+              <div className="editorial-hero-stat-divider" aria-hidden="true" />
+              <div className="editorial-hero-stat">
+                <div className="n">{voteTodayUnique || 0}</div>
+                <div className="l">Active</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 90 MIN 卡帶主視覺 */}
+          <div className="editorial-cassette" aria-hidden="true">
+            <div className="editorial-cassette-shell" />
+            <span className="editorial-cassette-screw tl" />
+            <span className="editorial-cassette-screw tr" />
+            <span className="editorial-cassette-screw bl" />
+            <span className="editorial-cassette-screw br" />
+            <div className="editorial-cassette-toplabel">
+              <div>
+                <div className="side">SIDE A · 90 MIN</div>
+                <div className="name">阿凱彈唱之夜</div>
+              </div>
+              <div className="issue">N°12</div>
+            </div>
+            <div className="editorial-cassette-inner">
+              <div className="row">
+                <span className="lo">HIGH-BIAS</span>
+                <span className="mid">type II</span>
+                <span className="ro">DOLBY NR</span>
+              </div>
+              <div className="editorial-cassette-reels">
+                <div className="editorial-cassette-reel" />
+                <div className="editorial-cassette-tape"><i /></div>
+                <div className="editorial-cassette-reel" />
+              </div>
+              <div className="row time">
+                <span>00:00</span>
+                <span aria-hidden="true" />
+                <span>90:00</span>
+              </div>
+            </div>
+          </div>
+        </motion.header>
+
+        {/* Ticker marquee — 雜誌跑馬燈 */}
+        <div className="editorial-ticker" aria-hidden="true">
+          <div className="track">
+            {[
+              "Tonight's set · 17 songs queued",
+              "誰會唱到天亮？",
+              "新歌進榜 · 任性 / 五月天",
+              "現場人氣值 +24%",
+              "點歌請投票 · 投票即催歌",
+              "Side A · 33⅓ RPM · LIVE",
+              "Tonight's set · 17 songs queued",
+              "誰會唱到天亮？",
+              "新歌進榜 · 任性 / 五月天",
+              "現場人氣值 +24%",
+              "點歌請投票 · 投票即催歌",
+              "Side A · 33⅓ RPM · LIVE",
+            ].map((t, i) => (
+              <span key={i} className="item">
+                <span className="star">★</span> {t}
+              </span>
+            ))}
+          </div>
+        </div>
 
         {/* Rest of the content */}
         <AnimatePresence>
@@ -466,21 +528,29 @@ export default function Home() {
               layout: { duration: 0.3 },
             }}
           >
-            {/* Song suggestion section */}
+            {/* Song suggestion section — editorial quote style */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
               className="lg:col-span-3"
             >
-              <Card className="shadow-lg bg-gradient-to-br from-amber-50/50 via-white to-amber-50/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
-                    想聽的歌還沒有？
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+              <div className="editorial-section-head">
+                <div className="h-title">
+                  <span className="chap">№ 01 / 推 薦</span>
+                  <h2>想聽的歌還沒有？</h2>
+                </div>
+                <div className="h-meta">Reader’s Pick</div>
+              </div>
+              <div className="editorial-suggest">
+                <div className="flex items-center gap-3 mb-1 relative z-10">
+                  <span className="font-mono-eyebrow">Editor’s Note</span>
+                </div>
+                <h3 className="editorial-suggest-title">推薦一首，下一場可能就會排進歌單</h3>
+                <p className="editorial-suggest-sub">
+                  把你心中的曲目寄給阿凱老師，他會挑出最適合現場彈唱的版本納入。
+                </p>
+                <div className="mt-5 relative z-10">
                   <Suspense fallback={<SectionSkeleton />}>
                     <SongSuggestion
                       isAdmin={user?.isAdmin ?? false}
@@ -488,8 +558,8 @@ export default function Home() {
                       onNavigateToSong={handleNavigateToSong}
                     />
                   </Suspense>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </motion.div>
 
             {/* 響應式佈局：手機 Tab / 桌面平板雙欄 */}
@@ -505,24 +575,23 @@ export default function Home() {
                 activeTab={activeTabForMobile}
                 onTabChange={setActiveTabForMobile}
                 songListContent={
-                  <Card className="shadow-lg">
-                    <CardHeader>
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Music2 className="w-5 h-5 text-primary" />
-                          可選歌單
-                        </CardTitle>
-                        <div className="flex items-center gap-1.5">
-                          <SortSelector value={sortMode} onChange={setSortMode} />
-                          <VoteHistoryButton
-                            todayCount={voteTodayCount}
-                            totalCount={voteHistory.length}
-                            onClick={() => setHistoryOpen(true)}
-                          />
-                        </div>
+                  <>
+                    <div className="editorial-section-head">
+                      <div className="h-title">
+                        <span className="chap">№ 02 / 歌 單</span>
+                        <h2>可選歌單</h2>
                       </div>
-                    </CardHeader>
-                    <CardContent className="p-3">
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <SortSelector value={sortMode} onChange={setSortMode} />
+                        <VoteHistoryButton
+                          todayCount={voteTodayCount}
+                          totalCount={voteHistory.length}
+                          onClick={() => setHistoryOpen(true)}
+                        />
+                      </div>
+                    </div>
+                  <Card className="shadow-lg editorial-paper">
+                    <CardContent className="p-3 pt-3">
                       {user?.isAdmin && <SongImport />}
                       <div className="h-3" />
                       <TagFilterBar
@@ -544,38 +613,40 @@ export default function Home() {
                         totalCount={songs.length}
                         selectedTagIds={selectedTagIds}
                         songTagsMap={songTagsMap}
+                        onOpenDetail={setDetailSong}
                       />
                     </CardContent>
                   </Card>
+                  </>
                 }
                 rankingContent={
-                  <Card className="shadow-lg">
-                    <CardHeader>
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Trophy className="w-5 h-5 text-primary" />
-                          人氣點播排行榜
-                        </CardTitle>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setLeaderboardOpen(true)}
-                          aria-label="投票領袖板"
-                          title="看誰灌票最猛"
-                          className="h-8 px-2 text-xs gap-1.5 shrink-0"
-                        >
-                          <Trophy className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">領袖板</span>
-                        </Button>
+                  <>
+                    <div className="editorial-section-head">
+                      <div className="h-title">
+                        <span className="chap">№ 03 / 排 行</span>
+                        <h2>人氣點播排行榜</h2>
                       </div>
-                    </CardHeader>
-                    <CardContent className="p-3">
-                      <Suspense fallback={<SectionSkeleton />}>
-                        <RankingBoard songs={songs} user={user} />
-                      </Suspense>
-                    </CardContent>
-                  </Card>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setLeaderboardOpen(true)}
+                        aria-label="投票領袖板"
+                        title="看誰灌票最猛"
+                        className="h-8 px-2 text-xs gap-1.5 shrink-0"
+                      >
+                        <Trophy className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">領袖板</span>
+                      </Button>
+                    </div>
+                    <Card className="shadow-lg editorial-paper-cream">
+                      <CardContent className="p-3 pt-3">
+                        <Suspense fallback={<SectionSkeleton />}>
+                          <RankingBoard songs={songs} user={user} />
+                        </Suspense>
+                      </CardContent>
+                    </Card>
+                  </>
                 }
               />
 
@@ -588,24 +659,22 @@ export default function Home() {
                   transition={{ duration: 0.5, delay: 0.4 }}
                   className={user?.isAdmin ? "order-2 lg:order-1" : ""}
                 >
-                  <Card className="shadow-lg">
-                    <CardHeader>
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                          <Music2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                          可選歌單
-                        </CardTitle>
-                        <div className="flex items-center gap-1.5">
-                          <SortSelector value={sortMode} onChange={setSortMode} />
-                          <VoteHistoryButton
-                            todayCount={voteTodayCount}
-                            totalCount={voteHistory.length}
-                            onClick={() => setHistoryOpen(true)}
-                          />
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-6">
+                  <div className="editorial-section-head">
+                    <div className="h-title">
+                      <span className="chap">№ 02 / 歌 單</span>
+                      <h2>可選歌單</h2>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <SortSelector value={sortMode} onChange={setSortMode} />
+                      <VoteHistoryButton
+                        todayCount={voteTodayCount}
+                        totalCount={voteHistory.length}
+                        onClick={() => setHistoryOpen(true)}
+                      />
+                    </div>
+                  </div>
+                  <Card className="shadow-lg editorial-paper">
+                    <CardContent className="p-3 sm:p-6 pt-3 sm:pt-6">
                       {user?.isAdmin && <SongImport />}
                       <div className="h-3 sm:h-4" />
                       <TagFilterBar
@@ -627,6 +696,7 @@ export default function Home() {
                         totalCount={songs.length}
                         selectedTagIds={selectedTagIds}
                         songTagsMap={songTagsMap}
+                        onOpenDetail={setDetailSong}
                       />
                     </CardContent>
                   </Card>
@@ -639,28 +709,26 @@ export default function Home() {
                   transition={{ duration: 0.5, delay: 0.6 }}
                   className={user?.isAdmin ? "order-1 lg:order-2" : ""}
                 >
-                  <Card className="shadow-lg">
-                    <CardHeader>
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                          <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                          人氣點播排行榜
-                        </CardTitle>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setLeaderboardOpen(true)}
-                          aria-label="投票領袖板"
-                          title="看誰灌票最猛"
-                          className="h-8 px-2 text-xs gap-1.5 shrink-0"
-                        >
-                          <Trophy className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">領袖板</span>
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-6">
+                  <div className="editorial-section-head">
+                    <div className="h-title">
+                      <span className="chap">№ 03 / 排 行</span>
+                      <h2>人氣點播排行榜</h2>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setLeaderboardOpen(true)}
+                      aria-label="投票領袖板"
+                      title="看誰灌票最猛"
+                      className="h-8 px-2 text-xs gap-1.5 shrink-0"
+                    >
+                      <Trophy className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">領袖板</span>
+                    </Button>
+                  </div>
+                  <Card className="shadow-lg editorial-paper-cream">
+                    <CardContent className="p-3 sm:p-6 pt-3 sm:pt-6">
                       <Suspense fallback={<SectionSkeleton />}>
                         <RankingBoard songs={songs} user={user} />
                       </Suspense>
@@ -671,6 +739,16 @@ export default function Home() {
             </motion.div>
           </motion.div>
         </AnimatePresence>
+
+        {/* Editorial footer — 雜誌風版權帶 + 旋轉刻度標記 */}
+        <footer className="editorial-footer">
+          <div>© {new Date().getFullYear()} 阿凱彈唱之夜 · 桃園 SMES · v2.0 hi-fi</div>
+          <div className="editorial-flag-rule">
+            <span>Side A</span>
+            <span aria-hidden="true" />
+            <span>33⅓ RPM · LIVE</span>
+          </div>
+        </footer>
       </div>
 
       {/* Login button for non-admin users */}
@@ -785,6 +863,14 @@ export default function Home() {
           />
         </Suspense>
       )}
+
+      {/* 歌曲詳情頁（Editorial 雜誌風全螢幕 modal） */}
+      <SongDetailModal
+        song={detailSong}
+        allSongs={songs}
+        onClose={() => setDetailSong(null)}
+        onSelectSimilar={(s) => setDetailSong(s)}
+      />
 
       {/* 統計儀表板 (管理員) */}
       {statsOpen && (

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { TrendingUp } from 'lucide-react';
 import type { DarkHorseEvent } from '@/hooks/useDarkHorse';
 
 interface DarkHorseOverlayProps {
@@ -9,8 +8,8 @@ interface DarkHorseOverlayProps {
 }
 
 /**
- * 黑馬時刻全螢幕慶祝動畫。
- * 設計：上方旋轉的 emoji + "黑馬時刻" 標題，下方歌名與排名箭頭。
+ * 黑馬時刻全螢幕慶祝 — Editorial 雜誌風
+ * 黑底 + BREAKING badge + 大義式藍襯線歌名 + ★ DARK HORSE ★ 上下跑馬燈
  */
 export function DarkHorseOverlay({ event }: DarkHorseOverlayProps) {
     const lastTriggerKey = useRef<string>('');
@@ -28,7 +27,7 @@ export function DarkHorseOverlay({ event }: DarkHorseOverlayProps) {
                 angle,
                 spread: 60,
                 origin: { x: originX, y: 0.7 },
-                colors: ['#fbbf24', '#a855f7', '#ec4899', '#10b981', '#3b82f6'],
+                colors: ['#2b4dff', '#ffffff', '#0ea5e9', '#1d4ed8'],
                 ticks: 120,
                 scalar: 1.2,
                 shapes: ['star', 'circle'],
@@ -37,12 +36,13 @@ export function DarkHorseOverlay({ event }: DarkHorseOverlayProps) {
         };
         fireSide(0.1, 60);
         fireSide(0.9, 120);
-        // 0.4s 後再來一波
         setTimeout(() => {
             fireSide(0.2, 70);
             fireSide(0.8, 110);
         }, 400);
     }, [event]);
+
+    const marqueeItems = Array.from({ length: 8 }, (_, i) => i);
 
     return (
         <AnimatePresence>
@@ -50,97 +50,117 @@ export function DarkHorseOverlay({ event }: DarkHorseOverlayProps) {
                 <motion.div
                     key={`${event.songId}_${event.triggeredAt}`}
                     className="fixed inset-0 z-[9998] flex items-center justify-center pointer-events-none"
+                    style={{ background: '#000' }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.3 }}
                 >
-                    {/* 背景柔光罩 */}
-                    <motion.div
-                        className="absolute inset-0 bg-gradient-radial from-purple-900/40 via-amber-900/20 to-transparent"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: [0, 0.7, 0.5] }}
-                        transition={{ duration: 1 }}
-                        style={{
-                            background: 'radial-gradient(circle at center, rgba(168,85,247,0.4) 0%, rgba(245,158,11,0.2) 40%, transparent 70%)',
-                        }}
-                    />
+                    {/* 上 ★ DARK HORSE ★ 跑馬燈 */}
+                    <div className="editorial-overlay-marquee top" aria-hidden="true">
+                        <div className="track">
+                            {marqueeItems.map((i) => (
+                                <span key={`t-${i}`}>★ DARK HORSE</span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 下 ★ DARK HORSE ★ 跑馬燈 */}
+                    <div className="editorial-overlay-marquee bottom" aria-hidden="true">
+                        <div className="track">
+                            {marqueeItems.map((i) => (
+                                <span key={`b-${i}`}>★ DARK HORSE</span>
+                            ))}
+                        </div>
+                    </div>
 
                     <motion.div
-                        className="relative text-center"
-                        initial={{ scale: 0.5, y: 50 }}
+                        className="relative text-center px-6"
+                        initial={{ scale: 0.92, y: 20 }}
                         animate={{ scale: 1, y: 0 }}
-                        exit={{ scale: 0.8, opacity: 0, y: -30 }}
-                        transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+                        exit={{ scale: 0.92, opacity: 0, y: -20 }}
+                        transition={{ type: 'spring', stiffness: 200, damping: 22 }}
                     >
-                        {/* 上方旋轉跑馬 emoji */}
+                        {/* BREAKING badge */}
                         <motion.div
-                            className="text-9xl md:text-[12rem] mb-2 inline-block"
-                            animate={{
-                                rotate: [0, -15, 15, -10, 0],
-                                y: [0, -20, 0, -10, 0],
-                            }}
-                            transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-                            style={{ filter: 'drop-shadow(0 0 30px rgba(251,191,36,0.6))' }}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.15 }}
                         >
-                            🐴
-                        </motion.div>
-
-                        {/* 主標題 */}
-                        <motion.div
-                            className="bg-gradient-to-r from-yellow-300 via-amber-400 to-purple-400 bg-clip-text text-transparent font-black text-7xl md:text-8xl tracking-tight drop-shadow-2xl"
-                            style={{ WebkitTextStroke: '2px rgba(255,255,255,0.4)' }}
-                            animate={{
-                                textShadow: [
-                                    '0 0 30px rgba(251,191,36,0.6)',
-                                    '0 0 60px rgba(168,85,247,0.7)',
-                                    '0 0 30px rgba(251,191,36,0.6)',
-                                ],
-                            }}
-                            transition={{ duration: 1.2, repeat: Infinity }}
-                        >
-                            黑馬時刻
-                        </motion.div>
-
-                        {/* 排名跳升動畫 */}
-                        <motion.div
-                            className="mt-6 inline-flex items-center gap-4 px-8 py-3 rounded-full bg-gradient-to-r from-purple-600 to-amber-500 shadow-2xl"
-                            initial={{ y: 30, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.3 }}
-                        >
-                            <span className="text-3xl md:text-4xl font-black text-white/70 line-through">
-                                第 {event.fromRank} 名
-                            </span>
-                            <motion.div
-                                animate={{ x: [0, 8, 0] }}
-                                transition={{ duration: 0.6, repeat: Infinity }}
-                            >
-                                <TrendingUp className="w-12 h-12 text-yellow-300" strokeWidth={3} />
-                            </motion.div>
-                            <span className="text-4xl md:text-5xl font-black text-white drop-shadow-lg">
-                                第 {event.toRank} 名 🎉
+                            <span className="editorial-breaking-badge">
+                                BREAKING · 黑馬時刻
                             </span>
                         </motion.div>
 
-                        {/* 歌曲資訊 */}
-                        <motion.div
-                            className="mt-4 text-2xl md:text-3xl text-white font-extrabold drop-shadow-2xl"
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.5 }}
+                        {/* 主標題 — 義式襯線藍 */}
+                        <motion.h2
+                            className="mt-12 mb-4"
+                            style={{
+                                fontFamily: 'var(--font-display)',
+                                fontStyle: 'italic',
+                                fontWeight: 900,
+                                fontSize: 'clamp(56px, 9vw, 140px)',
+                                letterSpacing: '-0.035em',
+                                lineHeight: 0.95,
+                                color: 'var(--ed-accent)',
+                            }}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
                         >
                             {event.songTitle}
-                            <span className="opacity-70 mx-2">·</span>
+                        </motion.h2>
+
+                        {/* 藝人 */}
+                        <motion.div
+                            className="text-white/80"
+                            style={{
+                                fontFamily: 'var(--font-body)',
+                                fontWeight: 400,
+                                fontSize: 'clamp(20px, 2.4vw, 32px)',
+                                letterSpacing: '0.02em',
+                            }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                        >
                             {event.songArtist}
                         </motion.div>
+
+                        {/* 義式引語 */}
+                        <motion.p
+                            className="mt-12 mx-auto text-white/70"
+                            style={{
+                                fontFamily: 'var(--font-display)',
+                                fontStyle: 'italic',
+                                fontWeight: 500,
+                                fontSize: 'clamp(15px, 1.6vw, 20px)',
+                                lineHeight: 1.5,
+                                maxWidth: 620,
+                            }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.55 }}
+                        >
+                            這首歌十分鐘前還排在第 {event.fromRank} 名。<br />
+                            現在它衝上來了——觀眾的耳朵會給答案。
+                        </motion.p>
+
+                        {/* +N 票 · 暴衝 */}
                         <motion.div
-                            className="mt-2 text-lg text-amber-200 font-bold"
+                            className="mt-10"
+                            style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: 14,
+                                letterSpacing: '0.22em',
+                                textTransform: 'uppercase',
+                                color: 'var(--ed-accent)',
+                            }}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.7 }}
                         >
-                            🚀 飆升 {event.fromRank - event.toRank} 名 · {event.voteCount} 票
+                            +{event.fromRank - event.toRank} 名 · {event.voteCount} 票 · 暴衝
                         </motion.div>
                     </motion.div>
                 </motion.div>

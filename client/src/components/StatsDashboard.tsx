@@ -1,18 +1,10 @@
 import { useState, useMemo } from 'react';
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+    Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import {
-    BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from 'recharts';
-import {
-    BarChart3, Music2, Users, Calendar, TrendingUp, Clock, PieChart as PieIcon, Hash,
-    Download,
-} from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useStatsData } from '@/hooks/useStatsData';
 import { useAllSongTags } from '@/hooks/useAllSongTags';
 import type { Song } from '@/lib/firestore';
@@ -21,31 +13,6 @@ interface StatsDashboardProps {
     isOpen: boolean;
     onClose: () => void;
     songs: Song[];
-}
-
-// 圖表色盤
-const CHART_COLORS = [
-    '#f59e0b', '#ef4444', '#a855f7', '#06b6d4', '#10b981',
-    '#ec4899', '#3b82f6', '#eab308', '#84cc16', '#f97316',
-    '#94a3b8',
-];
-
-function KpiCard({ icon, label, value, sub }: {
-    icon: React.ReactNode;
-    label: string;
-    value: string | number;
-    sub?: string;
-}) {
-    return (
-        <div className="rounded-xl border bg-gradient-to-br from-white to-amber-50/30 dark:from-stone-900 dark:to-stone-800 p-4 shadow-sm">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium mb-2">
-                {icon}
-                {label}
-            </div>
-            <div className="text-3xl font-black tabular-nums text-amber-600 dark:text-amber-400">{value}</div>
-            {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
-        </div>
-    );
 }
 
 function downloadCsv(filename: string, rows: (string | number)[][]) {
@@ -59,23 +26,100 @@ function downloadCsv(filename: string, rows: (string | number)[][]) {
     URL.revokeObjectURL(url);
 }
 
+/** SVG 折線圖（純 SVG，避免 recharts 視覺與雜誌風衝突） */
+function TrendLine({ data }: { data: { label: string; count: number }[] }) {
+    if (data.length === 0) {
+        return (
+            <div className="py-12 text-center text-sm text-slate-400 italic">
+                還沒有資料
+            </div>
+        );
+    }
+    const w = 600;
+    const h = 160;
+    const padL = 28;
+    const padR = 8;
+    const padT = 8;
+    const padB = 28;
+    const innerW = w - padL - padR;
+    const innerH = h - padT - padB;
+    const max = Math.max(1, ...data.map(d => d.count));
+    const stepX = data.length > 1 ? innerW / (data.length - 1) : 0;
+    const pts = data.map((d, i) => {
+        const x = padL + i * stepX;
+        const y = padT + innerH - (d.count / max) * innerH;
+        return { x, y, d };
+    });
+    const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    const fillPath = `${linePath} L ${pts[pts.length - 1].x} ${padT + innerH} L ${pts[0].x} ${padT + innerH} Z`;
+
+    return (
+        <svg viewBox={`0 0 ${w} ${h}`} className="editorial-trend-line" preserveAspectRatio="none">
+            {/* 底線 */}
+            <line x1={padL} y1={padT + innerH} x2={w - padR} y2={padT + innerH} stroke="#111" strokeWidth="1" />
+            {/* 填色 */}
+            <path d={fillPath} fill="rgba(43, 77, 255, 0.08)" />
+            {/* 折線 */}
+            <path d={linePath} fill="none" stroke="#2b4dff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            {/* 點 */}
+            {pts.map((p, i) => (
+                <circle key={i} cx={p.x} cy={p.y} r="3.5" fill="#fff" stroke="#2b4dff" strokeWidth="2" />
+            ))}
+            {/* X 軸標籤（只顯示首尾與中間） */}
+            {pts.length > 1 && (
+                <>
+                    <text x={pts[0].x} y={h - 8} fontFamily="JetBrains Mono, monospace" fontSize="9" fill="#8a8a8a" textAnchor="start" style={{ letterSpacing: '0.08em' }}>
+                        {data[0].label}
+                    </text>
+                    <text x={pts[pts.length - 1].x} y={h - 8} fontFamily="JetBrains Mono, monospace" fontSize="9" fill="#8a8a8a" textAnchor="end" style={{ letterSpacing: '0.08em' }}>
+                        {data[data.length - 1].label}
+                    </text>
+                </>
+            )}
+        </svg>
+    );
+}
+
 export function StatsDashboard({ isOpen, onClose, songs }: StatsDashboardProps) {
     const { allTags, songTagsMap } = useAllSongTags();
-    const [daysBack, setDaysBack] = useState(14);
-    const stats = useStatsData({ songs, songTagsMap, allTags, daysBack, topN: 10 });
+    const [daysBack, setDaysBack] = useState(7);
+    const stats = useStatsData({ songs, songTagsMap, allTags, daysBack, topN: 5 });
 
-    // 熱力 — 找出最高小時值, 用於配色
+    // 最大時段值
     const maxHourly = useMemo(
         () => Math.max(1, ...stats.hourlyDistribution.map(p => p.count)),
         [stats.hourlyDistribution]
     );
+    const peakHour = useMemo(() => {
+        if (stats.hourlyDistribution.length === 0) return null;
+        return stats.hourlyDistribution.reduce((a, b) => (b.count > a.count ? b : a));
+    }, [stats.hourlyDistribution]);
+
+    // 取 18:00 - 25:00（隔日 01:00）這 8 個時段（演出時間）
+    const peakHours = useMemo(() => {
+        const wanted = [18, 19, 20, 21, 22, 23, 0, 1];
+        return wanted.map(h => {
+            const p = stats.hourlyDistribution.find(d => parseInt(d.label, 10) === h);
+            return p ? { h, count: p.count } : { h, count: 0 };
+        });
+    }, [stats.hourlyDistribution]);
+    const peakHoursMax = Math.max(1, ...peakHours.map(p => p.count));
+
+    // Top 5 max votes
+    const top5Max = Math.max(1, ...stats.topSongs.map(s => s.voteCount));
+
+    // 取最熱風格（Top 5 標籤）
+    const topGenres = useMemo(() => {
+        return [...stats.tagBars].sort((a, b) => b.votes - a.votes).slice(0, 5);
+    }, [stats.tagBars]);
+    const genreMax = Math.max(1, ...topGenres.map(g => g.votes));
 
     const handleExportCsv = () => {
         const rows: (string | number)[][] = [
             ['===KPI==='],
             ['總票數', stats.totalVotes],
-            ['總歌曲', stats.totalSongs],
-            ['投票者數', stats.totalVoters],
+            ['投票者', stats.totalVoters],
+            ['歌單數', stats.totalSongs],
             ['今日票數', stats.todayVotes],
             [''],
             ['===Top 歌曲==='],
@@ -90,11 +134,7 @@ export function StatsDashboard({ isOpen, onClose, songs }: StatsDashboardProps) 
             ['小時', '票數'],
             ...stats.hourlyDistribution.map(h => [`${h.label}:00`, h.count]),
             [''],
-            ['===歌手分布==='],
-            ['歌手', '票數'],
-            ...stats.artistSlices.map(a => [a.name, a.value]),
-            [''],
-            ['===標籤使用==='],
+            ['===風格分布==='],
             ['標籤', '歌曲數', '票數'],
             ...stats.tagBars.map(t => [t.name, t.songs, t.votes]),
         ];
@@ -103,245 +143,194 @@ export function StatsDashboard({ isOpen, onClose, songs }: StatsDashboardProps) 
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden flex flex-col">
-                <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 shrink-0">
-                    <div className="flex items-start justify-between gap-2 sm:gap-3">
-                        <div className="min-w-0 flex-1">
-                            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-                                <BarChart3 className="w-5 h-5 text-primary shrink-0" />
-                                統計儀表板
-                            </DialogTitle>
-                            <DialogDescription className="text-xs sm:text-sm">
-                                即時聚合所有投票資料 — 純客戶端計算
-                            </DialogDescription>
+            <DialogContent className="max-w-4xl h-[88vh] p-0 overflow-hidden flex flex-col bg-white">
+                <DialogTitle className="sr-only">統計儀表板 — 雜誌特輯</DialogTitle>
+                <DialogDescription className="sr-only">
+                    今晚累積 {stats.totalVotes} 票，{stats.totalVoters} 位投票者，{stats.totalSongs} 首歌單。
+                </DialogDescription>
+
+                <ScrollArea className="flex-1 editorial-stats">
+                    {/* 特輯封面 */}
+                    <div className="editorial-stats-cover">
+                        <div className="editorial-stats-cover-eyebrow">
+                            <span className="live-dot" aria-hidden="true" />
+                            <span>SPECIAL FEATURE · 點播報告 · ISSUE №12</span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleExportCsv}
+                                aria-label="匯出 CSV"
+                                className="ml-auto h-7 px-2.5 text-[11px] gap-1.5 rounded-full"
+                            >
+                                <Download className="w-3 h-3" />
+                                CSV
+                            </Button>
                         </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleExportCsv}
-                            aria-label="匯出 CSV"
-                            className="shrink-0 gap-1 sm:gap-1.5 px-2 sm:px-3"
-                        >
-                            <Download className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">匯出 CSV</span>
-                            <span className="sm:hidden">CSV</span>
-                        </Button>
+                        <h1 className="editorial-stats-cover-title">
+                            一晚 <span className="accent">{stats.totalVotes.toLocaleString()}</span> 票<br />
+                            <span style={{ fontSize: '0.7em' }}>
+                                一個老師 <span className="accent">{stats.totalVoters || 0}</span> 個學生
+                            </span>
+                        </h1>
+                        <p className="editorial-stats-cover-sub">
+                            純客戶端聚合 — 所有資料即時計算，匯出 CSV 完整保留現場熱度。
+                        </p>
                     </div>
-                </DialogHeader>
 
-                <ScrollArea className="flex-1 px-3 sm:px-6 pb-4 sm:pb-6">
                     {/* KPI 卡片 */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                        <KpiCard
-                            icon={<TrendingUp className="w-3.5 h-3.5" />}
-                            label="總票數"
-                            value={stats.totalVotes.toLocaleString()}
-                            sub={`今日 +${stats.todayVotes}`}
-                        />
-                        <KpiCard
-                            icon={<Music2 className="w-3.5 h-3.5" />}
-                            label="總歌曲"
-                            value={stats.totalSongs.toLocaleString()}
-                        />
-                        <KpiCard
-                            icon={<Users className="w-3.5 h-3.5" />}
-                            label="投票者"
-                            value={stats.totalVoters.toLocaleString()}
-                            sub="獨立 session"
-                        />
-                        <KpiCard
-                            icon={<Calendar className="w-3.5 h-3.5" />}
-                            label="今日票數"
-                            value={stats.todayVotes.toLocaleString()}
-                        />
+                    <div className="editorial-kpi-grid">
+                        <div className="editorial-kpi">
+                            <div className="editorial-kpi-label">Total Votes</div>
+                            <div className="editorial-kpi-value accent">{stats.totalVotes.toLocaleString()}</div>
+                            <div className="editorial-kpi-sub">+{stats.todayVotes} TODAY</div>
+                        </div>
+                        <div className="editorial-kpi">
+                            <div className="editorial-kpi-label">Active Voters</div>
+                            <div className="editorial-kpi-value">{stats.totalVoters.toLocaleString()}</div>
+                            <div className="editorial-kpi-sub">UNIQUE SESSIONS</div>
+                        </div>
+                        <div className="editorial-kpi">
+                            <div className="editorial-kpi-label">Setlist</div>
+                            <div className="editorial-kpi-value">{stats.totalSongs.toLocaleString()}</div>
+                            <div className="editorial-kpi-sub">SONGS QUEUED</div>
+                        </div>
+                        <div className="editorial-kpi">
+                            <div className="editorial-kpi-label">Peak Hour</div>
+                            <div className="editorial-kpi-value">{peakHour ? `${peakHour.label}:00` : '—'}</div>
+                            <div className="editorial-kpi-sub">
+                                {peakHour ? `${peakHour.count} VOTES` : 'NO DATA'}
+                            </div>
+                        </div>
                     </div>
 
-                    <Tabs defaultValue="top">
-                        <TabsList className="grid w-full grid-cols-5 mb-4 h-auto">
-                            <TabsTrigger value="top" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-1 sm:px-2 py-1.5">
-                                <BarChart3 className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">Top 10</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="trend" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-1 sm:px-2 py-1.5">
-                                <TrendingUp className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">趨勢</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="hourly" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-1 sm:px-2 py-1.5">
-                                <Clock className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">時段</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="artist" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-1 sm:px-2 py-1.5">
-                                <PieIcon className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">歌手</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="tags" className="text-[10px] sm:text-xs gap-0.5 sm:gap-1 px-1 sm:px-2 py-1.5">
-                                <Hash className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">標籤</span>
-                            </TabsTrigger>
-                        </TabsList>
-
-                        {/* Top 10 */}
-                        <TabsContent value="top" className="mt-2">
-                            <div className="rounded-lg border p-4 bg-card">
-                                <h3 className="text-sm font-semibold mb-3">熱門歌曲 Top 10</h3>
-                                {stats.topSongs.length === 0 ? (
-                                    <EmptyChart />
-                                ) : (
-                                    <ResponsiveContainer width="100%" height={400}>
-                                        <BarChart data={stats.topSongs.map(s => ({ name: s.song.title, votes: s.voteCount, artist: s.song.artist }))} layout="vertical" margin={{ left: 4, right: 12 }}>
-                                            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                            <XAxis type="number" tick={{ fontSize: 10 }} />
-                                            <YAxis type="category" dataKey="name" width={88} tick={{ fontSize: 10 }} interval={0} />
-                                            <Tooltip
-                                                content={({ active, payload }) => active && payload?.[0] ? (
-                                                    <div className="rounded-md border bg-background p-2 shadow-md text-xs">
-                                                        <div className="font-bold">{payload[0].payload.name}</div>
-                                                        <div className="text-muted-foreground">{payload[0].payload.artist}</div>
-                                                        <div className="text-amber-600 font-bold">{payload[0].value} 票</div>
-                                                    </div>
-                                                ) : null}
-                                            />
-                                            <Bar dataKey="votes" fill="#f59e0b" radius={[0, 6, 6, 0]} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                )}
+                    {/* Top 5 條圖 */}
+                    <div className="editorial-stats-panel">
+                        <div className="editorial-stats-panel-title">
+                            <span className="chap">№ 01 / 熱門</span>
+                            <h3>Top 5 · 今晚最被點的歌</h3>
+                            <span className="h-meta">{stats.topSongs.length} TRACKS</span>
+                        </div>
+                        {stats.topSongs.length === 0 ? (
+                            <div className="py-8 text-center text-sm text-slate-400 italic">
+                                還沒有票數 — 等第一票進來
                             </div>
-                        </TabsContent>
-
-                        {/* 趨勢 */}
-                        <TabsContent value="trend" className="mt-2">
-                            <div className="rounded-lg border p-4 bg-card">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold">每日投票趨勢</h3>
-                                    <div className="flex gap-1">
-                                        {[7, 14, 30].map(n => (
-                                            <Button
-                                                key={n}
-                                                variant={daysBack === n ? 'default' : 'outline'}
-                                                size="sm"
-                                                onClick={() => setDaysBack(n)}
-                                                className="h-7 px-2 text-xs"
-                                            >
-                                                {n} 天
-                                            </Button>
-                                        ))}
+                        ) : (
+                            stats.topSongs.slice(0, 5).map((s, i) => {
+                                const pct = Math.max(4, Math.round((s.voteCount / top5Max) * 100));
+                                return (
+                                    <div key={s.song.id} className={`editorial-bar-row r${i + 1}`}>
+                                        <span className="rank">{String(i + 1).padStart(2, '0')}</span>
+                                        <div className="name">
+                                            <div className="t">{s.song.title}</div>
+                                            <div className="a">{s.song.artist}</div>
+                                        </div>
+                                        <div className="bar"><i style={{ width: `${pct}%` }} /></div>
+                                        <div className="v">{s.voteCount}</div>
                                     </div>
-                                </div>
-                                {stats.totalVotes === 0 ? <EmptyChart /> : (
-                                    <ResponsiveContainer width="100%" height={400}>
-                                        <LineChart data={stats.dailyTrend}>
-                                            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                            <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                                            <YAxis tick={{ fontSize: 11 }} />
-                                            <Tooltip />
-                                            <Line type="monotone" dataKey="count" name="票數" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                )}
-                            </div>
-                        </TabsContent>
+                                );
+                            })
+                        )}
+                    </div>
 
-                        {/* 時段熱度 */}
-                        <TabsContent value="hourly" className="mt-2">
-                            <div className="rounded-lg border p-4 bg-card">
-                                <h3 className="text-sm font-semibold mb-3">24 小時時段分布</h3>
-                                {stats.totalVotes === 0 ? <EmptyChart /> : (
-                                    <>
-                                        <ResponsiveContainer width="100%" height={300}>
-                                            <BarChart data={stats.hourlyDistribution}>
-                                                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                                                <YAxis tick={{ fontSize: 11 }} />
-                                                <Tooltip
-                                                    content={({ active, payload }) => active && payload?.[0] ? (
-                                                        <div className="rounded-md border bg-background p-2 shadow-md text-xs">
-                                                            <div className="font-bold">{payload[0].payload.label}:00 - {payload[0].payload.label}:59</div>
-                                                            <div className="text-amber-600 font-bold">{payload[0].value} 票</div>
-                                                        </div>
-                                                    ) : null}
-                                                />
-                                                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                                                    {stats.hourlyDistribution.map((entry, idx) => {
-                                                        const intensity = entry.count / maxHourly;
-                                                        const opacity = 0.3 + intensity * 0.7;
-                                                        return <Cell key={idx} fill="#f59e0b" fillOpacity={opacity} />;
-                                                    })}
-                                                </Bar>
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                        <p className="text-xs text-muted-foreground mt-3 text-center">
-                                            最熱時段：
-                                            <span className="font-bold text-amber-600 mx-1">
-                                                {stats.hourlyDistribution.reduce((a, b) => b.count > a.count ? b : a).label}:00
-                                            </span>
-                                        </p>
-                                    </>
-                                )}
-                            </div>
-                        </TabsContent>
-
-                        {/* 歌手分布 */}
-                        <TabsContent value="artist" className="mt-2">
-                            <div className="rounded-lg border p-4 bg-card">
-                                <h3 className="text-sm font-semibold mb-3">歌手票數分布 (Top 10)</h3>
-                                {stats.artistSlices.length === 0 ? <EmptyChart /> : (
-                                    <ResponsiveContainer width="100%" height={400}>
-                                        <PieChart>
-                                            <Pie
-                                                data={stats.artistSlices}
-                                                cx="50%" cy="50%"
-                                                outerRadius={130}
-                                                dataKey="value"
-                                                label={(entry) => `${entry.name} ${entry.value}`}
-                                                labelLine={false}
-                                            >
-                                                {stats.artistSlices.map((_, i) => (
-                                                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip />
-                                            <Legend wrapperStyle={{ fontSize: 12 }} />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                )}
-                            </div>
-                        </TabsContent>
-
-                        {/* 標籤 */}
-                        <TabsContent value="tags" className="mt-2">
-                            <div className="rounded-lg border p-4 bg-card">
-                                <h3 className="text-sm font-semibold mb-3">標籤使用分布</h3>
-                                {stats.tagBars.length === 0 ? (
-                                    <div className="py-12 text-center text-sm text-muted-foreground">
-                                        還沒有標籤資料 — 編輯歌曲時可加上標籤
+                    {/* 時段柱狀 */}
+                    <div className="editorial-stats-panel">
+                        <div className="editorial-stats-panel-title">
+                            <span className="chap">№ 02 / 時段</span>
+                            <h3>晚場 8 小時人氣熱度</h3>
+                            <span className="h-meta">18:00 — 01:00</span>
+                        </div>
+                        <div className="editorial-hour-bars" aria-label="晚場 8 小時熱度">
+                            {peakHours.map((p) => {
+                                const isPeak = peakHour && parseInt(peakHour.label, 10) === p.h && p.count > 0;
+                                const ratio = p.count / peakHoursMax;
+                                const heightPct = Math.max(2, Math.round(ratio * 100));
+                                return (
+                                    <div
+                                        key={p.h}
+                                        className={`editorial-hour-bar ${isPeak ? 'peak' : ''}`}
+                                        style={{ height: `${heightPct}%` }}
+                                        title={`${String(p.h).padStart(2, '0')}:00 · ${p.count} 票`}
+                                    >
+                                        {isPeak && <span className="peak-label">PEAK</span>}
                                     </div>
-                                ) : (
-                                    <ResponsiveContainer width="100%" height={Math.max(220, stats.tagBars.length * 35)}>
-                                        <BarChart data={stats.tagBars} layout="vertical" margin={{ left: 4, right: 12 }}>
-                                            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                            <XAxis type="number" tick={{ fontSize: 10 }} />
-                                            <YAxis type="category" dataKey="name" width={64} tick={{ fontSize: 10 }} />
-                                            <Tooltip />
-                                            <Legend wrapperStyle={{ fontSize: 12 }} />
-                                            <Bar dataKey="songs" name="歌曲數" fill="#06b6d4" radius={[0, 4, 4, 0]} />
-                                            <Bar dataKey="votes" name="累積票數" fill="#f59e0b" radius={[0, 4, 4, 0]} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                )}
+                                );
+                            })}
+                        </div>
+                        <div className="editorial-hour-labels">
+                            {peakHours.map(p => (
+                                <span key={p.h}>{String(p.h).padStart(2, '0')}</span>
+                            ))}
+                        </div>
+                        {peakHour && (
+                            <div className="mt-3 text-xs text-slate-500" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.12em' }}>
+                                · 全日最熱：{peakHour.label}:00 · {peakHour.count} 票
                             </div>
-                        </TabsContent>
-                    </Tabs>
+                        )}
+                    </div>
+
+                    {/* 7 天趨勢 */}
+                    <div className="editorial-stats-panel">
+                        <div className="editorial-stats-panel-title">
+                            <span className="chap">№ 03 / 趨勢</span>
+                            <h3>過去 {daysBack} 天的催歌曲線</h3>
+                            <div className="ml-auto flex gap-1">
+                                {[7, 14, 30].map(n => (
+                                    <button
+                                        key={n}
+                                        onClick={() => setDaysBack(n)}
+                                        className={`h-6 px-2 text-[10px] tracking-widest uppercase font-mono rounded-full transition-colors ${
+                                            daysBack === n
+                                                ? 'bg-[#2b4dff] text-white'
+                                                : 'bg-transparent text-slate-500 border border-slate-300 hover:border-slate-500'
+                                        }`}
+                                    >
+                                        {n}D
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <TrendLine data={stats.dailyTrend} />
+                    </div>
+
+                    {/* 風格分布 */}
+                    <div className="editorial-stats-panel">
+                        <div className="editorial-stats-panel-title">
+                            <span className="chap">№ 04 / 風格</span>
+                            <h3>觀眾耳朵偏好</h3>
+                            <span className="h-meta">{topGenres.length} GENRES</span>
+                        </div>
+                        {topGenres.length === 0 ? (
+                            <div className="py-6 text-center text-sm text-slate-400 italic">
+                                還沒有標籤資料 — 編輯歌曲時可加標籤
+                            </div>
+                        ) : (
+                            topGenres.map(g => {
+                                const pct = Math.max(4, Math.round((g.votes / genreMax) * 100));
+                                return (
+                                    <div key={g.name} className="editorial-genre-row">
+                                        <span className="label">{g.name}</span>
+                                        <div className="bar"><i style={{ width: `${pct}%` }} /></div>
+                                        <span className="v">{g.votes}</span>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+
+                    {/* Pull quote — 阿凱主理人 */}
+                    <div className="editorial-pullquote">
+                        <div className="editorial-pullquote-mark">“</div>
+                        <div>
+                            <p className="editorial-pullquote-text">
+                                數字會說話 —— {stats.totalVotes >= 100
+                                    ? `今晚衝到 ${stats.totalVotes} 票，全場真的有在用耳朵投票。`
+                                    : '每一票都是一次催歌，現場互動會帶動下半場的氣氛。'}
+                            </p>
+                            <div className="editorial-pullquote-by">— 阿凱老師 · 主理人</div>
+                        </div>
+                    </div>
                 </ScrollArea>
             </DialogContent>
         </Dialog>
-    );
-}
-
-function EmptyChart() {
-    return (
-        <div className="py-12 text-center text-sm text-muted-foreground">
-            <BarChart3 className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            還沒有資料
-        </div>
     );
 }

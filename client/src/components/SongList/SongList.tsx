@@ -45,6 +45,8 @@ interface SongListProps {
     selectedTagIds?: string[];
     /** songId → tagId[] 映射 */
     songTagsMap?: Map<string, string[]>;
+    /** 點歌名 / 封面開啟歌曲詳情頁 */
+    onOpenDetail?: (song: Song) => void;
 }
 
 export default function SongList({
@@ -57,6 +59,7 @@ export default function SongList({
     totalCount,
     selectedTagIds,
     songTagsMap,
+    onOpenDetail,
 }: SongListProps) {
     const { toast } = useToast();
     const [qrModalOpen, setQrModalOpen] = useState(false);
@@ -65,6 +68,9 @@ export default function SongList({
 
     // 使用全局 Hook 檢測是否應減少動畫
     const reduceMotion = useReduceMotion();
+
+    // 整批最大票數 — 給 SongCard 算進度條寬度比例
+    const maxVotes = songs.reduce((acc, s) => Math.max(acc, s.voteCount || 0), 0);
 
     // 使用拆分的 Hooks - 使用完整歌曲列表 (allSongs) 進行搜尋，確保能搜尋所有曲庫
     const searchSongsSource = allSongs || songs;
@@ -211,6 +217,8 @@ export default function SongList({
                     onEdit={setEditingSong}
                     onDelete={deleteSong}
                     onShare={handleShareClick}
+                    maxVotes={maxVotes}
+                    onOpenDetail={onOpenDetail}
                     height={typeof window !== 'undefined' && window.innerWidth < 640 ? 400 : 500}
                     hasMore={!isInSearchMode && hasMore}
                     isLoadingMore={isLoadingMore}
@@ -234,6 +242,8 @@ export default function SongList({
                                 onEdit={setEditingSong}
                                 onDelete={deleteSong}
                                 onShare={handleShareClick}
+                                maxVotes={maxVotes}
+                                onOpenDetail={onOpenDetail}
                             />
                         ))}
                     </div>

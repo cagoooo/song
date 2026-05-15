@@ -8,14 +8,13 @@ interface ComboOverlayProps {
 }
 
 /**
- * 全螢幕中央連擊大字效果。只在 count >= 3 時顯示，
- * 每次 combo 增加 / 升級都會重播動畫並噴 confetti。
+ * 連擊覆蓋層 — Editorial 雜誌風拍立得
+ * 白色卡片旋轉 -3° + ★ COMBO ×N ★ 黑色頂條 + 大義式藍 N× + 副標「連發點播 · 別停下來」
  */
 export function ComboOverlay({ combo }: ComboOverlayProps) {
     const lastConfettiKey = useRef<string>('');
     const milestone = combo ? getMilestone(combo.count) : null;
 
-    // 升級時噴 confetti（同 key 不重複）
     useEffect(() => {
         if (!combo || !milestone) return;
         const key = `${combo.songId}_${combo.count}`;
@@ -25,7 +24,7 @@ export function ComboOverlay({ combo }: ComboOverlayProps) {
             particleCount: milestone.confettiCount,
             spread: 80,
             origin: { x: 0.5, y: 0.4 },
-            colors: ['#fbbf24', '#f59e0b', '#ef4444', '#a855f7', '#ec4899'],
+            colors: ['#2b4dff', '#ffffff', '#0ea5e9', '#1d4ed8'],
             ticks: 80,
             scalar: combo.count >= 20 ? 1.4 : 1,
             shapes: ['circle', 'square', 'star'],
@@ -45,59 +44,63 @@ export function ComboOverlay({ combo }: ComboOverlayProps) {
                     transition={{ duration: 0.2 }}
                 >
                     <motion.div
-                        className="text-center"
-                        initial={{ scale: 0.4, rotate: -15 }}
-                        animate={{
-                            scale: [0.4, 1.4, 1],
-                            rotate: [-15, 8, 0],
-                        }}
-                        exit={{ scale: 1.6, opacity: 0, rotate: 8 }}
-                        transition={{
-                            duration: 0.6,
-                            times: [0, 0.5, 1],
-                            type: 'spring',
-                            stiffness: 200,
-                        }}
+                        className="editorial-polaroid"
+                        style={{ minWidth: 320 }}
+                        initial={{ scale: 0.5, rotate: -10, y: 30 }}
+                        animate={{ scale: 1, rotate: -3, y: 0 }}
+                        exit={{ scale: 0.9, opacity: 0, rotate: 4, y: -20 }}
+                        transition={{ type: 'spring', stiffness: 220, damping: 16 }}
                     >
-                        {/* 主標籤 */}
-                        <motion.div
-                            className={`bg-gradient-to-r ${milestone.gradient} bg-clip-text text-transparent font-black tracking-tight drop-shadow-2xl`}
-                            style={{
-                                fontSize: combo.count >= 50 ? '14rem' : combo.count >= 20 ? '11rem' : combo.count >= 10 ? '9rem' : '7rem',
-                                lineHeight: 0.9,
-                                WebkitTextStroke: '3px rgba(255,255,255,0.3)',
-                            }}
-                            animate={{
-                                textShadow: [
-                                    '0 0 20px rgba(251,191,36,0.4)',
-                                    '0 0 40px rgba(239,68,68,0.6)',
-                                    '0 0 20px rgba(251,191,36,0.4)',
-                                ],
-                            }}
-                            transition={{ duration: 0.8, repeat: Infinity }}
-                        >
-                            {milestone.emoji} ×{combo.count}
-                        </motion.div>
+                        {/* ★ COMBO ×N ★ 眉標 */}
+                        <div className="editorial-polaroid-eyebrow">
+                            <span>★</span>
+                            <span>COMBO × {combo.count}</span>
+                            <span>★</span>
+                        </div>
 
-                        {/* 副標籤 */}
-                        <motion.div
-                            className={`mt-4 inline-block px-8 py-2 rounded-full bg-gradient-to-r ${milestone.gradient} text-white font-extrabold text-2xl md:text-3xl shadow-2xl`}
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.2 }}
-                        >
-                            {milestone.label} COMBO
-                        </motion.div>
+                        {/* 大字 N× */}
+                        <div className="text-center">
+                            <motion.div
+                                className="editorial-polaroid-num"
+                                animate={{
+                                    scale: [1, 1.04, 1],
+                                }}
+                                transition={{ duration: 0.8, repeat: Infinity }}
+                            >
+                                {combo.count}
+                                <span
+                                    style={{
+                                        fontSize: '0.55em',
+                                        marginLeft: 8,
+                                        fontStyle: 'italic',
+                                        verticalAlign: '0.18em',
+                                    }}
+                                >
+                                    ×
+                                </span>
+                            </motion.div>
 
-                        {/* 歌名 (小) */}
-                        <motion.div
-                            className="mt-3 text-white/90 text-base md:text-lg font-bold drop-shadow-lg"
-                            initial={{ y: 10, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.3 }}
-                        >
-                            {combo.songTitle} · {combo.songArtist}
-                        </motion.div>
+                            {/* 副標 — 連發點播 · 別停下來 */}
+                            <div className="editorial-polaroid-sub text-center">
+                                連發點播 · 別停下來
+                            </div>
+
+                            {/* 歌名（小） */}
+                            <motion.div
+                                className="mt-3 text-slate-500"
+                                style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 10,
+                                    letterSpacing: '0.16em',
+                                    textTransform: 'uppercase',
+                                }}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                            >
+                                {combo.songTitle} · {combo.songArtist}
+                            </motion.div>
+                        </div>
                     </motion.div>
                 </motion.div>
             )}

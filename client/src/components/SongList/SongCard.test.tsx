@@ -64,32 +64,6 @@ describe('SongCard', () => {
         });
     });
 
-    describe('顏色變化', () => {
-        it('index 0 應該有 rose 邊框', () => {
-            const { container } = render(<SongCard {...defaultProps} index={0} />);
-            const card = container.firstChild as HTMLElement;
-            expect(card.className).toContain('border-l-rose-400');
-        });
-
-        it('index 1 應該有 blue 邊框', () => {
-            const { container } = render(<SongCard {...defaultProps} index={1} />);
-            const card = container.firstChild as HTMLElement;
-            expect(card.className).toContain('border-l-blue-400');
-        });
-
-        it('index 2 應該有 violet 邊框', () => {
-            const { container } = render(<SongCard {...defaultProps} index={2} />);
-            const card = container.firstChild as HTMLElement;
-            expect(card.className).toContain('border-l-violet-400');
-        });
-
-        it('index 5 應該循環回 rose 邊框', () => {
-            const { container } = render(<SongCard {...defaultProps} index={5} />);
-            const card = container.firstChild as HTMLElement;
-            expect(card.className).toContain('border-l-rose-400');
-        });
-    });
-
     describe('按鈕互動', () => {
         it('點擊點播按鈕應該觸發 onVote', () => {
             const onVote = vi.fn();
