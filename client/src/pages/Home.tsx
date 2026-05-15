@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Trophy, Tv } from "lucide-react";
+import { LogIn, LogOut, Trophy, Tv, Share2 } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import { TagFilterBar } from "../components/TagFilterBar";
@@ -33,6 +33,9 @@ const ShortcutsHelpModal = lazy(() =>
 );
 const StatsDashboard = lazy(() =>
   import("../components/StatsDashboard").then((m) => ({ default: m.StatsDashboard }))
+);
+const ShareCardModal = lazy(() =>
+  import("../components/ShareCardModal").then((m) => ({ default: m.ShareCardModal }))
 );
 
 // VoteHistoryModal 不在首屏關鍵路徑，lazy load
@@ -85,6 +88,7 @@ export default function Home() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [shareCardOpen, setShareCardOpen] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
   const { combo } = useComboCounter();
 
@@ -381,6 +385,17 @@ export default function Home() {
           >
             <BarChart3 className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">統計</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShareCardOpen(true)}
+            aria-label="演唱會節目單分享卡"
+            className="bg-white/90 hover:bg-white border-2 border-violet-300 hover:border-violet-400 text-violet-700 hover:text-violet-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
+            title="產生今晚的節目單分享卡（IG / FB）— 下載 PNG 或複製到剪貼簿"
+          >
+            <Share2 className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">節目單</span>
           </Button>
           <Button
             variant="outline"
@@ -871,6 +886,17 @@ export default function Home() {
         onClose={() => setDetailSong(null)}
         onSelectSimilar={(s) => setDetailSong(s)}
       />
+
+      {/* 節目單分享卡 (管理員) — lazy load */}
+      {shareCardOpen && (
+        <Suspense fallback={null}>
+          <ShareCardModal
+            isOpen={shareCardOpen}
+            onClose={() => setShareCardOpen(false)}
+            songs={songs}
+          />
+        </Suspense>
+      )}
 
       {/* 統計儀表板 (管理員) */}
       {statsOpen && (
