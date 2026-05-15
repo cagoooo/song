@@ -72,51 +72,36 @@ const generateLyricsUrl = (song: SongSuggestionType) => {
     return `https://www.google.com/search?q=${searchQuery}`;
 };
 
-// 顏色配置 - 增強版
+// Editorial 雜誌風配色 — 4 種狀態用色相一致但深淺不同
+// pending=藍底 / approved=米色+藍邊 / added=藍底全填 / rejected=灰
 const colorSchemes = {
     pending: {
-        gradient: 'from-amber-50/90 via-orange-50/90 to-amber-50/90',
-        border: 'border-amber-200/60',
-        hoverBorder: 'hover:border-amber-300',
-        title: 'from-amber-600 via-orange-600 to-amber-600',
-        noteBg: 'from-amber-100/60 to-orange-100/60',
-        iconBg: 'from-amber-400 to-orange-500',
-        shadowColor: 'shadow-amber-100/50 hover:shadow-amber-200/70',
-        statusBg: 'bg-gradient-to-r from-amber-400 to-orange-400',
+        cardBg: '#ffffff',
+        cardBorder: 'rgba(43, 77, 255, 0.18)',
+        statusBg: '#2b4dff',
         statusText: 'text-white',
+        accentColor: '#2b4dff',
     },
     approved: {
-        gradient: 'from-emerald-50/90 via-green-50/90 to-emerald-50/90',
-        border: 'border-emerald-200/60',
-        hoverBorder: 'hover:border-emerald-300',
-        title: 'from-emerald-600 via-green-600 to-emerald-600',
-        noteBg: 'from-emerald-100/60 to-green-100/60',
-        iconBg: 'from-emerald-400 to-green-500',
-        shadowColor: 'shadow-emerald-100/50 hover:shadow-emerald-200/70',
-        statusBg: 'bg-gradient-to-r from-emerald-400 to-green-400',
-        statusText: 'text-white',
+        cardBg: '#faf7f0',
+        cardBorder: 'rgba(17, 17, 17, 0.18)',
+        statusBg: 'rgba(43, 77, 255, 0.12)',
+        statusText: 'text-[#2b4dff]',
+        accentColor: '#2b4dff',
     },
     added_to_playlist: {
-        gradient: 'from-blue-50/90 via-sky-50/90 to-blue-50/90',
-        border: 'border-blue-200/60',
-        hoverBorder: 'hover:border-blue-300',
-        title: 'from-blue-600 via-sky-600 to-blue-600',
-        noteBg: 'from-blue-100/60 to-sky-100/60',
-        iconBg: 'from-blue-400 to-sky-500',
-        shadowColor: 'shadow-blue-100/50 hover:shadow-blue-200/70',
-        statusBg: 'bg-gradient-to-r from-blue-400 to-sky-400',
+        cardBg: '#ffffff',
+        cardBorder: 'rgba(43, 77, 255, 0.4)',
+        statusBg: '#0a0a0c',
         statusText: 'text-white',
+        accentColor: '#2b4dff',
     },
     rejected: {
-        gradient: 'from-gray-50/90 via-slate-50/90 to-gray-50/90',
-        border: 'border-gray-200/60',
-        hoverBorder: 'hover:border-gray-300',
-        title: 'from-slate-600 via-gray-600 to-slate-600',
-        noteBg: 'from-gray-100/60 to-slate-100/60',
-        iconBg: 'from-gray-400 to-slate-500',
-        shadowColor: 'shadow-gray-100/50 hover:shadow-gray-200/70',
-        statusBg: 'bg-gradient-to-r from-gray-400 to-slate-400',
-        statusText: 'text-white',
+        cardBg: '#f6f4ef',
+        cardBorder: 'rgba(17, 17, 17, 0.10)',
+        statusBg: 'rgba(17, 17, 17, 0.08)',
+        statusText: 'text-slate-500',
+        accentColor: '#8a8a8a',
     },
 };
 
@@ -178,63 +163,86 @@ export const SuggestionCard = memo(function SuggestionCard({
 
     return (
         <div
-            className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${color.gradient} 
-                border ${color.border} ${color.hoverBorder} shadow-lg ${color.shadowColor}
-                transition-all duration-200 ease-out backdrop-blur-sm group
-                hover:-translate-y-0.5 hover:shadow-xl
-                animate-in fade-in slide-in-from-bottom-2`}
-            style={{ animationDelay: `${index * 30}ms`, animationFillMode: 'backwards' }}
+            className="relative overflow-hidden rounded-xl border transition-all duration-200 group hover:-translate-y-0.5 hover:shadow-md animate-in fade-in slide-in-from-bottom-2"
+            style={{
+                background: color.cardBg,
+                borderColor: color.cardBorder,
+                animationDelay: `${index * 30}ms`,
+                animationFillMode: 'backwards',
+            }}
         >
-            {/* 背景裝飾 */}
-            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-white/30 to-transparent rounded-bl-full" />
-
-            {/* 狀態標籤 */}
+            {/* 狀態標籤 — Editorial mono uppercase */}
             <div className="absolute top-0 right-0 z-10">
-                <div className={`${color.statusBg} ${color.statusText} text-[10px] sm:text-xs font-bold 
-                    px-2.5 py-1 rounded-bl-xl shadow-sm flex items-center gap-1`}>
+                <div
+                    className={`${color.statusText} flex items-center gap-1 px-2.5 py-1 rounded-bl-md`}
+                    style={{
+                        background: color.statusBg,
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 10,
+                        letterSpacing: '0.18em',
+                        textTransform: 'uppercase',
+                        fontWeight: 600,
+                    }}
+                >
                     <StatusIcon className="w-3 h-3" />
                     <span className="hidden sm:inline">{status.label}</span>
                 </div>
             </div>
 
-            <div className="relative p-3 sm:p-4 pt-6">
-                {/* 歌曲資訊 - 加大字體 */}
-                <div className="mb-2">
-                    <h4 className={`text-lg sm:text-base font-bold truncate bg-gradient-to-r ${color.title} bg-clip-text text-transparent leading-tight`}>
+            <div className="relative p-4 pt-7">
+                {/* 歌曲資訊 — Playfair italic */}
+                <div className="mb-3">
+                    <h4
+                        className="truncate"
+                        style={{
+                            fontFamily: 'var(--font-display)',
+                            fontWeight: 800,
+                            fontSize: 18,
+                            letterSpacing: '-0.015em',
+                            color: 'var(--ed-ink-1)',
+                            lineHeight: 1.2,
+                        }}
+                    >
                         {suggestion.title}
                     </h4>
-                    <p className="text-sm font-medium text-gray-600 truncate mt-0.5">
+                    <p
+                        className="truncate mt-1"
+                        style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 10,
+                            letterSpacing: '0.16em',
+                            textTransform: 'uppercase',
+                            color: 'var(--ed-ink-3)',
+                        }}
+                    >
                         {suggestion.artist || '未知歌手'}
                     </p>
                     {suggestion.suggestedBy && (
                         <div className="flex items-center gap-1.5 mt-2">
-                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                                <User2 className="w-3 h-3 text-gray-500" />
+                            <div className="w-5 h-5 rounded-full bg-slate-100 border border-[rgba(17,17,17,0.10)] flex items-center justify-center">
+                                <User2 className="w-3 h-3 text-slate-500" />
                             </div>
-                            <span className="text-xs text-gray-500 font-medium truncate">
+                            <span className="text-xs text-slate-500 font-medium truncate">
                                 {suggestion.suggestedBy} 推薦
                             </span>
                         </div>
                     )}
                 </div>
 
-                {/* 快速連結按鈕 - 加大尺寸 */}
-                <div className="flex items-center gap-2 mb-2">
+                {/* 快速連結按鈕 — Editorial 中性灰 + hover 藍 */}
+                <div className="flex items-center gap-2 mb-3">
                     <TooltipProvider delayDuration={100}>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-9 sm:h-8 px-3 rounded-lg border border-indigo-200 
-                                        bg-indigo-50/80 hover:bg-indigo-100 hover:border-indigo-300
-                                        shadow-sm transition-all duration-150
-                                        active:scale-95"
+                                    className="h-8 px-3 rounded-full border border-[rgba(17,17,17,0.18)] bg-white hover:border-[#2b4dff] hover:bg-[#2b4dff]/5 hover:text-[#2b4dff] transition-colors"
                                     asChild
                                 >
                                     <a href={generateGuitarTabsUrl(suggestion)} target="_blank" rel="noopener noreferrer">
-                                        <Music2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-indigo-500 mr-1.5" />
-                                        <span className="text-sm sm:text-xs text-indigo-600 font-medium">吉他譜</span>
+                                        <Music2 className="w-3.5 h-3.5 mr-1.5" />
+                                        <span className="text-xs">吉他譜</span>
                                     </a>
                                 </Button>
                             </TooltipTrigger>
@@ -250,15 +258,12 @@ export const SuggestionCard = memo(function SuggestionCard({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-9 sm:h-8 px-3 rounded-lg border border-rose-200 
-                                        bg-rose-50/80 hover:bg-rose-100 hover:border-rose-300
-                                        shadow-sm transition-all duration-150
-                                        active:scale-95"
+                                    className="h-8 px-3 rounded-full border border-[rgba(17,17,17,0.18)] bg-white hover:border-[#2b4dff] hover:bg-[#2b4dff]/5 hover:text-[#2b4dff] transition-colors"
                                     asChild
                                 >
                                     <a href={generateLyricsUrl(suggestion)} target="_blank" rel="noopener noreferrer">
-                                        <FileText className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-rose-500 mr-1.5" />
-                                        <span className="text-sm sm:text-xs text-rose-600 font-medium">歌詞</span>
+                                        <FileText className="w-3.5 h-3.5 mr-1.5" />
+                                        <span className="text-xs">歌詞</span>
                                     </a>
                                 </Button>
                             </TooltipTrigger>
@@ -269,11 +274,26 @@ export const SuggestionCard = memo(function SuggestionCard({
                     </TooltipProvider>
                 </div>
 
-                {/* 推薦理由 - 加大字體 */}
+                {/* 推薦理由 — Editorial 義式引文框 */}
                 {suggestion.notes && (
-                    <div className={`p-2.5 rounded-xl bg-gradient-to-r ${color.noteBg} 
-                        border border-white/50 backdrop-blur-sm mb-2`}>
-                        <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
+                    <div
+                        className="p-3 rounded-md mb-3"
+                        style={{
+                            background: 'rgba(43, 77, 255, 0.04)',
+                            borderLeft: '3px solid rgba(43, 77, 255, 0.4)',
+                        }}
+                    >
+                        <p
+                            className="line-clamp-2"
+                            style={{
+                                fontFamily: 'var(--font-display)',
+                                fontStyle: 'italic',
+                                fontWeight: 500,
+                                fontSize: 14,
+                                color: 'var(--ed-ink-1)',
+                                lineHeight: 1.5,
+                            }}
+                        >
                             「{suggestion.notes}」
                         </p>
                     </div>
@@ -282,10 +302,24 @@ export const SuggestionCard = memo(function SuggestionCard({
                 {/* 狀態詳情 */}
                 {suggestion.status !== 'pending' && (
                     <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <span className={`text-xs px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 font-semibold
-                            ${suggestion.status === 'approved' ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200' :
-                                suggestion.status === 'added_to_playlist' ? 'bg-gradient-to-r from-blue-100 to-sky-100 text-blue-700 border border-blue-200' :
-                                    'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 border border-gray-200'}`}
+                        <span
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full"
+                            style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: 11,
+                                letterSpacing: '0.12em',
+                                textTransform: 'uppercase',
+                                fontWeight: 600,
+                                background:
+                                    suggestion.status === 'approved' ? 'rgba(43, 77, 255, 0.10)' :
+                                    suggestion.status === 'added_to_playlist' ? '#0a0a0c' :
+                                    'rgba(17, 17, 17, 0.05)',
+                                color:
+                                    suggestion.status === 'approved' ? '#2b4dff' :
+                                    suggestion.status === 'added_to_playlist' ? '#ffffff' :
+                                    '#8a8a8a',
+                                border: suggestion.status === 'rejected' ? '1px solid rgba(17, 17, 17, 0.10)' : 'none',
+                            }}
                         >
                             {suggestion.status === 'approved' && <><Clock className="w-3 h-3" />即將新增</>}
                             {suggestion.status === 'added_to_playlist' && (
@@ -302,10 +336,7 @@ export const SuggestionCard = memo(function SuggestionCard({
                         {isAdmin && suggestion.status === 'approved' && (
                             <Button
                                 size="sm"
-                                className="h-7 text-xs bg-gradient-to-r from-emerald-500 to-green-500 
-                                    hover:from-emerald-600 hover:to-green-600 text-white px-3 rounded-full
-                                    shadow-md shadow-emerald-200/50 hover:shadow-lg 
-                                    active:scale-95 transition-all duration-150"
+                                className="h-7 text-xs bg-[#2b4dff] hover:bg-[#1d3bd8] text-white px-3 rounded-full"
                                 onClick={() => addToPlaylistMutation.mutate()}
                             >
                                 <PlusCircle className="w-3.5 h-3.5 mr-1" />加入歌單
@@ -316,42 +347,31 @@ export const SuggestionCard = memo(function SuggestionCard({
 
                 {/* 管理員操作區 */}
                 {isAdmin && (
-                    <div className="flex flex-wrap gap-2 pt-3 mt-2 border-t border-gray-200/50">
+                    <div className="flex flex-wrap gap-2 pt-3 mt-2 border-t border-[rgba(17,17,17,0.10)]">
                         {suggestion.status === 'pending' && (
                             <>
-                                <div className="flex-1">
-                                    <Button
-                                        onClick={() => updateStatusMutation.mutate({ id: suggestion.id, status: 'approved' })}
-                                        size="sm"
-                                        className="w-full bg-gradient-to-r from-emerald-500 to-green-500 
-                                            hover:from-emerald-600 hover:to-green-600 text-white text-xs py-2 rounded-xl
-                                            shadow-md shadow-emerald-200/50 hover:shadow-lg 
-                                            active:scale-95 transition-all duration-150"
-                                    >
-                                        <Check className="w-3.5 h-3.5 mr-1.5" />採納
-                                    </Button>
-                                </div>
-                                <div className="flex-1">
-                                    <Button
-                                        onClick={() => updateStatusMutation.mutate({ id: suggestion.id, status: 'rejected' })}
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full border-2 border-red-200 text-red-600 hover:bg-red-50 
-                                            hover:border-red-300 text-xs py-2 rounded-xl 
-                                            active:scale-95 transition-all duration-150"
-                                    >
-                                        <X className="w-3.5 h-3.5 mr-1.5" />拒絕
-                                    </Button>
-                                </div>
+                                <Button
+                                    onClick={() => updateStatusMutation.mutate({ id: suggestion.id, status: 'approved' })}
+                                    size="sm"
+                                    className="flex-1 bg-[#2b4dff] hover:bg-[#1d3bd8] text-white text-xs py-2 rounded-md transition-colors"
+                                >
+                                    <Check className="w-3.5 h-3.5 mr-1.5" />採納
+                                </Button>
+                                <Button
+                                    onClick={() => updateStatusMutation.mutate({ id: suggestion.id, status: 'rejected' })}
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 border border-[rgba(17,17,17,0.18)] text-slate-600 hover:bg-slate-50 hover:border-slate-400 text-xs py-2 rounded-md"
+                                >
+                                    <X className="w-3.5 h-3.5 mr-1.5" />拒絕
+                                </Button>
                             </>
                         )}
                         <Button
                             onClick={() => deleteSuggestionMutation.mutate(suggestion.id)}
                             variant="outline"
                             size="sm"
-                            className="border-2 border-gray-200 text-gray-500 hover:bg-gray-50 
-                                hover:border-gray-300 hover:text-red-500 text-xs py-2 px-3 rounded-xl 
-                                active:scale-95 transition-all duration-150"
+                            className="border border-[rgba(17,17,17,0.18)] text-slate-500 hover:bg-slate-50 hover:text-red-500 hover:border-red-300 text-xs py-2 px-3 rounded-md"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
                         </Button>
