@@ -29,10 +29,13 @@ function App() {
 
   return (
     <Router base={base.endsWith('/') ? base.slice(0, -1) : base}>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route component={NotFound} />
-      </Switch>
+      {/* <main> landmark — Lighthouse a11y landmark-one-main 要求 */}
+      <main>
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route component={NotFound} />
+        </Switch>
+      </main>
       <NetworkStatusBanner />
       <Toaster />
     </Router>

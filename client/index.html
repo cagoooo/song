@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Performance: 預連 Firestore / Auth，省 ~150ms TLS handshake -->
+    <!-- Performance: 預連首屏會用到的 Firestore / Installations，省 ~150ms TLS handshake -->
+    <!-- (identitytoolkit/auth 已改 lazy, 不在首屏 critical path 上, 不再預連) -->
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://firebaseinstallations.googleapis.com" crossorigin />
-    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin />
     <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
 
     <!-- Favicon — 由 scripts/generate-og-image.mjs 產生 -->
