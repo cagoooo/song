@@ -5,16 +5,22 @@ import { Button } from '@/components/ui/button';
 import { useServiceWorkerUpdate } from '@/hooks/useServiceWorkerUpdate';
 
 /**
- * 右下角彈出新版本通知 banner。
- * 使用者點「立刻更新」→ SW 切換新版 + reload；點 X 暫時關閉 (下次 SW 再 update 還會出現)。
+ * 右下角彈出新版本通知 banner + 左下角版本徽章。
+ * 使用者點「立刻更新」→ SW 切換新版 + reload；
+ * 點 X 暫時關閉（左下角徽章變藍色 pulse 提示，點擊可重開 banner）。
  */
 export function UpdatePrompt() {
     const { updateAvailable, currentVersion, applyUpdate } = useServiceWorkerUpdate();
     const [dismissed, setDismissed] = useState(false);
     const visible = updateAvailable && !dismissed;
 
+    // 短版本字串：去掉 git hash 後綴讓徽章不要太長
+    // e.g. "4.2.0-ac1f138-wdxq" → "4.2.0"
+    const shortVersion = currentVersion?.split('-')[0] ?? null;
+
     return (
         <>
+            {/* Banner — 新版可用時跳出 */}
             <AnimatePresence>
                 {visible && (
                     <motion.div
@@ -95,11 +101,53 @@ export function UpdatePrompt() {
                 )}
             </AnimatePresence>
 
-            {/* 左下角小型版本徽章 — 提供使用者驗證自己跑的是哪版本, hover 才顯示, 不擾動視覺 */}
-            {currentVersion && (
-                <div className="fixed bottom-1 left-1 z-[55] text-[9px] text-stone-400/40 hover:text-stone-500/80 dark:text-stone-600/40 dark:hover:text-stone-400/80 font-mono tracking-tight pointer-events-none select-none transition-colors">
-                    v{currentVersion}
-                </div>
+            {/* 左下角版本徽章 —
+                · 一般狀態：米色 pill 顯示版本號 v4.2.0（中性灰，清楚可讀）
+                · 有新版可用（banner 被關掉時）：變藍色 + pulse + 點擊可重開 banner */}
+            {shortVersion && (
+                updateAvailable && dismissed ? (
+                    /* 有新版被忽略 — 顯眼藍色 pulse pill，點擊重開 banner */
+                    <motion.button
+                        type="button"
+                        onClick={() => setDismissed(false)}
+                        className="fixed bottom-3 left-3 z-[55] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#2b4dff] text-white shadow-md hover:shadow-lg active:scale-95 transition-all"
+                        style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 10,
+                            letterSpacing: '0.18em',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                        }}
+                        animate={{ scale: [1, 1.06, 1] }}
+                        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                        aria-label="有新版本可用，點擊重開更新通知"
+                        title="點擊重開更新通知"
+                    >
+                        <RefreshCw className="w-3 h-3" />
+                        新版可用 · v{shortVersion}
+                    </motion.button>
+                ) : (
+                    /* 一般狀態 — 米色 pill，清楚可讀但不搶眼；hover 顯示完整 git hash */
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (currentVersion && navigator.clipboard) {
+                                navigator.clipboard.writeText(currentVersion).catch(() => {});
+                            }
+                        }}
+                        className="fixed bottom-3 left-3 z-[55] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#faf7f0] border border-[rgba(17,17,17,0.14)] text-slate-500 hover:text-[#2b4dff] hover:border-[#2b4dff] transition-colors cursor-pointer"
+                        style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 10,
+                            letterSpacing: '0.14em',
+                            fontWeight: 500,
+                        }}
+                        title={`完整版本：${currentVersion}\n點擊複製`}
+                        aria-label={`目前版本 ${currentVersion}，點擊複製完整版本字串`}
+                    >
+                        v{shortVersion}
+                    </button>
+                )
             )}
         </>
     );
