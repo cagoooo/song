@@ -29,11 +29,12 @@ const CardHeader = React.forwardRef<
 ))
 CardHeader.displayName = "CardHeader"
 
+// CardTitle 用 h2 — 主頁是 h1 (站名), 各 Card section 同層 → h2 才符合 heading order
 const CardTitle = React.forwardRef<
-  HTMLParagraphElement,
+  HTMLHeadingElement,
   React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
-  <h3
+  <h2
     ref={ref}
     className={cn(
       "text-2xl font-semibold leading-none tracking-tight",

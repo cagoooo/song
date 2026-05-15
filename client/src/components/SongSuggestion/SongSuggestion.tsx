@@ -58,11 +58,11 @@ export default function SongSuggestion({
             {/* 建議列表 - 簡化版設計 */}
             {suggestions.length > 0 && (
                 <Collapsible open={isListExpanded} onOpenChange={setIsListExpanded}>
-                    <CollapsibleTrigger asChild>
-                        <div
-                            className="relative cursor-pointer group animate-in fade-in slide-in-from-bottom-2 duration-300"
-                            style={{ animationDelay: '50ms' }}
-                        >
+                    {/* 用預設 button trigger (而非 asChild div), 讓 aria-expanded 套在 button 上才合法 */}
+                    <CollapsibleTrigger
+                        className="relative w-full text-left appearance-none border-0 bg-transparent p-0 cursor-pointer group animate-in fade-in slide-in-from-bottom-2 duration-300"
+                        style={{ animationDelay: '50ms' }}
+                    >
                             {/* 懸停發光效果 - 簡化 */}
                             <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-300 via-orange-400 to-amber-300 
                                 rounded-2xl opacity-0 blur-sm 
@@ -89,12 +89,13 @@ export default function SongSuggestion({
                                     </div>
 
                                     <div className="flex flex-col">
-                                        <h3 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 bg-clip-text text-transparent">
+                                        {/* 用 span 而非 h3 — 在 button 內 + 視覺裝飾性, 不適合當真正的 page heading */}
+                                        <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 bg-clip-text text-transparent">
                                             社群歌曲推薦
-                                        </h3>
-                                        <p className="text-xs sm:text-sm text-amber-600/70 font-medium">
+                                        </span>
+                                        <span className="text-xs sm:text-sm text-amber-600/70 font-medium">
                                             點擊展開查看所有推薦
-                                        </p>
+                                        </span>
                                     </div>
 
                                     <div
@@ -141,7 +142,6 @@ export default function SongSuggestion({
                                     )}
                                 </div>
                             </div>
-                        </div>
                     </CollapsibleTrigger>
 
                     <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out 

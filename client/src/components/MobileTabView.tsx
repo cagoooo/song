@@ -129,7 +129,7 @@ export function MobileTabView({
                             className="relative flex items-center justify-center gap-2.5 h-full rounded-xl font-bold text-lg
                                 data-[state=inactive]:text-amber-600/80 data-[state=inactive]:bg-transparent
                                 data-[state=inactive]:hover:text-amber-700 data-[state=inactive]:hover:bg-white/50
-                                data-[state=active]:bg-white data-[state=active]:text-orange-600 
+                                data-[state=active]:bg-white data-[state=active]:text-orange-700 
                                 data-[state=active]:shadow-lg data-[state=active]:shadow-orange-200/50
                                 data-[state=active]:border data-[state=active]:border-orange-200
                                 transition-all duration-300 ease-out"
@@ -150,7 +150,7 @@ export function MobileTabView({
                             className="relative flex items-center justify-center gap-2.5 h-full rounded-xl font-bold text-lg
                                 data-[state=inactive]:text-amber-600/80 data-[state=inactive]:bg-transparent
                                 data-[state=inactive]:hover:text-amber-700 data-[state=inactive]:hover:bg-white/50
-                                data-[state=active]:bg-white data-[state=active]:text-orange-600 
+                                data-[state=active]:bg-white data-[state=active]:text-orange-700 
                                 data-[state=active]:shadow-lg data-[state=active]:shadow-orange-200/50
                                 data-[state=active]:border data-[state=active]:border-orange-200
                                 transition-all duration-300 ease-out"
