@@ -1,10 +1,6 @@
 // Firebase 前端配置
 import { initializeApp } from 'firebase/app';
-import {
-    initializeFirestore,
-    persistentLocalCache,
-    persistentMultipleTabManager,
-} from 'firebase/firestore';
+import { initializeFirestore, memoryLocalCache } from 'firebase/firestore';
 import type { Auth } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -19,13 +15,13 @@ const firebaseConfig = {
 // 初始化 Firebase
 export const app = initializeApp(firebaseConfig);
 
-// ==================== Firestore（離線持久化） ====================
-// 採用 initializeFirestore + persistentLocalCache + persistentMultipleTabManager
-// (取代已棄用的 enableIndexedDbPersistence)，A/B 兩個分頁可同時離線快取。
+// ==================== Firestore（in-memory cache） ====================
+// 改為 memoryLocalCache (不寫 IndexedDB) 換取 ~40KB gzip 主 bundle 縮減。
+// 取捨：失去跨 session IndexedDB 快取 → 訪客重新整理會重抓 Firestore 資料。
+// 但 onSnapshot listener 仍會即時連線, 多花一次首次 RPC 就好, 不影響功能。
+// SW 仍負責 app shell (JS/CSS/HTML) 離線, 此處只影響 data layer。
 export const db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager(),
-    }),
+    localCache: memoryLocalCache(),
 });
 
 // ==================== Auth（lazy load） ====================
