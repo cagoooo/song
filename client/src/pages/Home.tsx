@@ -193,22 +193,13 @@ export default function Home() {
   });
 
   // 使用 Firestore onSnapshot 即時監聯歌曲更新
+  // 註：不再跳「連線成功」toast — 屬於純資訊提示且會跟右下角浮動元件
+  // （管理員登入 / PWA 安裝 / Now Playing / SW 更新）擠在一起。
   useEffect(() => {
-    let hasConnectedOnce = false;
-
     const unsubscribe = subscribeSongs((updatedSongs) => {
       setSongs(updatedSongs);
       setIsLoading(false);
-
-      if (!hasConnectedOnce) {
-        setIsConnected(true);
-        hasConnectedOnce = true;
-        toast({
-          title: "連線成功",
-          description: "即時更新已啟用",
-          className: "bg-green-50 border-green-200 text-green-800",
-        });
-      }
+      setIsConnected(true);
     });
 
     return () => {
@@ -766,10 +757,10 @@ export default function Home() {
         </footer>
       </div>
 
-      {/* Login button for non-admin users */}
+      {/* 管理員登入按鈕 — 搬到左下避開右下角 toast / 通知 / PWA 安裝 / SW 更新堆疊 */}
       {!user && (
         <motion.div
-          className="fixed bottom-4 right-4 z-50"
+          className="fixed bottom-4 left-4 z-40"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -778,10 +769,18 @@ export default function Home() {
             variant="outline"
             size="sm"
             onClick={() => setShowLoginForm(true)}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40 transition-all duration-300"
+            className="bg-white/95 hover:bg-white border border-[rgba(17,17,17,0.18)] hover:border-[#2b4dff] hover:text-[#2b4dff] backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-200 rounded-full px-4 h-9"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 11,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              fontWeight: 600,
+            }}
+            aria-label="管理員登入"
           >
-            <LogIn className="w-4 h-4 mr-2" />
-            管理員登入
+            <LogIn className="w-3.5 h-3.5 mr-1.5" />
+            Admin
           </Button>
         </motion.div>
       )}
