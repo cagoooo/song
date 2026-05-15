@@ -40,7 +40,7 @@ interface MatchedSong {
     matchType: 'exact' | 'partial';
 }
 
-// 歌手選項按鈕 - 使用 memo 避免不必要的重渲染
+// 歌手選項按鈕 — Editorial 雜誌風 chip
 const ArtistOption = memo(function ArtistOption({
     option,
     isSelected,
@@ -62,8 +62,8 @@ const ArtistOption = memo(function ArtistOption({
             onClick={onClick}
             className={`px-3 py-1.5 text-xs rounded-full border transition-colors duration-150
                 ${isSelected
-                    ? 'bg-purple-500 text-white border-purple-500 shadow-md'
-                    : 'bg-white/70 text-purple-600 border-purple-200 hover:bg-purple-100 active:bg-purple-200'}`}
+                    ? 'bg-[#2b4dff] text-white border-[#2b4dff]'
+                    : 'bg-white text-slate-600 border-[rgba(17,17,17,0.18)] hover:border-[#2b4dff] hover:text-[#2b4dff]'}`}
         >
             {labels[option] || option}
         </button>
@@ -177,12 +177,12 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                 <DialogTrigger asChild>
                     <Button
                         variant="default"
-                        className="w-full text-base py-6 px-4 font-semibold
-                           border-2 border-amber-400 
-                           bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 
+                        className="w-full text-base py-6 px-4 font-semibold rounded-xl
+                           border-0
+                           bg-[#2b4dff] hover:bg-[#1d3bd8]
                            text-white
-                           shadow-lg shadow-amber-400/30
-                           active:scale-[0.98] transition-transform duration-150"
+                           shadow-md hover:shadow-lg
+                           active:scale-[0.98] transition-all duration-150"
                     >
                         <div className="flex items-center justify-center gap-2">
                             <Plus className="w-5 h-5" />
@@ -192,61 +192,106 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                     </Button>
                 </DialogTrigger>
 
-                <DialogContent className="w-[calc(100vw-2rem)] max-w-md bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 
-                    border-none shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto rounded-xl">
-                    {/* 頂部裝飾條 - 靜態 */}
-                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-80" />
-
-                    {/* 背景裝飾 - 靜態 */}
-                    <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-200/40 to-transparent rounded-bl-full" />
-                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-pink-200/40 to-transparent rounded-tr-full" />
+                <DialogContent className="w-[calc(100vw-2rem)] max-w-md p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)] max-h-[90vh] overflow-y-auto">
+                    {/* 雜誌頂條 */}
+                    <div className="editorial-modal-flag">
+                        <span>Nº 12</span>
+                        <span className="center">Reader’s Pick</span>
+                        <span className="text-right">Side A</span>
                     </div>
 
-                    <DialogHeader className="pb-2">
-                        <DialogTitle className="text-xl sm:text-2xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center gap-2">
-                            <Sparkles className="w-5 h-5 text-purple-500" />
-                            建議新歌曲
-                            <Sparkles className="w-5 h-5 text-purple-500" />
+                    <DialogHeader className="px-6 pt-5 pb-3 space-y-1">
+                        <div
+                            style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: 11,
+                                letterSpacing: '0.24em',
+                                textTransform: 'uppercase',
+                                color: 'var(--ed-ink-3)',
+                            }}
+                        >
+                            Chapter · 推薦新歌
+                        </div>
+                        <DialogTitle
+                            style={{
+                                fontFamily: 'var(--font-display)',
+                                fontStyle: 'italic',
+                                fontWeight: 900,
+                                fontSize: 28,
+                                letterSpacing: '-0.02em',
+                                color: 'var(--ed-ink-1)',
+                                margin: 0,
+                                lineHeight: 1.15,
+                            }}
+                            className="flex items-center gap-2"
+                        >
+                            <Sparkles className="w-5 h-5 text-[#2b4dff]" />
+                            建議<span style={{ color: '#2b4dff' }}>新歌</span>
                         </DialogTitle>
-                        <DialogDescription className="text-center px-3 py-2 bg-white/60 rounded-lg border border-indigo-100/50 text-gray-600 text-sm">
-                            您的建議將會送交管理員審核。審核通過後，歌曲就會出現在可點播清單中！
+                        <DialogDescription
+                            style={{
+                                fontFamily: 'var(--font-display)',
+                                fontStyle: 'italic',
+                                fontSize: 14,
+                                color: 'var(--ed-ink-2)',
+                                lineHeight: 1.5,
+                            }}
+                        >
+                            您的建議會交給阿凱老師審核，通過後就會出現在可點播清單中。
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+                    <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
                         {/* 歌曲名稱 */}
-                        <div className="space-y-2">
-                            <Label htmlFor="title" className="flex items-center gap-1.5 font-medium text-indigo-800">
-                                <Music2 className="w-4 h-4 text-indigo-500" />
-                                歌曲名稱
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="title"
+                                className="flex items-center gap-1.5"
+                                style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 10,
+                                    letterSpacing: '0.22em',
+                                    textTransform: 'uppercase',
+                                    color: 'var(--ed-ink-3)',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                <Music2 className="w-3.5 h-3.5" />
+                                Title · 歌曲名稱
                             </Label>
                             <Input
                                 id="title"
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 required
-                                className="bg-white/80 border-2 border-indigo-200/60 focus:border-indigo-400 
-                                    rounded-xl px-4 py-3 font-medium text-gray-800 
-                                    transition-colors duration-150"
+                                className="h-11 bg-white border-[rgba(17,17,17,0.18)] focus:border-[#2b4dff] focus-visible:ring-2 focus-visible:ring-[#2b4dff]/20 rounded-md px-4 text-slate-900"
                                 placeholder="輸入歌曲名稱"
                             />
                         </div>
 
                         {/* 歌手 */}
-                        <div className="space-y-2">
-                            <Label htmlFor="artist" className="flex items-center gap-1.5 font-medium text-purple-800">
-                                <FileText className="w-4 h-4 text-purple-500" />
-                                歌手 <span className="text-xs text-purple-500/80">(選填)</span>
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="artist"
+                                className="flex items-center gap-1.5"
+                                style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 10,
+                                    letterSpacing: '0.22em',
+                                    textTransform: 'uppercase',
+                                    color: 'var(--ed-ink-3)',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                <FileText className="w-3.5 h-3.5" />
+                                Artist · 歌手 <span className="text-[10px] text-slate-400 normal-case tracking-normal">(選填)</span>
                             </Label>
                             <Input
                                 id="artist"
                                 value={artist}
                                 onChange={(e) => setArtist(e.target.value)}
                                 placeholder="如不確定可留空或選擇下方選項"
-                                className="bg-white/80 border-2 border-purple-200/60 focus:border-purple-400 
-                                    rounded-xl px-4 py-3 font-medium text-gray-800 
-                                    transition-colors duration-150"
+                                className="h-11 bg-white border-[rgba(17,17,17,0.18)] focus:border-[#2b4dff] focus-visible:ring-2 focus-visible:ring-[#2b4dff]/20 rounded-md px-4 text-slate-900"
                             />
                             <div className="flex flex-wrap gap-2 mt-2">
                                 {['不確定', '多人翻唱', '經典老歌'].map((option) => (
@@ -261,34 +306,54 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                         </div>
 
                         {/* 您的稱呼 */}
-                        <div className="space-y-2">
-                            <Label htmlFor="suggestedBy" className="flex items-center gap-1.5 font-medium text-pink-800">
-                                <PlusCircle className="w-4 h-4 text-pink-500" />
-                                您的稱呼 <span className="text-xs text-pink-500/80">(選填)</span>
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="suggestedBy"
+                                className="flex items-center gap-1.5"
+                                style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 10,
+                                    letterSpacing: '0.22em',
+                                    textTransform: 'uppercase',
+                                    color: 'var(--ed-ink-3)',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                <PlusCircle className="w-3.5 h-3.5" />
+                                Your Name · 您的稱呼 <span className="text-[10px] text-slate-400 normal-case tracking-normal">(選填)</span>
                             </Label>
                             <Input
                                 id="suggestedBy"
                                 value={suggestedBy}
                                 onChange={(e) => setSuggestedBy(e.target.value)}
                                 placeholder="讓大家知道是誰推薦的好歌！"
-                                className="bg-white/80 border-2 border-pink-200/60 focus:border-pink-400 
-                                    rounded-xl px-4 py-2.5 transition-colors duration-150"
+                                className="h-11 bg-white border-[rgba(17,17,17,0.18)] focus:border-[#2b4dff] focus-visible:ring-2 focus-visible:ring-[#2b4dff]/20 rounded-md px-4 text-slate-900"
                             />
                         </div>
 
                         {/* 推薦理由 */}
-                        <div className="space-y-2">
-                            <Label htmlFor="notes" className="flex items-center gap-1.5 font-medium text-indigo-800">
-                                <Lightbulb className="w-4 h-4 text-indigo-500" />
-                                為什麼想推薦這首歌？ <span className="text-xs text-indigo-500/80">(選填)</span>
+                        <div className="space-y-1.5">
+                            <Label
+                                htmlFor="notes"
+                                className="flex items-center gap-1.5"
+                                style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 10,
+                                    letterSpacing: '0.22em',
+                                    textTransform: 'uppercase',
+                                    color: 'var(--ed-ink-3)',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                <Lightbulb className="w-3.5 h-3.5" />
+                                Why · 為什麼想推薦 <span className="text-[10px] text-slate-400 normal-case tracking-normal">(選填)</span>
                             </Label>
                             <Textarea
                                 id="notes"
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
                                 placeholder="分享一下您喜歡這首歌的原因..."
-                                className="bg-white/70 border-2 border-indigo-200/50 focus:border-indigo-400 
-                                    min-h-[80px] rounded-xl transition-colors duration-150 resize-none"
+                                className="min-h-[80px] bg-white border-[rgba(17,17,17,0.18)] focus:border-[#2b4dff] focus-visible:ring-2 focus-visible:ring-[#2b4dff]/20 rounded-md px-4 py-3 text-slate-900 resize-none"
                             />
                         </div>
 
@@ -297,54 +362,104 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                             <Button
                                 type="submit"
                                 disabled={addSuggestionMutation.isPending}
-                                className="w-full py-5 rounded-xl font-bold text-white tracking-wide
-                                   bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600
-                                   hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700
-                                   shadow-lg shadow-purple-300/40
-                                   active:scale-[0.98] transition-transform duration-150
+                                className="w-full h-12 rounded-md font-semibold text-white tracking-wide
+                                   bg-[#2b4dff] hover:bg-[#1d3bd8]
+                                   shadow-md hover:shadow-lg
+                                   active:scale-[0.98] transition-all duration-150
                                    disabled:opacity-70 disabled:cursor-not-allowed"
+                                style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 13,
+                                    letterSpacing: '0.18em',
+                                    textTransform: 'uppercase',
+                                }}
                             >
-                                {addSuggestionMutation.isPending ? '送出中...' : '送出建議 ✨'}
+                                {addSuggestionMutation.isPending ? '送出中…' : '送出建議 →'}
                             </Button>
                         </div>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            {/* 重複歌曲提示對話框 */}
+            {/* 重複歌曲提示 — Editorial 米色卡 + 藍色 CTA */}
             <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
-                <AlertDialogContent className="max-w-md bg-white">
+                <AlertDialogContent className="max-w-md bg-[#faf7f0] border-[rgba(17,17,17,0.18)]">
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-emerald-600">
-                            <CheckCircle className="w-6 h-6" />
-                            🎉 好消息！這首歌已經在歌單中了
+                        <AlertDialogTitle
+                            className="flex items-center gap-2"
+                            style={{
+                                fontFamily: 'var(--font-display)',
+                                fontStyle: 'italic',
+                                fontWeight: 800,
+                                fontSize: 22,
+                                color: 'var(--ed-ink-1)',
+                            }}
+                        >
+                            <CheckCircle className="w-6 h-6 text-[#2b4dff]" />
+                            這首歌<span style={{ color: '#2b4dff' }}>已在</span>歌單中
                         </AlertDialogTitle>
                         <AlertDialogDescription asChild>
                             <div className="space-y-3">
-                                <p className="text-slate-600">
+                                <p
+                                    style={{
+                                        fontFamily: 'var(--font-display)',
+                                        fontStyle: 'italic',
+                                        fontSize: 14,
+                                        color: 'var(--ed-ink-2)',
+                                    }}
+                                >
                                     {matchedSong?.matchType === 'exact'
-                                        ? '我們找到了完全匹配的歌曲：'
-                                        : '我們找到了類似的歌曲：'}
+                                        ? '完全匹配的歌曲：'
+                                        : '類似的歌曲：'}
                                 </p>
                                 {matchedSong && (
-                                    <div className="p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
+                                    <div className="p-4 bg-white rounded-md border border-[rgba(17,17,17,0.12)]">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center">
-                                                <Music2 className="w-6 h-6 text-white" />
+                                            <div className="w-12 h-12 rounded-md bg-slate-100 border border-[rgba(17,17,17,0.12)] flex items-center justify-center">
+                                                <Music2 className="w-5 h-5 text-slate-500" />
                                             </div>
                                             <div>
-                                                <p className="font-bold text-slate-800 text-lg">{matchedSong.song.title}</p>
-                                                <p className="text-sm text-slate-500">{matchedSong.song.artist || '未知歌手'}</p>
+                                                <p
+                                                    style={{
+                                                        fontFamily: 'var(--font-display)',
+                                                        fontWeight: 700,
+                                                        fontSize: 16,
+                                                        color: 'var(--ed-ink-1)',
+                                                    }}
+                                                >
+                                                    {matchedSong.song.title}
+                                                </p>
+                                                <p
+                                                    className="text-sm text-slate-500"
+                                                    style={{
+                                                        fontFamily: 'var(--font-mono)',
+                                                        fontSize: 10,
+                                                        letterSpacing: '0.14em',
+                                                        textTransform: 'uppercase',
+                                                    }}
+                                                >
+                                                    {matchedSong.song.artist || '未知歌手'}
+                                                </p>
                                             </div>
                                             <div className="ml-auto text-right">
-                                                <span className="text-2xl font-bold text-emerald-600">{matchedSong.song.voteCount || 0}</span>
+                                                <span
+                                                    style={{
+                                                        fontFamily: 'var(--font-display)',
+                                                        fontStyle: 'italic',
+                                                        fontWeight: 900,
+                                                        fontSize: 26,
+                                                        color: '#2b4dff',
+                                                    }}
+                                                >
+                                                    {matchedSong.song.voteCount || 0}
+                                                </span>
                                                 <span className="text-xs text-slate-500 block">票</span>
                                             </div>
                                         </div>
                                     </div>
                                 )}
                                 <p className="text-sm text-slate-500">
-                                    您可以直接前往點播這首歌，或繼續送出建議讓管理員審核。
+                                    您可以直接前往點播這首歌，或繼續送出建議讓阿凱老師審核。
                                 </p>
                             </div>
                         </AlertDialogDescription>
@@ -352,16 +467,16 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                     <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                         <AlertDialogCancel
                             onClick={handleForceSubmit}
-                            className="text-slate-600"
+                            className="text-slate-600 border-[rgba(17,17,17,0.18)]"
                         >
                             仍要送出建議
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleNavigateToSong}
-                            className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white"
+                            className="bg-[#2b4dff] hover:bg-[#1d3bd8] text-white"
                         >
                             <ThumbsUp className="w-4 h-4 mr-2" />
-                            前往點播這首歌！
+                            前往點播
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

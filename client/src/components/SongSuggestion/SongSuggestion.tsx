@@ -34,107 +34,114 @@ export default function SongSuggestion({
 
     return (
         <div className="space-y-5">
-            {/* 新歌建議按鈕與表單 - 簡化動畫 */}
-            <div className="relative group animate-in fade-in slide-in-from-bottom-2 duration-300">
-                {/* 簡化的外層發光效果 */}
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-400 
-                    rounded-2xl opacity-70 blur-sm 
-                    group-hover:opacity-90 transition-opacity duration-200" />
+            {/* 新歌建議 trigger — Editorial 藍色 CTA（在 SuggestionForm 內部處理樣式） */}
+            <SuggestionForm
+                isOpen={isOpen}
+                onOpenChange={setIsOpen}
+                songs={songs}
+                onNavigateToSong={onNavigateToSong}
+            />
 
-                {/* 主要容器 */}
-                <div className="relative p-1 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 
-                    shadow-xl shadow-amber-400/25">
-                    <div className="rounded-xl overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50">
-                        <SuggestionForm
-                            isOpen={isOpen}
-                            onOpenChange={setIsOpen}
-                            songs={songs}
-                            onNavigateToSong={onNavigateToSong}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* 建議列表 - 簡化版設計 */}
+            {/* 建議列表 — Editorial 雜誌風 collapse panel */}
             {suggestions.length > 0 && (
                 <Collapsible open={isListExpanded} onOpenChange={setIsListExpanded}>
-                    {/* 用預設 button trigger (而非 asChild div), 讓 aria-expanded 套在 button 上才合法 */}
                     <CollapsibleTrigger
                         className="relative w-full text-left appearance-none border-0 bg-transparent p-0 cursor-pointer group animate-in fade-in slide-in-from-bottom-2 duration-300"
                         style={{ animationDelay: '50ms' }}
                     >
-                            {/* 懸停發光效果 - 簡化 */}
-                            <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-300 via-orange-400 to-amber-300 
-                                rounded-2xl opacity-0 blur-sm 
-                                group-hover:opacity-50 transition-opacity duration-200" />
-
                             <div
-                                className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl 
-                                    bg-gradient-to-br from-white via-amber-50/80 to-orange-50/80
-                                    border border-amber-200/60 shadow-lg shadow-amber-100/50
-                                    group-hover:shadow-xl group-hover:border-amber-300/80
-                                    transition-all duration-200 backdrop-blur-sm overflow-hidden"
+                                className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-xl
+                                    bg-[#faf7f0]
+                                    border border-[rgba(17,17,17,0.14)]
+                                    shadow-[0_1px_0_rgba(17,17,17,0.04),0_12px_30px_-16px_rgba(17,17,17,0.16)]
+                                    group-hover:border-[rgba(17,17,17,0.28)]
+                                    transition-all duration-200 overflow-hidden"
                             >
-                                {/* 背景裝飾 - 靜態 */}
-                                <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-amber-200/25 to-transparent rounded-bl-full pointer-events-none" />
-
                                 {/* 左側標題區 */}
                                 <div className="flex items-center gap-3 relative z-10">
                                     <div className="relative">
-                                        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 
-                                            flex items-center justify-center shadow-lg shadow-amber-400/30">
-                                            <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-md bg-white border border-[rgba(17,17,17,0.14)] flex items-center justify-center">
+                                            <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-[#2b4dff]" />
                                         </div>
-                                        <Sparkles className="absolute -top-1 -right-1 w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                                        <Sparkles className="absolute -top-1 -right-1 w-3 h-3 text-[#2b4dff] animate-pulse" />
                                     </div>
 
-                                    <div className="flex flex-col">
-                                        {/* 用 span 而非 h3 — 在 button 內 + 視覺裝飾性, 不適合當真正的 page heading */}
-                                        <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 bg-clip-text text-transparent">
-                                            社群歌曲推薦
+                                    <div className="flex flex-col gap-0.5">
+                                        <span
+                                            style={{
+                                                fontFamily: 'var(--font-mono)',
+                                                fontSize: 10,
+                                                letterSpacing: '0.22em',
+                                                textTransform: 'uppercase',
+                                                color: 'var(--ed-ink-3)',
+                                            }}
+                                        >
+                                            Reader’s Picks
                                         </span>
-                                        <span className="text-xs sm:text-sm text-amber-600/70 font-medium">
-                                            點擊展開查看所有推薦
+                                        <span
+                                            style={{
+                                                fontFamily: 'var(--font-display)',
+                                                fontStyle: 'italic',
+                                                fontWeight: 800,
+                                                fontSize: 20,
+                                                letterSpacing: '-0.015em',
+                                                color: 'var(--ed-ink-1)',
+                                                lineHeight: 1.1,
+                                            }}
+                                        >
+                                            社群歌曲推薦
                                         </span>
                                     </div>
 
                                     <div
                                         className={`ml-1 transition-transform duration-200 ${isListExpanded ? 'rotate-180' : 'rotate-0'}`}
                                     >
-                                        <ChevronDown className="w-5 h-5 text-amber-500" />
+                                        <ChevronDown className="w-5 h-5 text-slate-400" />
                                     </div>
                                 </div>
 
-                                {/* 右側統計標籤 */}
+                                {/* 右側統計標籤 — Editorial 系列 */}
                                 <div className="flex flex-wrap items-center gap-2 relative z-10">
                                     {counts.pending > 0 && (
                                         <span
-                                            className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-100 to-yellow-100 
-                                                px-3 py-1.5 rounded-full border border-amber-300/50 
-                                                text-xs sm:text-sm text-amber-700 font-semibold shadow-sm
-                                                hover:scale-105 transition-transform duration-150"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#2b4dff]/30 bg-[#2b4dff]/10 text-[#2b4dff]"
+                                            style={{
+                                                fontFamily: 'var(--font-mono)',
+                                                fontSize: 11,
+                                                letterSpacing: '0.12em',
+                                                textTransform: 'uppercase',
+                                                fontWeight: 600,
+                                            }}
                                         >
-                                            <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                                            <span className="w-1.5 h-1.5 bg-[#2b4dff] rounded-full animate-pulse" />
                                             {counts.pending} 待審核
                                         </span>
                                     )}
                                     {counts.approved > 0 && (
                                         <span
-                                            className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-100 to-green-100 
-                                                px-3 py-1.5 rounded-full border border-emerald-300/50 
-                                                text-xs sm:text-sm text-emerald-700 font-semibold shadow-sm
-                                                hover:scale-105 transition-transform duration-150"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-300 bg-white text-slate-600"
+                                            style={{
+                                                fontFamily: 'var(--font-mono)',
+                                                fontSize: 11,
+                                                letterSpacing: '0.12em',
+                                                textTransform: 'uppercase',
+                                                fontWeight: 600,
+                                            }}
                                         >
-                                            <span className="w-2 h-2 bg-emerald-500 rounded-full" />
+                                            <span className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
                                             {counts.approved} 已採納
                                         </span>
                                     )}
                                     {counts.added > 0 && (
                                         <span
-                                            className="inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-100 to-sky-100 
-                                                px-3 py-1.5 rounded-full border border-blue-300/50 
-                                                text-xs sm:text-sm text-blue-700 font-semibold shadow-sm
-                                                hover:scale-105 transition-transform duration-150"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2b4dff] text-white"
+                                            style={{
+                                                fontFamily: 'var(--font-mono)',
+                                                fontSize: 11,
+                                                letterSpacing: '0.12em',
+                                                textTransform: 'uppercase',
+                                                fontWeight: 600,
+                                            }}
                                         >
                                             <Music className="w-3 h-3" />
                                             {counts.added} 已加入

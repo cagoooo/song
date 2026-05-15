@@ -201,7 +201,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                         onClick={() => setShowResetVotesDialog(true)}
                                         disabled={isResettingVotes}
                                         aria-label="重置投票"
-                                        className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 gap-1 px-2 sm:px-3"
+                                        className="text-xs text-slate-600 hover:text-[#2b4dff] hover:bg-[#2b4dff]/5 gap-1 px-2 sm:px-3"
                                     >
                                         <RefreshCw className={`w-3.5 h-3.5 ${isResettingVotes ? 'animate-spin' : ''}`} />
                                         <span className="hidden sm:inline">重置投票</span>
@@ -270,52 +270,43 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                             }}
                             style={{ originX: 0 }} // 確保縮放以左側為基準
                             className={`
-                                flex flex-wrap items-center gap-2 p-2.5 sm:p-3 rounded-xl relative overflow-hidden
+                                flex flex-wrap items-center gap-2 p-2.5 sm:p-3 rounded-lg relative overflow-hidden
                                 transition-all duration-200
                                 ${song.isNowPlaying
-                                    ? 'bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 border-2 border-orange-400 shadow-lg shadow-orange-200/50 ring-2 ring-orange-300/50'
+                                    ? 'bg-[#2b4dff]/[0.08] border-2 border-[#2b4dff] shadow-md ring-2 ring-[#2b4dff]/20'
                                     : song.isPlayed
-                                        ? 'bg-emerald-50/50 border-emerald-200'
+                                        ? 'bg-slate-50 border border-slate-200'
                                         : ''}
                                 ${!song.isNowPlaying && !song.isPlayed && (index === 0
-                                    ? 'bg-gradient-to-r from-amber-50/90 via-yellow-50/80 to-amber-50/70 border-l-4 border-l-amber-400 border border-amber-200/60 shadow-lg shadow-amber-100/40'
+                                    ? 'bg-[#faf7f0] border-l-4 border-l-[#b8902a] border border-[rgba(17,17,17,0.14)] shadow-sm'
                                     : index === 1
-                                        ? 'bg-gradient-to-r from-slate-50/90 via-gray-50/80 to-slate-50/70 border-l-4 border-l-slate-400 border border-slate-200/60 shadow-md shadow-slate-100/40'
+                                        ? 'bg-[#faf7f0] border-l-4 border-l-[#7a7a7a] border border-[rgba(17,17,17,0.14)] shadow-sm'
                                         : index === 2
-                                            ? 'bg-gradient-to-r from-orange-50/90 via-amber-50/80 to-orange-50/70 border-l-4 border-l-orange-400 border border-orange-200/60 shadow-md shadow-orange-100/40'
+                                            ? 'bg-[#faf7f0] border-l-4 border-l-[#a25a32] border border-[rgba(17,17,17,0.14)] shadow-sm'
                                             : 'bg-white border border-slate-200/80 hover:border-slate-300 hover:shadow-sm')}
-                                ${showRankChange[song.id] === 'up' ? 'ring-2 ring-emerald-200 shadow-lg shadow-emerald-100/50' :
-                                    showRankChange[song.id] === 'down' ? 'ring-2 ring-rose-200 shadow-lg shadow-rose-100/50' : ''}
-                                ${index < 3 && !song.isNowPlaying ? 'hover:shadow-xl' : !song.isNowPlaying ? 'hover:bg-slate-50/50' : ''}
+                                ${showRankChange[song.id] === 'up' ? 'ring-2 ring-[#2b4dff]/30' :
+                                    showRankChange[song.id] === 'down' ? 'ring-2 ring-slate-300' : ''}
+                                ${index < 3 && !song.isNowPlaying ? 'hover:shadow-md' : !song.isNowPlaying ? 'hover:bg-slate-50/50' : ''}
                                 ${surgeRing}
                             `}
                         >
-                            {/* 前三名微光效果 */}
-                            {index < 3 && (
-                                <div
-                                    className={`absolute inset-0 opacity-30 pointer-events-none rounded-xl
-                                        ${index === 0 ? 'bg-gradient-to-br from-amber-200/20 via-transparent to-yellow-100/10' :
-                                            index === 1 ? 'bg-gradient-to-br from-slate-200/20 via-transparent to-gray-100/10' :
-                                                'bg-gradient-to-br from-orange-200/20 via-transparent to-amber-100/10'}`}
-                                />
-                            )}
 
-                            {/* 排名變化動畫 - 簡化版 */}
+                            {/* 排名變化動畫 — Editorial 藍 / 中性灰 */}
                             {showRankChange[song.id] === 'up' && (
                                 <motion.div
                                     initial={{ opacity: 0 }}
-                                    animate={{ opacity: [0, 0.2, 0] }}
+                                    animate={{ opacity: [0, 0.18, 0] }}
                                     transition={{ duration: 1, times: [0, 0.5, 1] }}
-                                    className="absolute inset-0 bg-gradient-to-r from-emerald-400/15 to-green-400/15 rounded-xl"
+                                    className="absolute inset-0 bg-[#2b4dff]/15 rounded-lg"
                                     style={{ pointerEvents: "none" }}
                                 />
                             )}
                             {showRankChange[song.id] === 'down' && (
                                 <motion.div
                                     initial={{ opacity: 0 }}
-                                    animate={{ opacity: [0, 0.2, 0] }}
+                                    animate={{ opacity: [0, 0.18, 0] }}
                                     transition={{ duration: 1, times: [0, 0.5, 1] }}
-                                    className="absolute inset-0 bg-gradient-to-r from-rose-400/15 to-red-400/15 rounded-xl"
+                                    className="absolute inset-0 bg-slate-300/20 rounded-lg"
                                     style={{ pointerEvents: "none" }}
                                 />
                             )}
@@ -330,36 +321,51 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     animate={{ scale: showRankChange[song.id] ? [1, 1.02, 1] : 1 }}
                                     transition={{ duration: 0.3 }}
                                 >
-                                    <h3 className={`font-bold text-lg sm:text-base leading-tight truncate ${index === 0 ? 'text-amber-900' :
-                                        index === 1 ? 'text-slate-800' :
-                                            index === 2 ? 'text-orange-900' :
-                                                'text-slate-800'
-                                        }`}>
+                                    <h3
+                                        className="text-lg sm:text-base leading-tight truncate text-slate-900"
+                                        style={{
+                                            fontFamily: 'var(--font-display)',
+                                            fontWeight: 800,
+                                            letterSpacing: '-0.015em',
+                                        }}
+                                    >
                                         {song.title}
                                     </h3>
                                 </motion.div>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <p className={`text-sm truncate ${index === 0 ? 'text-amber-700/80' :
-                                        index === 1 ? 'text-slate-600/80' :
-                                            index === 2 ? 'text-orange-700/80' :
-                                                'text-slate-500'
-                                        }`}>
+                                    <p className="text-sm truncate text-slate-500">
                                         {song.artist}
                                     </p>
-                                    {/* 正在彈奏中標籤（優先顯示） */}
+                                    {/* 正在彈奏中標籤 — Editorial 藍 */}
                                     {song.isNowPlaying && (
                                         <motion.span
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-medium shrink-0 shadow-sm"
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#2b4dff] text-white shrink-0 shadow-sm"
+                                            style={{
+                                                fontFamily: 'var(--font-mono)',
+                                                fontSize: 10,
+                                                letterSpacing: '0.14em',
+                                                textTransform: 'uppercase',
+                                                fontWeight: 600,
+                                            }}
                                             animate={{ scale: [1, 1.05, 1] }}
                                             transition={{ duration: 1.5, repeat: Infinity }}
                                         >
                                             <Play className="w-3 h-3 fill-current" />
-                                            正在彈奏中
+                                            Now Playing
                                         </motion.span>
                                     )}
                                     {/* 已彈奏標籤 */}
                                     {song.isPlayed && !song.isNowPlaying && (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium shrink-0">
+                                        <span
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0 border border-slate-300"
+                                            style={{
+                                                fontFamily: 'var(--font-mono)',
+                                                fontSize: 10,
+                                                letterSpacing: '0.14em',
+                                                textTransform: 'uppercase',
+                                                fontWeight: 600,
+                                            }}
+                                        >
                                             <Check className="w-3 h-3" />
                                             已彈奏
                                         </span>
@@ -369,14 +375,21 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                 </div>
                             </div>
 
-                            {/* 票數 - 緊湊版 */}
-                            <div className="flex items-baseline gap-0.5 px-2 py-1 rounded-lg bg-slate-100/80 ml-auto">
+                            {/* 票數 — Editorial italic + 藍/銀/銅色 */}
+                            <div className="flex items-baseline gap-0.5 px-2 py-1 rounded-md bg-white/80 ml-auto border border-[rgba(17,17,17,0.08)]">
                                 <span
-                                    className={`text-lg font-bold tabular-nums ${index === 0 ? 'text-amber-700' :
-                                        index === 1 ? 'text-slate-600' :
-                                            index === 2 ? 'text-orange-700' :
-                                                'text-slate-600'
-                                        }`}
+                                    className="tabular-nums"
+                                    style={{
+                                        fontFamily: 'var(--font-display)',
+                                        fontStyle: 'italic',
+                                        fontWeight: 900,
+                                        fontSize: 20,
+                                        letterSpacing: '-0.02em',
+                                        color: index === 0 ? '#b8902a' :
+                                               index === 1 ? '#7a7a7a' :
+                                               index === 2 ? '#a25a32' :
+                                               '#2b4dff',
+                                    }}
                                 >
                                     {song.voteCount || 0}
                                 </span>
@@ -394,16 +407,16 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleSetNowPlaying(song)}
-                                                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border transition-colors ${song.isNowPlaying
-                                                        ? 'bg-gradient-to-r from-orange-100 to-amber-100 hover:from-orange-200 hover:to-amber-200 border-orange-300'
-                                                        : 'hover:bg-orange-50 border-transparent hover:border-orange-200'
+                                                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-md border transition-colors ${song.isNowPlaying
+                                                        ? 'bg-[#2b4dff]/10 hover:bg-[#2b4dff]/20 border-[#2b4dff]/40'
+                                                        : 'hover:bg-[#2b4dff]/5 border-transparent hover:border-[#2b4dff]/30'
                                                         }`}
                                                     aria-label={song.isNowPlaying ? '停止彈奏' : '開始彈奏'}
                                                 >
                                                     {song.isNowPlaying ? (
-                                                        <Square className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-orange-600 fill-orange-600" />
+                                                        <Square className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-[#2b4dff] fill-[#2b4dff]" />
                                                     ) : (
-                                                        <Play className="w-5 h-5 sm:w-4 sm:h-4 text-orange-500" />
+                                                        <Play className="w-5 h-5 sm:w-4 sm:h-4 text-[#2b4dff]" />
                                                     )}
                                                 </Button>
                                             </TooltipTrigger>
@@ -423,13 +436,13 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleTogglePlayed(song)}
-                                                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg border transition-colors ${song.isPlayed
-                                                        ? 'bg-emerald-100 hover:bg-emerald-200 border-emerald-300'
+                                                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-md border transition-colors ${song.isPlayed
+                                                        ? 'bg-slate-100 hover:bg-slate-200 border-slate-300'
                                                         : 'hover:bg-slate-100 border-transparent hover:border-slate-200'
                                                         }`}
                                                     aria-label={song.isPlayed ? '取消標記已彈奏' : '標記為已彈奏'}
                                                 >
-                                                    <Check className={`w-5 h-5 sm:w-4 sm:h-4 ${song.isPlayed ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                                    <Check className={`w-5 h-5 sm:w-4 sm:h-4 ${song.isPlayed ? 'text-slate-700' : 'text-slate-400'}`} />
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
@@ -439,11 +452,18 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     </TooltipProvider>
                                 )}
 
+                                {/* 吉他譜 / 歌詞 — Editorial 中性灰 + hover 藍 */}
                                 <a
                                     href={generateGuitarTabsUrl(song)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 hover:border-amber-300 text-amber-700 text-xs font-medium transition-colors"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-[rgba(17,17,17,0.18)] text-slate-600 hover:border-[#2b4dff] hover:bg-[#2b4dff]/5 hover:text-[#2b4dff] transition-colors"
+                                    style={{
+                                        fontFamily: 'var(--font-mono)',
+                                        fontSize: 11,
+                                        letterSpacing: '0.08em',
+                                        fontWeight: 600,
+                                    }}
                                     aria-label={`搜尋「${song.title}」的吉他譜`}
                                 >
                                     <Music2 className="w-3.5 h-3.5" />
@@ -454,7 +474,13 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     href={generateLyricsUrl(song)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 hover:border-rose-300 text-rose-700 text-xs font-medium transition-colors"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-[rgba(17,17,17,0.18)] text-slate-600 hover:border-[#2b4dff] hover:bg-[#2b4dff]/5 hover:text-[#2b4dff] transition-colors"
+                                    style={{
+                                        fontFamily: 'var(--font-mono)',
+                                        fontSize: 11,
+                                        letterSpacing: '0.08em',
+                                        fontWeight: 600,
+                                    }}
                                     aria-label={`搜尋「${song.title}」的歌詞`}
                                 >
                                     <FileText className="w-3.5 h-3.5" />
@@ -473,18 +499,19 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                             variant="outline"
                             size="sm"
                             onClick={() => setIsExpanded(false)}
-                            className="w-full max-w-xs bg-gradient-to-r from-amber-50 to-orange-50 
-                                border-amber-200 hover:border-amber-400 
-                                hover:from-amber-100 hover:to-orange-100
-                                text-amber-700 hover:text-amber-800
-                                hover:scale-[1.02] active:scale-[0.98]
-                                transition-all duration-200 gap-2"
+                            className="w-full max-w-xs bg-[#faf7f0] border-[rgba(17,17,17,0.18)] hover:border-[#2b4dff] hover:bg-[#2b4dff]/5 text-slate-700 hover:text-[#2b4dff] active:scale-[0.98] transition-all duration-200 gap-2 rounded-full"
+                            style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: 11,
+                                letterSpacing: '0.16em',
+                                textTransform: 'uppercase',
+                            }}
                         >
                             <ChevronUp className="h-4 w-4" />
-                            收合排行榜（顯示前 10 名）
+                            收合排行榜
                         </Button>
                     ) : (
-                        <div className="flex items-center gap-2 text-amber-600 text-sm py-2">
+                        <div className="flex items-center gap-2 text-slate-500 text-sm py-2">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             <span>滾動查看更多...</span>
                         </div>
@@ -496,14 +523,14 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
             <AlertDialog open={showResetVotesDialog} onOpenChange={setShowResetVotesDialog}>
                 <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-orange-600">
+                        <AlertDialogTitle className="flex items-center gap-2 text-[#2b4dff]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 800 }}>
                             <RefreshCw className="w-5 h-5" />
                             確認重置所有投票？
                         </AlertDialogTitle>
                         <AlertDialogDescription className="text-slate-600">
                             此操作將會把所有歌曲的點播次數歸零。
                             <br />
-                            <span className="text-orange-600 font-medium">此操作無法復原，請謹慎執行！</span>
+                            <span className="text-[#2b4dff] font-medium">此操作無法復原，請謹慎執行！</span>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -511,7 +538,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                         <AlertDialogAction
                             onClick={handleResetAllVotes}
                             disabled={isResettingVotes}
-                            className="bg-orange-600 hover:bg-orange-700"
+                            className="bg-[#2b4dff] hover:bg-[#1d3bd8]"
                         >
                             {isResettingVotes ? (
                                 <>
