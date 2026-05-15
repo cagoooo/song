@@ -18,6 +18,10 @@ interface VirtualSongListProps {
     onEdit: (song: Song) => void;
     onDelete: (songId: string) => void;
     onShare?: (song: Song) => void;
+    /** 整批最大票數 */
+    maxVotes?: number;
+    /** 點歌名 / 封面開啟詳情頁 */
+    onOpenDetail?: (song: Song) => void;
     /** 列表容器高度 */
     height?: number;
     /** 是否還有更多歌曲可載入 */
@@ -53,6 +57,8 @@ export const VirtualSongList = memo(function VirtualSongList({
     onEdit,
     onDelete,
     onShare,
+    maxVotes,
+    onOpenDetail,
     height = 500,
     hasMore,
     isLoadingMore,
@@ -131,6 +137,8 @@ export const VirtualSongList = memo(function VirtualSongList({
                                 onEdit={onEdit}
                                 onDelete={onDelete}
                                 onShare={onShare}
+                                maxVotes={maxVotes}
+                                onOpenDetail={onOpenDetail}
                             />
                         </div>
                     );

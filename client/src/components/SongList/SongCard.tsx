@@ -1,7 +1,7 @@
 // 歌曲卡片元件 - 純 CSS 動畫版（手機優化）
 import { memo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Music, ThumbsUp, Trash2, Edit2 } from 'lucide-react';
+import { ThumbsUp, Trash2, Edit2 } from 'lucide-react';
 import type { Song } from '@/lib/firestore';
 import type { AppUser } from '@/lib/auth';
 
@@ -17,19 +17,11 @@ interface SongCardProps {
     onEdit: (song: Song) => void;
     onDelete: (songId: string) => void;
     onShare?: (song: Song) => void;
+    /** 整批最大票數，給 SongList 算進度條寬度比例用 */
+    maxVotes?: number;
+    /** 點歌名 / 封面觸發歌曲詳情頁 */
+    onOpenDetail?: (song: Song) => void;
 }
-
-// 簡化顏色配置 - 使用左側邊框顏色區分
-const getAccentColor = (index: number) => {
-    const colors = [
-        { border: 'border-l-rose-400', accent: 'text-rose-500', bg: 'bg-rose-500' },
-        { border: 'border-l-blue-400', accent: 'text-blue-500', bg: 'bg-blue-500' },
-        { border: 'border-l-violet-400', accent: 'text-violet-500', bg: 'bg-violet-500' },
-        { border: 'border-l-amber-400', accent: 'text-amber-500', bg: 'bg-amber-500' },
-        { border: 'border-l-emerald-400', accent: 'text-emerald-500', bg: 'bg-emerald-500' },
-    ];
-    return colors[index % 5];
-};
 
 export const SongCard = memo(function SongCard({
     song,
@@ -42,11 +34,16 @@ export const SongCard = memo(function SongCard({
     onVote,
     onEdit,
     onDelete,
+    maxVotes,
+    onOpenDetail,
 }: SongCardProps) {
-    const colors = getAccentColor(index);
     const songId = String(song.id);
     const count = clickCount[songId] || 0;
     const isVoting = votingId === songId;
+    const voteCount = song.voteCount || 0;
+    const barPct = maxVotes && maxVotes > 0
+        ? Math.max(6, Math.round((voteCount / maxVotes) * 100))
+        : 6;
 
     // 點擊計數動畫狀態
     const [showCount, setShowCount] = useState(false);
@@ -63,11 +60,10 @@ export const SongCard = memo(function SongCard({
     return (
         <div
             id={`song-${songId}`}
-            className={`flex items-center gap-3 p-3 sm:p-4 rounded-xl 
-                bg-white border border-slate-200
-                border-l-4 ${colors.border}
-                hover:shadow-md hover:border-slate-300
-                transition-all duration-200
+            className={`flex items-center gap-3 p-3 sm:p-4 rounded-lg
+                bg-white border border-slate-200/80
+                hover:border-slate-300 hover:shadow-sm
+                transition-all duration-150
                 animate-in fade-in slide-in-from-bottom-1`}
             style={{
                 animationDelay: reduceMotion ? '0ms' : `${Math.min(index * 20, 300)}ms`,
@@ -75,15 +71,52 @@ export const SongCard = memo(function SongCard({
                 animationFillMode: 'backwards'
             }}
         >
-            {/* 音符圖標 - 手機端隱藏以節省空間 */}
-            <div className={`hidden sm:flex w-10 h-10 rounded-lg ${colors.bg} bg-opacity-10 items-center justify-center shrink-0`}>
-                <Music className={`h-5 w-5 ${colors.accent}`} />
+            {/* 雜誌風排序編號 — 桌面顯示，手機隱藏 */}
+            <div
+                className="hidden sm:flex w-10 shrink-0 items-baseline justify-end tabular-nums text-slate-400"
+                style={{
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 800,
+                    fontSize: 26,
+                    letterSpacing: '-0.04em',
+                    lineHeight: 1,
+                }}
+                aria-hidden="true"
+            >
+                {String(index + 1).padStart(2, '0')}
             </div>
 
-            {/* 歌曲資訊 - 放大字體 */}
+            {/* 黑膠 mini 封面 — 桌面顯示，手機隱藏；點擊可開歌曲詳情 */}
+            {onOpenDetail ? (
+                <button
+                    type="button"
+                    onClick={() => onOpenDetail(song)}
+                    aria-label={`查看「${song.title}」歌曲詳情`}
+                    className="hidden sm:block editorial-song-cover border-0 p-0 cursor-pointer hover:scale-110 transition-transform"
+                />
+            ) : (
+                <div className="hidden sm:block editorial-song-cover" aria-hidden="true" />
+            )}
+
+            {/* 歌曲資訊 — 標題可點開啟詳情 */}
             <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                    <h3 className="text-lg sm:text-base font-bold text-slate-800 truncate leading-tight">
+                    <h3
+                        className="text-lg sm:text-xl font-bold text-slate-900 truncate leading-tight cursor-pointer hover:text-[#2b4dff] transition-colors"
+                        style={{
+                            fontFamily: 'var(--font-display)',
+                            letterSpacing: '-0.015em',
+                        }}
+                        onClick={() => onOpenDetail?.(song)}
+                        role={onOpenDetail ? 'button' : undefined}
+                        tabIndex={onOpenDetail ? 0 : undefined}
+                        onKeyDown={(e) => {
+                            if (onOpenDetail && (e.key === 'Enter' || e.key === ' ')) {
+                                e.preventDefault();
+                                onOpenDetail(song);
+                            }
+                        }}
+                    >
                         {song.title}
                     </h3>
                     {song.difficulty && (
@@ -96,14 +129,25 @@ export const SongCard = memo(function SongCard({
                         </span>
                     )}
                 </div>
-                <p className="text-sm sm:text-sm text-slate-500 truncate mt-0.5">
+                <p className="text-sm text-slate-500 truncate mt-0.5">
                     {song.artist}
                 </p>
             </div>
 
+            {/* 票數 + 趨勢 + 漸層進度條（桌面顯示） */}
+            <div className="hidden md:flex flex-col items-end gap-1.5 shrink-0 min-w-[110px]">
+                <div className="flex items-baseline gap-2">
+                    <span className="editorial-vote-num">{voteCount}</span>
+                    <span className="text-xs text-slate-500">票</span>
+                </div>
+                <div className="editorial-votes-bar">
+                    <i style={{ width: `${barPct}%` }} />
+                </div>
+            </div>
+
             {/* 操作按鈕區 - 手機端更緊湊 */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                {/* 點播按鈕 - 手機端緊湊版 */}
+                {/* 點播按鈕 - editorial 藍色強調 */}
                 <div className="relative">
                     <Button
                         ref={(el) => { buttonRefs.current[songId] = el; }}
@@ -116,13 +160,12 @@ export const SongCard = memo(function SongCard({
                             px-2.5 sm:px-3 py-1.5 sm:py-2 h-8 sm:h-9
                             min-w-[68px] sm:min-w-[80px]
                             text-xs sm:text-sm font-semibold
-                            bg-gradient-to-r from-amber-500 to-orange-500
-                            hover:from-amber-400 hover:to-orange-400
-                            text-white
-                            shadow-md hover:shadow-lg
+                            bg-primary hover:bg-primary/90
+                            text-primary-foreground
+                            shadow-sm hover:shadow-md
                             transition-all duration-150
                             active:scale-95
-                            ${isVoting || count > 0 ? 'ring-2 ring-amber-300 ring-offset-1' : ''}
+                            ${isVoting || count > 0 ? 'ring-2 ring-primary/30 ring-offset-1' : ''}
                         `}
                     >
                         <ThumbsUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
@@ -132,7 +175,7 @@ export const SongCard = memo(function SongCard({
                     {/* 點擊計數 - 純 CSS 動畫 */}
                     {showCount && (
                         <span
-                            className="absolute -top-2 left-1/2 -translate-x-1/2 font-bold text-amber-600 text-lg pointer-events-none"
+                            className="absolute -top-2 left-1/2 -translate-x-1/2 font-bold text-primary text-lg pointer-events-none"
                             style={{
                                 animation: 'countFloat 0.6s ease-out forwards'
                             }}
