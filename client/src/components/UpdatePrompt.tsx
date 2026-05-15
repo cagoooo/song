@@ -26,30 +26,51 @@ export function UpdatePrompt() {
                         role="alert"
                         aria-live="polite"
                     >
-                        <div className="rounded-2xl border-2 border-amber-300 bg-gradient-to-br from-white via-amber-50 to-orange-50 dark:from-stone-900 dark:via-stone-900 dark:to-amber-950/40 dark:border-amber-700 shadow-2xl shadow-amber-500/20 p-4 backdrop-blur">
+                        <div className="rounded-xl border border-[rgba(17,17,17,0.14)] bg-[#faf7f0] shadow-lg p-4 backdrop-blur">
                             <div className="flex items-start gap-3">
                                 <motion.div
-                                    animate={{ rotate: [0, 15, -15, 0] }}
+                                    animate={{ rotate: [0, 12, -12, 0] }}
                                     transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                                     className="shrink-0"
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
-                                        <Sparkles className="w-5 h-5 text-white" />
+                                    <div className="w-10 h-10 rounded-md bg-white border border-[rgba(17,17,17,0.14)] flex items-center justify-center">
+                                        <Sparkles className="w-5 h-5 text-[#2b4dff]" />
                                     </div>
                                 </motion.div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-bold text-stone-900 dark:text-stone-100 text-sm">
-                                        🎸 新版本可用
+                                    <div
+                                        style={{
+                                            fontFamily: 'var(--font-mono)',
+                                            fontSize: 10,
+                                            letterSpacing: '0.22em',
+                                            textTransform: 'uppercase',
+                                            color: 'var(--ed-ink-3)',
+                                            marginBottom: 2,
+                                        }}
+                                    >
+                                        New Issue
                                     </div>
-                                    <div className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
-                                        有新功能 / 修正在等你, 立刻更新體驗
+                                    <div
+                                        style={{
+                                            fontFamily: 'var(--font-display)',
+                                            fontStyle: 'italic',
+                                            fontWeight: 800,
+                                            fontSize: 17,
+                                            letterSpacing: '-0.015em',
+                                            color: 'var(--ed-ink-1)',
+                                        }}
+                                    >
+                                        新版本可用
+                                    </div>
+                                    <div className="text-xs text-slate-600 mt-0.5">
+                                        有新功能 / 修正在等你，立刻更新體驗
                                     </div>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setDismissed(true)}
                                     aria-label="暫時關閉更新提示"
-                                    className="shrink-0 p-1 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 dark:hover:text-stone-200 transition-colors"
+                                    className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-black/5 transition-colors"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
@@ -57,10 +78,17 @@ export function UpdatePrompt() {
                             <Button
                                 type="button"
                                 onClick={applyUpdate}
-                                className="w-full mt-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold gap-2 shadow-md hover:shadow-lg transition-all"
+                                className="w-full mt-3 bg-[#2b4dff] hover:bg-[#1d3bd8] text-white gap-2 shadow-sm rounded-full"
+                                style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 11,
+                                    letterSpacing: '0.18em',
+                                    textTransform: 'uppercase',
+                                    fontWeight: 600,
+                                }}
                             >
                                 <RefreshCw className="w-4 h-4" />
-                                立刻更新
+                                立刻更新 →
                             </Button>
                         </div>
                     </motion.div>

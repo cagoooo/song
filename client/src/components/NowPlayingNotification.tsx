@@ -142,10 +142,10 @@ export function NowPlayingNotification() {
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[420px] z-50"
             >
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 p-0.5 shadow-2xl shadow-orange-500/30">
-                    {/* 脈動動畫邊框 */}
+                <div className="relative overflow-hidden rounded-xl bg-[#2b4dff] p-0.5 shadow-xl">
+                    {/* 脈動動畫邊框 — 藍色 */}
                     <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 opacity-75"
+                        className="absolute inset-0 bg-[#2b4dff] opacity-75"
                         animate={{
                             opacity: [0.5, 0.8, 0.5],
                         }}
@@ -156,55 +156,74 @@ export function NowPlayingNotification() {
                         }}
                     />
 
-                    <div className="relative bg-white/95 backdrop-blur-sm rounded-[14px] p-3 sm:p-4">
+                    <div className="relative bg-[#faf7f0] rounded-[10px] p-3 sm:p-4">
                         {/* 關閉按鈕 */}
                         <button
                             onClick={handleDismiss}
-                            className="absolute top-2 right-2 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                            className="absolute top-2 right-2 p-1.5 rounded-full hover:bg-black/5 text-slate-400 hover:text-slate-600 transition-colors"
                             aria-label="關閉通知"
                         >
                             <X className="w-4 h-4" />
                         </button>
 
-                        {/* 標題區域 */}
-                        <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                        {/* 標題區域 — Editorial mono eyebrow + LIVE dot */}
+                        <div className="flex items-center gap-2 mb-2 sm:mb-3">
                             <motion.div
-                                animate={{ rotate: [0, 10, -10, 0] }}
-                                transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 1 }}
-                                className="flex-shrink-0"
+                                className="w-1.5 h-1.5 rounded-full bg-[#ff3b30] flex-shrink-0"
+                                animate={{ opacity: [1, 0.3, 1] }}
+                                transition={{ duration: 1, repeat: Infinity }}
+                            />
+                            <span
+                                style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 11,
+                                    letterSpacing: '0.22em',
+                                    textTransform: 'uppercase',
+                                    color: '#2b4dff',
+                                    fontWeight: 600,
+                                }}
                             >
-                                <span className="text-xl sm:text-2xl">🎸</span>
-                            </motion.div>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-sm sm:text-base text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-rose-600">
-                                        正在彈奏中
-                                    </span>
-                                    <motion.div
-                                        className="w-2 h-2 rounded-full bg-red-500"
-                                        animate={{ opacity: [1, 0.3, 1] }}
-                                        transition={{ duration: 1, repeat: Infinity }}
-                                    />
-                                </div>
-                            </div>
+                                NOW PLAYING · 阿凱彈唱之夜
+                            </span>
                         </div>
 
-                        {/* 歌曲資訊 */}
-                        <div className="mb-2 sm:mb-3">
-                            <h3 className="font-bold text-base sm:text-lg text-slate-800 truncate">
+                        {/* 歌曲資訊 — Playfair italic */}
+                        <div className="mb-3">
+                            <h3
+                                className="truncate"
+                                style={{
+                                    fontFamily: 'var(--font-display)',
+                                    fontStyle: 'italic',
+                                    fontWeight: 800,
+                                    fontSize: 22,
+                                    letterSpacing: '-0.02em',
+                                    color: 'var(--ed-ink-1)',
+                                    lineHeight: 1.1,
+                                }}
+                            >
                                 {song.title}
                             </h3>
-                            <p className="text-slate-500 text-sm truncate">
+                            <p
+                                className="truncate mt-1"
+                                style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 11,
+                                    letterSpacing: '0.16em',
+                                    textTransform: 'uppercase',
+                                    color: 'var(--ed-ink-3)',
+                                }}
+                            >
                                 {song.artist}
                             </p>
                         </div>
 
-                        {/* 快捷按鈕 */}
+                        {/* 快捷按鈕 — Editorial 中性灰白 + hover 藍 */}
                         <div className="flex gap-2 mb-2 sm:mb-3">
                             <Button
                                 asChild
                                 size="sm"
-                                className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg shadow-orange-500/25"
+                                variant="outline"
+                                className="flex-1 bg-white border border-[rgba(17,17,17,0.18)] text-slate-700 hover:border-[#2b4dff] hover:bg-[#2b4dff]/5 hover:text-[#2b4dff] rounded-full transition-colors"
                             >
                                 <a
                                     href={generateGuitarTabsUrl(song.title, song.artist)}
@@ -212,15 +231,16 @@ export function NowPlayingNotification() {
                                     rel="noopener noreferrer"
                                     className="flex items-center justify-center gap-1.5"
                                 >
-                                    <Music2 className="w-4 h-4" />
+                                    <Music2 className="w-3.5 h-3.5" />
                                     <span>吉他譜</span>
-                                    <ExternalLink className="w-3 h-3 opacity-70" />
+                                    <ExternalLink className="w-3 h-3 opacity-60" />
                                 </a>
                             </Button>
                             <Button
                                 asChild
                                 size="sm"
-                                className="flex-1 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white border-0 shadow-lg shadow-rose-500/25"
+                                variant="outline"
+                                className="flex-1 bg-white border border-[rgba(17,17,17,0.18)] text-slate-700 hover:border-[#2b4dff] hover:bg-[#2b4dff]/5 hover:text-[#2b4dff] rounded-full transition-colors"
                             >
                                 <a
                                     href={generateLyricsUrl(song.title, song.artist)}
@@ -228,9 +248,9 @@ export function NowPlayingNotification() {
                                     rel="noopener noreferrer"
                                     className="flex items-center justify-center gap-1.5"
                                 >
-                                    <FileText className="w-4 h-4" />
+                                    <FileText className="w-3.5 h-3.5" />
                                     <span>歌詞</span>
-                                    <ExternalLink className="w-3 h-3 opacity-70" />
+                                    <ExternalLink className="w-3 h-3 opacity-60" />
                                 </a>
                             </Button>
                         </div>
@@ -290,7 +310,7 @@ export function NowPlayingNotification() {
                                             <span className="text-xs text-slate-500 whitespace-nowrap">
                                                 {ratingStats.count > 0 ? (
                                                     <>
-                                                        <span className="font-bold text-amber-600">
+                                                        <span className="font-bold text-[#2b4dff]">
                                                             {ratingStats.average.toFixed(1)}
                                                         </span>
                                                         <span className="ml-0.5">({ratingStats.count})</span>
@@ -310,7 +330,7 @@ export function NowPlayingNotification() {
                                                 showSuccess={showRatingSent}
                                             />
                                             {ratingStats.count > 0 && (
-                                                <span className="text-xs text-amber-600 font-medium whitespace-nowrap">
+                                                <span className="text-xs text-[#2b4dff] font-medium whitespace-nowrap">
                                                     {ratingStats.average.toFixed(1)}
                                                 </span>
                                             )}

@@ -46,15 +46,14 @@ export function ScrollToTop({
         <AnimatePresence>
             {isVisible && (
                 <motion.button
-                    className="fixed z-50 w-12 h-12 rounded-full 
-                        bg-gradient-to-br from-amber-500 to-orange-500
-                        hover:from-amber-400 hover:to-orange-400
-                        shadow-lg shadow-amber-500/30
-                        hover:shadow-xl hover:shadow-amber-500/40
-                        border-2 border-white/20
+                    className="fixed z-40 w-11 h-11 rounded-full
+                        bg-[#0a0a0c] hover:bg-[#2b4dff]
+                        text-white
+                        shadow-md hover:shadow-lg
+                        border border-[rgba(255,255,255,0.08)]
                         flex items-center justify-center
                         transition-all duration-200
-                        hover:scale-110 active:scale-95
+                        hover:scale-105 active:scale-95
                         cursor-pointer"
                     style={{ bottom: `${bottom}px`, right: `${right}px` }}
                     initial={{ opacity: 0, scale: 0.8, y: 20 }}
@@ -64,7 +63,7 @@ export function ScrollToTop({
                     onClick={scrollToTop}
                     aria-label="返回頂部"
                 >
-                    <ArrowUp className="w-5 h-5 text-white" strokeWidth={2.5} />
+                    <ArrowUp className="w-4 h-4" strokeWidth={2.2} />
                 </motion.button>
             )}
         </AnimatePresence>

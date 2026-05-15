@@ -101,26 +101,47 @@ export function PWAInstallPrompt() {
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50"
                 >
-                    <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 rounded-2xl shadow-xl border border-amber-200 p-4 backdrop-blur-sm">
+                    <div className="bg-[#faf7f0] rounded-xl shadow-lg border border-[rgba(17,17,17,0.14)] p-4 backdrop-blur-sm relative">
                         <button
                             onClick={handleDismiss}
-                            className="absolute top-2 right-2 p-1 rounded-full hover:bg-amber-100 transition-colors"
+                            className="absolute top-2 right-2 p-1 rounded-full hover:bg-black/5 transition-colors"
                             aria-label="關閉"
                         >
-                            <X className="w-4 h-4 text-amber-600" />
+                            <X className="w-4 h-4 text-slate-500" />
                         </button>
 
                         <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
+                            <div className="flex-shrink-0 w-12 h-12 rounded-md bg-white border border-[rgba(17,17,17,0.14)] flex items-center justify-center">
                                 <span className="text-2xl">🎸</span>
                             </div>
 
                             <div className="flex-1 min-w-0">
-                                <h3 className="font-bold text-amber-900 text-sm">
-                                    安裝吉他點歌 App
+                                <div
+                                    style={{
+                                        fontFamily: 'var(--font-mono)',
+                                        fontSize: 10,
+                                        letterSpacing: '0.22em',
+                                        textTransform: 'uppercase',
+                                        color: 'var(--ed-ink-3)',
+                                        marginBottom: 2,
+                                    }}
+                                >
+                                    Install App
+                                </div>
+                                <h3
+                                    style={{
+                                        fontFamily: 'var(--font-display)',
+                                        fontStyle: 'italic',
+                                        fontWeight: 800,
+                                        fontSize: 17,
+                                        letterSpacing: '-0.015em',
+                                        color: 'var(--ed-ink-1)',
+                                    }}
+                                >
+                                    加入主畫面
                                 </h3>
-                                <p className="text-xs text-amber-700 mt-0.5">
-                                    加入主畫面，離線也能瀏覽歌單！
+                                <p className="text-xs text-slate-600 mt-0.5">
+                                    離線也能瀏覽歌單，跟看 App 一樣方便。
                                 </p>
                             </div>
                         </div>
@@ -129,16 +150,23 @@ export function PWAInstallPrompt() {
                             <Button
                                 onClick={handleInstallClick}
                                 size="sm"
-                                className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md"
+                                className="flex-1 bg-[#2b4dff] hover:bg-[#1d3bd8] text-white shadow-sm rounded-full"
+                                style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 11,
+                                    letterSpacing: '0.16em',
+                                    textTransform: 'uppercase',
+                                    fontWeight: 600,
+                                }}
                             >
-                                <Download className="w-4 h-4 mr-1.5" />
+                                <Download className="w-3.5 h-3.5 mr-1.5" />
                                 立即安裝
                             </Button>
                             <Button
                                 onClick={handleDismiss}
                                 variant="outline"
                                 size="sm"
-                                className="border-amber-200 text-amber-700 hover:bg-amber-50"
+                                className="border-[rgba(17,17,17,0.18)] text-slate-600 hover:bg-white rounded-full"
                             >
                                 稍後
                             </Button>
