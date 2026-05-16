@@ -37,6 +37,9 @@ const StatsDashboard = lazy(() =>
 const ShareCardModal = lazy(() =>
   import("../components/ShareCardModal").then((m) => ({ default: m.ShareCardModal }))
 );
+const ThankYouModal = lazy(() =>
+  import("../components/ThankYouModal").then((m) => ({ default: m.ThankYouModal }))
+);
 
 // VoteHistoryModal 不在首屏關鍵路徑，lazy load
 const VoteHistoryModal = lazy(() =>
@@ -89,6 +92,7 @@ export default function Home() {
   const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [shareCardOpen, setShareCardOpen] = useState(false);
+  const [thankYouOpen, setThankYouOpen] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
   const { combo } = useComboCounter();
 
@@ -396,6 +400,17 @@ export default function Home() {
           >
             <Share2 className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">節目單</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setThankYouOpen(true)}
+            aria-label="結束今晚演出 — 開啟感謝卡"
+            className="bg-white/90 hover:bg-white border-2 border-rose-300 hover:border-rose-400 text-rose-700 hover:text-rose-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
+            title="按下時跳出 END OF SIDE A 感謝卡，給觀眾儀式性收尾"
+          >
+            <span className="text-base sm:mr-2">🎬</span>
+            <span className="hidden sm:inline">結束今晚</span>
           </Button>
           <Button
             variant="outline"
@@ -894,6 +909,23 @@ export default function Home() {
             isOpen={shareCardOpen}
             onClose={() => setShareCardOpen(false)}
             songs={songs}
+          />
+        </Suspense>
+      )}
+
+      {/* END OF SIDE A 演出收尾感謝卡 (管理員) — lazy load
+          點分享按鈕會自動關閉 + 開 ShareCard */}
+      {thankYouOpen && (
+        <Suspense fallback={null}>
+          <ThankYouModal
+            isOpen={thankYouOpen}
+            onClose={() => setThankYouOpen(false)}
+            songs={songs}
+            onShare={() => {
+              setThankYouOpen(false);
+              // 等 dismiss 動畫播完 (~420ms) 再開 ShareCard，視覺更順
+              setTimeout(() => setShareCardOpen(true), 460);
+            }}
           />
         </Suspense>
       )}
