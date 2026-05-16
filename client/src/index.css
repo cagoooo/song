@@ -2637,6 +2637,603 @@
 .share-card.landscape .share-foot-by { font-size: 14px; }
 
 /* ==========================================================================
+   Thank-you Modal — END OF SIDE A 演出收尾儀式 (.ty-*)
+   設計來源：Claude Design handoff (A5FJBgUP1fHqvas4Wi1WeQ)
+   verifier 修正：disc spin / label spin 分為兩個獨立 keyframes；
+                 結束角度 720° 兩整圈，文字停下時正向可讀
+   ========================================================================== */
+
+/* fullscreen modal 容器 */
+.ty-modal {
+  position: fixed;
+  inset: 0;
+  background: #ffffff;
+  color: var(--ed-ink-1);
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  overflow-y: auto;
+  z-index: 100;
+  animation: ty-enter 540ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.ty-modal.dismissing { animation: ty-exit 420ms ease forwards; }
+@keyframes ty-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ty-exit { from { opacity: 1; } to { opacity: 0; } }
+
+/* 紙質紋理 */
+.ty-modal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(rgba(17, 17, 17, 0.035) 1px, transparent 1px) 0 0 / 5px 5px,
+    radial-gradient(rgba(17, 17, 17, 0.025) 1px, transparent 1px) 3px 3px / 7px 7px;
+  mix-blend-mode: multiply;
+  z-index: 1;
+}
+.ty-modal > * { position: relative; z-index: 2; }
+
+/* ---------- 1. Magazine top bar ---------- */
+.ty-flag {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 44px;
+  background: var(--ed-ink-1);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+.ty-flag-c {
+  text-align: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+.ty-flag-r {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ty-flag .dot { display: inline-block; margin: 0 0.55em; opacity: 0.55; }
+
+/* dismiss row：AUTO-FADE 倒數 + ESC */
+.ty-dismiss {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 44px 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+}
+.ty-dismiss .auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ty-dismiss .auto .bar {
+  display: inline-block;
+  width: 64px;
+  height: 2px;
+  background: var(--ed-line);
+  position: relative;
+  overflow: hidden;
+}
+.ty-dismiss .auto .bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ed-ink-1);
+  transform-origin: left center;
+  animation: ty-autotimer 30s linear forwards;
+}
+@keyframes ty-autotimer {
+  0% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+.ty-dismiss button.kbd {
+  background: transparent;
+  border: 1px solid var(--ed-line);
+  color: var(--ed-ink-2);
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ty-dismiss button.kbd:hover {
+  background: var(--ed-ink-1);
+  color: #fff;
+  border-color: var(--ed-ink-1);
+}
+.ty-dismiss .kbd kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-right: 6px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.1em;
+}
+
+/* ---------- 2. Main stage ---------- */
+.ty-stage {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 28px;
+  padding: 28px 44px 36px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* chapter eyebrow */
+.ty-chap {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ed-accent);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.ty-chap::before,
+.ty-chap::after {
+  content: "";
+  height: 1px;
+  width: 48px;
+  background: var(--ed-accent);
+  opacity: 0.4;
+}
+
+/* ---------- Vinyl + tonearm ---------- */
+.ty-vinyl-wrap {
+  position: relative;
+  width: 340px;
+  height: 340px;
+  margin-top: 6px;
+}
+.ty-vinyl {
+  position: absolute;
+  inset: 20px;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(circle at 50% 50%, #0a0a0a 0px, #0a0a0a 2px, #1c1c1c 2px, #1c1c1c 3px),
+    radial-gradient(circle at 30% 30%, #2a2a2a 0%, #0a0a0a 70%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 30px 60px -25px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 0, 0, 0.5);
+  /* verifier fix #1：純 rotate keyframe，不帶 translate */
+  animation: ty-disc-spin 4s cubic-bezier(0.15, 0.45, 0.1, 1) 0.4s both;
+}
+.ty-vinyl::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 45deg,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.06) 35deg,
+    transparent 90deg,
+    transparent 220deg,
+    rgba(255, 255, 255, 0.04) 250deg,
+    transparent 300deg);
+  pointer-events: none;
+}
+
+/* verifier fix #1: 黑膠純 rotate keyframe */
+@keyframes ty-disc-spin {
+  0%   { transform: rotate(0deg); }
+  40%  { transform: rotate(360deg); }
+  75%  { transform: rotate(660deg); }
+  100% { transform: rotate(720deg); }   /* verifier fix #2: 720° 兩整圈，停下正向可讀 */
+}
+
+/* verifier fix #1: 藍色 label 獨立 keyframe，把 translate(-50%, -50%) 帶進去
+   不會被 animation-fill-mode: both 吃掉置中 transform */
+@keyframes ty-label-spin {
+  0%   { transform: translate(-50%, -50%) rotate(0deg); }
+  40%  { transform: translate(-50%, -50%) rotate(360deg); }
+  75%  { transform: translate(-50%, -50%) rotate(660deg); }
+  100% { transform: translate(-50%, -50%) rotate(720deg); }
+}
+
+/* blue center label */
+.ty-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: var(--ed-accent);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: #fff;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18),
+    inset 0 0 0 7px rgba(255, 255, 255, 0.06),
+    inset 0 0 0 8px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+  animation: ty-label-spin 4s cubic-bezier(0.15, 0.45, 0.1, 1) 0.4s both;
+}
+.ty-label::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0a0a0a;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.ty-label-no {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin-bottom: 22px;
+}
+.ty-label-side {
+  position: absolute;
+  bottom: 22px;
+  left: 0;
+  right: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  opacity: 0.85;
+}
+
+/* tonearm */
+.ty-tonearm {
+  position: absolute;
+  top: -12px;
+  right: -22px;
+  width: 220px;
+  height: 220px;
+  transform-origin: 90% 10%;
+  animation: ty-arm-lift 4s cubic-bezier(0.4, 0, 0.2, 1) 0.4s both;
+  pointer-events: none;
+  z-index: 3;
+}
+@keyframes ty-arm-lift {
+  0%   { transform: rotate(34deg); }
+  55%  { transform: rotate(34deg); }
+  100% { transform: rotate(8deg); }
+}
+.ty-tonearm svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* ---------- 3. Headline ---------- */
+.ty-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(48px, 7vw, 96px);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  text-align: center;
+  margin: 0;
+  text-wrap: balance;
+  color: var(--ed-ink-1);
+  max-width: 1000px;
+}
+.ty-title .star {
+  font-style: normal;
+  display: inline-block;
+  color: var(--ed-accent);
+  font-size: 0.7em;
+  vertical-align: 0.12em;
+  margin: 0 0.1em;
+  transform: translateY(-0.08em);
+}
+.ty-title em {
+  font-style: italic;
+  color: var(--ed-accent);
+  background: linear-gradient(transparent 70%, rgba(43, 77, 255, 0.14) 70%, rgba(43, 77, 255, 0.14) 92%, transparent 92%);
+  padding: 0 0.04em;
+}
+
+/* ---------- 4. Stats strip ---------- */
+.ty-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  border-top: 2px solid var(--ed-ink-1);
+  border-bottom: 2px solid var(--ed-ink-1);
+  width: 100%;
+  max-width: 880px;
+}
+.ty-stat {
+  padding: 22px 12px 18px;
+  text-align: center;
+  position: relative;
+}
+.ty-stat + .ty-stat::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 1px;
+  background: rgba(17, 17, 17, 0.22);
+}
+.ty-stat-n {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(44px, 5.6vw, 72px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--ed-ink-1);
+  font-variant-numeric: tabular-nums;
+}
+.ty-stat-l {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+}
+.ty-stat-sub {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ed-ink-3);
+  opacity: 0.85;
+}
+
+/* ---------- 5. Pull quote ---------- */
+.ty-quote {
+  position: relative;
+  max-width: 760px;
+  padding: 4px 56px 0;
+  text-align: center;
+  margin: 0;
+}
+.ty-quote::before,
+.ty-quote::after {
+  position: absolute;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  color: var(--ed-accent);
+  line-height: 0.6;
+  opacity: 0.85;
+}
+.ty-quote::before {
+  content: "\201C";
+  left: 0;
+  top: 0.2em;
+  font-size: 96px;
+}
+.ty-quote::after {
+  content: "\201D";
+  right: 0;
+  bottom: -0.1em;
+  font-size: 96px;
+}
+.ty-quote p {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(20px, 2.2vw, 26px);
+  line-height: 1.4;
+  color: var(--ed-ink-1);
+  margin: 0;
+  text-wrap: balance;
+}
+.ty-quote .song {
+  font-weight: 800;
+  color: var(--ed-accent);
+}
+.ty-quote .byline {
+  display: block;
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+}
+
+/* ---------- 6. CTAs ---------- */
+.ty-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+.ty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  height: 64px;
+  padding: 0 32px;
+  border: 0;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  text-decoration: none;
+  border-radius: 2px;
+}
+.ty-cta.primary {
+  background: var(--ed-accent);
+  color: #fff;
+  box-shadow: 0 1px 0 rgba(17, 17, 17, 0.1), 0 14px 26px -14px rgba(43, 77, 255, 0.55);
+}
+.ty-cta.primary:hover {
+  background: #1d3df0;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 0 rgba(17, 17, 17, 0.1), 0 20px 34px -14px rgba(43, 77, 255, 0.7);
+}
+.ty-cta.primary .arrow {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  font-size: 14px;
+  transition: transform 0.15s ease;
+}
+.ty-cta.primary:hover .arrow { transform: translateX(3px); }
+
+.ty-cta.ghost {
+  background: transparent;
+  color: var(--ed-ink-2);
+  border: 1px solid var(--ed-line);
+}
+.ty-cta.ghost[disabled] {
+  cursor: not-allowed;
+  color: var(--ed-ink-3);
+  opacity: 0.7;
+}
+.ty-cta.ghost .soon {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  padding: 3px 7px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+/* ---------- 7. Marquee ---------- */
+.ty-marquee {
+  background: var(--ed-paper);
+  border-top: 1px solid var(--ed-line);
+  overflow: hidden;
+  padding: 14px 0;
+  mask-image: linear-gradient(90deg, transparent 0, #000 60px, #000 calc(100% - 60px), transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 60px, #000 calc(100% - 60px), transparent 100%);
+}
+.ty-marquee-track {
+  display: inline-flex;
+  gap: 48px;
+  white-space: nowrap;
+  animation: ty-marquee 36s linear infinite;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  color: var(--ed-ink-1);
+}
+.ty-marquee-track span {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+.ty-marquee-track .blue { color: var(--ed-accent); }
+.ty-marquee-track .sep {
+  display: inline-block;
+  color: var(--ed-accent);
+  font-style: normal;
+  font-size: 14px;
+  transform: translateY(-2px);
+}
+.ty-marquee-track .small {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ed-ink-2);
+}
+@keyframes ty-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* enter-stagger for inner blocks */
+.ty-stage > * {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: ty-up 700ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+.ty-stage > .ty-chap        { animation-delay: 120ms; }
+.ty-stage > .ty-vinyl-wrap  { animation-delay: 220ms; }
+.ty-stage > .ty-title       { animation-delay: 540ms; }
+.ty-stage > .ty-stats       { animation-delay: 820ms; }
+.ty-stage > .ty-quote       { animation-delay: 1050ms; }
+.ty-stage > .ty-actions     { animation-delay: 1250ms; }
+@keyframes ty-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* small-screen */
+@media (max-width: 780px) {
+  .ty-flag { padding: 12px 18px; font-size: 10px; letter-spacing: 0.18em; gap: 8px; }
+  .ty-flag-c { font-size: 14px; }
+  .ty-dismiss { padding: 8px 18px 0; }
+  .ty-stage { padding: 18px 18px 28px; gap: 22px; }
+  .ty-vinyl-wrap { width: 260px; height: 260px; }
+  .ty-tonearm { width: 170px; height: 170px; top: -8px; right: -16px; }
+  .ty-label { width: 100px; height: 100px; }
+  .ty-label-no { font-size: 24px; }
+  .ty-stats { grid-template-columns: repeat(3, 1fr); }
+  .ty-stat { padding: 14px 4px 12px; }
+  .ty-quote { padding: 4px 36px 0; }
+  .ty-quote::before, .ty-quote::after { font-size: 64px; }
+  .ty-cta { height: 56px; padding: 0 22px; font-size: 15px; }
+  .ty-marquee-track { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ty-vinyl,
+  .ty-label,
+  .ty-tonearm,
+  .ty-marquee-track,
+  .ty-stage > *,
+  .ty-dismiss .auto .bar::after,
+  .ty-modal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .ty-label { transform: translate(-50%, -50%) !important; }
+}
+
+/* ==========================================================================
    App footer (flag rule)
    ========================================================================== */
 .editorial-footer {
