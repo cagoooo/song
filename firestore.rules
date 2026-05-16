@@ -73,6 +73,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin() && isValidCeremony();
     }
+
+    // 候場大廳狀態 - 所有人可讀（倒數同步），僅管理員可寫
+    match /lobbyState/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
     
     // 使用者集合 - 僅本人或管理員可讀寫
     match /users/{userId} {
