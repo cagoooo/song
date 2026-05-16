@@ -20,7 +20,11 @@ import { useGlobalHype } from "@/hooks/useGlobalHype";
 import { GlobalHypeOverlay } from "../components/GlobalHypeOverlay";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useCeremony } from "@/hooks/useCeremony";
-import { triggerCeremony } from "@/lib/firestore";
+import { useLobbyState } from "@/hooks/useLobbyState";
+import { useNowPlaying } from "@/hooks/useNowPlaying";
+import { useBadgeUnlockQueue } from "@/hooks/useBadgeUnlockQueue";
+import { useSongTransition } from "../components/SongTransitionCurtain";
+import { triggerCeremony, setLobbyOpening, clearLobbyOpening } from "@/lib/firestore";
 import { UpdatePrompt } from "../components/UpdatePrompt";
 import { BarChart3 } from "lucide-react";
 
@@ -47,6 +51,21 @@ const VoterPassportModal = lazy(() =>
 );
 const OpeningCurtain = lazy(() =>
   import("../components/OpeningCurtain").then((m) => ({ default: m.OpeningCurtain }))
+);
+const IntermissionCurtain = lazy(() =>
+  import("../components/IntermissionCurtain").then((m) => ({ default: m.IntermissionCurtain }))
+);
+const SongTransitionCurtain = lazy(() =>
+  import("../components/SongTransitionCurtain").then((m) => ({ default: m.SongTransitionCurtain }))
+);
+const BadgeUnlockOverlay = lazy(() =>
+  import("../components/BadgeUnlockOverlay").then((m) => ({ default: m.BadgeUnlockOverlay }))
+);
+const QueueDrawer = lazy(() =>
+  import("../components/QueueDrawer").then((m) => ({ default: m.QueueDrawer }))
+);
+const LobbyScreen = lazy(() =>
+  import("../components/LobbyScreen").then((m) => ({ default: m.LobbyScreen }))
 );
 
 // VoteHistoryModal 不在首屏關鍵路徑，lazy load
@@ -104,10 +123,33 @@ export default function Home() {
   const [thankYouOpen, setThankYouOpen] = useState(false);
   const [passportOpen, setPassportOpen] = useState(false);
   const [curtainOpen, setCurtainOpen] = useState(false);
+  const [intermissionOpen, setIntermissionOpen] = useState(false);
+  const [intermissionDuration, setIntermissionDuration] = useState(30);
+  const [queueDrawerOpen, setQueueDrawerOpen] = useState(false);
+  const [lobbyDismissed, setLobbyDismissed] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
   const curtainCheckedRef = useRef(false);
-  // 監聽 admin 廣播的開場儀式（所有訪客同步收到）
+  // 監聽 admin 廣播的儀式（所有訪客同步收到）
   const { pending: pendingCeremony, consume: consumeCeremony } = useCeremony();
+  // 候場大廳狀態
+  const lobbyState = useLobbyState();
+  // 重置 dismissed flag 當 admin 重新設定 openingAt（setAt 改變）
+  useEffect(() => {
+    if (lobbyState?.setAt) setLobbyDismissed(false);
+  }, [lobbyState?.setAt]);
+  // 當前正在彈奏 — 給 SongTransition diff 用
+  const nowPlayingInfo = useNowPlaying();
+  // SongTransition payload — 自動偵測歌曲切換
+  const playedTotalForTransition = useMemo(() => songs.filter((s) => s.isPlayed).length, [songs]);
+  const transitionPayload = useSongTransition(
+    nowPlayingInfo?.song ?? null,
+    songs.length,
+    playedTotalForTransition,
+  );
+  const [transitionVisible, setTransitionVisible] = useState(false);
+  useEffect(() => {
+    if (transitionPayload) setTransitionVisible(true);
+  }, [transitionPayload]);
   const { combo } = useComboCounter();
 
   // 用 useMemo 包起來避免每次 render 都重綁 listener
@@ -154,6 +196,10 @@ export default function Home() {
     todayUniqueCount: voteTodayUnique,
     clearHistory: clearVoteHistory,
   } = useVoteHistory();
+  // 徽章解鎖佇列 — 偵測本機徽章剛達成解鎖條件
+  const { current: pendingBadge, consumeFront: consumeBadge } = useBadgeUnlockQueue({
+    history: voteHistory,
+  });
 
   // 從歷史按「再點」：切到歌單 Tab → 派發搜尋事件，讓 SongList 顯示該首歌
   const handleReVoteFromHistory = useCallback((entry: VoteHistoryEntry) => {
@@ -263,6 +309,10 @@ export default function Home() {
     if (params.get('mode') === 'stage') { consumeCeremony(); return; }
     if (pendingCeremony.type === 'opening') {
       setCurtainOpen(true);
+    } else if (pendingCeremony.type === 'intermission') {
+      const payload = pendingCeremony.payload as { durationSec?: number } | undefined;
+      setIntermissionDuration(payload?.durationSec ?? 30);
+      setIntermissionOpen(true);
     }
     consumeCeremony();
   }, [pendingCeremony, consumeCeremony]);
@@ -469,6 +519,63 @@ export default function Home() {
           >
             <span className="text-base sm:mr-2">🎭</span>
             <span className="hidden sm:inline">開場</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              if (!user?.id) return;
+              try {
+                // 廣播中場儀式 — 預設 30 秒倒數
+                await triggerCeremony('intermission', user.id, { durationSec: 30 });
+                toast({ title: '🍵 中場已廣播', description: '30 秒後 Side B 開場' });
+              } catch (error) {
+                console.error('Failed to broadcast intermission:', error);
+                setIntermissionOpen(true);
+                toast({
+                  title: '廣播失敗，已在本機播放',
+                  description: error instanceof Error ? error.message : '請檢查網路',
+                  variant: 'destructive',
+                });
+              }
+            }}
+            aria-label="廣播中場休息給所有觀眾"
+            className="bg-white/90 hover:bg-white border-2 border-amber-300 hover:border-amber-400 text-amber-700 hover:text-amber-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
+            title="30 秒中場儀式 — 黑膠翻面 + 倒數"
+          >
+            <span className="text-base sm:mr-2">🍵</span>
+            <span className="hidden sm:inline">中場</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              if (!user?.id) return;
+              // 取消 / 設定切換：已有 → 清除；沒 → 設 15 分後開場
+              try {
+                if (lobbyState) {
+                  await clearLobbyOpening();
+                  toast({ title: '候場已取消', description: '訪客回到一般首頁' });
+                } else {
+                  const openingAt = new Date(Date.now() + 15 * 60 * 1000);
+                  await setLobbyOpening(openingAt, user.id);
+                  toast({ title: '🌙 候場已啟動', description: '15 分鐘後正式開場' });
+                }
+              } catch (error) {
+                console.error('Failed to set lobby:', error);
+                toast({
+                  title: '設定失敗',
+                  description: error instanceof Error ? error.message : '請檢查網路',
+                  variant: 'destructive',
+                });
+              }
+            }}
+            aria-label={lobbyState ? '取消候場大廳' : '啟動候場大廳（15 分鐘後開場）'}
+            className="bg-white/90 hover:bg-white border-2 border-sky-300 hover:border-sky-400 text-sky-700 hover:text-sky-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
+            title={lobbyState ? '已啟動：點擊取消' : '啟動候場大廳（15 分鐘後開場）'}
+          >
+            <span className="text-base sm:mr-2">{lobbyState ? '✕' : '🌙'}</span>
+            <span className="hidden sm:inline">{lobbyState ? '取消候場' : '候場'}</span>
           </Button>
           <Button
             variant="outline"
@@ -894,14 +1001,7 @@ export default function Home() {
       <UpNextBar
         songs={songs}
         onOpenDetail={setDetailSong}
-        onShowFullQueue={() => {
-          setActiveTabForMobile('ranking');
-          // 桌機版捲到排行榜區
-          requestAnimationFrame(() => {
-            const el = document.querySelector('.editorial-paper-cream');
-            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          });
-        }}
+        onShowFullQueue={() => setQueueDrawerOpen(true)}
       />
 
       {/* 互動動畫覆蓋層（全螢幕） */}
@@ -1034,6 +1134,76 @@ export default function Home() {
             isOpen={curtainOpen}
             onClose={() => setCurtainOpen(false)}
             songCount={songs.length}
+          />
+        </Suspense>
+      )}
+
+      {/* 中場休息儀式 (O2) — 黑膠翻面 + 30 秒倒數 */}
+      {intermissionOpen && (
+        <Suspense fallback={null}>
+          <IntermissionCurtain
+            isOpen={intermissionOpen}
+            onClose={() => setIntermissionOpen(false)}
+            durationSec={intermissionDuration}
+          />
+        </Suspense>
+      )}
+
+      {/* 歌曲過場 (O3) — 自動偵測 nowPlaying.songId 變化 */}
+      {transitionVisible && transitionPayload && (
+        <Suspense fallback={null}>
+          <SongTransitionCurtain
+            payload={transitionPayload}
+            onClose={() => setTransitionVisible(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* 徽章解鎖慶祝 (V6) — 投票剛達成徽章條件 */}
+      {pendingBadge && (
+        <Suspense fallback={null}>
+          <BadgeUnlockOverlay
+            event={pendingBadge}
+            onClose={consumeBadge}
+            onViewPassport={() => {
+              consumeBadge();
+              setTimeout(() => setPassportOpen(true), 220);
+            }}
+          />
+        </Suspense>
+      )}
+
+      {/* Queue Drawer (U2) — 全隊列抽屜 */}
+      {queueDrawerOpen && (
+        <Suspense fallback={null}>
+          <QueueDrawer
+            isOpen={queueDrawerOpen}
+            onClose={() => setQueueDrawerOpen(false)}
+            songs={songs}
+            onOpenDetail={(s) => {
+              setQueueDrawerOpen(false);
+              setDetailSong(s);
+            }}
+          />
+        </Suspense>
+      )}
+
+      {/* 候場大廳 (L1) — admin 設 openingAt 後所有訪客看到倒數 */}
+      {!lobbyDismissed && lobbyState && !nowPlayingInfo?.song && (
+        <Suspense fallback={null}>
+          <LobbyScreen
+            openingAt={lobbyState.openingAt}
+            setlistTotal={songs.length}
+            catalogTotal={songs.length}
+            onPickSongs={() => {
+              setLobbyDismissed(true);
+              setActiveTabForMobile('songs');
+            }}
+            onViewSetlist={() => {
+              setLobbyDismissed(true);
+              setActiveTabForMobile('ranking');
+            }}
+            onClose={() => setLobbyDismissed(true)}
           />
         </Suspense>
       )}
