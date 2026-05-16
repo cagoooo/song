@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Trophy, Tv, Share2 } from "lucide-react";
+import { LogIn, LogOut, Trophy, Tv, Share2, Award } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import { TagFilterBar } from "../components/TagFilterBar";
@@ -40,6 +40,12 @@ const ShareCardModal = lazy(() =>
 const ThankYouModal = lazy(() =>
   import("../components/ThankYouModal").then((m) => ({ default: m.ThankYouModal }))
 );
+const VoterPassportModal = lazy(() =>
+  import("../components/VoterPassportModal").then((m) => ({ default: m.VoterPassportModal }))
+);
+const OpeningCurtain = lazy(() =>
+  import("../components/OpeningCurtain").then((m) => ({ default: m.OpeningCurtain }))
+);
 
 // VoteHistoryModal 不在首屏關鍵路徑，lazy load
 const VoteHistoryModal = lazy(() =>
@@ -53,6 +59,7 @@ import { subscribeSongs, type Song } from "@/lib/firestore";
 import { MobileTabView } from "../components/MobileTabView";
 import { ScrollToTop } from "../components/ScrollToTop";
 import { NowPlayingNotification } from "../components/NowPlayingNotification";
+import { UpNextBar } from "../components/UpNextBar";
 import { PWAInstallPrompt } from "../components/PWAInstallPrompt";
 import InteractionOverlay from "../components/InteractionOverlay";
 import { useSuggestionNotification } from "@/hooks/useSuggestionNotification";
@@ -93,7 +100,10 @@ export default function Home() {
   const [statsOpen, setStatsOpen] = useState(false);
   const [shareCardOpen, setShareCardOpen] = useState(false);
   const [thankYouOpen, setThankYouOpen] = useState(false);
+  const [passportOpen, setPassportOpen] = useState(false);
+  const [curtainOpen, setCurtainOpen] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
+  const curtainCheckedRef = useRef(false);
   const { combo } = useComboCounter();
 
   // 用 useMemo 包起來避免每次 render 都重綁 listener
@@ -224,6 +234,23 @@ export default function Home() {
   useEffect(() => {
     setDisplayedSongs(sortedSongs.slice(0, displayLimit));
   }, [sortedSongs, displayLimit]);
+
+  // 首次到訪 sessionStorage 沒記號 → 自動播放開場儀式（每瀏覽器 session 一次）
+  useEffect(() => {
+    if (curtainCheckedRef.current) return;
+    if (songs.length === 0) return;          // 等歌單載入再決定要不要播
+    curtainCheckedRef.current = true;
+    try {
+      if (sessionStorage.getItem('opening-curtain-shown-v1')) return;
+      // 若帶 ?intro=skip 或從演出模式跳轉 → 不播
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('intro') === 'skip' || params.get('mode') === 'stage') return;
+      sessionStorage.setItem('opening-curtain-shown-v1', '1');
+      setCurtainOpen(true);
+    } catch {
+      // sessionStorage 不可用就放棄，不影響主流程
+    }
+  }, [songs.length]);
 
   // 載入更多歌曲
   const loadMore = useCallback(() => {
@@ -400,6 +427,17 @@ export default function Home() {
           >
             <Share2 className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">節目單</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurtainOpen(true)}
+            aria-label="開場儀式 — 6 秒儀式為今晚揭幕"
+            className="bg-white/90 hover:bg-white border-2 border-indigo-300 hover:border-indigo-400 text-indigo-700 hover:text-indigo-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
+            title="6 秒開場儀式：黑膠飛入 + 唱針落下 + 今晚開始 · LIVE"
+          >
+            <span className="text-base sm:mr-2">🎭</span>
+            <span className="hidden sm:inline">開場</span>
           </Button>
           <Button
             variant="outline"
@@ -618,6 +656,20 @@ export default function Home() {
                           totalCount={voteHistory.length}
                           onClick={() => setHistoryOpen(true)}
                         />
+                        {voteHistory.length > 0 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPassportOpen(true)}
+                            aria-label="開啟我的催歌履歷"
+                            title="我的催歌履歷 — 累積票數、徽章收藏"
+                            className="h-8 px-2 text-xs gap-1.5 shrink-0"
+                          >
+                            <Award className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">履歷</span>
+                          </Button>
+                        )}
                       </div>
                     </div>
                   <Card className="shadow-lg editorial-paper">
@@ -807,6 +859,20 @@ export default function Home() {
       {/* 正在彈奏中通知（訪客即時接收） */}
       <NowPlayingNotification />
 
+      {/* Up Next 底部 sticky 隊列條 — 演出中 / 觀眾剛投票 / 待開場三種狀態 */}
+      <UpNextBar
+        songs={songs}
+        onOpenDetail={setDetailSong}
+        onShowFullQueue={() => {
+          setActiveTabForMobile('ranking');
+          // 桌機版捲到排行榜區
+          requestAnimationFrame(() => {
+            const el = document.querySelector('.editorial-paper-cream');
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
+        }}
+      />
+
       {/* 互動動畫覆蓋層（全螢幕） */}
       <InteractionOverlay />
 
@@ -925,6 +991,32 @@ export default function Home() {
               setThankYouOpen(false);
               // 等 dismiss 動畫播完 (~420ms) 再開 ShareCard，視覺更順
               setTimeout(() => setShareCardOpen(true), 460);
+            }}
+          />
+        </Suspense>
+      )}
+
+      {/* 開場儀式 — 6 秒鏡像反向 thank-you 動畫 */}
+      {curtainOpen && (
+        <Suspense fallback={null}>
+          <OpeningCurtain
+            isOpen={curtainOpen}
+            onClose={() => setCurtainOpen(false)}
+            songCount={songs.length}
+          />
+        </Suspense>
+      )}
+
+      {/* 催歌履歷 — 訪客個人徽章與統計 */}
+      {passportOpen && (
+        <Suspense fallback={null}>
+          <VoterPassportModal
+            isOpen={passportOpen}
+            onClose={() => setPassportOpen(false)}
+            history={voteHistory}
+            onShare={() => {
+              setPassportOpen(false);
+              setTimeout(() => setShareCardOpen(true), 220);
             }}
           />
         </Suspense>
