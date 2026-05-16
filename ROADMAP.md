@@ -1,10 +1,28 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：9.0
-> **更新日期**：2026-05-15
-> **當前版本**：**v4.2.0**（含 v4.2.0 後 5 項增量更新）
+> **文件版本**：10.0
+> **更新日期**：2026-05-16
+> **當前版本**：**v4.2.1**（含 v4.2.0 後共 9 項增量更新）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、提供詳細未來優化與開發建議
+
+---
+
+## 🎨 v4.2.1 — Editorial 系統第二波（2026-05-15 ~ 2026-05-16）
+
+> **主題：雜誌風儀式感大補帖**。把演出當作一張黑膠 SIDE A，從開場到收尾都有對應的儀式畫面，加上隊列即時感與個人徽章收藏。
+
+| 項目 | 範疇 | 影響 |
+|------|------|------|
+| **節目單分享卡** | `ShareCardModal.tsx`（PR #2，commit 677a906） | IG 直式 + FB OG 雙尺寸 PNG 匯出 |
+| **Editorial UI 收尾** | SuggestionForm / SongSuggestion / RankingBoard 列（PR #3） | 統一雜誌風細節（卡片邊框、章節編號、義式 italic） |
+| **END OF SIDE A 感謝卡 modal** | `ThankYouModal.tsx`（PR #4，commit 4a01d1a） | 演出結束儀式畫面：捲動式致謝、卡帶定格、可一鍵跳分享卡 |
+| **🆕 Up Next 底部 sticky 隊列條** | `UpNextBar/`（PR #5） | 黑膠 mini + LIVE 脈動 + 進度條 + 3 張隊列卡 + 投票黃光 pulse |
+| **🆕 護照式催歌履歷 modal** | `VoterPassportModal.tsx`（PR #5） | 6 個動態徽章 + SVG 圓章 + feTurbulence 油墨蓋章質感 |
+| **🆕 6 秒開場儀式** | `OpeningCurtain.tsx`（PR #5） | 黑膠飛入 + 唱針落下 + 跑馬燈淡入；sessionStorage 自動播一次 |
+
+**新增 CSS 命名空間**（共 +~1900 行）：`un-*` (UpNextBar) / `vb-*` (VoterBadge) / `oc-*` (OpeningCurtain)
+**動畫總數**：UpNextBar 6 個 keyframes + Passport 卡片翻面 + OpeningCurtain 11 個 keyframes（完整 6s 時間軸）
 
 ---
 
@@ -40,19 +58,28 @@
 1. [✅ 已完成里程碑](#-已完成里程碑)
 2. [🔥 Phase A：短期高優先](#-phase-a短期高優先)（**已 100% 完成 ✅**）
 3. [📱 Phase B：中期功能擴展](#-phase-b中期功能擴展)（**5/6 完成**）
-4. [🌟 Phase C：長期進階](#-phase-c長期進階)
-5. [🎯 v4.3 → v5.0 立即可做的詳細建議](#-v43--v50-立即可做的詳細建議)
-6. [⚡ Bundle 二次優化（具體可省 ~250KB）](#-bundle-二次優化)
-7. [🛡️ 安全性下一階段](#️-安全性下一階段)
-8. [🧪 測試策略升級](#-測試策略升級)
-9. [📈 可觀測性與分析](#-可觀測性與分析)
-10. [🎨 UX 細節提升清單](#-ux-細節提升清單)
-11. [📅 建議實施時程 (v4.3 → v6.0)](#-建議實施時程)
-12. [🎯 Top 7 立即可做（推薦順序）](#-top-7-立即可做)
+4. [🌟 Phase C：長期進階](#-phase-c長期進階)（C3 徽章已部分達成 🟡）
+5. [🎨 Editorial 系統下一步](#-editorial-系統下一步v421-之後的延伸建議) 🆕 — UpNextBar / VoterPassport / OpeningCurtain 的細節升級
+6. [🎯 v4.3 → v5.0 立即可做的詳細建議](#-v43--v50-立即可做的詳細建議)
+7. [⚡ Bundle 二次優化（具體可省 ~250KB）](#-bundle-二次優化)
+8. [🛡️ 安全性下一階段](#️-安全性下一階段)
+9. [🧪 測試策略升級](#-測試策略升級)
+10. [📈 可觀測性與分析](#-可觀測性與分析)
+11. [🎨 UX 細節提升清單](#-ux-細節提升清單)
+12. [📅 建議實施時程 (v4.3 → v6.0)](#-建議實施時程)
+13. [🎯 Top 10 立即可做（推薦順序）](#-top-10-立即可做v421-之後最高-cp)
 
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.2.1（2026-05-15 ~ 2026-05-16）Editorial 第二波
+- ✅ **節目單分享卡**（`ShareCardModal` — IG 直式 + FB OG 雙尺寸 PNG）
+- ✅ **Editorial 細節收尾**（SuggestionForm / SongSuggestion / RankingBoard 列雜誌風統一）
+- ✅ **END OF SIDE A 感謝卡**（`ThankYouModal` — 演出結束儀式 + 一鍵跳分享）
+- ✅ **Up Next 底部 sticky 隊列條**（`UpNextBar` — 三狀態切換：演出中 / 觀眾剛投票 / 待開場）
+- ✅ **護照式催歌履歷**（`VoterPassportModal` — 6 動態徽章 + SVG 圓章 + feTurbulence 蓋章濾鏡）
+- ✅ **6 秒開場儀式**（`OpeningCurtain` — sessionStorage 每 session 自動播一次 + admin 手動觸發）
 
 ### v4.2.0+（2026-05 後續累積）
 - ✅ **B1 統計儀表板**（6 圖表 + KPI + CSV）
@@ -162,8 +189,10 @@ events/{eventId}
 - 留言匿名/實名切換
 - ⚠️ **隱私聲明** + **未成年保護** 條款要先寫好
 
-### C3. 積分勳章系統 🟢 P3
-**預估**：12–15 小時 | 需搭 C2
+### C3. 積分勳章系統 🟡 P2（已部分達成 — VoterPassport）
+**預估**：剩 6–8 小時 | 需搭 C2 才能跨裝置同步
+
+> **2026-05-16 更新**：`VoterPassportModal` 已完成 **本機版** — 6 個動態徽章 + 護照式 UI + 翻面互動，徽章規則依 `useVoteHistory` 即時計算。差雲端同步即可完成。
 
 | 勳章 | 條件 | 效果 |
 |------|------|------|
@@ -205,6 +234,102 @@ events/{eventId}
 - ⚠️ 需 Cloud Functions、跨入後端範疇
 - 法規面：發票、稅務、平台抽成
 - **建議延後到專案有實質商業化需求才做**
+
+---
+
+## 🎨 Editorial 系統下一步（v4.2.1 之後的延伸建議）
+
+> 三個原型已落地（UpNextBar / VoterPassport / OpeningCurtain）。下面是**直接接續這次成果**的優化清單，按「投入時間 / 收益」排序。
+
+### 🎵 UpNextBar — 把估算進度換成真實同步
+
+| # | 項目 | 估時 | 痛點 / 收益 |
+|---|------|------|----------|
+| **U1** | **進度條真實同步** | 3-4h | 目前用 `startedAt + 假設 210s` 估算，每首歌都當 3:30 計，跟實際播放有 ±60s 誤差 |
+| **U2** | **「展開完整隊列」抽屜** | 3h | 目前 `+5 看全部` 只是 scroll 到排行榜，不夠精緻；改成從底部滑出 320px 高的抽屜列出全部 18 首隊列 |
+| **U3** | **隊列卡 hover 預覽** | 2h | hover 隊列卡時 200ms 後彈出小卡：封面 + 點播次數 + 平均評分 + 預估時長 |
+| **U4** | **手機版 swipe 切換隊列** | 2h | 手機只露 1 張卡，可加左右滑顯示其他 2 張；用 framer-motion drag |
+| **U5** | **演出模式整合** | 1.5h | StagePage 大螢幕也加 UpNextBar（更大字體 + 6 張卡，不顯示 +5）|
+
+**U1 詳細做法**：
+```typescript
+// 在 nowPlaying 文件新增 duration / pausedAt 欄位
+interface NowPlayingInfo {
+  songId: string;
+  song: Song | null;
+  startedAt: Date;
+  startedBy: string;
+  durationSec?: number;   // 🆕 admin 設定，預設 210
+  pausedAt?: Date | null; // 🆕 暫停時間戳，null 表示播放中
+}
+// admin 介面：開始彈奏時讓 admin 拉個滑桿選 2:30 / 3:00 / 3:30 / 4:00 / 5:00
+// UpNextBar 計算：elapsed = (pausedAt ?? now) - startedAt
+```
+
+---
+
+### 🎖️ VoterPassport — 從本機履歷升級成跨裝置雲端徽章
+
+| # | 項目 | 估時 | 痛點 / 收益 |
+|---|------|------|----------|
+| **V1** | **真實「首發點播」判定** | 4h | 目前是「投過 1 票」就解；要做正版需查 Firestore `votes` 集合的 timestamp ASC 找 N=1 |
+| **V2** | **真實「評星達人」徽章** | 3h | 目前是「累積 10 首」代理；要查 `interactions` 集合內 type=rating 的紀錄 |
+| **V3** | **新增 3 個徽章** | 2h | 🎂 周年紀念（投票滿 1 年）/ 🌙 夜貓子（22:00 後投 20 票）/ 🐎 黑馬獵人（投中 5 次 useDarkHorse 事件） |
+| **V4** | **履歷 PNG 匯出 / 分享卡** | 4h | 仿 ShareCardModal 用 html-to-image 把護照頁產成 IG 直式 PNG；vb-foot 的「分享我的催歌履歷」目前 fallback 到 ShareCard，可做專屬「履歷分享卡」 |
+| **V5** | **管理員看別人的履歷** | 3h | 在 VoterLeaderboardModal 點某個訪客 → 開該 sessionId 的護照 |
+| **V6** | **徽章解鎖 toast** | 1.5h | 投票時偵測到剛達成解鎖條件，全螢幕中央 1.5s 慶祝動畫（仿 DarkHorseOverlay） |
+| **V7** | **頭像可上傳** | 5h | 護照 portrait 框現在是「@Guest 首字母」，可加上傳介面（需 Firebase Storage + 圖片裁切） |
+
+**V1 + V2 共用「先驗 Firestore 再算徽章」基礎建設**（4h），做完後三個徽章規則一起切到伺服器資料源。
+
+---
+
+### 🎭 OpeningCurtain — 從「使用者進站儀式」升級成「演出真實同步」
+
+| # | 項目 | 估時 | 痛點 / 收益 |
+|---|------|------|----------|
+| **O1** | **admin 廣播觸發** | 3h | 目前手動「🎭 開場」只對自己播；可寫入 Firestore `ceremonies/current` doc，所有訪客即時收到並播放 |
+| **O2** | **中場休息 / Intermission 儀式** | 4h | Side A 結束 → Side B 開始之間的轉場（黑膠翻面動畫 + 「Flip to Side B」大字 + 30 秒倒數） |
+| **O3** | **歌曲過場短儀式（2 秒）** | 3h | nowPlaying 切到新歌時，全螢幕 2 秒 mini-curtain：上一首淡出 + 黑膠換 label 顏色 + 下一首歌名淡入 |
+| **O4** | **手機體驗微調** | 1.5h | 目前手機版 vinyl 240px 但 ripple 定位是寫死座標，要逐項調對齊；唱針 SVG 化也比較銳利 |
+| **O5** | **儀式預覽工具（admin only）** | 2h | admin 工具列加按鈕「預覽 6 秒儀式」直接重播；目前每次要清 sessionStorage 才能重看 |
+| **O6** | **音效層** | 2h | 黑膠落針 *click*、唱針摩擦 *vinyl crackle*、跑馬燈淡入有 *click-click* — 用 Web Audio API 同步 keyframes |
+
+**O1 是真正的高光時刻** — 觀眾在現場手機都同時看到開場儀式 = 像演唱會真正按下「Side A」按鈕的感覺。設計上：
+```
+Firestore: ceremonies/{type}/{...}
+  type: 'opening' | 'intermission' | 'song-transition'
+  triggeredAt: Timestamp
+  triggeredBy: adminUid
+  payload?: { fromSongId, toSongId, ... }
+
+訪客 hook useCeremony() onSnapshot → 若 triggeredAt > 進站時間 → 觸發儀式
+```
+
+---
+
+### 🪄 跨元件協同（小事但連起來特別好看）
+
+| # | 項目 | 估時 | 連結 |
+|---|------|------|------|
+| **X1** | **投票時 UpNextBar 卡片黃光 + 隊列卡爬升動畫** | 2h | 已有 un-flash 黃光，可加 framer-motion layout 排序遞補 |
+| **X2** | **VoterPassport 進度條即時動畫** | 1h | 投票後若新解鎖徽章，passport 已開的話進度條 spring 動畫到 100% + 蓋章音效 |
+| **X3** | **OpeningCurtain 進入後自動展開 UpNextBar 抽屜** | 1.5h | 6 秒儀式結束 fade out 後 1 秒，UpNextBar 從下方 slide in 並停 3 秒高亮，引導觀眾看「等等要彈什麼」 |
+| **X4** | **節目單分享卡同步 UpNextBar 隊列順序** | 2h | ShareCardModal 取的 top-voted 已經跟 UpNextBar 一致，可加上「次首」藍邊角標讓兩邊視覺一致 |
+| **X5** | **ThankYouModal 結尾 → 統計動畫銜接** | 2h | END OF SIDE A 後可選自動跳出統計卡：「今晚 287 票 / 18 首歌 / 最熱：晴天」 |
+
+---
+
+### 📊 整體建議實施順序（CP 值排序）
+
+**短期（一週內，~8h）**：U1 + O5 + X1
+- 進度條真實同步 + admin 預覽工具 + 投票時隊列爬升動畫 — 立刻改善現場觀感
+
+**中期（兩週，~12h）**：V1+V2 + O1 + V4
+- 徽章接 Firestore + 開場儀式廣播 + 履歷分享卡 — 把「私人本機體驗」升級成「現場共鳴」
+
+**長期（一個月，~15h）**：O2 + O3 + V7 + X3+X5
+- 多種儀式（中場、過場）+ 頭像系統 + 跨元件聯動 — 整個系統儀式感完整成形
 
 ---
 
@@ -605,21 +730,24 @@ npx playwright install chromium
 
 ---
 
-## 🎯 Top 7 立即可做
+## 🎯 Top 10 立即可做（v4.2.1 之後最高 CP）
 
-> **本週末挑這幾項，CP 值最高、PR 最小、立即有感**
+> **本週末挑這幾項，PR 小、改完立刻有感**
 
-| # | 項目 | 估時 | 收益 |
-|---|------|------|------|
-| 1 | **pinyin-pro lazy load** | 1.5h | 初始 bundle -80KB gzip |
-| 2 | **API Key restrictions 檢查** | 0.5h | 防 key 洩漏被打 quota |
-| 3 | **Lighthouse PWA = 100** | 1.5h | 安裝體驗 / 商城上架 / 評分 |
-| 4 | **Web Vitals 上報** | 0.5h | 看得到真實使用者的 LCP/CLS |
-| 5 | **WebP 圖片轉換** | 1h | 圖片總 size -70% |
-| 6 | **Sentry 錯誤追蹤** | 2h | 看到使用者端的真實錯誤 |
-| 7 | **歌曲詳情 Modal** | 3h | 訪客體驗大升級 |
+| # | 項目 | 估時 | 收益 | 出處 |
+|---|------|------|------|------|
+| 1 | **UpNextBar 進度條真實同步**（U1） | 3h | 演出現場觀感升一級 — 不再每首歌都顯示 3:30 估算 | 新增 |
+| 2 | **OpeningCurtain admin 廣播觸發**（O1） | 3h | 觀眾在現場手機**同步**看到開場儀式 — 演唱會儀式感的高光 | 新增 |
+| 3 | **VoterPassport 接 Firestore 真實徽章**（V1+V2） | 4h | 「首發點播」與「評星達人」改成真實判定 | 新增 |
+| 4 | **pinyin-pro lazy load** | 1.5h | 初始 bundle -80KB gzip | 既有 |
+| 5 | **API Key restrictions 檢查** | 0.5h | 防 key 洩漏被打 quota | 既有 |
+| 6 | **Lighthouse PWA = 100** | 1.5h | 安裝體驗 / 商城上架 / 評分 | 既有 |
+| 7 | **Web Vitals 上報** | 0.5h | 看得到真實使用者的 LCP/CLS | 既有 |
+| 8 | **OpeningCurtain admin 預覽工具**（O5） | 2h | admin 不用清 sessionStorage 也能重看 | 新增 |
+| 9 | **歌曲詳情 Modal** | 3h | 訪客體驗大升級 | 既有 |
+| 10 | **Sentry 錯誤追蹤** | 2h | 看到使用者端的真實錯誤 | 既有 |
 
-**總計 ~10 小時**，一個週末可全做完，立刻把產品推進到 **v4.4**。
+**總計 ~21 小時**。如果只挑 3 項做「演出儀式感再進化」：**1 + 2 + 3**（10h，一個週末做完，產品推進到 v4.3 Editorial 完整版）。
 
 ---
 
@@ -682,6 +810,11 @@ npm i -D chromatic                        # 視覺迴歸
 | `CommandPalette` | Cmd+K 命令面板 |
 | `ShortcutsHelpModal` | ? 快捷鍵說明 |
 | `UpdatePrompt` | 新版本可用 banner |
+| `ShareCardModal` 🆕 | 節目單分享卡（IG + FB OG） |
+| `ThankYouModal` 🆕 | END OF SIDE A 演出收尾感謝卡 |
+| `UpNextBar/` 🆕 | 底部 sticky 96px 隊列條（演出中 / 剛投票 / 待開場三狀態） |
+| `VoterPassportModal` 🆕 | 護照式催歌履歷（6 動態徽章 + SVG 圓章 + 油墨蓋章濾鏡） |
+| `OpeningCurtain` 🆕 | 6 秒開場儀式（11 keyframes 完整時間軸 + sessionStorage 觸發） |
 
 ### 新增腳本
 | 腳本 | 用途 |
@@ -702,4 +835,4 @@ npm i -D chromatic                        # 視覺迴歸
 
 ---
 
-*最後更新：2026-05-15 | v4.2.0+ | 下次更新時機：完成 v4.3.0 性能優化批次後*
+*最後更新：2026-05-16 | v4.2.1 Editorial 第二波 | 下次更新時機：完成 Top 10 中前 3 項（UpNextBar U1 + OpeningCurtain O1 + VoterPassport V1+V2）*
