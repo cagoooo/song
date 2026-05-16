@@ -140,6 +140,7 @@ export function NowPlayingNotification() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 100, scale: 0.9 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                data-now-playing-notification="true"
                 className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[420px] z-50"
             >
                 <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 p-0.5 shadow-2xl shadow-orange-500/30">
