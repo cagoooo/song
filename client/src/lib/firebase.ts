@@ -47,4 +47,5 @@ export const COLLECTIONS = {
     playedSongs: 'playedSongs',
     nowPlaying: 'nowPlaying',
     interactions: 'interactions', // 打賞和評分互動事件
+    ceremonies: 'ceremonies',     // 演出儀式廣播（開場/中場/過場）
 } as const;

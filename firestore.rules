@@ -67,6 +67,12 @@ service cloud.firestore {
       allow update: if isValidRatingUpdate();
       allow delete: if isAdmin();
     }
+
+    // 演出儀式廣播 - 所有人可讀（onSnapshot 同步），僅管理員可寫
+    match /ceremonies/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidCeremony();
+    }
     
     // 使用者集合 - 僅本人或管理員可讀寫
     match /users/{userId} {
@@ -155,6 +161,16 @@ service cloud.firestore {
         && (!data.keys().hasAny(['rating']) || data.rating == null || (data.rating is int && data.rating >= 1 && data.rating <= 5));
     }
     
+    // 驗證儀式資料有效性
+    function isValidCeremony() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['type', 'triggeredBy', 'triggeredAt'])
+        && data.type in ['opening', 'intermission', 'song-transition']
+        && data.triggeredBy is string
+        && data.triggeredBy.size() > 0
+        && data.triggeredBy.size() <= 100;
+    }
+
     // 驗證評分更新（只能更新自己的評分，且只能修改 rating 和 createdAt）
     function isValidRatingUpdate() {
       let data = request.resource.data;

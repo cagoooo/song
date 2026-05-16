@@ -19,6 +19,18 @@ export interface NowPlayingInfo {
     song: Song | null;
     startedAt: Date;
     startedBy: string;
+    /** 預估曲長（秒）— admin 開始彈奏時選的；缺值由前端 fallback 到 210 */
+    durationSec?: number;
+}
+
+/** 演出儀式類型 — 透過 ceremonies/current 廣播給所有訪客 */
+export type CeremonyType = 'opening' | 'intermission' | 'song-transition';
+
+export interface CeremonyInfo {
+    type: CeremonyType;
+    triggeredAt: Date;
+    triggeredBy: string;
+    payload?: Record<string, unknown>;
 }
 
 export interface SongSuggestion {

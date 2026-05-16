@@ -19,6 +19,8 @@ import { DarkHorseOverlay } from "../components/DarkHorseOverlay";
 import { useGlobalHype } from "@/hooks/useGlobalHype";
 import { GlobalHypeOverlay } from "../components/GlobalHypeOverlay";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useCeremony } from "@/hooks/useCeremony";
+import { triggerCeremony } from "@/lib/firestore";
 import { UpdatePrompt } from "../components/UpdatePrompt";
 import { BarChart3 } from "lucide-react";
 
@@ -104,6 +106,8 @@ export default function Home() {
   const [curtainOpen, setCurtainOpen] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
   const curtainCheckedRef = useRef(false);
+  // 監聽 admin 廣播的開場儀式（所有訪客同步收到）
+  const { pending: pendingCeremony, consume: consumeCeremony } = useCeremony();
   const { combo } = useComboCounter();
 
   // 用 useMemo 包起來避免每次 render 都重綁 listener
@@ -251,6 +255,17 @@ export default function Home() {
       // sessionStorage 不可用就放棄，不影響主流程
     }
   }, [songs.length]);
+
+  // admin 廣播的儀式 → 所有訪客同步播放（演出模式分頁不收）
+  useEffect(() => {
+    if (!pendingCeremony) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'stage') { consumeCeremony(); return; }
+    if (pendingCeremony.type === 'opening') {
+      setCurtainOpen(true);
+    }
+    consumeCeremony();
+  }, [pendingCeremony, consumeCeremony]);
 
   // 載入更多歌曲
   const loadMore = useCallback(() => {
@@ -431,10 +446,26 @@ export default function Home() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCurtainOpen(true)}
-            aria-label="開場儀式 — 6 秒儀式為今晚揭幕"
+            onClick={async () => {
+              if (!user?.id) return;
+              try {
+                // 廣播到 Firestore → 所有訪客同步收到開場儀式
+                await triggerCeremony('opening', user.id);
+                toast({ title: '🎭 開場已廣播', description: '所有觀眾現在同步看到開場儀式' });
+              } catch (error) {
+                console.error('Failed to broadcast ceremony:', error);
+                // fallback：至少自己看得到
+                setCurtainOpen(true);
+                toast({
+                  title: '廣播失敗，已在本機播放',
+                  description: error instanceof Error ? error.message : '請檢查網路',
+                  variant: 'destructive',
+                });
+              }
+            }}
+            aria-label="廣播開場儀式給所有觀眾"
             className="bg-white/90 hover:bg-white border-2 border-indigo-300 hover:border-indigo-400 text-indigo-700 hover:text-indigo-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
-            title="6 秒開場儀式：黑膠飛入 + 唱針落下 + 今晚開始 · LIVE"
+            title="6 秒開場儀式 — 廣播給所有現場觀眾的手機"
           >
             <span className="text-base sm:mr-2">🎭</span>
             <span className="hidden sm:inline">開場</span>

@@ -6,6 +6,7 @@ import {
     Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import type { VoteHistoryEntry } from '@/hooks/useVoteHistory';
+import { useVoterStats } from '@/hooks/useVoterStats';
 
 interface VoterPassportModalProps {
     isOpen: boolean;
@@ -42,6 +43,16 @@ function dayKey(ts: number): string {
 }
 
 export function VoterPassportModal({ isOpen, onClose, history, onShare }: VoterPassportModalProps) {
+    // 跑 Firestore 查 V1+V2 真實資料（首發點播、五星評）
+    const votedSongIds = useMemo(
+        () => Array.from(new Set(history.map((h) => h.songId))),
+        [history],
+    );
+    const { firstCallCount, fiveStarCount, loading: statsLoading } = useVoterStats({
+        enabled: isOpen,
+        votedSongIds,
+    });
+
     const { totalVotes, uniqueSongs, showsAttended, badges, firstVoteAt, lastVoteAt, voterId } = useMemo(() => {
         const totalVotes = history.length;
         const uniqueSongs = new Set(history.map((v) => v.songId)).size;
@@ -102,19 +113,33 @@ export function VoterPassportModal({ isOpen, onClose, history, onShare }: VoterP
                 glyph: '🌟',
                 name: '首發點播',
                 titleStamp: 'FIRST CALL · 首發點播 · ',
-                unlocked: totalVotes >= 1,
-                unlockedAt: firstUnlock(totalVotes >= 1, firstVoteAt),
-                condition: `投出你的第一票，加入催歌行列。${totalVotes >= 1 ? '已達成。' : ''}`,
+                // V1 真實規則：你是這首歌的第一位投票者
+                // firstCallCount === null 時（仍在載入）暫不解鎖，避免閃爍
+                unlocked: (firstCallCount ?? 0) >= 1,
+                unlockedAt: firstUnlock((firstCallCount ?? 0) >= 1, firstVoteAt),
+                condition: firstCallCount === null
+                    ? '查詢中…成為某首歌的第一位投票者，就能蓋上這個章。'
+                    : firstCallCount > 0
+                        ? `你是 ${firstCallCount} 首歌的第一位投票者 — 開拓者！`
+                        : `成為某首歌的第一位投票者。先衝的人才有這個章。`,
+                progress: (firstCallCount !== null && firstCallCount === 0)
+                    ? { now: 0, target: 1 }
+                    : undefined,
             },
             {
                 key: 'five-star',
                 glyph: '⭐',
                 name: '評星達人',
                 titleStamp: 'FIVE-STAR · 評星達人 · ',
-                unlocked: uniqueSongs >= 10,
-                unlockedAt: firstUnlock(uniqueSongs >= 10, lastVoteAt),
-                condition: `累積點過 10 首不同的歌。你目前點了 ${uniqueSongs} 首。`,
-                progress: uniqueSongs < 10 ? { now: uniqueSongs, target: 10 } : undefined,
+                // V2 真實規則：累積 10 次 5 星評
+                unlocked: (fiveStarCount ?? 0) >= 10,
+                unlockedAt: firstUnlock((fiveStarCount ?? 0) >= 10, lastVoteAt),
+                condition: fiveStarCount === null
+                    ? '查詢中…給出 10 次 5 顆星評分。'
+                    : `給出 10 次 5 顆星評分。你目前給了 ${fiveStarCount} 次。`,
+                progress: (fiveStarCount !== null && fiveStarCount < 10)
+                    ? { now: fiveStarCount, target: 10 }
+                    : undefined,
             },
             {
                 key: 'three-shows',
@@ -139,7 +164,7 @@ export function VoterPassportModal({ isOpen, onClose, history, onShare }: VoterP
         ];
 
         return { totalVotes, uniqueSongs, showsAttended, badges, firstVoteAt, lastVoteAt, voterId };
-    }, [history]);
+    }, [history, firstCallCount, fiveStarCount]);
 
     const unlockedCount = badges.filter((b) => b.unlocked).length;
     const lockedCount = badges.length - unlockedCount;
@@ -257,6 +282,7 @@ export function VoterPassportModal({ isOpen, onClose, history, onShare }: VoterP
                                 <h3 className="vb-foot-h">把這本護照<em>翻給朋友看</em></h3>
                                 <p className="vb-foot-p">
                                     產生 IG 直式履歷卡 — 蓋了 {unlockedCount} 個章、聽過 {uniqueSongs} 首歌、{showsAttended} 場到場。
+                                    {statsLoading && <span className="ml-2 text-xs opacity-60">（雲端徽章查詢中…）</span>}
                                 </p>
                             </div>
                             {onShare && (

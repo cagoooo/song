@@ -4,12 +4,17 @@ import {
 import { db, COLLECTIONS } from '../firebase';
 import type { Song, NowPlayingInfo } from './types';
 
-export async function setNowPlaying(songId: string, adminUid: string): Promise<void> {
+export async function setNowPlaying(
+    songId: string,
+    adminUid: string,
+    durationSec?: number,
+): Promise<void> {
     const ref = doc(db, COLLECTIONS.nowPlaying, 'current');
     await setDoc(ref, {
         songId,
         startedBy: adminUid,
         startedAt: Timestamp.now(),
+        ...(typeof durationSec === 'number' && durationSec > 0 ? { durationSec } : {}),
     });
 }
 
@@ -54,6 +59,7 @@ export function subscribeNowPlaying(callback: (info: NowPlayingInfo | null) => v
             song,
             startedAt: data.startedAt?.toDate?.() || new Date(),
             startedBy: data.startedBy,
+            durationSec: typeof data.durationSec === 'number' ? data.durationSec : undefined,
         });
     });
 }

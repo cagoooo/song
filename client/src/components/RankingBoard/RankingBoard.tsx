@@ -23,6 +23,14 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { Song } from '@/lib/firestore';
 import { markSongAsPlayed, unmarkSongAsPlayed, resetAllPlayedSongs, resetAllVotes, setNowPlaying, clearNowPlaying } from '@/lib/firestore';
 import type { AppUser } from '@/lib/auth';
@@ -116,7 +124,9 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
     }, [user?.id, toast]);
 
     // 處理正在彈奏狀態切換
-    const handleSetNowPlaying = useCallback(async (song: Song) => {
+    // - 已在彈奏 → 直接停止（不用選曲長）
+    // - 還沒彈 → 由 dropdown 帶入 durationSec
+    const handleSetNowPlaying = useCallback(async (song: Song, durationSec?: number) => {
         if (!user?.id) return;
 
         try {
@@ -124,13 +134,28 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                 await clearNowPlaying();
                 toast({ title: '已停止', description: `「${song.title}」` });
             } else {
-                await setNowPlaying(song.id, user.id);
-                toast({ title: '🎸 正在彈奏', description: `「${song.title}」` });
+                await setNowPlaying(song.id, user.id, durationSec);
+                const durLabel = durationSec
+                    ? `${Math.floor(durationSec / 60)}:${String(durationSec % 60).padStart(2, '0')}`
+                    : '預設 3:30';
+                toast({
+                    title: '🎸 正在彈奏',
+                    description: `「${song.title}」· 預估 ${durLabel}`,
+                });
             }
         } catch (error) {
             toast(getErrorToast(error));
         }
     }, [user?.id, toast]);
+
+    // 5 個預設曲長選項（秒）
+    const DURATION_PRESETS: { label: string; sec: number }[] = [
+        { label: '2:30 · 短歌', sec: 150 },
+        { label: '3:00 · 標準', sec: 180 },
+        { label: '3:30 · 預設', sec: 210 },
+        { label: '4:00 · 長歌', sec: 240 },
+        { label: '5:00 · 慢板', sec: 300 },
+    ];
 
     // 重置所有彈奏狀態
     const handleResetAllPlayed = useCallback(async () => {
@@ -398,33 +423,60 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
 
                             {/* 操作按鈕區 */}
                             <div className="flex items-center gap-1 w-full sm:w-auto justify-end mt-1 sm:mt-0">
-                                {/* 管理員「正在彈奏」按鈕 */}
+                                {/* 管理員「正在彈奏」按鈕
+                                    - 彈奏中 → 直接停止
+                                    - 未彈奏 → 開 DropdownMenu 選曲長 */}
                                 {user?.isAdmin && (
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
+                                    song.isNowPlaying ? (
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleSetNowPlaying(song)}
+                                                        className="w-10 h-10 sm:w-9 sm:h-9 rounded-md border transition-colors bg-[#2b4dff]/10 hover:bg-[#2b4dff]/20 border-[#2b4dff]/40"
+                                                        aria-label="停止彈奏"
+                                                    >
+                                                        <Square className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-[#2b4dff] fill-[#2b4dff]" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
+                                                    <p>停止彈奏</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    ) : (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => handleSetNowPlaying(song)}
-                                                    className={`w-10 h-10 sm:w-9 sm:h-9 rounded-md border transition-colors ${song.isNowPlaying
-                                                        ? 'bg-[#2b4dff]/10 hover:bg-[#2b4dff]/20 border-[#2b4dff]/40'
-                                                        : 'hover:bg-[#2b4dff]/5 border-transparent hover:border-[#2b4dff]/30'
-                                                        }`}
-                                                    aria-label={song.isNowPlaying ? '停止彈奏' : '開始彈奏'}
+                                                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-md border transition-colors hover:bg-[#2b4dff]/5 border-transparent hover:border-[#2b4dff]/30"
+                                                    aria-label="開始彈奏（選擇曲長）"
+                                                    title="開始彈奏（選擇曲長）"
                                                 >
-                                                    {song.isNowPlaying ? (
-                                                        <Square className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-[#2b4dff] fill-[#2b4dff]" />
-                                                    ) : (
-                                                        <Play className="w-5 h-5 sm:w-4 sm:h-4 text-[#2b4dff]" />
-                                                    )}
+                                                    <Play className="w-5 h-5 sm:w-4 sm:h-4 text-[#2b4dff]" />
                                                 </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
-                                                <p>{song.isNowPlaying ? '停止彈奏' : '開始彈奏'}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="z-[100]">
+                                                <DropdownMenuLabel className="text-xs text-slate-500 font-normal">
+                                                    預估曲長 — 給隊列條進度條同步
+                                                </DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                {DURATION_PRESETS.map((p) => (
+                                                    <DropdownMenuItem
+                                                        key={p.sec}
+                                                        onSelect={() => handleSetNowPlaying(song, p.sec)}
+                                                        className="cursor-pointer"
+                                                    >
+                                                        <Play className="w-3.5 h-3.5 mr-2 text-[#2b4dff]" />
+                                                        {p.label}
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    )
                                 )}
 
                                 {/* 管理員「已彈奏」標記按鈕 */}

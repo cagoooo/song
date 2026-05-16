@@ -13,8 +13,8 @@ interface UpNextBarProps {
     onShowFullQueue?: () => void;
 }
 
-// 沒有真實音檔長度時的預設曲長（210 秒 ≈ 3:30）
-const ASSUMED_SONG_SECONDS = 210;
+// fallback 曲長（210 秒 ≈ 3:30）— 當 nowPlaying.durationSec 沒設時用
+const FALLBACK_SONG_SECONDS = 210;
 
 const BODY_CLASS = 'has-up-next-bar';
 
@@ -42,18 +42,21 @@ export function UpNextBar({ songs, onOpenDetail, onShowFullQueue }: UpNextBarPro
     const playedCount = useMemo(() => songs.filter((s) => s.isPlayed).length, [songs]);
     const setlistTotal = Math.max(songs.length, 1);
 
-    // 進度條 — 用 startedAt 估算播放秒數
+    // 演出曲長 — 用 admin 設定的 durationSec，沒設就 fallback 3:30
+    const durationSec = nowPlaying?.durationSec ?? FALLBACK_SONG_SECONDS;
+
+    // 進度條 — 用 startedAt 計算當前秒數，上限為 durationSec
     useEffect(() => {
         if (!nowPlaying?.startedAt) { setElapsed(0); return; }
         const startMs = new Date(nowPlaying.startedAt).getTime();
         const update = () => {
             const e = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
-            setElapsed(Math.min(e, ASSUMED_SONG_SECONDS));
+            setElapsed(Math.min(e, durationSec));
         };
         update();
         const id = window.setInterval(update, 1000);
         return () => window.clearInterval(id);
-    }, [nowPlaying?.startedAt, nowPlaying?.songId]);
+    }, [nowPlaying?.startedAt, nowPlaying?.songId, durationSec]);
 
     // 監聽全域投票事件 → 在對應的隊列卡上做黃光 pulse
     useEffect(() => {
@@ -133,11 +136,11 @@ export function UpNextBar({ songs, onOpenDetail, onShowFullQueue }: UpNextBarPro
                             <div className="un-progress-track">
                                 <div
                                     className="un-progress-fill"
-                                    style={{ width: `${live ? (elapsed / ASSUMED_SONG_SECONDS) * 100 : 0}%` }}
+                                    style={{ width: `${live ? (elapsed / durationSec) * 100 : 0}%` }}
                                 />
                             </div>
                             <div className="un-time">
-                                <span className="now">{fmt(elapsed)}</span> / {fmt(ASSUMED_SONG_SECONDS)}
+                                <span className="now">{fmt(elapsed)}</span> / {fmt(durationSec)}
                             </div>
                         </div>
                     </div>
