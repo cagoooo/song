@@ -30,14 +30,39 @@ describe('SongDetailModal', () => {
         });
     });
 
-    describe('「晴天」固定 detail（資料來自 data.ts）', () => {
-        it('Capo 2、78 BPM、C Key 對應 SONG_DETAILS["晴天"]', () => {
-            const song = makeSong({ title: '晴天', artist: '周杰倫' });
+    describe('Firestore 樂譜欄位優先顯示（T3 schema）', () => {
+        it('傳入完整樂譜欄位 → 顯示真實 Capo / BPM / 進行', () => {
+            const song = makeSong({
+                title: '晴天',
+                artist: '周杰倫',
+                songKey: 'C',
+                capo: 2,
+                bpm: 78,
+                progression: ['C', 'G', 'Am', 'Em', 'F', 'Dm', 'G', 'C'],
+            });
             render(<SongDetailModal song={song} onClose={() => {}} />);
-            // Capo
-            expect(screen.getByText('2')).toBeInTheDocument();
-            // BPM
-            expect(screen.getByText('78')).toBeInTheDocument();
+            expect(screen.getByText('2')).toBeInTheDocument();   // Capo
+            expect(screen.getByText('78')).toBeInTheDocument();  // BPM
+        });
+
+        it('傳入 lyricBlocks → 顯示結構化歌詞', () => {
+            const song = makeSong({
+                title: 'Test',
+                lyricBlocks: [
+                    { sec: 'VERSE 1', rows: [{ chord: 'C G', line: '測試歌詞行' }] },
+                ],
+            });
+            render(<SongDetailModal song={song} onClose={() => {}} />);
+            expect(screen.getByText('測試歌詞行')).toBeInTheDocument();
+        });
+
+        it('傳入 kaiNote → 顯示主理人筆記', () => {
+            const song = makeSong({
+                title: 'Test',
+                kaiNote: '副歌前那個 Em 卡半拍給它',
+            });
+            render(<SongDetailModal song={song} onClose={() => {}} />);
+            expect(screen.getByText(/Em 卡半拍給它/)).toBeInTheDocument();
         });
     });
 

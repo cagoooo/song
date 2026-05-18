@@ -86,14 +86,41 @@ service cloud.firestore {
       return request.app != null;
     }
 
-    // 檢查歌曲 payload — 主要驗證 difficulty 欄位 (若有)
+    // 檢查歌曲 payload — 驗證 difficulty + T3 新增的樂譜欄位
     function isValidSongPayload() {
+      let data = request.resource.data;
+      let keys = data.keys();
       // delete 操作沒有 resource.data, 所以 keys() 會 fail; 用 hasAny 防呆
-      return !('difficulty' in request.resource.data.keys())
-        || request.resource.data.difficulty == null
-        || (request.resource.data.difficulty is int
-            && request.resource.data.difficulty >= 1
-            && request.resource.data.difficulty <= 3);
+      return
+        // difficulty: 1-3 or null
+        (!('difficulty' in keys)
+          || data.difficulty == null
+          || (data.difficulty is int && data.difficulty >= 1 && data.difficulty <= 3))
+        // 🆕 T3 樂譜欄位（每個都選填）
+        // songKey: 1-10 字串
+        && (!('songKey' in keys) || data.songKey == null
+            || (data.songKey is string && data.songKey.size() <= 10))
+        // capo: 0-12 整數
+        && (!('capo' in keys) || data.capo == null
+            || (data.capo is int && data.capo >= 0 && data.capo <= 12))
+        // bpm: 30-250 整數
+        && (!('bpm' in keys) || data.bpm == null
+            || (data.bpm is int && data.bpm >= 30 && data.bpm <= 250))
+        // length: 字串 "MM:SS" 最長 6 字
+        && (!('length' in keys) || data.length == null
+            || (data.length is string && data.length.size() <= 6))
+        // progression: list（陣列）
+        && (!('progression' in keys) || data.progression == null
+            || data.progression is list)
+        // lyricBlocks: list
+        && (!('lyricBlocks' in keys) || data.lyricBlocks == null
+            || data.lyricBlocks is list)
+        // youtubeId: 字串最長 20
+        && (!('youtubeId' in keys) || data.youtubeId == null
+            || (data.youtubeId is string && data.youtubeId.size() <= 20))
+        // kaiNote: 字串最長 500
+        && (!('kaiNote' in keys) || data.kaiNote == null
+            || (data.kaiNote is string && data.kaiNote.size() <= 500));
     }
 
     // 檢查是否為管理員
