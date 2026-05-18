@@ -1,0 +1,211 @@
+/* ===========================================================================
+   editorial-base.css  —  雜誌風基礎層（拆自 index.css 行 5-202）
+   ============================================================================
+   負責：
+   • Design tokens（字型棧、雜誌藍、暖米色）
+   • Theme tokens（對應 tailwind.config.ts 的 hsl(var(--xxx))）
+   • Editorial typography utilities（雜誌排版基本元素）
+   • prefers-reduced-motion 全域動畫關閉
+   • :root / @layer base 必須放這檔，被 @import 後第一個載入
+
+   📐 設計文件：docs/design/T1-css-split.md
+   =========================================================================== */
+
+/* ==========================================================================
+   Editorial design tokens — 雜誌風格（白底 / 藍強調 / 暖米色卡片 / Playfair 襯線）
+   來源：吉他彈唱系統優化-handoff（editorial 主題）
+   ========================================================================== */
+:root {
+  /* 字型棧 */
+  --font-display: "Playfair Display", "Noto Serif TC", "Source Han Serif TC", Georgia, serif;
+  --font-body: "Inter", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Editorial 調色（與 shadcn tokens 並存） */
+  --ed-bg: #ffffff;
+  --ed-paper: #faf7f0;              /* 暖米色卡片底 */
+  --ed-paper-deep: #f3ede0;
+  --ed-ink-1: #111111;
+  --ed-ink-2: #4a4a4a;
+  --ed-ink-3: #8a8a8a;
+  --ed-ink-4: #c4c4c4;
+  --ed-line: rgba(17, 17, 17, 0.10);
+  --ed-line-strong: rgba(17, 17, 17, 0.22);
+  --ed-accent: #2b4dff;             /* 雜誌藍 */
+  --ed-accent-soft: rgba(43, 77, 255, 0.10);
+  --ed-hot: #ff4d2e;
+  --ed-hot-soft: rgba(255, 77, 46, 0.10);
+  --ed-gold: #b8902a;
+  --ed-silver: #7a7a7a;
+  --ed-bronze: #a25a32;
+}
+
+/* ==========================================================================
+   Theme tokens — 對應 tailwind.config.ts 的 hsl(var(--xxx)) 設定
+   (這些變數先前缺失導致 bg-background / border-border 解析為空值,
+    所有 Modal 透明背景就是這個原因)
+   ========================================================================== */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 230 100% 58%;          /* editorial blue #2b4dff */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 230 100% 58%;
+    --radius: 0.75rem;
+
+    --chart-1: 38 92% 50%;
+    --chart-2: 0 84% 60%;
+    --chart-3: 271 91% 65%;
+    --chart-4: 187 85% 43%;
+    --chart-5: 142 71% 45%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 38 92% 50%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 38 92% 55%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 38 92% 55%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 38 92% 55%;
+    --sidebar-primary-foreground: 240 5.9% 10%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 38 92% 55%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* 靜態漸層效果（效能優化版 - 移除無限循環動畫） */
+.animate-text {
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  /* 使用單次動畫，播放完成後停止 */
+  animation: gradient 3s ease forwards;
+}
+
+/* 單次漸層動畫 - 播放一次後停止 */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+/* 尊重使用者的動畫偏好設定 - 完全停用動畫 */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-text {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   Editorial typography utilities — 雜誌排版基本元素
+   ========================================================================== */
+.font-serif-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.font-mono-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ed-ink-3);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--ed-ink-3);
+}
+
+.chap {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--ed-accent);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff3b30;
+  display: inline-block;
+  box-shadow: 0 0 0 4px rgba(255, 59, 48, 0.18);
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  50% { box-shadow: 0 0 0 8px rgba(255, 59, 48, 0); }
+}
+
