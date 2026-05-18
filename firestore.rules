@@ -70,12 +70,26 @@ service cloud.firestore {
     
     // 使用者集合 - 僅本人或管理員可讀寫
     match /users/{userId} {
-      allow read: if request.auth != null && 
+      allow read: if request.auth != null &&
         (request.auth.uid == userId || isAdmin());
-      allow write: if request.auth != null && 
+      allow write: if request.auth != null &&
         (request.auth.uid == userId || isAdmin());
     }
-    
+
+    // D1 雜誌期數設定 - 所有人可讀，僅管理員可寫
+    // 設計文件：docs/design/D1-issue-system.md
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidMagazinePayload();
+    }
+
+    // D1 歷史期數歸檔 - 所有人可讀，僅管理員可寫，永遠不可刪
+    match /issues/{issueId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidIssuePayload();
+      allow delete: if false; // 期數歷史不可刪
+    }
+
     // ==================== 輔助函式 ====================
 
     // 檢查是否帶有效 App Check token
@@ -84,6 +98,33 @@ service cloud.firestore {
     // 才會擋掉沒帶 token 的請求。
     function hasAppCheck() {
       return request.app != null;
+    }
+
+    // 檢查雜誌設定 payload — 所有欄位都選填（admin patch 部分更新時也可過）
+    function isValidMagazinePayload() {
+      let data = request.resource.data;
+      let keys = data.keys();
+      return
+        (!('currentIssueNumber' in keys)
+          || (data.currentIssueNumber is int && data.currentIssueNumber >= 0))
+        && (!('currentIssueTitle' in keys)
+          || (data.currentIssueTitle is string && data.currentIssueTitle.size() <= 100))
+        && (!('currentIssueSubtitle' in keys)
+          || data.currentIssueSubtitle == null
+          || (data.currentIssueSubtitle is string && data.currentIssueSubtitle.size() <= 200))
+        && (!('currentSideLabel' in keys)
+          || data.currentSideLabel in ['A', 'B'])
+        && (!('currentTheme' in keys)
+          || data.currentTheme in ['blue', 'red', 'green']);
+    }
+
+    // 檢查歷史期數歸檔 payload
+    function isValidIssuePayload() {
+      let data = request.resource.data;
+      return data.issueNumber is int && data.issueNumber >= 0
+        && data.title is string && data.title.size() <= 100
+        && data.sideLabel in ['A', 'B']
+        && data.archived == true;
     }
 
     // 檢查歌曲 payload — 驗證 difficulty + T3 新增的樂譜欄位

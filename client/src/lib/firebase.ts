@@ -47,4 +47,7 @@ export const COLLECTIONS = {
     playedSongs: 'playedSongs',
     nowPlaying: 'nowPlaying',
     interactions: 'interactions', // 打賞和評分互動事件
+    // D1 雜誌期數系統
+    settings: 'settings', // settings/magazine 單一 doc
+    issues: 'issues',     // 歸檔的歷史期數
 } as const;
