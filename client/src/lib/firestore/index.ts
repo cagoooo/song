@@ -10,3 +10,4 @@ export * from './qrScans';
 export * from './playedSongs';
 export * from './nowPlaying';
 export * from './interactions';
+export * from './magazine';
