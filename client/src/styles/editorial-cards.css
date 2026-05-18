@@ -1,0 +1,867 @@
+/* ===========================================================================
+   editorial-cards.css  —  卡片、Overlays、Stats、Login（拆自 index.css 行 667-1518）
+   ============================================================================
+   負責：
+   • Section head（章節編號 № 01 / № 02）
+   • Editorial suggestion card（引號裝飾 + 義式標題）
+   • Card 基底（取代 shadcn Card 的暖色感）
+   • 5 個 Overlays（DarkHorse / GlobalHype / Combo / VoteHistory / Stage）
+   • Stats Dashboard（雜誌特輯封面風）
+   • QRCodeShareModal（雜誌引文風）
+   • LoginForm（雜誌 BACKSTAGE 風 — 左封面 / 右表單）
+
+   📐 設計文件：docs/design/T1-css-split.md
+   =========================================================================== */
+
+/* ==========================================================================
+   Section head — 章節編號 + 大襯線標題 + 規則線
+   ========================================================================== */
+.editorial-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid var(--ed-ink-1);
+}
+.editorial-section-head .h-title {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.editorial-section-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(22px, 3vw, 36px);
+  letter-spacing: -0.02em;
+  color: var(--ed-ink-1);
+  line-height: 1.1;
+}
+.editorial-section-head .h-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Editorial suggestion card — 引號裝飾 + 義式標題
+   ========================================================================== */
+.editorial-suggest {
+  position: relative;
+  padding: 24px 28px;
+  background: var(--ed-paper);
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.editorial-suggest::before {
+  content: "“";
+  position: absolute;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 240px;
+  color: rgba(43, 77, 255, 0.08);
+  line-height: 1;
+  left: -10px;
+  top: -50px;
+  pointer-events: none;
+}
+.editorial-suggest-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: clamp(22px, 2.6vw, 30px);
+  letter-spacing: -0.015em;
+  margin: 0;
+  color: var(--ed-ink-1);
+  line-height: 1.2;
+  position: relative;
+  z-index: 1;
+}
+.editorial-suggest-title::before {
+  content: "“";
+  font-weight: 900;
+  font-style: normal;
+  color: var(--ed-accent);
+  margin-right: 4px;
+  font-size: 1.1em;
+  line-height: 0;
+  vertical-align: -0.05em;
+}
+.editorial-suggest-title::after {
+  content: "”";
+  font-weight: 900;
+  font-style: normal;
+  color: var(--ed-accent);
+  margin-left: 4px;
+  font-size: 1.1em;
+  line-height: 0;
+  vertical-align: -0.05em;
+}
+.editorial-suggest-sub {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ed-ink-2);
+  margin-top: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   Editorial card / 卡片基底（取代 shadcn Card 的暖色感）
+   ========================================================================== */
+.editorial-paper {
+  background: #ffffff;
+  border: 1px solid var(--ed-line);
+  border-radius: 16px;
+  box-shadow: 0 1px 0 rgba(17, 17, 17, 0.04), 0 12px 30px -16px rgba(17, 17, 17, 0.16);
+}
+.editorial-paper-cream {
+  background: var(--ed-paper);
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-radius: 16px;
+  box-shadow: 0 1px 0 rgba(17, 17, 17, 0.04), 0 12px 30px -16px rgba(17, 17, 17, 0.16);
+}
+
+/* ==========================================================================
+   Editorial overlays — DarkHorse / GlobalHype / Combo / VoteHistory / Stage
+   ========================================================================== */
+
+/* DARK HORSE 上下跑馬燈 */
+.editorial-overlay-marquee {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: #000;
+  color: #fff;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 10px 0;
+}
+.editorial-overlay-marquee.top { top: 0; }
+.editorial-overlay-marquee.bottom { bottom: 0; }
+.editorial-overlay-marquee .track {
+  display: inline-flex;
+  gap: 28px;
+  animation: editorial-ticker 18s linear infinite;
+  padding-left: 28px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+@media (prefers-reduced-motion: reduce) {
+  .editorial-overlay-marquee .track { animation: none; }
+}
+
+/* BREAKING badge — DarkHorseOverlay 頂部 */
+.editorial-breaking-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 22px;
+  border: 2px solid var(--ed-accent);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ed-accent);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* 散落星星裝飾（GlobalHype） */
+.editorial-overlay-star {
+  position: absolute;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 38px;
+  line-height: 1;
+  animation: editorial-star-twinkle 2.4s ease-in-out infinite;
+}
+.editorial-overlay-star.small { font-size: 24px; }
+.editorial-overlay-star.tiny { font-size: 16px; }
+@keyframes editorial-star-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.9); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .editorial-overlay-star { animation: none; opacity: 0.5; }
+}
+
+/* Polaroid 拍立得卡（ComboOverlay） */
+.editorial-polaroid {
+  position: relative;
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 20px 28px 28px;
+  box-shadow:
+    0 30px 60px -20px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(0, 0, 0, 0.08);
+  transform: rotate(-3deg);
+}
+.editorial-polaroid::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  background: #000;
+  border-radius: 4px;
+  z-index: -1;
+  transform: rotate(2deg);
+  opacity: 0.4;
+}
+.editorial-polaroid-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ed-ink-1);
+  margin-bottom: 6px;
+}
+.editorial-polaroid-num {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 120px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--ed-accent);
+  font-variant-numeric: tabular-nums;
+}
+.editorial-polaroid-sub {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: -0.005em;
+  color: var(--ed-ink-2);
+  margin-top: 4px;
+}
+
+/* Magazine modal flag header（VoteHistoryModal） */
+.editorial-modal-flag {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 24px;
+  background: #000;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+.editorial-modal-flag .center {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+}
+
+/* Stage page (演出模式) */
+.editorial-stage {
+  min-height: 100vh;
+  background: #07070b;
+  color: #f6f6f9;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  font-family: var(--font-body);
+}
+.editorial-stage-topbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+.editorial-stage-topbar .center {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: #fff;
+}
+.editorial-stage-topbar .right { text-align: right; }
+.editorial-stage-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 460px;
+  gap: 32px;
+  padding: 32px 32px 24px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .editorial-stage-main { grid-template-columns: 1fr; }
+}
+.editorial-stage-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  align-items: end;
+  padding: 8px 32px 24px;
+}
+.editorial-stage-marquee {
+  background: #000;
+  color: #aaa;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.editorial-stage-marquee .track {
+  display: inline-flex;
+  gap: 36px;
+  padding-left: 36px;
+  animation: editorial-ticker 30s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .editorial-stage-marquee .track { animation: none; }
+}
+
+/* ==========================================================================
+   Stats Dashboard — 雜誌特輯封面風
+   ========================================================================== */
+.editorial-stats {
+  background: #ffffff;
+  color: var(--ed-ink-1);
+  font-family: var(--font-body);
+}
+
+.editorial-stats-cover {
+  padding: 28px 32px 24px;
+  border-bottom: 2px solid var(--ed-ink-1);
+}
+.editorial-stats-cover-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.editorial-stats-cover-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(34px, 4.4vw, 64px);
+  letter-spacing: -0.025em;
+  line-height: 1.0;
+  color: var(--ed-ink-1);
+  margin: 0;
+}
+.editorial-stats-cover-title .accent { color: var(--ed-accent); }
+.editorial-stats-cover-sub {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--ed-ink-2);
+  margin-top: 10px;
+  line-height: 1.4;
+}
+
+/* KPI 卡片網格 */
+.editorial-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border-bottom: 1px solid var(--ed-line);
+}
+@media (min-width: 720px) {
+  .editorial-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.editorial-kpi {
+  padding: 20px 24px;
+  border-right: 1px solid var(--ed-line);
+  border-top: 1px solid var(--ed-line);
+}
+.editorial-kpi:last-child { border-right: 0; }
+.editorial-kpi-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+  margin-bottom: 6px;
+}
+.editorial-kpi-value {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ed-ink-1);
+  font-variant-numeric: tabular-nums;
+}
+.editorial-kpi-value.accent { color: var(--ed-accent); }
+.editorial-kpi-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ed-ink-3);
+  letter-spacing: 0.08em;
+  margin-top: 6px;
+}
+
+/* 章節 + 內容 panel */
+.editorial-stats-panel {
+  padding: 22px 32px;
+  border-bottom: 1px solid var(--ed-line);
+}
+.editorial-stats-panel-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.editorial-stats-panel-title .chap {
+  font-size: 14px;
+}
+.editorial-stats-panel-title h3 {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.015em;
+  color: var(--ed-ink-1);
+  margin: 0;
+}
+.editorial-stats-panel-title .h-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+  margin-left: auto;
+}
+
+/* Top 5 水平條圖 */
+.editorial-bar-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1.4fr) minmax(0, 2fr) 48px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--ed-line);
+}
+.editorial-bar-row:last-child { border-bottom: 0; }
+.editorial-bar-row .rank {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--ed-ink-3);
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.editorial-bar-row.r1 .rank { color: var(--ed-accent); }
+.editorial-bar-row .name {
+  min-width: 0;
+}
+.editorial-bar-row .name .t {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--ed-ink-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.editorial-bar-row .name .a {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+  margin-top: 2px;
+}
+.editorial-bar-row .bar {
+  height: 6px;
+  background: var(--ed-line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.editorial-bar-row .bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ed-accent), #ff4d2e);
+  border-radius: inherit;
+}
+.editorial-bar-row .v {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  color: var(--ed-ink-1);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 8/24 小時時段柱狀 */
+.editorial-hour-bars {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  align-items: end;
+  gap: 8px;
+  height: 160px;
+  padding-top: 10px;
+  border-bottom: 1px solid var(--ed-ink-1);
+}
+.editorial-hour-bar {
+  position: relative;
+  background: var(--ed-ink-1);
+  width: 100%;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+}
+.editorial-hour-bar.peak { background: var(--ed-accent); }
+.editorial-hour-bar .peak-label {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ed-accent);
+  white-space: nowrap;
+}
+.editorial-hour-labels {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ed-ink-3);
+  text-align: center;
+}
+
+/* 7 天趨勢線 SVG container */
+.editorial-trend-line {
+  width: 100%;
+  height: 180px;
+}
+
+/* 風格分布水平條 */
+.editorial-genre-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 56px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+}
+.editorial-genre-row .label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ed-ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.editorial-genre-row .bar {
+  height: 14px;
+  background: var(--ed-line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.editorial-genre-row .bar > i {
+  display: block;
+  height: 100%;
+  background: var(--ed-accent);
+}
+.editorial-genre-row .v {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  text-align: right;
+  color: var(--ed-ink-1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pull quote */
+.editorial-pullquote {
+  position: relative;
+  padding: 28px 32px 32px;
+  background: var(--ed-paper);
+  border-top: 1px solid var(--ed-line);
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 20px;
+  align-items: center;
+}
+.editorial-pullquote-mark {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 96px;
+  line-height: 0.8;
+  color: var(--ed-accent);
+  font-style: italic;
+}
+.editorial-pullquote-text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.4;
+  color: var(--ed-ink-1);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.editorial-pullquote-by {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+  margin-top: 8px;
+}
+
+/* ==========================================================================
+   QRCodeShareModal — 雜誌引文風
+   ========================================================================== */
+.editorial-qr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 28px 32px;
+  background: var(--ed-paper);
+}
+.editorial-qr-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ed-accent);
+  margin-bottom: 10px;
+}
+.editorial-qr-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: clamp(24px, 3vw, 36px);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-align: center;
+  margin: 0;
+  color: var(--ed-ink-1);
+  position: relative;
+}
+.editorial-qr-title::before {
+  content: "“";
+  font-weight: 900;
+  font-style: normal;
+  color: var(--ed-accent);
+  margin-right: 4px;
+  font-size: 1.1em;
+  line-height: 0;
+  vertical-align: -0.05em;
+}
+.editorial-qr-title::after {
+  content: "”";
+  font-weight: 900;
+  font-style: normal;
+  color: var(--ed-accent);
+  margin-left: 4px;
+  font-size: 1.1em;
+  line-height: 0;
+  vertical-align: -0.05em;
+}
+.editorial-qr-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ed-ink-2);
+  text-align: center;
+  margin-top: 4px;
+}
+.editorial-qr-frame {
+  margin: 22px 0 16px;
+  padding: 18px;
+  background: #fff;
+  border-radius: 4px;
+  border: 1px solid var(--ed-line-strong);
+  box-shadow: 0 24px 50px -25px rgba(0,0,0,0.45);
+}
+.editorial-qr-songtitle {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.015em;
+  color: var(--ed-ink-1);
+  text-align: center;
+}
+.editorial-qr-songartist {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* ==========================================================================
+   LoginForm — 雜誌 BACKSTAGE 風（左封面 / 右表單）
+   ========================================================================== */
+.editorial-login {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 480px;
+}
+@media (min-width: 720px) {
+  .editorial-login { grid-template-columns: 240px 1fr; }
+}
+.editorial-login-cover {
+  position: relative;
+  background: var(--ed-ink-1);
+  color: #fff;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+.editorial-login-cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 6px 6px;
+  pointer-events: none;
+}
+.editorial-login-cover-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ed-accent);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+.editorial-login-cover-eyebrow .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ed-accent);
+}
+.editorial-login-cover-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 44px;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  margin: 14px 0 0;
+  position: relative;
+  color: #fff;
+}
+.editorial-login-cover-sub {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(255,255,255,0.75);
+  margin-top: 14px;
+  position: relative;
+}
+.editorial-login-cover-bottom {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+}
+
+.editorial-login-form {
+  padding: 28px 28px 32px;
+  background: var(--ed-paper);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.editorial-login-form-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+}
+.editorial-login-form-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  color: var(--ed-ink-1);
+  margin: 4px 0 6px;
+}
+.editorial-login-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--ed-line-strong);
+  border-radius: 4px;
+  background: #fff;
+  font-size: 15px;
+  font-family: var(--font-body);
+  color: var(--ed-ink-1);
+}
+.editorial-login-input:focus {
+  outline: none;
+  border-color: var(--ed-accent);
+  box-shadow: 0 0 0 3px rgba(43, 77, 255, 0.12);
+}
+.editorial-login-submit {
+  width: 100%;
+  height: 48px;
+  background: var(--ed-accent);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.editorial-login-submit:hover:not(:disabled) { filter: brightness(1.1); }
+.editorial-login-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
