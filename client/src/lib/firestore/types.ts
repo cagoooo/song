@@ -61,7 +61,85 @@ export interface Song {
     youtubeId?: string;
     /** 阿凱主理人筆記（單行短句） */
     kaiNote?: string;
+
+    // ===== 🆕 D5 結構化標記欄位 =====
+
+    /** 版本：原曲 / 不插電 / remix / 阿凱改編 */
+    version?: SongVersion;
+    /** 情緒：熱血 / 抒情 / 療癒 / 懷舊 / 嗨歌 / 慢歌 */
+    mood?: SongMood;
+    /** 年代 */
+    era?: SongEra;
+    /** 曲風（取代雜亂 tags 的結構化版本） */
+    genre?: SongGenre;
 }
+
+// ============================================================================
+// 結構化標記（D5）
+// ============================================================================
+// 設計文件：docs/design/D5-song-mood-tags.md
+//
+// 取代既有自由文字 `tags: string[]`（保留向後相容）的結構化標記。
+// 4 個維度都選填，admin 後台可隨時補 — 為 C4 AI 推薦 + StatsDashboard
+// 情緒雷達圖鋪路。
+
+export type SongVersion = 'original' | 'acoustic' | 'remix' | 'kai-cover';
+export type SongMood = 'energetic' | 'tender' | 'healing' | 'nostalgic' | 'hype' | 'slow';
+export type SongEra = '80s' | '90s' | '00s' | '10s' | '20s';
+export type SongGenre = 'pop' | 'rock' | 'folk' | 'rnb' | 'indie' | 'classic' | 'mandopop' | 'jpop' | 'kpop';
+
+export interface DimensionMeta<TKey extends string> {
+    /** enum key（寫入 Firestore 用） */
+    key: TKey;
+    /** 中文 label（UI 顯示） */
+    label: string;
+    /** Emoji 圖示（UI 顯示） */
+    emoji?: string;
+    /** 雜誌風 hex 顏色（StatsDashboard 雷達圖用） */
+    color?: string;
+}
+
+export const MOOD_META: Readonly<Record<SongMood, DimensionMeta<SongMood>>> = Object.freeze({
+    energetic: { key: 'energetic', label: '熱血', emoji: '🔥', color: '#dc2626' },
+    tender:    { key: 'tender',    label: '抒情', emoji: '🌙', color: '#2b4dff' },
+    healing:   { key: 'healing',   label: '療癒', emoji: '🌿', color: '#10b981' },
+    nostalgic: { key: 'nostalgic', label: '懷舊', emoji: '📻', color: '#a16207' },
+    hype:      { key: 'hype',      label: '嗨歌', emoji: '⚡', color: '#f59e0b' },
+    slow:      { key: 'slow',      label: '慢歌', emoji: '🕯️', color: '#6366f1' },
+});
+
+export const VERSION_META: Readonly<Record<SongVersion, DimensionMeta<SongVersion>>> = Object.freeze({
+    'original':  { key: 'original',  label: '原曲',     emoji: '🎵' },
+    'acoustic':  { key: 'acoustic',  label: '不插電',   emoji: '🪕' },
+    'remix':     { key: 'remix',     label: 'Remix',   emoji: '🎛️' },
+    'kai-cover': { key: 'kai-cover', label: '阿凱改編', emoji: '🎸' },
+});
+
+export const ERA_META: Readonly<Record<SongEra, DimensionMeta<SongEra>>> = Object.freeze({
+    '80s': { key: '80s', label: '80 年代', emoji: '📻' },
+    '90s': { key: '90s', label: '90 年代', emoji: '💿' },
+    '00s': { key: '00s', label: '00 年代', emoji: '🎧' },
+    '10s': { key: '10s', label: '10 年代', emoji: '📱' },
+    '20s': { key: '20s', label: '20 年代', emoji: '✨' },
+});
+
+export const GENRE_META: Readonly<Record<SongGenre, DimensionMeta<SongGenre>>> = Object.freeze({
+    pop:      { key: 'pop',      label: '流行',   emoji: '🎤' },
+    rock:     { key: 'rock',     label: '搖滾',   emoji: '🎸' },
+    folk:     { key: 'folk',     label: '民謠',   emoji: '🪕' },
+    rnb:      { key: 'rnb',      label: 'R&B',   emoji: '🎷' },
+    indie:    { key: 'indie',    label: '獨立',   emoji: '🎼' },
+    classic:  { key: 'classic',  label: '經典',   emoji: '🎻' },
+    mandopop: { key: 'mandopop', label: '華語',   emoji: '🎙️' },
+    jpop:     { key: 'jpop',     label: '日韓',   emoji: '🌸' },
+    kpop:     { key: 'kpop',     label: 'K-pop', emoji: '⭐' },
+});
+
+/** 所有合法 mood key（給 Rules 驗證 / 自動完成用） */
+export const MOOD_KEYS: readonly SongMood[] = Object.freeze(Object.keys(MOOD_META) as SongMood[]);
+export const VERSION_KEYS: readonly SongVersion[] = Object.freeze(Object.keys(VERSION_META) as SongVersion[]);
+export const ERA_KEYS: readonly SongEra[] = Object.freeze(Object.keys(ERA_META) as SongEra[]);
+export const GENRE_KEYS: readonly SongGenre[] = Object.freeze(Object.keys(GENRE_META) as SongGenre[]);
 
 export interface NowPlayingInfo {
     songId: string;

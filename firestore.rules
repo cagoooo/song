@@ -161,7 +161,20 @@ service cloud.firestore {
             || (data.youtubeId is string && data.youtubeId.size() <= 20))
         // kaiNote: 字串最長 500
         && (!('kaiNote' in keys) || data.kaiNote == null
-            || (data.kaiNote is string && data.kaiNote.size() <= 500));
+            || (data.kaiNote is string && data.kaiNote.size() <= 500))
+        // 🆕 D5 結構化標記（每個都選填，必須在合法 enum 內）
+        // version: 'original' | 'acoustic' | 'remix' | 'kai-cover'
+        && (!('version' in keys) || data.version == null
+            || data.version in ['original', 'acoustic', 'remix', 'kai-cover'])
+        // mood: 6 種情緒
+        && (!('mood' in keys) || data.mood == null
+            || data.mood in ['energetic', 'tender', 'healing', 'nostalgic', 'hype', 'slow'])
+        // era: 80s / 90s / 00s / 10s / 20s
+        && (!('era' in keys) || data.era == null
+            || data.era in ['80s', '90s', '00s', '10s', '20s'])
+        // genre: 9 種曲風
+        && (!('genre' in keys) || data.genre == null
+            || data.genre in ['pop', 'rock', 'folk', 'rnb', 'indie', 'classic', 'mandopop', 'jpop', 'kpop']);
     }
 
     // 檢查是否為管理員
