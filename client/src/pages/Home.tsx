@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Trophy, Tv, Share2, Award } from "lucide-react";
+import { LogIn, LogOut, Trophy, Tv, Share2, Award, Printer } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
 import { TagFilterBar } from "../components/TagFilterBar";
@@ -17,6 +17,7 @@ import { ComboOverlay } from "../components/ComboOverlay";
 import { useDarkHorse } from "@/hooks/useDarkHorse";
 import { DarkHorseOverlay } from "../components/DarkHorseOverlay";
 import { useGlobalHype } from "@/hooks/useGlobalHype";
+import { useVoterLeaderboard } from "@/hooks/useVoterLeaderboard";
 import { GlobalHypeOverlay } from "../components/GlobalHypeOverlay";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { UpdatePrompt } from "../components/UpdatePrompt";
@@ -45,6 +46,9 @@ const VoterPassportModal = lazy(() =>
 );
 const OpeningCurtain = lazy(() =>
   import("../components/OpeningCurtain").then((m) => ({ default: m.OpeningCurtain }))
+);
+const PrintProgram = lazy(() =>
+  import("../components/PrintProgram").then((m) => ({ default: m.PrintProgram }))
 );
 
 // VoteHistoryModal 不在首屏關鍵路徑，lazy load
@@ -102,9 +106,13 @@ export default function Home() {
   const [thankYouOpen, setThankYouOpen] = useState(false);
   const [passportOpen, setPassportOpen] = useState(false);
   const [curtainOpen, setCurtainOpen] = useState(false);
+  const [printMode, setPrintMode] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
   const curtainCheckedRef = useRef(false);
   const { combo } = useComboCounter();
+  // PrintProgram 需要 topVoters — 只在 printMode 啟用時 mount，
+  // 否則訂閱 Firestore VoterLeaderboard 會多送一次 read
+  const voterLeaderboard = useVoterLeaderboard(3);
 
   // 用 useMemo 包起來避免每次 render 都重綁 listener
   const shortcuts = useMemo(() => ([
@@ -168,6 +176,36 @@ export default function Home() {
     );
   }, []);
   const clearAllTags = useCallback(() => setSelectedTagIds([]), []);
+
+  // 觸發 A4 直式節目單列印（用瀏覽器原生 window.print + @media print）
+  // 📐 設計文件：docs/design/D3-pdf-print.md
+  const handlePrintProgram = useCallback(async () => {
+    // 1. 先 preload lazy chunk，避免列印對話框打開時 PrintProgram 還沒 mount
+    await import("../components/PrintProgram");
+    // 2. mount 元件
+    setPrintMode(true);
+    document.body.classList.add('print-mode');
+    // 3. 等 React render + 字型載入完成
+    if (document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+    // 4. 兩個 RAF 等 commit phase 完成
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+      });
+    });
+  }, []);
+
+  // 'afterprint' 事件：列印完成 / 取消 後自動清掉 print-mode
+  useEffect(() => {
+    const onAfter = () => {
+      document.body.classList.remove('print-mode');
+      setPrintMode(false);
+    };
+    window.addEventListener('afterprint', onAfter);
+    return () => window.removeEventListener('afterprint', onAfter);
+  }, []);
 
   // 篩選後符合所有勾選標籤的歌曲總數（給 TagFilterBar 顯示）
   const tagMatchedCount = useMemo(() => {
@@ -438,6 +476,17 @@ export default function Home() {
           >
             <span className="text-base sm:mr-2">🎭</span>
             <span className="hidden sm:inline">開場</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrintProgram}
+            aria-label="列印節目單"
+            className="bg-white/90 hover:bg-white border-2 border-slate-300 hover:border-slate-400 text-slate-700 hover:text-slate-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
+            title="列印 A4 直式節目單 — 雜誌風 Top 20 + 統計 + 主理人寄語"
+          >
+            <Printer className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">列印節目單</span>
           </Button>
           <Button
             variant="outline"
@@ -1029,6 +1078,18 @@ export default function Home() {
             isOpen={statsOpen}
             onClose={() => setStatsOpen(false)}
             songs={songs}
+          />
+        </Suspense>
+      )}
+
+      {/* 列印用節目單 — 只在 printMode 啟用時 mount，平常不佔 DOM */}
+      {printMode && (
+        <Suspense fallback={null}>
+          <PrintProgram
+            songs={songs}
+            totalVotes={voterLeaderboard.totalVotes}
+            totalVoters={voterLeaderboard.totalVoters}
+            topVoters={voterLeaderboard.topVoters}
           />
         </Suspense>
       )}
