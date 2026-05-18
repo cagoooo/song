@@ -1,11 +1,21 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：10.1
-> **更新日期**：2026-05-18
-> **當前版本**：**v4.6.0**（Editorial 大改版 + 五件套 ritual modals 全上線）
+> **文件版本**：10.2
+> **更新日期**：2026-05-18（v4.6.1 hotfix 事故覆盤）
+> **當前版本**：**v4.6.1**（CSS @import 順序救援 — 整站跑版 hotfix）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
+
+---
+
+## 🚨 v4.6.1 hotfix — CSS @import 順序救援（2026-05-18）
+
+> **事件**：v4.2.0-ac73b69-u8le 線上實際打開 `https://cagoooo.github.io/song/` 整站跑版，所有元素垂直堆成一條（卡帶 hero / SETLIST 計數器 / TICKER / 點歌按鈕全部失去版面）。
+> **根因**：T1（commit c338517）把 4706 行 `index.css` 拆 5 個 editorial CSS 後，`@import './styles/editorial-*.css'` 寫在 `@tailwind base/components/utilities` **之後**。CSS spec 規定 `@import` 必須在所有其他 statement 之前（除 `@charset` 與空 `@layer`），Vite build 噴 warning `@import must precede all other statements`，6 個 editorial CSS **整批被丟棄**，最終 bundle 只剩 Tailwind 預設樣式。
+> **修法**：把 6 個 `@import` 移到 `@tailwind` directives **之前**，並在註解警告未來別寫反。[PR #13](https://github.com/cagoooo/song/pull/13)
+> **驗證**：CSS bundle 127.52 kB → 221.84 kB（gzip 19.08 → 34.66 kB）— 多回的 94 kB 就是被丟掉的 editorial 樣式；無痕視窗實測首頁雜誌外殼正常、SW 自動升級 `ac73b69-u8le` → `f253a16-438o`。
+> **教訓**：**Vite warning 不會 fail build**，整批樣式丟掉照樣產出 dist，CI 也綠燈通過。下面「📛 事故覆盤 — 工程體系建議」段落會詳列制度化防線。
 
 ---
 
@@ -71,6 +81,14 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.6.1（2026-05-18）— CSS @import 順序救援 hotfix
+- ✅ **修復 `client/src/index.css`**：6 個 editorial CSS 的 `@import` 從 `@tailwind` 後面移到前面
+- ✅ **CSS bundle 從 127 kB → 221 kB**（gzip 19 → 34 kB），editorial 樣式整批回到 dist
+- ✅ **Vite build warning `@import must precede all other statements` 消失**
+- ✅ **線上實測通過**：Service Worker 自動從 `ac73b69-u8le` 升級到 `f253a16-438o`，雜誌外殼正常顯示
+- ✅ **註解警告未來別寫反**：在 index.css 加長註解說明 CSS spec 限制
+- ⚠️ **未做但已寫進 ROADMAP**：build warning 升 error、stylelint 防護、視覺迴歸測試（見「📛 事故覆盤」段）
 
 ### v4.6.0（2026-05-16）— 三件套
 - ✅ **UpNextBar** — 底部 sticky 96px 隊列條，黑膠 mini 封面（6s spin）+ LIVE 脈動 + Playfair italic 24px 歌名 + 進度條，三狀態（演出中 / 觀眾剛投票 / 待開場），手機 < 780px 只留 NOW + 1 張卡
@@ -682,16 +700,20 @@ npx playwright install chromium
 
 ### 🔴 高優先（影響後續開發）
 
-1. **`client/src/index.css` 4706 行** → [T1 設計文件](docs/design/T1-css-split.md)
-   - 編輯時 VSCode 卡，搜尋樣式要 grep
-   - **解法**：拆 5-6 個檔，2h 完工
-2. **5 件套元件 0 測試** → [T2 設計文件](docs/design/T2-ritual-modal-tests.md)
+1. ~~**`client/src/index.css` 4706 行**~~ → ✅ **已完成（c338517 拆 5 檔）**，但**留下 v4.6.1 教訓**：拆檔 PR 漏寫 `@import` 順序，全站跑版。**待補的防線見「📛 事故覆盤」A1-A3、B1-B3。**
+2. **🆕 沒有 CSS lint / build warning 阻斷機制**（從 v4.6.1 衍生）
+   - Vite warning 不會 fail build，整批樣式丟掉照樣產出 dist
+   - **解法**：A1 + A2 + A3 三件套（共 1.25h，見「📛 事故覆盤」段）
+3. **🆕 沒有視覺煙霧測試**（從 v4.6.1 衍生）
+   - 387 個單元測試全綠仍未抓到首頁跑版
+   - **解法**：B1 Playwright smoke（3-4h，見「📛 事故覆盤」段）
+4. **5 件套元件 0 測試** → [T2 設計文件](docs/design/T2-ritual-modal-tests.md)
    - 9 個新元件 0 個單元測試，216 → 250+ 目標
    - **解法**：補 35-40 個測試，6h
-3. **`SongDetail/data.ts` hardcode 兩首歌** → [T3 設計文件](docs/design/T3-songdetail-firestore.md)
+5. **`SongDetail/data.ts` hardcode 兩首歌** → [T3 設計文件](docs/design/T3-songdetail-firestore.md)
    - 大部分歌曲走 fallback，UX 不完整
    - **解法**：擴張 Song schema 加 6 個樂譜欄位 + DSL 編輯器，4h
-4. **🆕 5 件套假設「單一活動」** → [T4 設計文件](docs/design/T4-event-aware-props.md)
+6. **5 件套假設「單一活動」** → [T4 設計文件](docs/design/T4-event-aware-props.md)
    - B2 上線時要重做活動切換
    - **解法**：預留 eventId props（永遠 default），4h 讓 B2 估時砍半
 
@@ -791,21 +813,266 @@ npx playwright install chromium
 
 ---
 
+## 📛 事故覆盤 — 從 v4.6.1 CSS 跑版學到的工程體系建議
+
+> **核心提問**：一個寫在 CSS 規範內的順序錯誤（commit c338517），為何能通過 typecheck + 387 個單元測試 + CI build + lighthouse + PR review + merge to main + GitHub Pages 部署 → **直到使用者打開網站才被發現**？
+> **答案**：整套防線都驗證「程式碼語法 / 元件行為 / 效能」，**沒有任何一道驗證「使用者看到的版面是不是還是雜誌風」**。下面分四層建立制度化防護。
+
+### 🛡️ 第一層防線 — Build 時阻擋（≤ 1 小時，必做）
+
+**做不到的話下次拆 CSS 還是會中。CP 值最高。**
+
+#### A1. Vite warning 升級成 fail（30 分鐘）🔴 P0
+**現況**：`vite build` 對 `@import must precede` 只噴 yellow warning，exit code 0，CI 綠燈過。
+**做法**：
+```ts
+// vite.config.ts
+export default defineConfig({
+  // ...
+  css: {
+    devSourcemap: true,
+    postcss: {
+      plugins: [
+        // 自製 plugin 把指定的 warning 升級成 error
+        {
+          postcssPlugin: 'fail-on-bad-import',
+          AtRule: {
+            import: (node, { result }) => {
+              // 檢查前面是否有非 @charset / 空 @layer 之外的 rule
+              let prev = node.prev();
+              while (prev) {
+                if (prev.type === 'atrule' && !['charset', 'layer'].includes(prev.name)) {
+                  throw node.error(`@import "${node.params}" 必須放在 @${prev.name} 之前 — CSS spec 規定`);
+                }
+                if (prev.type === 'rule') {
+                  throw node.error(`@import "${node.params}" 必須放在所有 rule 之前`);
+                }
+                prev = prev.prev();
+              }
+            },
+          },
+        },
+      ],
+    },
+  },
+  build: {
+    rollupOptions: {
+      onwarn(warning, defaultHandler) {
+        if (warning.message?.includes('@import must precede')) {
+          throw new Error(`[BLOCKED] ${warning.message}`);
+        }
+        defaultHandler(warning);
+      },
+    },
+  },
+});
+```
+**驗收**：故意把 `@import` 放回 `@tailwind` 後面 → `npm run build` 直接 exit 1，CI 紅燈擋下。
+
+#### A2. CSS bundle size lower bound（15 分鐘）🔴 P0
+**現況**：整批樣式丟掉 bundle 還是 build 成功（127 kB），無人察覺。
+**做法**：build 後加 size check script：
+```js
+// scripts/check-css-bundle-size.mjs
+import { statSync, readdirSync } from 'fs';
+const files = readdirSync('dist/assets').filter(f => f.endsWith('.css'));
+const sizes = files.map(f => statSync(`dist/assets/${f}`).size);
+const total = sizes.reduce((a, b) => a + b, 0);
+const MIN = 180 * 1024; // 180 KB（含 editorial 樣式的底線）
+if (total < MIN) {
+  console.error(`✗ CSS bundle ${(total/1024).toFixed(1)} KB < ${MIN/1024} KB lower bound`);
+  console.error(`  editorial 樣式可能沒進 bundle，檢查 @import 順序`);
+  process.exit(1);
+}
+console.log(`✓ CSS bundle ${(total/1024).toFixed(1)} KB ≥ ${MIN/1024} KB`);
+```
+加進 `package.json` build 後跑：
+```json
+"build": "vite build && node scripts/check-css-bundle-size.mjs"
+```
+**驗收**：故意拔掉一個 `@import` → build 後 size check 紅字 fail。
+
+#### A3. Stylelint + stylelint-order（30 分鐘）🟠 P1
+**現況**：沒有 CSS lint，純靠 hand review。
+**做法**：
+```bash
+npm i -D stylelint stylelint-config-standard stylelint-order
+```
+```json
+// .stylelintrc.json
+{
+  "extends": "stylelint-config-standard",
+  "plugins": ["stylelint-order"],
+  "rules": {
+    "no-invalid-position-at-import-rule": true,
+    "order/order": [
+      [
+        { "type": "at-rule", "name": "import" },
+        { "type": "at-rule", "name": "tailwind" },
+        { "type": "at-rule", "name": "layer" },
+        "declarations",
+        "rules"
+      ]
+    ]
+  }
+}
+```
+加進 lint-staged：
+```json
+"lint-staged": {
+  "*.{ts,tsx}": "tsc --noEmit -p tsconfig.json",
+  "*.css": "stylelint"
+}
+```
+**驗收**：pre-commit hook 寫錯 import 順序立刻被擋。
+
+---
+
+### 🛡️ 第二層防線 — 視覺煙霧測試（2-4 小時，強烈建議）
+
+**Build 過了仍有可能跑版（例如 Tailwind purge 把樣式砍光、CDN 載入順序錯）。**
+
+#### B1. Playwright 視覺煙霧測試（3-4 小時）🟠 P1
+**現況**：387 個單元測試全綠，但「首頁長得對不對」沒人測。
+**做法**：開最小可行 visual smoke：
+```ts
+// e2e/visual-smoke.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('首頁雜誌外殼版面', async ({ page }) => {
+  await page.goto('http://localhost:5173');
+
+  // 1. 卡帶 hero 必須存在且有正確的 z-index
+  const cassette = page.locator('[data-testid="cassette-hero"]');
+  await expect(cassette).toBeVisible();
+  const cassetteBox = await cassette.boundingBox();
+  expect(cassetteBox?.width).toBeGreaterThan(400); // 確保不是塌陷
+
+  // 2. SETLIST / VOTES TONIGHT / ACTIVE 三個 KPI 數字必須在同一水平線（flex 沒崩）
+  const kpis = await page.locator('[data-testid="hero-kpi"]').all();
+  expect(kpis).toHaveLength(3);
+  const ys = await Promise.all(kpis.map(k => k.boundingBox().then(b => b!.y)));
+  expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(10); // 同水平線
+
+  // 3. 整頁截圖跟 baseline 比對
+  await expect(page).toHaveScreenshot('home-hero.png', { maxDiffPixels: 100 });
+});
+```
+**驗收**：v4.6.0 跑版狀態下這 3 個 expect 全爆，跑版立刻被攔截。
+**附加**：CI 加 playwright workflow，PR 自動跑這支 smoke。
+
+#### B2. Chromatic 視覺迴歸（4 小時）🟠 P1
+**現況**：ROADMAP 已列在 #21，但還沒做。**v4.6.1 證明這項是「必做」而不是「nice to have」**。
+**做法**：搭配 Storybook 8（也是 ROADMAP 待做項），對 5 件套 modal + SongCard + Hero 各跑視覺快照。每月 5,000 snapshots 免費版對小流量站夠用。
+**升級為**：P0（從 P2 升上來，等同優先級到 Sentry）。
+
+#### B3. CSS bundle 含必要 token 的 grep check（10 分鐘）🟡 P2
+build 後 grep dist CSS 是否含 `--ed-paper` / `cassette` / `editorial` 等關鍵字串，缺一即 fail。**這次事故 30 秒內可抓到**：
+```js
+// scripts/check-css-bundle-content.mjs
+import { readFileSync, readdirSync } from 'fs';
+const cssFile = readdirSync('dist/assets').find(f => f.startsWith('index') && f.endsWith('.css'));
+const css = readFileSync(`dist/assets/${cssFile}`, 'utf8');
+const required = ['--ed-paper', '--ed-accent', 'cassette', 'editorial'];
+const missing = required.filter(k => !css.includes(k));
+if (missing.length) {
+  console.error(`✗ CSS bundle 缺關鍵 token: ${missing.join(', ')}`);
+  process.exit(1);
+}
+```
+
+---
+
+### 🛡️ 第三層防線 — 部署 / SW 更新體驗（2-3 小時，建議）
+
+**就算 main 已 merge 修復，使用者瀏覽器的 SW 仍快取舊版，hotfix 體感延遲。**
+
+#### C1. SW 自動 hard refresh 機制（2 小時）🟠 P1
+**現況**：`UpdatePrompt` 元件需使用者點按 banner 才更新，hotfix 場景使用者不一定看得到 banner（首頁版面壞掉 banner 也跟著爆）。
+**做法**：
+- build 時生成 `dist/version.json`（含 git hash + critical flag）
+- 前端 entry 載入時 fetch `version.json` 比對 `window.__APP_VERSION__`，若有 `critical: true` 標記直接 `location.reload(true)` 不問
+- hotfix PR 在 prebuild script 加 `--critical` flag，自動標記
+- 一般版本仍走 UpdatePrompt 流程
+**驗收**：下次跑版 hotfix merge 後，使用者不用無痕視窗也能 30 秒內看到新版。
+
+#### C2. SW 強化「壞版本」偵測（1 小時）🟡 P2
+**進階**：SW 啟動時做 health check（fetch dist CSS 看 size 是否 ≥ 180 kB），偵測到「壞版本」自動清快取觸發 reload。但**慎用 fail-open**：health check 自己壞掉時不能讓使用者卡在 reload loop。
+
+#### C3. 部署後自動煙霧測試（1 小時）🟡 P2
+GitHub Actions deploy.yml 加 step：deploy 後 Playwright 對 production URL 跑 B1 的 smoke，紅燈時自動發 LINE 通知（搭 `line-messaging-firebase` skill）。**這次跑版可以在 2 分鐘內主動告警，不用等使用者反應**。
+
+---
+
+### 🛡️ 第四層防線 — 架構治理（長期，4-8 小時）
+
+**根本性減少 CSS @import / 全域樣式的依賴面。**
+
+#### D1. CSS Modules 分階段遷移（8 小時）🟡 P2
+**現況**：6 個 editorial-*.css 仍是「全域樣式檔」，class name 純靠約定不衝突。
+**做法**：強耦合 component 的 CSS 改 CSS Modules（檔案綁元件），共用 design tokens 留 `editorial-base.css`：
+- `SongCard/SongCard.tsx` ← `SongCard.module.css`（卡片專用樣式）
+- `OpeningCurtain/OpeningCurtain.tsx` ← `OpeningCurtain.module.css`（動畫專用）
+- `editorial-base.css` 只留 `:root` tokens + `@layer base` + 純 utility（hero / cassette 等橫跨多元件的留全域）
+**收益**：刪掉某 component 時對應 CSS 自動沒被 import → tree shake；不再有「6 個 .css 互相 import 順序」的隱形依賴。
+**成本**：重構 9 個元件 + 處理 keyframes 共用問題。
+
+#### D2. ADR：CSS 架構決策記錄（30 分鐘）🟢 P3
+建 `docs/adr/0001-css-architecture.md`：
+- 當下選 `@import` 拆 5 檔的理由
+- 不選 CSS Modules / vanilla-extract / Tailwind-only 的理由
+- 本次事故的教訓 + 改採的防線
+- 未來檢視時機（編輯 editorial-*.css 超過 6 個檔、或 component 超過 50 個時）
+
+#### D3. Storybook 元件文件化（8 小時，已在 ROADMAP）🟡 P2
+**升級理由**：拆 CSS / 改 token 的 PR 在 Storybook 加 Chromatic 視覺對比，PR review 直接看「改動前 vs. 改動後」截圖，**這比看 .css diff 直觀 10 倍**。
+
+---
+
+### 📊 事故防線 priority 矩陣
+
+| 防線 | 投入 | 防護涵蓋 | 優先級 |
+|------|------|----------|:------:|
+| **A1 Vite warning fail build** | 30 min | 100% 同類事故 | 🔴 P0 |
+| **A2 CSS size lower bound** | 15 min | 100% 同類事故 | 🔴 P0 |
+| **A3 stylelint + order** | 30 min | 寫錯瞬間就被擋 | 🟠 P1 |
+| **B1 Playwright 視覺煙霧** | 3-4 h | 任何視覺跑版 | 🟠 P1 |
+| **B2 Chromatic 視覺迴歸** | 4 h | PR review 防線 | 🟠 P1（從 P2 升） |
+| **B3 grep token check** | 10 min | 簡易版 B1 | 🟡 P2 |
+| **C1 SW hotfix critical flag** | 2 h | hotfix 體感延遲 | 🟠 P1 |
+| **C3 部署後 prod 煙霧** | 1 h | 主動告警 | 🟡 P2 |
+| **D1 CSS Modules 遷移** | 8 h | 根本改架構 | 🟡 P2 |
+| **D2 ADR 記錄** | 30 min | 未來決策依據 | 🟢 P3 |
+
+**建議路徑**：本週末做 A1 + A2 + A3（共 1.25 h）→ 下週做 B1（3-4 h）+ C1（2 h）→ 月內做 B2（4 h）+ D2（0.5 h）。**先把 build/CI 防線補完，再升級視覺迴歸，最後處理長期架構。**
+
+---
+
 ## 🎯 Top 7 立即可做
 
 > **本週末挑這幾項，CP 值最高、PR 最小、立即有感**
+> **🆕 v4.6.1 事故後重新排序：把 build 防線排到最高，避免下次拆 CSS / 改全域樣式再炸**
 
 | # | 項目 | 估時 | 收益 | 為什麼選它 |
 |---|------|------|------|------------|
-| 1 | **API Key restrictions 檢查** | 0.5h | 防 key 洩漏被打 quota | 🔴 **拖三版 ROADMAP 還沒做，最高優先** |
-| 2 | **「結束今晚」confirm dialog** | 0.5h | 防誤觸炸場 | 演出當下風險最高 |
-| 3 | **`index.css` 拆 5 個檔** | 2h | 編輯速度恢復 | 6300 行已經太肥，再放下去會崩潰 |
-| 4 | **5 件套單元測試**（先寫 3 個） | 3h | 防 editorial 改版回歸 | 9 個新元件 0 測試，覆蓋率下滑 |
-| 5 | **SongDetailModal 串 Firestore 真實資料** | 4h | UX 完整度 | 目前只有兩首歌有資料，其他都 fallback |
-| 6 | **VoterPassport 解鎖瞬間動畫** | 2h | 遊戲化體驗 | 護照沒人會主動打開，要靠通知 |
-| 7 | **Sentry 錯誤追蹤** | 2h | 真實環境錯誤監控 | editorial 改版後可能漏掉 mobile 端問題 |
+| 1 | **🆕 Vite warning → build error**（A1） | 0.5h | 防同類整批樣式被吞 | 🔴 **v4.6.1 事故核心防線，CP 值無敵** |
+| 2 | **🆕 CSS bundle size lower bound**（A2） | 15min | 100% 攔截「樣式整批丟失」 | 🔴 **2 行 script，幾乎沒成本** |
+| 3 | **API Key restrictions 檢查** | 0.5h | 防 key 洩漏被打 quota | 🔴 **拖三版 ROADMAP 還沒做** |
+| 4 | **🆕 stylelint + stylelint-order**（A3） | 0.5h | pre-commit 就被擋 | 🟠 同類錯誤再犯的最後一道閘 |
+| 5 | **「結束今晚」confirm dialog** | 0.5h | 防誤觸炸場 | 演出當下風險最高 |
+| 6 | **5 件套單元測試**（先寫 3 個） | 3h | 防 editorial 改版回歸 | 9 個新元件 0 測試 |
+| 7 | **🆕 Playwright 首頁視覺煙霧**（B1） | 3h | 任何視覺跑版 30 秒內抓 | 🟠 v4.6.1 事故第二層防線 |
 
-**總計 ~14 小時**，一個週末 + 一個下午可全做完，立刻把產品推進到 **v4.8**。
+**總計 ~8 小時**（縮 6 小時，因為 build 防線 #1-#2-#4 都很便宜），一個週末做完，把產品推進到 **v4.7.0**。
+**v4.6.1 之後加入的 #1 #2 #4 #7 四項是「事故防線」，建議跟原本的 #3 #5 #6 平行做。**
+
+### 🔁 後續批次（v4.8.0 → v5.0.0）
+
+| 批次 | 項目 | 估時 | 主題 |
+|------|------|------|------|
+| **v4.8 守門員強化** | Sentry + Firestore Rules 測試 + Chromatic 視覺迴歸（B2）+ SW critical flag（C1）| 10h | 真實環境守門員 |
+| **v4.8 UX 深化** | SongDetailModal 真實資料源 + VoterPassport 解鎖動畫 + ThankYou → ShareCard CTA + OpeningCurtain 客製文字 | 10h | 5 件套串得更深 |
+| **v5.0 多場活動** | B2 + 5 件套支援活動切換 + Migration + 收藏雲端同步 | 22h | 破壞性重大升級 |
 
 ---
 
@@ -893,4 +1160,26 @@ npm i -D chromatic                        # 視覺迴歸
 
 ---
 
-*最後更新：2026-05-18 | v4.6.0 | 下次更新時機：完成 v4.7.0 守門員批次後*
+*最後更新：2026-05-18 | v4.6.1 hotfix（CSS @import 順序救援）| 下次更新時機：完成 v4.7.0 build 防線（A1+A2+A3）+ Top 7 任一項後*
+
+---
+
+## 🔖 v4.6.1 事故時間線（30 分鐘從發現到修復）
+
+| 時間（推估） | 事件 |
+|---|---|
+| 演出前 | 部署 v4.2.0-ac73b69-u8le 到 GitHub Pages |
+| T+0 | 阿凱打開 `https://cagoooo.github.io/song/` 看到整站垂直堆疊跑版 |
+| T+2 min | 截圖回報 + DevTools 截圖（Console 全綠、無錯誤訊息） |
+| T+5 min | 從近 5 個 commit 鎖定 `c338517 refactor(css): index.css 4706 行拆 5 個邏輯檔` |
+| T+8 min | `npm run build` 重現 → Vite warning `@import must precede all other statements` |
+| T+10 min | grep 確認 editorial CSS 完全沒進 dist bundle（`grep -c "ed-paper" → 0`） |
+| T+15 min | 修 `index.css` 把 `@import` 移到 `@tailwind` 之前 → rebuild → bundle 127→222 kB |
+| T+18 min | commit + pre-commit hook（tsc + 387 tests 全綠）+ push |
+| T+22 min | PR #13 開立 + 等 CI |
+| T+25 min | merge 到 main → GitHub Actions 自動 deploy |
+| T+28 min | 阿凱用無痕視窗驗證 → SW 自動升級 ac73b69-u8le → f253a16-438o → 雜誌外殼正常 |
+| T+30 min | 「可以了 很棒」← 結束 |
+
+**啟示**：根因鎖定到實際修復約 15 分鐘，是因為 build 階段直接告訴你「`@import must precede`」。如果 warning 升級成 error（A1 防線），CI 在 c338517 那個 PR 階段就紅燈擋下，**整起事故根本不會發生**。
+
