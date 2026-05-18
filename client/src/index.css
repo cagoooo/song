@@ -1,19 +1,21 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* ===========================================================================
    Editorial 雜誌風樣式（5 個檔案）
    ----------------------------------------------------------------------------
    從原本單檔 4706 行拆成模組化結構，編輯效率恢復、merge conflict 機率降低。
    Vite/PostCSS build 時會 inline 合併成單一 CSS bundle，size 不變。
 
-   載入順序：base → hero → cards → modals → ritual
+   ⚠️  @import 必須放在 @tailwind 之前 —— CSS spec 規定 @import 必須出現在
+   所有其他 statement 之前（除了 @charset 與空的 @layer），否則 Vite 會丟掉
+   並噴 warning "@import must precede all other statements"，整批 editorial
+   樣式不會進 bundle，網站直接跑版。
+
+   載入順序：base → hero → cards → modals → ritual → print
    • base   先載：tokens / theme / typography / @layer base / prefers-reduced-motion
    • hero   頁面外殼：hero / cassette / ticker / topbar / song card
    • cards  卡片 / overlays / stats / login
    • modals 三大儀式 modal：SongDetail / ShareCard / ThankYou + footer
    • ritual v4.6.0 三件套：UpNextBar / VoterPassport / OpeningCurtain
+   • print  A4 列印節目單
 
    📐 設計文件：docs/design/T1-css-split.md
    =========================================================================== */
@@ -23,3 +25,7 @@
 @import './styles/editorial-modals.css';
 @import './styles/editorial-ritual.css';
 @import './styles/editorial-print.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
