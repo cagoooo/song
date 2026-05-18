@@ -1,0 +1,341 @@
+/* ===========================================================================
+   editorial-print.css  —  A4 直式列印節目單樣式
+   ============================================================================
+   策略：window.print() + @media print（不用 html2pdf / jsPDF / html2canvas）
+   依 skill `pdf-export-print-best-practice` 的鐵則：
+   • 平常 .print-program 完全 hide（display: none）
+   • body.print-mode 啟用時，整版渲染（讓使用者進 browser 列印預覽看得到）
+   • @media print 時：強制黑白配色 / 不切表格 / 隱藏 button & nav
+
+   📐 設計文件：docs/design/D3-pdf-print.md
+   =========================================================================== */
+
+/* ----- 預設隱藏 ----- */
+.print-program {
+  display: none;
+}
+
+/* ----- body.print-mode 時整版顯示（讓 admin 可在進列印對話框前看到內容） */
+body.print-mode .print-program {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #fff;
+  overflow: auto;
+  padding: 12mm 15mm;
+  font-family: 'Playfair Display', 'Noto Serif TC', 'PingFang TC', 'Microsoft JhengHei', serif;
+  color: #000;
+}
+
+/* ----- body.print-mode 時隱藏其他 UI（avoid 列印預覽干擾）----- */
+body.print-mode > #root > *:not(.print-program) {
+  display: none !important;
+}
+
+/* ============================================================================
+   PrintProgram 內部樣式
+   ============================================================================ */
+
+.pp-flag {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 2px solid #000;
+  padding-bottom: 6mm;
+  margin-bottom: 8mm;
+}
+
+.pp-flag-l { display: flex; align-items: baseline; gap: 14px; }
+.pp-flag-no {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 32pt;
+  line-height: 1;
+  font-weight: 700;
+}
+.pp-flag-side {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 9pt;
+  letter-spacing: 0.3em;
+  padding: 4px 10px;
+  border: 1.5px solid #000;
+  text-transform: uppercase;
+}
+.pp-flag-r { text-align: right; }
+.pp-flag-brand {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 13pt;
+  font-weight: 700;
+}
+.pp-flag-date {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 8.5pt;
+  letter-spacing: 0.2em;
+  color: #333;
+  margin-top: 3px;
+}
+
+/* ----- Hero ----- */
+.pp-hero { margin: 0 0 10mm 0; }
+.pp-chap {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 8.5pt;
+  letter-spacing: 0.4em;
+  color: #333;
+  margin-bottom: 5mm;
+}
+.pp-h {
+  font-family: 'Playfair Display', 'Noto Serif TC', serif;
+  font-size: 38pt;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -1px;
+  margin: 0 0 4mm 0;
+}
+.pp-h em {
+  font-style: italic;
+  font-weight: 400;
+}
+.pp-sub {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 11pt;
+  color: #333;
+  margin: 0;
+}
+
+/* ----- KPI 表格欄 ----- */
+.pp-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+  margin: 0 0 8mm 0;
+}
+.pp-kpi {
+  padding: 5mm 4mm;
+  border-right: 1px solid #ccc;
+  text-align: center;
+}
+.pp-kpi:last-child { border-right: none; }
+.pp-kpi-n {
+  font-family: 'Playfair Display', serif;
+  font-size: 28pt;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1;
+}
+.pp-kpi-l {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 7.5pt;
+  letter-spacing: 0.25em;
+  color: #333;
+  margin-top: 2mm;
+  text-transform: uppercase;
+}
+
+/* ----- 規則線 ----- */
+.pp-rule {
+  border: none;
+  border-top: 1px solid #000;
+  margin: 8mm 0;
+}
+
+/* ----- 章節標題 ----- */
+.pp-section-h {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 5mm;
+}
+.pp-section-no {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 9pt;
+  letter-spacing: 0.3em;
+  color: #333;
+}
+.pp-section-h h2 {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 18pt;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ----- Top N 歌單 ----- */
+.pp-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0;
+}
+.pp-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 3mm 0;
+  border-bottom: 1px dotted #aaa;
+  font-size: 10.5pt;
+  font-family: 'Noto Sans TC', sans-serif;
+  /* 避免列印時切到一半 */
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.pp-row-rank {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 10pt;
+}
+.pp-row-title {
+  font-family: 'Playfair Display', 'Noto Serif TC', serif;
+  font-weight: 600;
+  font-size: 12pt;
+}
+.pp-row-artist {
+  color: #555;
+  font-size: 9.5pt;
+}
+.pp-row-votes {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 9.5pt;
+  text-align: right;
+  min-width: 50px;
+}
+.pp-empty {
+  font-style: italic;
+  color: #777;
+  text-align: center;
+  padding: 8mm 0;
+}
+
+/* ----- 催歌王 ----- */
+.pp-voters-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6mm;
+}
+.pp-voters-list li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 3mm;
+  border: 1px solid #000;
+  text-align: center;
+}
+.pp-medal { font-size: 18pt; line-height: 1; }
+.pp-voter-id {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 9pt;
+  letter-spacing: 0.15em;
+}
+.pp-voter-count {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 11pt;
+}
+
+/* ----- 主理人寄語 ----- */
+.pp-quote {
+  margin: 0;
+  padding: 5mm 8mm;
+  border-left: 3px solid #000;
+  background: #fafafa;
+  font-family: 'Playfair Display', 'Noto Serif TC', serif;
+  font-style: italic;
+  font-size: 12pt;
+  line-height: 1.6;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.pp-quote p { margin: 0 0 2mm 0; }
+.pp-quote p:last-child { margin-bottom: 0; }
+
+/* ----- Footer ----- */
+.pp-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10mm;
+  padding-top: 5mm;
+  border-top: 2px solid #000;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 8pt;
+  letter-spacing: 0.15em;
+  color: #333;
+}
+.pp-foot-l, .pp-foot-c, .pp-foot-r {
+  flex: 1;
+  text-align: center;
+}
+.pp-foot-l { text-align: left; }
+.pp-foot-r { text-align: right; }
+
+/* ============================================================================
+   @media print — 真正進列印時的規則
+   ============================================================================
+   遵循 skill `pdf-export-print-best-practice` 的鐵則：
+   • A4 portrait + 12-15mm 邊距
+   • 強制黑白配色（雜誌藍變黑色 — 對比夠強比好看重要）
+   • 隱藏所有非 .print-program 元素
+   • avoid 切到一半（break-inside: avoid）
+   ============================================================================ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
+  /* 強制 .print-program 顯示，隱藏其餘 */
+  body > *:not(.print-program) {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .print-program {
+    display: block !important;
+    position: static !important;
+    padding: 0 !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  /* 隱藏 button / nav / 任何 .no-print */
+  button, nav, .no-print {
+    display: none !important;
+  }
+
+  /* 強制黑底色（避免 background 在某些印表機印不出來） */
+  .pp-flag {
+    border-bottom-color: #000 !important;
+  }
+  .pp-kpis,
+  .pp-rule {
+    border-color: #000 !important;
+  }
+  .pp-quote {
+    background: transparent !important;
+    border-left-color: #000 !important;
+  }
+  .pp-flag-side,
+  .pp-voters-list li {
+    border-color: #000 !important;
+  }
+
+  /* 確保歌曲列不會被切到一半 */
+  .pp-row,
+  .pp-section-h,
+  .pp-quote,
+  .pp-voters-list li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
