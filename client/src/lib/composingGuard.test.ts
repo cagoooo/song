@@ -90,6 +90,52 @@ describe('composingGuard — beginComposing / useIsComposing', () => {
     });
 });
 
+describe('composingGuard — 分級（hard / soft）', () => {
+    it('預設等級為 hard', () => {
+        const { result } = renderHook(() => guard.useComposingLevel());
+        expect(result.current).toBe(null);
+
+        let release!: () => void;
+        act(() => {
+            release = guard.beginComposing();
+        });
+        expect(result.current).toBe('hard');
+
+        act(() => release());
+        expect(result.current).toBe(null);
+    });
+
+    it('beginComposing("soft") → 等級為 soft', () => {
+        const { result } = renderHook(() => guard.useComposingLevel());
+        let release!: () => void;
+        act(() => {
+            release = guard.beginComposing('soft');
+        });
+        expect(result.current).toBe('soft');
+        act(() => release());
+        expect(result.current).toBe(null);
+    });
+
+    it('hard 優先於 soft：同時存在時等級為 hard，hard 釋放後降為 soft', () => {
+        const { result } = renderHook(() => guard.useComposingLevel());
+
+        let releaseSoft!: () => void;
+        let releaseHard!: () => void;
+        act(() => {
+            releaseSoft = guard.beginComposing('soft');
+            releaseHard = guard.beginComposing('hard');
+        });
+        expect(result.current).toBe('hard');
+
+        act(() => releaseHard());
+        // hard 沒了 → 剩 soft
+        expect(result.current).toBe('soft');
+
+        act(() => releaseSoft());
+        expect(result.current).toBe(null);
+    });
+});
+
 describe('composingGuard — useComposingWhileTyping（焦點監聽）', () => {
     // 建立並聚焦一個元素，同時派發會冒泡到 document 的 focus 事件，
     // 模擬真實使用者點擊輸入框（程式化 .focus() 在某些環境不會派發冒泡 focusin）
@@ -207,6 +253,45 @@ describe('composingGuard — useComposingWhileTyping（焦點監聽）', () => {
         // 即使延遲時間到了，因為 B 仍聚焦 → 維持 true
         act(() => vi.advanceTimersByTime(150));
         expect(result.current).toBe(true);
+    });
+
+    it('聚焦搜尋框 → soft 等級；聚焦一般文字框 → hard 等級', () => {
+        vi.useFakeTimers();
+        const { result } = renderHook(() => {
+            guard.useComposingWhileTyping();
+            return guard.useComposingLevel();
+        });
+
+        const search = makeInput('search');
+        act(() => focusEl(search));
+        expect(result.current).toBe('soft');
+        act(() => blurEl(search));
+        act(() => vi.advanceTimersByTime(150));
+        expect(result.current).toBe(null);
+
+        const text = makeInput('text');
+        act(() => focusEl(text));
+        expect(result.current).toBe('hard');
+    });
+
+    it('data-dnd="soft" 祖先可把一般輸入框降為 soft', () => {
+        vi.useFakeTimers();
+        const { result } = renderHook(() => {
+            guard.useComposingWhileTyping();
+            return guard.useComposingLevel();
+        });
+
+        const wrap = document.createElement('div');
+        wrap.setAttribute('data-dnd', 'soft');
+        const text = makeInput('text');
+        wrap.appendChild(text);
+        document.body.appendChild(wrap);
+
+        act(() => {
+            text.focus();
+            text.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+        });
+        expect(result.current).toBe('soft');
     });
 
     it('unmount 後應解除登記並移除監聽（不殘留專注模式）', () => {
