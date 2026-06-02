@@ -1,14 +1,17 @@
-// 重構後的 SongSuggestion 主元件 - 含重複檢測功能
-import { useState, useMemo, useCallback } from 'react';
-import { Lightbulb, ChevronDown, Sparkles, Music } from 'lucide-react';
+// 重構後的 SongSuggestion 主元件 - 含重複檢測功能 + 管理員批次審核
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { Lightbulb, ChevronDown, Sparkles, Music, ListChecks, Check, X, Trash2 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ResponsiveScrollList } from '@/components/ui/ResponsiveScrollList';
-import { useSuggestions } from '@/hooks/use-suggestions';
+import { useToast } from '@/hooks/use-toast';
+import { useSuggestions, approveSuggestion, rejectSuggestion, removeSuggestion } from '@/hooks/use-suggestions';
 import type { Song } from '@/lib/firestore';
 
 // 拆分的子元件
 import { SuggestionForm } from './SuggestionForm';
 import { SuggestionCard } from './SuggestionCard';
+import { resolveBatchTargets } from './batchSuggestions';
 
 interface SongSuggestionProps {
     isAdmin?: boolean;
@@ -24,6 +27,7 @@ export default function SongSuggestion({
     const [isOpen, setIsOpen] = useState(false);
     const [isListExpanded, setIsListExpanded] = useState(false);
     const { suggestions } = useSuggestions();
+    const { toast } = useToast();
 
     // 使用 useMemo 避免每次渲染都重新計算
     const counts = useMemo(() => ({
@@ -31,6 +35,71 @@ export default function SongSuggestion({
         approved: suggestions.filter(s => s.status === 'approved').length,
         added: suggestions.filter(s => s.status === 'added_to_playlist').length,
     }), [suggestions]);
+
+    // ===== 管理員批次審核 =====
+    const [batchMode, setBatchMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    // 關閉批次模式時清空選取
+    useEffect(() => {
+        if (!batchMode) setSelectedIds(new Set());
+    }, [batchMode]);
+
+    const statusById = useMemo(() => {
+        const m = new Map<string, string>();
+        suggestions.forEach(s => m.set(s.id, s.status));
+        return m;
+    }, [suggestions]);
+
+    const pendingIds = useMemo(
+        () => suggestions.filter(s => s.status === 'pending').map(s => s.id),
+        [suggestions]
+    );
+
+    // 選取中屬於「待審核」的數量（批准/拒絕只對 pending 生效）
+    const selectedPendingCount = useMemo(
+        () => Array.from(selectedIds).filter(id => statusById.get(id) === 'pending').length,
+        [selectedIds, statusById]
+    );
+
+    const toggleSelect = useCallback((id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    }, []);
+
+    const batchMutation = useMutation({
+        mutationFn: async (action: 'approve' | 'reject' | 'delete') => {
+            // 批准/拒絕只對待審核生效；刪除對全部選取生效
+            const targets = resolveBatchTargets(action, selectedIds, statusById);
+            const fn = action === 'approve' ? approveSuggestion : action === 'reject' ? rejectSuggestion : removeSuggestion;
+            const results = await Promise.allSettled(targets.map(id => fn(id)));
+            const ok = results.filter(r => r.status === 'fulfilled').length;
+            return { action, ok, fail: results.length - ok };
+        },
+        onSuccess: ({ action, ok, fail }) => {
+            const label = action === 'approve' ? '採納' : action === 'reject' ? '拒絕' : '刪除';
+            toast({
+                title: `批次${label}完成`,
+                description: `成功 ${ok} 首${fail ? `，失敗 ${fail} 首` : ''}`,
+            });
+            setSelectedIds(new Set());
+        },
+        onError: (e: Error) => {
+            toast({ title: '批次操作失敗', description: e.message || '請稍後再試', variant: 'destructive' });
+        },
+    });
+
+    const runBatch = useCallback((action: 'approve' | 'reject' | 'delete') => {
+        if (selectedIds.size === 0 || batchMutation.isPending) return;
+        if (action === 'delete') {
+            const n = selectedIds.size;
+            if (!window.confirm(`確定要刪除選取的 ${n} 首建議嗎？此動作無法復原。`)) return;
+        }
+        batchMutation.mutate(action);
+    }, [selectedIds, batchMutation]);
 
     return (
         <div className="space-y-5">
@@ -155,6 +224,69 @@ export default function SongSuggestion({
                         data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0
                         data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2
                         duration-200 overflow-hidden">
+                        {/* 管理員批次審核工具列 */}
+                        {isAdmin && (
+                            <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-[rgba(17,17,17,0.12)] bg-white/70 px-3 py-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setBatchMode(v => !v)}
+                                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors
+                                        ${batchMode
+                                            ? 'bg-[#2b4dff] text-white'
+                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                >
+                                    <ListChecks className="h-3.5 w-3.5" />
+                                    {batchMode ? '結束批次' : '批次審核'}
+                                </button>
+
+                                {batchMode && (
+                                    <>
+                                        <span className="text-xs text-slate-500">已選 <b className="text-slate-800">{selectedIds.size}</b> 首</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedIds(new Set(pendingIds))}
+                                            disabled={pendingIds.length === 0}
+                                            className="text-[11px] text-[#2b4dff] hover:underline disabled:opacity-40"
+                                        >
+                                            全選待審核（{pendingIds.length}）
+                                        </button>
+                                        {selectedIds.size > 0 && (
+                                            <button type="button" onClick={() => setSelectedIds(new Set())} className="text-[11px] text-slate-400 hover:text-slate-600">
+                                                清除
+                                            </button>
+                                        )}
+
+                                        <div className="ml-auto flex items-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => runBatch('approve')}
+                                                disabled={selectedPendingCount === 0 || batchMutation.isPending}
+                                                className="inline-flex items-center gap-1 rounded-md bg-[#2b4dff] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#1d3bd8] disabled:opacity-40"
+                                            >
+                                                <Check className="h-3.5 w-3.5" />採納{selectedPendingCount > 0 ? ` ${selectedPendingCount}` : ''}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => runBatch('reject')}
+                                                disabled={selectedPendingCount === 0 || batchMutation.isPending}
+                                                className="inline-flex items-center gap-1 rounded-md border border-[rgba(17,17,17,0.18)] px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                                            >
+                                                <X className="h-3.5 w-3.5" />拒絕{selectedPendingCount > 0 ? ` ${selectedPendingCount}` : ''}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => runBatch('delete')}
+                                                disabled={selectedIds.size === 0 || batchMutation.isPending}
+                                                className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-40"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />刪除{selectedIds.size > 0 ? ` ${selectedIds.size}` : ''}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
                         {/* 響應式長清單：手機自然展開、桌機限高原生捲動（見 ResponsiveScrollList） */}
                         <ResponsiveScrollList className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
                             {suggestions.map((suggestion, index) => (
@@ -163,6 +295,9 @@ export default function SongSuggestion({
                                     suggestion={suggestion}
                                     index={index}
                                     isAdmin={isAdmin}
+                                    batchMode={batchMode}
+                                    selected={selectedIds.has(suggestion.id)}
+                                    onToggleSelect={toggleSelect}
                                 />
                             ))}
                         </ResponsiveScrollList>

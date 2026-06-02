@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/tooltip';
 import {
     Check, X, Trash2, Music2, FileText, PlusCircle,
-    HeartPulse, Clock, User2, ExternalLink
+    HeartPulse, Clock, User2, ExternalLink, CheckSquare, Square
 } from 'lucide-react';
 import {
     approveSuggestion,
@@ -117,12 +117,19 @@ interface SuggestionCardProps {
     suggestion: SongSuggestionType;
     index: number;
     isAdmin: boolean;
+    /** 批次審核模式（管理員）：顯示勾選框、點卡片切換選取、隱藏單張操作鈕 */
+    batchMode?: boolean;
+    selected?: boolean;
+    onToggleSelect?: (id: string) => void;
 }
 
 export const SuggestionCard = memo(function SuggestionCard({
     suggestion,
     index,
     isAdmin,
+    batchMode = false,
+    selected = false,
+    onToggleSelect,
 }: SuggestionCardProps) {
     const { toast } = useToast();
     const color = colorSchemes[suggestion.status as keyof typeof colorSchemes] || colorSchemes.pending;
@@ -163,7 +170,13 @@ export const SuggestionCard = memo(function SuggestionCard({
 
     return (
         <div
-            className="relative overflow-hidden rounded-xl border transition-all duration-200 group hover:-translate-y-0.5 hover:shadow-md animate-in fade-in slide-in-from-bottom-2"
+            onClick={batchMode ? () => onToggleSelect?.(suggestion.id) : undefined}
+            role={batchMode ? 'checkbox' : undefined}
+            aria-checked={batchMode ? selected : undefined}
+            className={`relative overflow-hidden rounded-xl border transition-all duration-200 group animate-in fade-in slide-in-from-bottom-2
+                ${batchMode
+                    ? `cursor-pointer ${selected ? 'ring-2 ring-[#2b4dff] ring-offset-1' : 'hover:ring-1 hover:ring-[#2b4dff]/40'}`
+                    : 'hover:-translate-y-0.5 hover:shadow-md'}`}
             style={{
                 background: color.cardBg,
                 borderColor: color.cardBorder,
@@ -171,6 +184,15 @@ export const SuggestionCard = memo(function SuggestionCard({
                 animationFillMode: 'backwards',
             }}
         >
+            {/* 批次選取勾選框 */}
+            {batchMode && (
+                <div className="absolute top-2 left-2 z-20">
+                    {selected
+                        ? <CheckSquare className="h-5 w-5 text-[#2b4dff]" />
+                        : <Square className="h-5 w-5 text-slate-300" />}
+                </div>
+            )}
+
             {/* 狀態標籤 — Editorial mono uppercase */}
             <div className="absolute top-0 right-0 z-10">
                 <div
@@ -189,7 +211,7 @@ export const SuggestionCard = memo(function SuggestionCard({
                 </div>
             </div>
 
-            <div className="relative p-4 pt-7">
+            <div className={`relative p-4 pt-7 ${batchMode ? 'pointer-events-none' : ''}`}>
                 {/* 歌曲資訊 — Playfair italic */}
                 <div className="mb-3">
                     <h4
@@ -345,8 +367,8 @@ export const SuggestionCard = memo(function SuggestionCard({
                     </div>
                 )}
 
-                {/* 管理員操作區 */}
-                {isAdmin && (
+                {/* 管理員操作區（批次模式下隱藏，改用上方批次工具列） */}
+                {isAdmin && !batchMode && (
                     <div className="flex flex-wrap gap-2 pt-3 mt-2 border-t border-[rgba(17,17,17,0.10)]">
                         {suggestion.status === 'pending' && (
                             <>
