@@ -23,26 +23,33 @@ const THIN_SCROLLBAR =
 
 interface ResponsiveScrollListProps extends React.HTMLAttributes<HTMLDivElement> {
     /**
-     * 桌機限高的 Tailwind class（含 sm: 斷點前綴），預設 `sm:max-h-[520px]`。
-     * 手機一律不限高、自然展開。
+     * 限高的 Tailwind class。
+     * - cap='desktop'（預設）：請帶 sm: 前綴，例如 `sm:max-h-[520px]`（手機不限高）。
+     * - cap='always'：不帶前綴，例如 `max-h-[420px]`（全斷點限高）。
      */
     maxHeightClass?: string;
+    /**
+     * 何時啟用限高 + 捲動：
+     * - 'desktop'（預設）：手機自然展開交給整頁捲動、桌機才限高捲動。適合頁面內長清單。
+     * - 'always'：全斷點都限高捲動。適合 modal 內清單（避免撐破對話框）。
+     */
+    cap?: 'desktop' | 'always';
 }
 
 export const ResponsiveScrollList = forwardRef<HTMLDivElement, ResponsiveScrollListProps>(
     function ResponsiveScrollList(
-        { maxHeightClass = 'sm:max-h-[520px]', className, children, ...props },
+        { maxHeightClass, cap = 'desktop', className, children, ...props },
         ref,
     ) {
+        const resolvedMaxH = maxHeightClass ?? (cap === 'always' ? 'max-h-[420px]' : 'sm:max-h-[520px]');
+        const overflow =
+            cap === 'always'
+                ? 'overflow-y-auto overscroll-contain pr-2'
+                : 'sm:overflow-y-auto sm:overscroll-contain sm:pr-2';
         return (
             <div
                 ref={ref}
-                className={cn(
-                    maxHeightClass,
-                    'sm:overflow-y-auto sm:overscroll-contain sm:pr-2',
-                    THIN_SCROLLBAR,
-                    className,
-                )}
+                className={cn(resolvedMaxH, overflow, THIN_SCROLLBAR, className)}
                 {...props}
             >
                 {children}

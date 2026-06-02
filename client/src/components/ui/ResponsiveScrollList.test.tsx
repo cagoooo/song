@@ -29,6 +29,14 @@ describe('ResponsiveScrollList', () => {
         expect(el.className).toContain('[scrollbar-width:thin]');
     });
 
+    it('cap="always"：全斷點限高捲動（無 sm: 前綴），預設 max-h-[420px]', () => {
+        const { container } = render(<ResponsiveScrollList cap="always">x</ResponsiveScrollList>);
+        const el = container.firstChild as HTMLElement;
+        expect(el.className).toContain('max-h-[420px]');
+        expect(el.className).toContain('overflow-y-auto');
+        expect(el.className).not.toContain('sm:overflow-y-auto');
+    });
+
     it('可自訂 maxHeightClass', () => {
         const { container } = render(
             <ResponsiveScrollList maxHeightClass="sm:max-h-[300px]">x</ResponsiveScrollList>
