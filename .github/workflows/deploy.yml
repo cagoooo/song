@@ -5,6 +5,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# 提前對齊 GitHub Actions Node 24（2026-06-16 起強制）— 讓所有 JS actions 以 Node 24 執行，
+# 消除 actions/checkout/setup-node/configure-pages/upload-artifact 的 Node 20 deprecation 警告
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 permissions:
   contents: read
   pages: write
@@ -24,7 +29,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies

@@ -17,6 +17,7 @@ import { useComboCounter } from "@/hooks/useComboCounter";
 import { ComboOverlay } from "../components/ComboOverlay";
 import { useDarkHorse } from "@/hooks/useDarkHorse";
 import { useMissedHypeReplay } from "@/hooks/useMissedHypeReplay";
+import { trackEvent } from "@/lib/funnelAnalytics";
 import { DarkHorseOverlay } from "../components/DarkHorseOverlay";
 import { useGlobalHype } from "@/hooks/useGlobalHype";
 import { useVoterLeaderboard } from "@/hooks/useVoterLeaderboard";
@@ -159,6 +160,7 @@ export default function Home() {
 
   // 補播佇列：填表單（hard 防干擾）時錯過的黑馬／全站熱度，打完字後補一則精簡提示
   const handleReplayMissed = useCallback((missedLabels: string[]) => {
+    trackEvent('missed_replay_shown');
     toast({
       title: '剛剛你忙著打字，錯過了現場高潮 🎉',
       description: (
@@ -167,6 +169,15 @@ export default function Home() {
     });
   }, [toast]);
   useMissedHypeReplay({ composingLevel, darkHorseEvent, hypeEvent, onReplay: handleReplayMissed });
+
+  // 漏斗埋點：每進入一次 hard 專注輸入記一次（null/soft → hard 的轉換）
+  const prevComposingRef = useRef<typeof composingLevel>(null);
+  useEffect(() => {
+    if (composingLevel === 'hard' && prevComposingRef.current !== 'hard') {
+      trackEvent('composing_focus_session');
+    }
+    prevComposingRef.current = composingLevel;
+  }, [composingLevel]);
   const { user, logout } = useUser();
   const { allTags, songTagsMap, tagSongCount } = useAllSongTags();
   const {

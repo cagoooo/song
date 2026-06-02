@@ -1,9 +1,10 @@
 // 建議新歌曲表單對話框 - 含重複檢測功能
-import { useState, useCallback, memo, useMemo, useEffect } from 'react';
+import { useState, useCallback, memo, useMemo, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { beginComposing } from '@/lib/composingGuard';
 import { loadDraft, saveDraft, clearDraft } from '@/lib/draftStorage';
 import { useScrollFocusedIntoView } from '@/hooks/useScrollFocusedIntoView';
+import { trackEvent } from '@/lib/funnelAnalytics';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -108,6 +109,39 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
         return release;
     }, [isOpen]);
 
+    // 漏斗埋點：本次開啟的 session 狀態（是否打過字 / 是否已送出）
+    const typedThisSessionRef = useRef(false);
+    const submittedThisSessionRef = useRef(false);
+    const hintShownThisSessionRef = useRef(false);
+    useEffect(() => {
+        if (isOpen) {
+            // 開啟表單
+            typedThisSessionRef.current = false;
+            submittedThisSessionRef.current = false;
+            hintShownThisSessionRef.current = false;
+            trackEvent('suggestion_form_open');
+            if (draftRestored) trackEvent('suggestion_draft_restored');
+            return () => {
+                // 關閉表單：打了字卻沒送出 → 記為放棄
+                if (typedThisSessionRef.current && !submittedThisSessionRef.current) {
+                    trackEvent('suggestion_close_without_submit');
+                }
+            };
+        }
+        // isOpen=false 不重複註冊
+        return undefined;
+        // 只在 isOpen 變化時觸發（draftRestored 於開啟當下讀取即可）
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
+
+    // 第一次打字時記一次 typing_start
+    const markTyping = useCallback(() => {
+        if (!typedThisSessionRef.current) {
+            typedThisSessionRef.current = true;
+            trackEvent('suggestion_typing_start');
+        }
+    }, []);
+
     // 手機鍵盤彈出時，把聚焦欄位自動捲進可視區，避免被鍵盤遮住
     useScrollFocusedIntoView(isOpen);
 
@@ -171,7 +205,13 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
             return;
         }
         const timer = setTimeout(() => {
-            setLiveMatch(checkDuplicate(title, artist));
+            const match = checkDuplicate(title, artist);
+            setLiveMatch(match);
+            // 漏斗埋點：本次 session 第一次出現重複提示記一次
+            if (match && !hintShownThisSessionRef.current) {
+                hintShownThisSessionRef.current = true;
+                trackEvent('duplicate_hint_shown');
+            }
         }, 400);
         return () => clearTimeout(timer);
     }, [title, artist, checkDuplicate]);
@@ -181,6 +221,8 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
             return submitSuggestion(title, artist, suggestedBy, notes);
         },
         onSuccess: () => {
+            submittedThisSessionRef.current = true;
+            trackEvent('suggestion_submit_success');
             queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
             // 投遞成功儀式：顯示「已投遞」印章 + 小彩帶，短暫停留後自動關閉
             setSubmitted(true);
@@ -367,7 +409,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                             <Input
                                 id="title"
                                 value={title}
-                                onChange={(e) => setTitle(e.target.value)}
+                                onChange={(e) => { markTyping(); setTitle(e.target.value); }}
                                 required
                                 className="h-11 bg-white border-[rgba(17,17,17,0.18)] focus:border-[#2b4dff] focus-visible:ring-2 focus-visible:ring-[#2b4dff]/20 rounded-md px-4 text-slate-900"
                                 placeholder="輸入歌曲名稱"
@@ -376,7 +418,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                             {liveMatch && (
                                 <button
                                     type="button"
-                                    onClick={() => navigateToSong(liveMatch.song)}
+                                    onClick={() => { trackEvent('duplicate_hint_click'); navigateToSong(liveMatch.song); }}
                                     className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left
                                         bg-amber-50 border border-amber-200 hover:border-amber-300 hover:bg-amber-100/70
                                         transition-colors animate-in fade-in slide-in-from-top-1 duration-200 group"
@@ -415,7 +457,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                             <Input
                                 id="artist"
                                 value={artist}
-                                onChange={(e) => setArtist(e.target.value)}
+                                onChange={(e) => { markTyping(); setArtist(e.target.value); }}
                                 placeholder="如不確定可留空或選擇下方選項"
                                 className="h-11 bg-white border-[rgba(17,17,17,0.18)] focus:border-[#2b4dff] focus-visible:ring-2 focus-visible:ring-[#2b4dff]/20 rounded-md px-4 text-slate-900"
                             />
@@ -451,7 +493,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                             <Input
                                 id="suggestedBy"
                                 value={suggestedBy}
-                                onChange={(e) => setSuggestedBy(e.target.value)}
+                                onChange={(e) => { markTyping(); setSuggestedBy(e.target.value); }}
                                 placeholder="讓大家知道是誰推薦的好歌！"
                                 className="h-11 bg-white border-[rgba(17,17,17,0.18)] focus:border-[#2b4dff] focus-visible:ring-2 focus-visible:ring-[#2b4dff]/20 rounded-md px-4 text-slate-900"
                             />
@@ -477,7 +519,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                             <Textarea
                                 id="notes"
                                 value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
+                                onChange={(e) => { markTyping(); setNotes(e.target.value); }}
                                 placeholder="分享一下您喜歡這首歌的原因..."
                                 className="min-h-[80px] bg-white border-[rgba(17,17,17,0.18)] focus:border-[#2b4dff] focus-visible:ring-2 focus-visible:ring-[#2b4dff]/20 rounded-md px-4 py-3 text-slate-900 resize-none"
                             />
