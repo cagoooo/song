@@ -16,6 +16,7 @@ import { useComposingLevel, useComposingWhileTyping } from "@/lib/composingGuard
 import { useComboCounter } from "@/hooks/useComboCounter";
 import { ComboOverlay } from "../components/ComboOverlay";
 import { useDarkHorse } from "@/hooks/useDarkHorse";
+import { useMissedHypeReplay } from "@/hooks/useMissedHypeReplay";
 import { DarkHorseOverlay } from "../components/DarkHorseOverlay";
 import { useGlobalHype } from "@/hooks/useGlobalHype";
 import { useVoterLeaderboard } from "@/hooks/useVoterLeaderboard";
@@ -155,6 +156,17 @@ export default function Home() {
   const darkHorseEvent = useDarkHorse(songs);
   const hypeEvent = useGlobalHype(songs);
   const { toast } = useToast();
+
+  // 補播佇列：填表單（hard 防干擾）時錯過的黑馬／全站熱度，打完字後補一則精簡提示
+  const handleReplayMissed = useCallback((missedLabels: string[]) => {
+    toast({
+      title: '剛剛你忙著打字，錯過了現場高潮 🎉',
+      description: (
+        <span className="block whitespace-pre-line">{missedLabels.join('\n')}</span>
+      ),
+    });
+  }, [toast]);
+  useMissedHypeReplay({ composingLevel, darkHorseEvent, hypeEvent, onReplay: handleReplayMissed });
   const { user, logout } = useUser();
   const { allTags, songTagsMap, tagSongCount } = useAllSongTags();
   const {
