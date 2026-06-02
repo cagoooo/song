@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：10.6
-> **更新日期**：2026-06-02（v4.6.5 — 行動鍵盤遮擋處理 + 全站 ScrollArea 稽核）
-> **當前版本**：**v4.6.5**（手機鍵盤遮擋自動捲動 + sticky 送出鈕 + VoteHistoryModal 捲動修正）
+> **文件版本**：10.7
+> **更新日期**：2026-06-02（v4.6.6 — 防干擾端到端整合測試，優先表 Top 7 全清）
+> **當前版本**：**v4.6.6**（防干擾 gating 契約整合測試；輸入/防干擾/捲動體系 Top 7 完成）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -105,6 +105,12 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.6.6（2026-06-02）— 防干擾整合測試（Top 7 全清）
+- ✅ **防干擾端到端整合測試**（[composingGuard.integration.test.tsx](client/src/lib/composingGuard.integration.test.tsx)）：忠實複刻 Home 覆蓋層 gating，5 例驗證「真實聚焦 → 等級 → 渲染/淡化/消失」契約（初始正常 / 搜尋→soft 淡化 / 表單→hard 消失 / 失焦恢復 / soft→hard 切換）
+- ✅ **依使用者決定用輕量整合測試**（既有 vitest + @testing-library），不裝 Playwright、不動 CI
+- ✅ 全套 **414 → 419**
+- 🏁 **防干擾優先表 Top 7 全部完成**（#16/#7/#8/#4/#5/#6/#13/#17 — 註：原 #9 行動鍵盤=本表 #6、#12 ResponsiveScrollList=本表 #5）
 
 ### v4.6.5（2026-06-02）— 行動鍵盤遮擋 + ScrollArea 稽核
 - ✅ **行動裝置鍵盤遮擋處理**（[useScrollFocusedIntoView.ts](client/src/hooks/useScrollFocusedIntoView.ts)）：手機鍵盤彈出時（聚焦延遲 300ms + visualViewport resize）把聚焦欄位 scrollIntoView 到可視區中央；只在觸控/小螢幕介入
@@ -834,10 +840,10 @@ npx playwright install chromium
 | ~~**4**~~ ✅ | ~~#1 防干擾分級 soft/hard~~ **（v4.6.4 完成，搜尋→soft 淡化 / 表單→hard 暫停）** | 4-5h | 讓搜尋時仍有現場感，不糊臉 |
 | ~~**5**~~ ✅ | ~~#12 ResponsiveScrollList~~ **（v4.6.4 完成，含 5 測試）** | 2-3h | 把這次 RWD 修法沉澱成可複用資產 |
 | ~~**6**~~ ✅ | ~~#9 行動鍵盤遮擋~~ **（v4.6.5 完成，自動捲動 + sticky 送出鈕）** | 2-4h | 手機是主力裝置，遮擋很惱人 |
-| **7**（下一個） | #17 Playwright 防干擾 e2e | 2-3h | 鎖住這次成果不被未來改壞 |
+| ~~**7**~~ ✅ | ~~#17 防干擾 e2e~~ **（v4.6.6 完成，改輕量整合測試非 Playwright）** | 2-3h | 鎖住這次成果不被未來改壞 |
 
-> ✅ **進度**：v4.6.3 完成 Top 3（#16/#7/#8）、v4.6.4 完成 #4/#5、**v4.6.5 完成 #6 + #13（ScrollArea 稽核）**。
-> 優先表只剩 **#7 Playwright 防干擾 e2e**；其餘延伸項（#2 搜尋例外、#3 補播佇列、#4 已做、#5 已做、#6 已做、#10 IME、#11 送出儀式、#14 細捲軸 utility、#15 虛擬化、#18 埋點）可視需要挑做。
+> 🏁 **防干擾優先表 Top 7 全部完成**（v4.6.3 ~ v4.6.6）。
+> **尚未做的延伸項**（可視需要挑做）：#2 搜尋框設例外、#3 被抑制事件補播佇列、#10 IME 組字保護、#11 送出成功儀式、#14 細捲軸抽 utility、#15 長清單虛擬化、#18 輸入漏斗埋點。
 
 ---
 
