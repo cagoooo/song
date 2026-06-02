@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, Trophy, Tv, Share2, Award, Printer } from "lucide-react";
 import SongList from "../components/SongList";
 import SongImport from "../components/SongImport";
-import { TagFilterBar } from "../components/TagFilterBar";
-import { useAllSongTags } from "@/hooks/useAllSongTags";
 import { useVoteHistory, type VoteHistoryEntry } from "@/hooks/useVoteHistory";
 import { VoteHistoryButton } from "../components/VoteHistoryButton";
 import { SortSelector } from "../components/SortSelector";
@@ -101,7 +99,6 @@ export default function Home() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTabForMobile, setActiveTabForMobile] = useState<'songs' | 'ranking' | 'voters'>('songs');
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -209,7 +206,6 @@ export default function Home() {
     });
   }, [hypeEvent, composingLevel]);
   const { user, logout } = useUser();
-  const { allTags, songTagsMap, tagSongCount } = useAllSongTags();
   const {
     history: voteHistory,
     todayCount: voteTodayCount,
@@ -227,13 +223,6 @@ export default function Home() {
       }));
     }, 350);
   }, []);
-
-  const toggleTag = useCallback((tagId: string) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  }, []);
-  const clearAllTags = useCallback(() => setSelectedTagIds([]), []);
 
   // 觸發 A4 直式節目單列印（用瀏覽器原生 window.print + @media print）
   // 📐 設計文件：docs/design/D3-pdf-print.md
@@ -264,15 +253,6 @@ export default function Home() {
     window.addEventListener('afterprint', onAfter);
     return () => window.removeEventListener('afterprint', onAfter);
   }, []);
-
-  // 篩選後符合所有勾選標籤的歌曲總數（給 TagFilterBar 顯示）
-  const tagMatchedCount = useMemo(() => {
-    if (selectedTagIds.length === 0) return songs.length;
-    return songs.filter((s) => {
-      const ids = songTagsMap.get(s.id) ?? [];
-      return selectedTagIds.every((sel) => ids.includes(sel));
-    }).length;
-  }, [songs, selectedTagIds, songTagsMap]);
 
   // 每次進入頁面時產生隨機 seed（只在首次渲染時產生）
   const [shuffleSeed] = useState(() => Math.floor(Math.random() * 1000000));
@@ -783,15 +763,6 @@ export default function Home() {
                     <CardContent className="p-3 pt-3">
                       {user?.isAdmin && <SongImport />}
                       <div className="h-3" />
-                      <TagFilterBar
-                        allTags={allTags}
-                        selectedTagIds={selectedTagIds}
-                        onToggleTag={toggleTag}
-                        onClearAll={clearAllTags}
-                        tagSongCount={tagSongCount}
-                        matchedCount={tagMatchedCount}
-                        isFiltering={selectedTagIds.length > 0}
-                      />
                       <SongList
                         songs={displayedSongs}
                         allSongs={songs}
@@ -800,8 +771,6 @@ export default function Home() {
                         isLoadingMore={isLoadingMore}
                         onLoadMore={loadMore}
                         totalCount={songs.length}
-                        selectedTagIds={selectedTagIds}
-                        songTagsMap={songTagsMap}
                         onOpenDetail={setDetailSong}
                       />
                     </CardContent>
@@ -866,15 +835,6 @@ export default function Home() {
                     <CardContent className="p-3 sm:p-6 pt-3 sm:pt-6">
                       {user?.isAdmin && <SongImport />}
                       <div className="h-3 sm:h-4" />
-                      <TagFilterBar
-                        allTags={allTags}
-                        selectedTagIds={selectedTagIds}
-                        onToggleTag={toggleTag}
-                        onClearAll={clearAllTags}
-                        tagSongCount={tagSongCount}
-                        matchedCount={tagMatchedCount}
-                        isFiltering={selectedTagIds.length > 0}
-                      />
                       <SongList
                         songs={displayedSongs}
                         allSongs={songs}
@@ -883,8 +843,6 @@ export default function Home() {
                         isLoadingMore={isLoadingMore}
                         onLoadMore={loadMore}
                         totalCount={songs.length}
-                        selectedTagIds={selectedTagIds}
-                        songTagsMap={songTagsMap}
                         onOpenDetail={setDetailSong}
                       />
                     </CardContent>
