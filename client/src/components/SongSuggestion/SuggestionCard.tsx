@@ -11,16 +11,18 @@ import {
 } from '@/components/ui/tooltip';
 import {
     Check, X, Trash2, Music2, FileText, PlusCircle,
-    HeartPulse, Clock, User2, ExternalLink, CheckSquare, Square
+    HeartPulse, Clock, User2, ExternalLink, CheckSquare, Square, ThumbsUp
 } from 'lucide-react';
 import {
     approveSuggestion,
     rejectSuggestion,
     removeSuggestion,
     addToPlaylist,
+    upvoteSuggestion,
     type SongSuggestion as SongSuggestionType,
 } from '@/hooks/use-suggestions';
 import { getErrorToast } from '@/lib/error-handler';
+import { useHasUpvoted, markUpvoted } from '@/lib/suggestionUpvotes';
 
 // 工具函式
 const formatFirebaseDate = (timestamp: any): string => {
@@ -154,6 +156,20 @@ export const SuggestionCard = memo(function SuggestionCard({
             toast({ title: '已刪除建議', description: '歌曲建議已被移除' });
         },
     });
+
+    // A2「+1 我也想聽」附議 — 本機去重 + 樂觀標記，計數由 Firestore 訂閱即時更新
+    const alreadyUpvoted = useHasUpvoted(suggestion.id);
+    const upvoteMutation = useMutation({
+        mutationFn: async () => upvoteSuggestion(suggestion.id),
+        onError: (error: Error) => {
+            toast(getErrorToast(error, '附議失敗，請稍後再試'));
+        },
+    });
+    const handleUpvote = () => {
+        if (alreadyUpvoted || upvoteMutation.isPending) return;
+        markUpvoted(suggestion.id); // 立即反映「已 +1」（去重）
+        upvoteMutation.mutate();
+    };
 
     const addToPlaylistMutation = useMutation({
         mutationFn: async () => addToPlaylist(suggestion.id, suggestion.title, suggestion.artist),
@@ -295,6 +311,26 @@ export const SuggestionCard = memo(function SuggestionCard({
                         </Tooltip>
                     </TooltipProvider>
                 </div>
+
+                {/* A2「+1 我也想聽」附議 — 待審核才可附議，群眾訊號供阿凱排歌 */}
+                {suggestion.status === 'pending' && (
+                    <button
+                        type="button"
+                        onClick={handleUpvote}
+                        disabled={alreadyUpvoted || upvoteMutation.isPending}
+                        aria-label={alreadyUpvoted ? '你已附議這首' : '我也想聽，附議 +1'}
+                        className={`w-full flex items-center justify-center gap-2 mb-3 rounded-md py-2 text-sm font-semibold transition-all
+                            ${alreadyUpvoted
+                                ? 'bg-[#2b4dff]/10 text-[#2b4dff] cursor-default'
+                                : 'bg-[#2b4dff] text-white hover:bg-[#1d3bd8] active:scale-[0.98]'}`}
+                    >
+                        <ThumbsUp className="w-4 h-4" />
+                        <span>{alreadyUpvoted ? '已 +1 我也想聽' : '+1 我也想聽'}</span>
+                        {(suggestion.upvotes ?? 0) > 0 && (
+                            <span className="ml-0.5 text-xs opacity-85">🔥 {suggestion.upvotes}</span>
+                        )}
+                    </button>
+                )}
 
                 {/* 推薦理由 — Editorial 義式引文框 */}
                 {suggestion.notes && (

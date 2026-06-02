@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：11.4
-> **更新日期**：2026-06-02（v4.7.3 — B1 現場回顧時間軸，Top 6 起手清單全清 🏁）
-> **當前版本**：**v4.7.3**（補播升級可點開「現場回顧」時間軸）
+> **文件版本**：11.5
+> **更新日期**：2026-06-02（v4.7.4 — A2 +1 附議 + C3 投影期數動態 + F4 CHANGELOG）
+> **當前版本**：**v4.7.4**（「+1 我也想聽」附議 / 演出投影期數動態 / CHANGELOG）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -106,6 +106,12 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.7.4（2026-06-02）— +1 附議 + 投影期數動態 + CHANGELOG（A2/C3/F4）
+- ✅ **A2 ·「+1 我也想聽」附議**（[suggestions.ts](client/src/lib/firestore/suggestions.ts) + [suggestionUpvotes.ts](client/src/lib/suggestionUpvotes.ts) + SuggestionCard）：待審核卡片可附議，🔥 計數即時回流、本機去重；**Firestore rules `isValidUpvote()` 僅允許對 pending 的 upvotes +1**（已部署 guitar-ff931）。群眾訊號供阿凱排歌
+- ✅ **C3 · 演出投影版面期數動態化**（[StagePage.tsx](client/src/pages/StagePage.tsx)）：`?mode=stage` 既有投影版面去除硬編「ISSUE #12 / 阿凱彈唱之夜」，改讀 D1 useMagazine（admin 改期數即時反映）；跑馬燈校名正名「石門國小」
+- ✅ **F4 · CHANGELOG.md + 自動產生器**（[CHANGELOG.md](CHANGELOG.md) + [scripts/gen-changelog.mjs](scripts/gen-changelog.mjs)）：Keep a Changelog 版本分段；`npm run changelog` 從 git conventional commits 無依賴產生
+- ✅ **測試 +12**（+1 去重 6 + F4/C3 既有覆蓋），全套 **453 → 468**；預覽實測 A2 首次 +1 成功、計數回流、去重；rules 部署成功
 
 ### v4.7.3（2026-06-02）— 現場回顧時間軸（B1）🏁 Top 6 全清
 - ✅ **B1 · 補播升級「現場回顧」**（[liveRecap.ts](client/src/lib/liveRecap.ts) + [LiveRecap.tsx](client/src/components/LiveRecap.tsx)）：把 #3 的補播 toast 升級為左下浮動 pill + 可點開時間軸，補看近 30 分鐘黑馬/全站熱度亮點，「打字時錯過」的標「🙈」；有未讀脈動 + 數字、開啟即已讀；無亮點自動隱藏
@@ -897,7 +903,7 @@ npx playwright install chromium
 
 ### 🅰️ 推薦 / 點歌流程（延續推薦表單脈絡）
 - ⭐ **A1 · 推薦表單「我的推薦」追蹤（P1，4-5h）**：訪客送出後用本機 id（localStorage）記住自己推薦過哪些，回站可看到「你推薦的 ○○ 已被採納 🎉 / 仍待審核」。呼應 VoterPassport 的個人化履歷感，提高回訪。
-- **A2 · 一鍵「我也想聽 +1」附議（P1，3-4h）**：待審核建議卡加「+1 我也想聽」，附議數高者優先審核；給阿凱排歌的群眾訊號。需 Firestore 一個 counter + 防重複（本機 id）。
+- ✅ ~~**A2 · 一鍵「我也想聽 +1」附議（P1，3-4h）**~~ **（v4.7.4 完成）**：待審核卡「+1 我也想聽」🔥 計數 + 本機去重 + rules `isValidUpvote()` 已部署。
 - **A3 · 推薦時自動帶 YouTube/曲目縮圖（P2，3-5h）**：打歌名時用 YouTube Data API 或 oEmbed 抓縮圖預覽，卡片更生動、也幫助確認是不是同一首。注意 API 配額與 key 限制。
 - **A4 · 智慧去重升級（P2，2-3h）**：目前即時重複偵測是字串包含比對；接 `useFuzzySearch` 的模糊比對，能抓「錯字 / 簡繁 / 空格差異」的重複（如「想见你」vs「想見你」）。
 - **A5 · 推薦理由範本 chip（P3，1-2h）**：notes 欄給幾個快速 chip（「想合唱」「點給朋友」「壓軸必備」），降低留空率、內容更有溫度。
@@ -911,7 +917,7 @@ npx playwright install chromium
 ### 🅲 版面 / RWD（延續三欄優化）
 - ⭐ **C1 · 主歌單 & 排行榜也支援寬螢幕多欄（P1，3-4h）**：三欄推薦反應好的話，把「可選歌單」在超寬螢幕（2xl）排雙欄、排行榜並排更多，善用大螢幕（演出投影常是 1920+）。
 - **C2 · 全站長清單改用 ResponsiveScrollList（P2，2-3h）**：把 RankingBoard / SongList / TagSelector 等仍用固定高 Radix ScrollArea 的地方逐步收斂到共用元件，統一捲動體驗 + 細捲軸（呼應 #13 稽核）。
-- **C3 · 演出 / 投影專用版面（P2，5-6h）**：`?mode=stage` 已存在；可做一個「大字、高對比、只顯示 Now+UpNext+排行 Top5」的舞台佈景，給現場投影用。
+- ✅ ~~**C3 · 演出 / 投影專用版面（P2，5-6h）**~~ **（v4.7.4：StagePage 早已存在，本次補上期數動態化）**：`?mode=stage` 大字 NOW PLAYING + UP NEXT + QR；期數/標題改讀 D1 useMagazine。
 - **C4 · 卡片密度切換（P3，2h）**：讓使用者選「舒適 / 緊湊」兩種密度，手機看更多、桌機看更舒服。
 
 ### 🅳 管理 / 後台（阿凱的排歌效率）
@@ -929,7 +935,7 @@ npx playwright install chromium
 - ⭐ **F1 · CI 升級 Node 24 actions（P1，0.5-1h）**：目前 GitHub Actions 噴 deprecation 警告——`actions/checkout@v4`、`setup-node@v4` 等將於 2026-06-16 起強制 Node 24。提前把 workflow 的 actions 升版，避免屆時 CI 壞掉。**時效性最高。**
 - **F2 · 5 件套儀式 modal 補測試（P1，6h）**：技術債 T2，ThankYou/Opening/Passport/ShareCard 仍 0 測試；抽 `RitualModal` 共用容器順便補測。
 - **F3 · package.json version 與實際版本對齊（P2，0.5h）**：SW 版本仍停在 `4.2.0-<hash>`，但 ROADMAP 已到 v4.6.9；把 package.json version 升上來，版本資訊一致（呼應 skill `changelog-version-drift-trap`）。
-- **F4 · 加 CHANGELOG.md（P2，1h）**：v4.3→v4.6.9 累積大量 PR，用 conventional-changelog 自動生成對外版本紀錄。
+- ✅ ~~**F4 · 加 CHANGELOG.md（P2，1h）**~~ **（v4.7.4 完成）**：CHANGELOG.md（Keep a Changelog 版本分段）+ 無依賴產生器 `npm run changelog`。
 - **F5 · 視覺迴歸煙霧測試（P2，3-4h）**：事故覆盤 B1；Playwright 首頁截圖 baseline，防再次像 v4.6.1 那樣整站跑版卻全測試綠燈。
 
 ### 🅶 無障礙 / 國際化 / PWA
