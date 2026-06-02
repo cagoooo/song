@@ -3,6 +3,7 @@ import { useState, useCallback, memo, useMemo, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { beginComposing } from '@/lib/composingGuard';
 import { loadDraft, saveDraft, clearDraft } from '@/lib/draftStorage';
+import { useScrollFocusedIntoView } from '@/hooks/useScrollFocusedIntoView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -103,6 +104,9 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
         const release = beginComposing();
         return release;
     }, [isOpen]);
+
+    // 手機鍵盤彈出時，把聚焦欄位自動捲進可視區，避免被鍵盤遮住
+    useScrollFocusedIntoView(isOpen);
 
     // 自動暫存草稿（debounce 400ms）；全部清空時移除草稿
     useEffect(() => {
@@ -457,8 +461,8 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                             />
                         </div>
 
-                        {/* 送出按鈕 */}
-                        <div className="pt-2">
+                        {/* 送出按鈕 — sticky 貼在對話框底部，長內容 / 手機鍵盤彈出時仍隨手可按 */}
+                        <div className="sticky bottom-0 z-10 -mx-6 mt-2 px-6 pt-3 pb-1 bg-[#faf7f0] border-t border-[rgba(17,17,17,0.08)]">
                             <Button
                                 type="submit"
                                 disabled={addSuggestionMutation.isPending}
