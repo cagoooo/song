@@ -1,6 +1,5 @@
 // 重構後的 SongSuggestion 主元件 - 含重複檢測功能
 import { useState, useMemo, useCallback } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Lightbulb, ChevronDown, Sparkles, Music } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSuggestions } from '@/hooks/use-suggestions';
@@ -151,22 +150,33 @@ export default function SongSuggestion({
                             </div>
                     </CollapsibleTrigger>
 
-                    <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out 
-                        data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 
+                    <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out
+                        data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0
                         data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2
-                        duration-200">
-                        <ScrollArea className="mt-4 max-h-[60vh] sm:max-h-[500px] pr-2">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
-                                {suggestions.map((suggestion, index) => (
-                                    <SuggestionCard
-                                        key={suggestion.id}
-                                        suggestion={suggestion}
-                                        index={index}
-                                        isAdmin={isAdmin}
-                                    />
-                                ))}
-                            </div>
-                        </ScrollArea>
+                        duration-200 overflow-hidden">
+                        {/*
+                          手機：不限高，清單自然展開 → 交給整頁捲動，保證能看到全部內容。
+                          桌機（sm+）：限高 + 原生 overflow-y-auto 捲動區（跨裝置／觸控都可靠，
+                          並避開 Radix ScrollArea 在「只有 max-height、viewport h-full」下內容被裁切卻無法捲動的坑）。
+                        */}
+                        <div
+                            className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 pb-2
+                                sm:max-h-[520px] sm:overflow-y-auto sm:overscroll-contain sm:pr-2
+                                [scrollbar-width:thin] [scrollbar-color:rgba(17,17,17,0.22)_transparent]
+                                [&::-webkit-scrollbar]:w-1.5
+                                [&::-webkit-scrollbar-track]:bg-transparent
+                                [&::-webkit-scrollbar-thumb]:rounded-full
+                                [&::-webkit-scrollbar-thumb]:bg-[rgba(17,17,17,0.2)]"
+                        >
+                            {suggestions.map((suggestion, index) => (
+                                <SuggestionCard
+                                    key={suggestion.id}
+                                    suggestion={suggestion}
+                                    index={index}
+                                    isAdmin={isAdmin}
+                                />
+                            ))}
+                        </div>
                     </CollapsibleContent>
                 </Collapsible>
             )}
