@@ -156,7 +156,7 @@ export default function SongSuggestion({
                         data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2
                         duration-200 overflow-hidden">
                         {/* 響應式長清單：手機自然展開、桌機限高原生捲動（見 ResponsiveScrollList） */}
-                        <ResponsiveScrollList className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
+                        <ResponsiveScrollList className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
                             {suggestions.map((suggestion, index) => (
                                 <SuggestionCard
                                     key={suggestion.id}
