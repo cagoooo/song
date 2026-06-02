@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# 提前對齊 GitHub Actions Node 24（2026-06-16 起強制）— 讓所有 JS actions 以 Node 24 執行，
+# 消除 actions/checkout/setup-node/upload-artifact 的 Node 20 deprecation 警告
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   test:
     name: Test & Build
