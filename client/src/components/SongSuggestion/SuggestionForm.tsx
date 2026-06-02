@@ -1,6 +1,7 @@
 // 建議新歌曲表單對話框 - 含重複檢測功能
-import { useState, useCallback, memo, useMemo } from 'react';
+import { useState, useCallback, memo, useMemo, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { beginComposing } from '@/lib/composingGuard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,6 +80,13 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
     const [matchedSong, setMatchedSong] = useState<MatchedSong | null>(null);
     const { toast } = useToast();
     const queryClient = useQueryClient();
+
+    // 表單開啟期間進入「專注輸入」模式 → 暫停全站慶祝／互動全螢幕覆蓋層，避免蓋住輸入框干擾打字
+    useEffect(() => {
+        if (!isOpen) return;
+        const release = beginComposing();
+        return release;
+    }, [isOpen]);
 
     // 檢測歌曲是否已存在
     const checkDuplicate = useCallback((inputTitle: string, inputArtist: string): MatchedSong | null => {
