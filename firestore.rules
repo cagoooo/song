@@ -26,7 +26,9 @@ service cloud.firestore {
     match /songSuggestions/{suggestionId} {
       allow read: if true;
       allow create: if isValidSuggestion();
-      allow update, delete: if isAdmin();
+      // 管理員可任意更新；一般訪客僅能對待審核建議的 upvotes 欄位 +1（A2 附議）
+      allow update: if isAdmin() || isValidUpvote();
+      allow delete: if isAdmin();
     }
 
     // 標籤集合 - 所有人可讀，僅管理員 + App Check 可寫
@@ -215,7 +217,19 @@ service cloud.firestore {
         // 狀態必須是 pending
         && data.status == 'pending';
     }
-    
+
+    // 驗證「+1 我也想聽」附議（A2）：
+    //   只允許對「待審核」建議，且本次更新「只」改 upvotes 欄位、值為原本 +1。
+    //   不能竄改 title/artist/status 等其他欄位。
+    function isValidUpvote() {
+      let existing = resource.data;
+      let incoming = request.resource.data;
+      return existing.status == 'pending'
+        && incoming.diff(existing).affectedKeys().hasOnly(['upvotes'])
+        && incoming.upvotes is int
+        && incoming.upvotes == (('upvotes' in existing) ? existing.upvotes : 0) + 1;
+    }
+
     // 驗證互動資料有效性（打賞和評分）
     function isValidInteraction() {
       let data = request.resource.data;

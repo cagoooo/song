@@ -157,6 +157,8 @@ export interface SongSuggestion {
     status: 'pending' | 'approved' | 'rejected' | 'added_to_playlist';
     createdAt: Date;
     processedAt?: Date;
+    /** A2「+1 我也想聽」附議數（群眾訊號，供阿凱排歌參考） */
+    upvotes?: number;
 }
 
 export interface Tag {

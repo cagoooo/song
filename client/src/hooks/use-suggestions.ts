@@ -7,6 +7,7 @@ import {
     updateSuggestionStatus,
     deleteSuggestion,
     addSuggestionToPlaylist,
+    upvoteSuggestion as upvoteSuggestionDoc,
     type SongSuggestion,
 } from '@/lib/firestore';
 
@@ -53,6 +54,11 @@ export async function addToPlaylist(
     artist: string
 ) {
     return addSuggestionToPlaylist(suggestionId, title, artist);
+}
+
+/** A2「+1 我也想聽」附議 */
+export async function upvoteSuggestion(id: string) {
+    return upvoteSuggestionDoc(id);
 }
 
 export type { SongSuggestion };

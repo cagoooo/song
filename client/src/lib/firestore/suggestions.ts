@@ -1,6 +1,6 @@
 import {
     collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
-    onSnapshot, Timestamp, type Unsubscribe,
+    onSnapshot, Timestamp, increment, type Unsubscribe,
 } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../firebase';
 import type { SongSuggestion } from './types';
@@ -20,6 +20,7 @@ export async function getSuggestions(): Promise<SongSuggestion[]> {
             notes: data.notes,
             status: data.status,
             createdAt: data.createdAt?.toDate?.() || new Date(),
+            upvotes: data.upvotes || 0,
         });
     });
     suggestions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -40,6 +41,7 @@ export function subscribeSuggestions(callback: (suggestions: SongSuggestion[]) =
                 notes: data.notes,
                 status: data.status,
                 createdAt: data.createdAt?.toDate?.() || new Date(),
+                upvotes: data.upvotes || 0,
             });
         });
         suggestions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -67,6 +69,12 @@ export async function updateSuggestionStatus(
 ): Promise<void> {
     const ref = doc(db, COLLECTIONS.songSuggestions, suggestionId);
     await updateDoc(ref, { status });
+}
+
+/** A2「+1 我也想聽」附議 — 對待審核建議的 upvotes +1（rules 只允許 upvotes 欄位 +1）。 */
+export async function upvoteSuggestion(suggestionId: string): Promise<void> {
+    const ref = doc(db, COLLECTIONS.songSuggestions, suggestionId);
+    await updateDoc(ref, { upvotes: increment(1) });
 }
 
 export async function deleteSuggestion(suggestionId: string): Promise<void> {
