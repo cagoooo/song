@@ -27,7 +27,8 @@ import {
     AlertDialogAction,
     AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
-import { Lightbulb, Plus, Music2, FileText, PlusCircle, Sparkles, CheckCircle, ThumbsUp, RotateCcw, X } from 'lucide-react';
+import { Lightbulb, Plus, Music2, FileText, PlusCircle, Sparkles, CheckCircle, ThumbsUp, RotateCcw, X, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { submitSuggestion } from '@/hooks/use-suggestions';
 import type { Song } from '@/lib/firestore';
 
@@ -95,6 +96,8 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
     );
     const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
     const [matchedSong, setMatchedSong] = useState<MatchedSong | null>(null);
+    // 送出成功儀式：顯示「已投遞」印章動畫，短暫停留後自動關閉
+    const [submitted, setSubmitted] = useState(false);
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
@@ -178,13 +181,25 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
             return submitSuggestion(title, artist, suggestedBy, notes);
         },
         onSuccess: () => {
-            toast({
-                title: '建議送出成功！',
-                description: '感謝您的推薦，我們會盡快審核！',
-            });
-            resetForm();
-            onOpenChange(false);
             queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
+            // 投遞成功儀式：顯示「已投遞」印章 + 小彩帶，短暫停留後自動關閉
+            setSubmitted(true);
+            void import('canvas-confetti').then(({ default: confetti }) => {
+                confetti({
+                    particleCount: 60,
+                    spread: 70,
+                    startVelocity: 38,
+                    origin: { x: 0.5, y: 0.5 },
+                    colors: ['#2b4dff', '#ffffff', '#0ea5e9', '#1d4ed8'],
+                    ticks: 90,
+                    zIndex: 10001,
+                });
+            }).catch(() => { /* 彩帶失敗不影響主流程 */ });
+            setTimeout(() => {
+                setSubmitted(false);
+                resetForm();
+                onOpenChange(false);
+            }, 1700);
         },
         onError: (error: Error) => {
             toast({
@@ -209,6 +224,13 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
         // 沒有重複，直接提交
         addSuggestionMutation.mutate();
     }, [title, artist, checkDuplicate, addSuggestionMutation]);
+
+    // IME 組字保護：注音／拼音／日文等「組字中」按 Enter 是選字，不該觸發表單送出
+    const handleFormKeyDown = useCallback((e: React.KeyboardEvent<HTMLFormElement>) => {
+        if (e.key === 'Enter' && (e.nativeEvent as KeyboardEvent).isComposing) {
+            e.preventDefault();
+        }
+    }, []);
 
     // 跳轉到指定歌曲（重複對話框 / 即時提示共用）
     const navigateToSong = useCallback((song: Song) => {
@@ -257,7 +279,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                     </Button>
                 </DialogTrigger>
 
-                <DialogContent className="w-[calc(100vw-2rem)] max-w-md p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="relative w-[calc(100vw-2rem)] max-w-md p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)] max-h-[90vh] overflow-y-auto">
                     {/* 雜誌頂條 */}
                     <div className="editorial-modal-flag">
                         <span>Nº 12</span>
@@ -306,7 +328,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
+                    <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-4 px-6 pb-6">
                         {/* 草稿回填提示 — 上次未送出的內容已自動帶回，可一鍵清除重填 */}
                         {draftRestored && (
                             <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-[#2b4dff]/[0.06] border border-[#2b4dff]/20 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -482,6 +504,67 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                             </Button>
                         </div>
                     </form>
+
+                    {/* 送出成功儀式 — Editorial 投遞印章覆蓋層 */}
+                    <AnimatePresence>
+                        {submitted && (
+                            <motion.div
+                                className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-[#faf7f0] px-8 text-center"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.4, rotate: -18, opacity: 0 }}
+                                    animate={{ scale: 1, rotate: -6, opacity: 1 }}
+                                    transition={{ type: 'spring', stiffness: 260, damping: 15 }}
+                                    className="relative flex h-28 w-28 items-center justify-center rounded-full border-[3px] border-[#2b4dff]"
+                                    style={{ boxShadow: '0 12px 36px -14px rgba(43,77,255,0.55)' }}
+                                >
+                                    <Check className="h-12 w-12 text-[#2b4dff]" strokeWidth={2.5} />
+                                    <Sparkles className="absolute -right-1 -top-1 h-5 w-5 text-[#2b4dff] animate-pulse" />
+                                </motion.div>
+                                <div className="space-y-1">
+                                    <div
+                                        style={{
+                                            fontFamily: 'var(--font-mono)',
+                                            fontSize: 11,
+                                            letterSpacing: '0.24em',
+                                            textTransform: 'uppercase',
+                                            color: 'var(--ed-ink-3)',
+                                        }}
+                                    >
+                                        Delivered · 已投遞
+                                    </div>
+                                    <div
+                                        style={{
+                                            fontFamily: 'var(--font-display)',
+                                            fontStyle: 'italic',
+                                            fontWeight: 900,
+                                            fontSize: 26,
+                                            letterSpacing: '-0.02em',
+                                            color: 'var(--ed-ink-1)',
+                                            lineHeight: 1.15,
+                                        }}
+                                    >
+                                        推薦已送達<span style={{ color: '#2b4dff' }}>阿凱老師</span>
+                                    </div>
+                                </div>
+                                <p
+                                    style={{
+                                        fontFamily: 'var(--font-display)',
+                                        fontStyle: 'italic',
+                                        fontSize: 14,
+                                        color: 'var(--ed-ink-2)',
+                                        lineHeight: 1.5,
+                                    }}
+                                >
+                                    謝謝你的好品味，審核後就會出現在點播清單 ♪
+                                </p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </DialogContent>
             </Dialog>
 
