@@ -12,7 +12,7 @@ import { useVoteHistory, type VoteHistoryEntry } from "@/hooks/useVoteHistory";
 import { VoteHistoryButton } from "../components/VoteHistoryButton";
 import { SortSelector } from "../components/SortSelector";
 import { useSortMode } from "@/hooks/useSortMode";
-import { useIsComposing } from "@/lib/composingGuard";
+import { useIsComposing, useComposingWhileTyping } from "@/lib/composingGuard";
 import { useComboCounter } from "@/hooks/useComboCounter";
 import { ComboOverlay } from "../components/ComboOverlay";
 import { useDarkHorse } from "@/hooks/useDarkHorse";
@@ -110,7 +110,9 @@ export default function Home() {
   const [printMode, setPrintMode] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
   const curtainCheckedRef = useRef(false);
-  // 使用者正在表單打字時為 true → 暫停全螢幕慶祝／互動覆蓋層，避免畫面衝擊干擾輸入
+  // 全站任一文字輸入框聚焦時自動進入「專注輸入」模式（涵蓋搜尋、登入、編輯、匯入等所有輸入框）
+  useComposingWhileTyping();
+  // 使用者正在打字時為 true → 暫停全螢幕慶祝／互動覆蓋層，避免畫面衝擊干擾輸入
   const isComposing = useIsComposing();
   const { combo } = useComboCounter();
   // PrintProgram 需要 topVoters — 只在 printMode 啟用時 mount，
