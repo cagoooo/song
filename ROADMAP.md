@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：10.4
-> **更新日期**：2026-06-02（v4.6.3 — 防干擾體系 Top 3 落地：測試 + 草稿暫存 + 即時重複偵測）
-> **當前版本**：**v4.6.3**（composingGuard 測試 + 表單草稿自動暫存 + 即時重複偵測）
+> **文件版本**：10.5
+> **更新日期**：2026-06-02（v4.6.4 — 防干擾分級 soft/hard + ResponsiveScrollList）
+> **當前版本**：**v4.6.4**（防干擾分級 soft/hard + 共用響應式長清單捲動容器）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -105,6 +105,13 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.6.4（2026-06-02）— 防干擾分級 + 共用捲動容器
+- ✅ **防干擾分級 soft/hard**（[composingGuard.ts](client/src/lib/composingGuard.ts)）：搜尋框 → `soft`（覆蓋層淡化 opacity-30、保留現場感、ComboOverlay 不放彩帶）；表單 → `hard`（整組暫停）；hard 優先 soft；支援 `data-dnd` 屬性覆寫。API：`beginComposing(level)` / `useComposingLevel()`
+- ✅ **ResponsiveScrollList 共用元件**（[ResponsiveScrollList.tsx](client/src/components/ui/ResponsiveScrollList.tsx)）：手機自然展開 / 桌機限高原生捲動 + 細捲軸；SongSuggestion 改用（行為一致）
+- ✅ **測試 +10**（分級 5 + ResponsiveScrollList 5），全套 **397 → 407**
+- ✅ **預覽實測**：搜尋聚焦→覆蓋層淡化仍在、表單→消失；重構後推薦清單捲動正常
+- 💡 **防干擾優先表 #4 / #5 已劃掉**，下一步 #6 行動鍵盤遮擋 或 #13 ScrollArea 稽核
 
 ### v4.6.3（2026-06-02）— 防干擾體系 Top 3 落地
 - ✅ **composingGuard 單元測試**（[composingGuard.test.ts](client/src/lib/composingGuard.test.ts)）：10 例涵蓋可重入計數 / release 冪等 / 焦點監聽各類型 / 切換不閃現 / unmount 解除 → 全套測試 **387 → 397** 個
@@ -817,12 +824,12 @@ npx playwright install chromium
 | ~~**1**~~ ✅ | ~~#16 composingGuard 單元測試~~ **（v4.6.3 完成，10 例）** | 1-2h | 新基礎設施要先有測試護欄 |
 | ~~**2**~~ ✅ | ~~#7 表單草稿自動暫存~~ **（v4.6.3 完成，含回填橫幅）** | 2-3h | 直接救「誤關全沒」的挫折，CP 值最高 |
 | ~~**3**~~ ✅ | ~~#8 即時重複偵測~~ **（v4.6.3 完成，inline amber 提示）** | 2-3h | 減少白打一場，延續推薦表單脈絡 |
-| **4**（下一個） | #1 防干擾分級 soft/hard | 4-5h | 讓搜尋時仍有現場感，不糊臉 |
-| **5** | #12 ResponsiveScrollList | 2-3h | 把這次 RWD 修法沉澱成可複用資產 |
-| **6** | #9 行動鍵盤遮擋 | 2-4h | 手機是主力裝置，遮擋很惱人 |
+| ~~**4**~~ ✅ | ~~#1 防干擾分級 soft/hard~~ **（v4.6.4 完成，搜尋→soft 淡化 / 表單→hard 暫停）** | 4-5h | 讓搜尋時仍有現場感，不糊臉 |
+| ~~**5**~~ ✅ | ~~#12 ResponsiveScrollList~~ **（v4.6.4 完成，含 5 測試）** | 2-3h | 把這次 RWD 修法沉澱成可複用資產 |
+| **6**（下一個） | #9 行動鍵盤遮擋 | 2-4h | 手機是主力裝置，遮擋很惱人 |
 | **7** | #17 Playwright 防干擾 e2e | 2-3h | 鎖住這次成果不被未來改壞 |
 
-> ✅ **v4.6.3（2026-06-02）已完成 Top 3**（#16 / #7 / #8）。下一步建議從 **#4 防干擾分級** 或 **#5 ResponsiveScrollList** 接續。
+> ✅ **v4.6.3 完成 Top 3**（#16 / #7 / #8）、**v4.6.4 完成 #4 / #5**。下一步建議從 **#6 行動鍵盤遮擋** 或 **#13 全站 Radix ScrollArea 稽核**（把更多長清單改用 ResponsiveScrollList）接續。
 
 ---
 
