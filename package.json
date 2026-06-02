@@ -16,6 +16,7 @@
     "webp": "node scripts/convert-to-webp.mjs",
     "subset-og-font": "node scripts/subset-og-font.mjs",
     "gen:og": "node scripts/generate-og-image.mjs",
+    "changelog": "node scripts/gen-changelog.mjs",
     "prepare": "husky || true"
   },
   "lint-staged": {
