@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：11.0
-> **更新日期**：2026-06-02（v4.6.9 — 寬螢幕三欄 + v4.6.2~v4.6.9 整批正式部署上線）
-> **當前版本**：**v4.6.9**（社群推薦寬螢幕三欄；輸入/防干擾/捲動體系整批上線生產）
+> **文件版本**：11.1
+> **更新日期**：2026-06-02（v4.7.0 — CI Node24 + 推薦漏斗埋點 + 管理員批次審核）
+> **當前版本**：**v4.7.0**（F1 CI 升 Node24 / E1 漏斗埋點 / D1 待審核批次審核）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -106,6 +106,13 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.7.0（2026-06-02）— CI Node24 + 漏斗埋點 + 批次審核（Top 6 前三）
+- ✅ **F1 · CI 升 Node 24 actions**（[ci.yml](.github/workflows/ci.yml) / [deploy.yml](.github/workflows/deploy.yml)）：設 `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24='true'` 提前對齊 6/16 強制、消除 deprecation；deploy build Node 20→22
+- ✅ **E1 · 推薦/防干擾漏斗埋點**（[funnelAnalytics.ts](client/src/lib/funnelAnalytics.ts)）：零依賴 localStorage 聚合，`window.songFunnel()` 看本機漏斗（開啟→打字→送出/放棄、重複提示點擊率、專注輸入次數、補播次數），算打字/送出轉換率（+7 測試）
+- ✅ **D1 · 待審核建議批次審核**（SongSuggestion + SuggestionCard + [batchSuggestions.ts](client/src/components/SongSuggestion/batchSuggestions.ts)）：管理員批次模式勾選 → 全選待審核 / 批准 / 拒絕 / 刪除（confirm），Promise.allSettled 重用既有 mutation，目標解析純函式（+6 測試）
+- ✅ **測試 +13**，全套 **425 → 438**；tsc 0 error；預覽驗證 E1 漏斗實際記錄、D1 非 admin 視圖不變
+- ⚠️ 註：D1 admin UI 因預覽無法登入 admin，以 6 單元測試 + 重用既有 mutation 覆蓋，未做 live 點擊
 
 ### v4.6.9（2026-06-02）— 寬螢幕三欄 + 整批正式上線 🚀
 - ✅ **社群推薦清單寬螢幕三欄**（SongSuggestion）：`xl:grid-cols-3`，斷點 手機 1 欄 / md 2 欄 / xl(≥1280) 3 欄；預覽實測 390→1、1024→2、1440→3
@@ -917,12 +924,14 @@ npx playwright install chromium
 ### 🎯 下一步：建議起手順序（Top 6）
 | 優先 | 項目 | 估時 | 一句話理由 |
 |------|------|------|-----------|
-| **1** | F1 CI 升 Node 24 actions | 0.5-1h | 有時效（6/16 強制），不做屆時 CI 會壞 |
-| **2** | E1 推薦 / 防干擾漏斗埋點 | 2-3h | 用資料驗證這批優化到底有沒有用 |
-| **3** | D1 待審核批次操作 | 3-4h | 直接幫阿凱省排歌時間，活動量大時最有感 |
-| **4** | A1 「我的推薦」追蹤 | 4-5h | 提高訪客回訪 + 個人化，延續推薦脈絡 |
+| ~~**1**~~ ✅ | ~~F1 CI 升 Node 24 actions~~ **（v4.7.0 完成）** | 0.5-1h | 有時效（6/16 強制），不做屆時 CI 會壞 |
+| ~~**2**~~ ✅ | ~~E1 推薦 / 防干擾漏斗埋點~~ **（v4.7.0 完成，window.songFunnel()）** | 2-3h | 用資料驗證這批優化到底有沒有用 |
+| ~~**3**~~ ✅ | ~~D1 待審核批次操作~~ **（v4.7.0 完成）** | 3-4h | 直接幫阿凱省排歌時間，活動量大時最有感 |
+| **4**（下一個） | A1 「我的推薦」追蹤 | 4-5h | 提高訪客回訪 + 個人化，延續推薦脈絡 |
 | **5** | C1 寬螢幕多欄擴及主歌單/排行 | 3-4h | 延續三欄好評，善用演出投影大螢幕 |
 | **6** | B1 補播升級「現場回顧」小條 | 3-4h | 資料已在手，把現場感做滿 |
+
+> ✅ **v4.7.0 完成 Top 6 的前 3（F1/E1/D1）**。下一步建議從 **A1「我的推薦」追蹤** 接續。
 
 ---
 
