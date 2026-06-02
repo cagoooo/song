@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：10.5
-> **更新日期**：2026-06-02（v4.6.4 — 防干擾分級 soft/hard + ResponsiveScrollList）
-> **當前版本**：**v4.6.4**（防干擾分級 soft/hard + 共用響應式長清單捲動容器）
+> **文件版本**：10.6
+> **更新日期**：2026-06-02（v4.6.5 — 行動鍵盤遮擋處理 + 全站 ScrollArea 稽核）
+> **當前版本**：**v4.6.5**（手機鍵盤遮擋自動捲動 + sticky 送出鈕 + VoteHistoryModal 捲動修正）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -105,6 +105,13 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.6.5（2026-06-02）— 行動鍵盤遮擋 + ScrollArea 稽核
+- ✅ **行動裝置鍵盤遮擋處理**（[useScrollFocusedIntoView.ts](client/src/hooks/useScrollFocusedIntoView.ts)）：手機鍵盤彈出時（聚焦延遲 300ms + visualViewport resize）把聚焦欄位 scrollIntoView 到可視區中央；只在觸控/小螢幕介入
+- ✅ **送出鈕 sticky 貼底**（SuggestionForm）：長內容/鍵盤彈出時仍隨手可按
+- ✅ **全站 Radix ScrollArea 稽核（#13）**：8 處中唯 VoteHistoryModal 用 `max-h` 有同款裁切陷阱 → 改用 `ResponsiveScrollList cap="always"`；其餘 7 處固定高度安全
+- ✅ **測試 +7**（鍵盤 hook 6 + ResponsiveScrollList cap 1），全套 **407 → 414**
+- ✅ **預覽實測**：390px sticky 送出鈕 + 聚焦捲動正常；VoteHistoryModal 灌 30 筆可捲到底
 
 ### v4.6.4（2026-06-02）— 防干擾分級 + 共用捲動容器
 - ✅ **防干擾分級 soft/hard**（[composingGuard.ts](client/src/lib/composingGuard.ts)）：搜尋框 → `soft`（覆蓋層淡化 opacity-30、保留現場感、ComboOverlay 不放彩帶）；表單 → `hard`（整組暫停）；hard 優先 soft；支援 `data-dnd` 屬性覆寫。API：`beginComposing(level)` / `useComposingLevel()`
@@ -826,10 +833,11 @@ npx playwright install chromium
 | ~~**3**~~ ✅ | ~~#8 即時重複偵測~~ **（v4.6.3 完成，inline amber 提示）** | 2-3h | 減少白打一場，延續推薦表單脈絡 |
 | ~~**4**~~ ✅ | ~~#1 防干擾分級 soft/hard~~ **（v4.6.4 完成，搜尋→soft 淡化 / 表單→hard 暫停）** | 4-5h | 讓搜尋時仍有現場感，不糊臉 |
 | ~~**5**~~ ✅ | ~~#12 ResponsiveScrollList~~ **（v4.6.4 完成，含 5 測試）** | 2-3h | 把這次 RWD 修法沉澱成可複用資產 |
-| **6**（下一個） | #9 行動鍵盤遮擋 | 2-4h | 手機是主力裝置，遮擋很惱人 |
-| **7** | #17 Playwright 防干擾 e2e | 2-3h | 鎖住這次成果不被未來改壞 |
+| ~~**6**~~ ✅ | ~~#9 行動鍵盤遮擋~~ **（v4.6.5 完成，自動捲動 + sticky 送出鈕）** | 2-4h | 手機是主力裝置，遮擋很惱人 |
+| **7**（下一個） | #17 Playwright 防干擾 e2e | 2-3h | 鎖住這次成果不被未來改壞 |
 
-> ✅ **v4.6.3 完成 Top 3**（#16 / #7 / #8）、**v4.6.4 完成 #4 / #5**。下一步建議從 **#6 行動鍵盤遮擋** 或 **#13 全站 Radix ScrollArea 稽核**（把更多長清單改用 ResponsiveScrollList）接續。
+> ✅ **進度**：v4.6.3 完成 Top 3（#16/#7/#8）、v4.6.4 完成 #4/#5、**v4.6.5 完成 #6 + #13（ScrollArea 稽核）**。
+> 優先表只剩 **#7 Playwright 防干擾 e2e**；其餘延伸項（#2 搜尋例外、#3 補播佇列、#4 已做、#5 已做、#6 已做、#10 IME、#11 送出儀式、#14 細捲軸 utility、#15 虛擬化、#18 埋點）可視需要挑做。
 
 ---
 
