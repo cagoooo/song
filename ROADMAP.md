@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：10.7
-> **更新日期**：2026-06-02（v4.6.6 — 防干擾端到端整合測試，優先表 Top 7 全清）
-> **當前版本**：**v4.6.6**（防干擾 gating 契約整合測試；輸入/防干擾/捲動體系 Top 7 完成）
+> **文件版本**：10.8
+> **更新日期**：2026-06-02（v4.6.7 — IME 組字保護 + 送出成功儀式）
+> **當前版本**：**v4.6.7**（推薦表單 IME 組字保護 + editorial 投遞成功儀式）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -105,6 +105,11 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.6.7（2026-06-02）— IME 組字保護 + 送出成功儀式
+- ✅ **IME 組字保護（#10）**（SuggestionForm）：form `onKeyDown` 攔截「組字中按 Enter」→ `preventDefault`，避免注音/拼音/日文選字時誤觸送出；一般 Enter 不受影響
+- ✅ **送出成功儀式（#11）**（SuggestionForm）：送出成功改顯示「Delivered · 已投遞」framer-motion 蓋章覆蓋層 + 小彩帶（動態 import canvas-confetti），停留 1.7s 自動關閉，取代單一 toast，呼應 editorial / VoterPassport 儀式語言
+- ✅ **驗證**：IME 組字 Enter 預覽實測被攔（一般 Enter 不攔）；成功儀式純展示層，以 419 測試無回歸 + 程式碼審查確保（不在線上 DB 製造測試資料）
 
 ### v4.6.6（2026-06-02）— 防干擾整合測試（Top 7 全清）
 - ✅ **防干擾端到端整合測試**（[composingGuard.integration.test.tsx](client/src/lib/composingGuard.integration.test.tsx)）：忠實複刻 Home 覆蓋層 gating，5 例驗證「真實聚焦 → 等級 → 渲染/淡化/消失」契約（初始正常 / 搜尋→soft 淡化 / 表單→hard 消失 / 失焦恢復 / soft→hard 切換）
@@ -842,8 +847,8 @@ npx playwright install chromium
 | ~~**6**~~ ✅ | ~~#9 行動鍵盤遮擋~~ **（v4.6.5 完成，自動捲動 + sticky 送出鈕）** | 2-4h | 手機是主力裝置，遮擋很惱人 |
 | ~~**7**~~ ✅ | ~~#17 防干擾 e2e~~ **（v4.6.6 完成，改輕量整合測試非 Playwright）** | 2-3h | 鎖住這次成果不被未來改壞 |
 
-> 🏁 **防干擾優先表 Top 7 全部完成**（v4.6.3 ~ v4.6.6）。
-> **尚未做的延伸項**（可視需要挑做）：#2 搜尋框設例外、#3 被抑制事件補播佇列、#10 IME 組字保護、#11 送出成功儀式、#14 細捲軸抽 utility、#15 長清單虛擬化、#18 輸入漏斗埋點。
+> 🏁 **防干擾優先表 Top 7 全部完成**（v4.6.3 ~ v4.6.6）；**v4.6.7 再完成 #10 IME 保護 + #11 送出儀式**。
+> **尚未做的延伸項**（可視需要挑做）：#2 搜尋框設例外、#3 被抑制事件補播佇列、#14 細捲軸抽 utility（已部分沉澱在 ResponsiveScrollList 的 THIN_SCROLLBAR）、#15 長清單虛擬化、#18 輸入漏斗埋點。
 
 ---
 
