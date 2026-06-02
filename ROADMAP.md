@@ -1,11 +1,34 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：10.2
-> **更新日期**：2026-05-18（v4.6.1 hotfix 事故覆盤）
-> **當前版本**：**v4.6.1**（CSS @import 順序救援 — 整站跑版 hotfix）
+> **文件版本**：10.3
+> **更新日期**：2026-06-02（v4.6.2 — 社群推薦 RWD + 全站防干擾輸入體系）
+> **當前版本**：**v4.6.2**（社群推薦清單 RWD 捲動修正 + 專注輸入防干擾 composing guard）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
+
+---
+
+## 🆕 v4.6.2 — 社群推薦 RWD + 全站「專注輸入」防干擾（2026-06-02）
+
+> **主題**：兩個都源自「使用者實際在現場用會卡住」的真實回饋 — 一個關於「看不到內容」，一個關於「打字被干擾」。沒有新增 dependency，純前端體驗修正，但建立了一個可長期複用的防干擾基礎設施。
+
+### 1️⃣ 社群歌曲推薦清單 — RWD 捲動修正
+- **問題**：「社群歌曲推薦」展開後內容被裁切、上下滾不動，看不到更多卡片。
+- **根因**：Radix `ScrollArea` 的 Root 只有 `max-height` + `overflow-hidden`，內部 Viewport 用 `h-full`（百分比高度無明確父高可參照）→ Viewport 撐成完整內容高度不觸發 overflow，超出部分被 `max-h` 硬裁掉；觸控裝置因預設 `type="hover"` 捲軸不顯示更難察覺。
+- **修法**（[SongSuggestion.tsx](client/src/components/SongSuggestion/SongSuggestion.tsx)）：丟棄 Radix `ScrollArea`，改原生捲動 — **手機不限高、清單自然展開交給整頁捲動（保證看得到全部）；桌機 `sm:max-h-[520px]` + `overflow-y-auto` + `overscroll-contain` + 自訂細捲軸**。
+- **驗證**：預覽量測手機（439px → overflow visible、19 張卡片自然展開）/ 桌機（1280px → max-h 520px、scrollHeight 1861 > 520、實測可捲到底）。
+
+### 2️⃣ 「專注輸入」防干擾 composing guard（基礎設施）
+- **問題**：使用者填「推薦新歌」表單打字時，全站即時投票會觸發連擊大字（z-9999）、黑馬慶祝（z-9998）、全站熱度（z-9997）、互動動畫等全螢幕覆蓋層，整片蓋在輸入框上方造成視覺衝擊、干擾輸入。
+- **解法**：新增輕量全域旗標 [composingGuard.ts](client/src/lib/composingGuard.ts)（`useSyncExternalStore` + 可重入計數）：
+  - **第一階段**：`SuggestionForm` Dialog 開啟期間登記「正在輸入」，Home 在此期間暫停渲染 4 個全螢幕覆蓋層（`ComboOverlay` / `DarkHorseOverlay` / `GlobalHypeOverlay` / `InteractionOverlay`），關閉即恢復。
+  - **第二階段（擴及全站）**：新增 `useComposingWhileTyping` 全域焦點監聽 hook，在 Home 掛載一次 → **全站「所有」文字輸入框**（搜尋、登入、編輯、匯入、標籤，含未來新增者）聚焦即自動防干擾、失焦即恢復；在輸入框之間切換以 120ms 延遲合併 `focusout→focusin` 避免覆蓋層閃現；排除 checkbox/radio/button/range/file 等非打字輸入。
+  - **設計亮點**：計數而非布林 → 多來源（多表單）可各自 enter/exit 不互相干擾；顯示端只需 `useIsComposing()` 一行。背後的計票 hook 持續運作，只暫停「視覺呈現」。
+- **驗證**：預覽以「真正聚焦 + 派發冒泡 focusin」精準模擬真實點擊 → 聚焦輸入框即抑制覆蓋層、失焦 120ms 後恢復；對話框守衛同樣通過。
+- **踩雷紀錄**：自動化環境的程式化 `.focus()` 不會派發會冒泡的原生 `focusin`，導致初測誤判「沒生效」；改用「真實聚焦 + 手動派發冒泡事件」才正確驗證。**未來測 focus 行為時要用真實互動（preview_click）或手動派發 bubbling 事件，別只靠 `el.focus()`。**
+
+> **延伸方向見下方新段落「🔕 專注輸入 / 防干擾體系延伸建議」** — 這個 composing guard 是一塊可長期投資的基礎設施。
 
 ---
 
@@ -74,13 +97,22 @@
 9. [🧪 測試策略升級](#-測試策略升級)
 10. [📈 可觀測性與分析](#-可觀測性與分析)
 11. [🎨 UX 細節提升清單](#-ux-細節提升清單)
-12. [🧹 程式碼健康度 / 技術債](#-程式碼健康度--技術債)
-13. [📅 建議實施時程 (v4.7 → v7.0)](#-建議實施時程)
-14. [🎯 Top 7 立即可做（推薦順序）](#-top-7-立即可做)
+12. [🔕 專注輸入 / 防干擾體系延伸建議](#-專注輸入--防干擾體系延伸建議)（**🆕 v4.6.2 衍生**）
+13. [🧹 程式碼健康度 / 技術債](#-程式碼健康度--技術債)
+14. [📅 建議實施時程 (v4.7 → v7.0)](#-建議實施時程)
+15. [🎯 Top 7 立即可做（推薦順序）](#-top-7-立即可做)
 
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.6.2（2026-06-02）— 社群推薦 RWD + 全站防干擾輸入
+- ✅ **社群歌曲推薦清單 RWD 捲動修正**（[SongSuggestion.tsx](client/src/components/SongSuggestion/SongSuggestion.tsx)）：丟棄 Radix `ScrollArea`，手機自然展開、桌機原生 `overflow-y-auto` 限高 520px + 自訂細捲軸
+- ✅ **composing guard 基礎設施**（[composingGuard.ts](client/src/lib/composingGuard.ts)）：`useSyncExternalStore` + 可重入計數的全域「專注輸入」旗標
+- ✅ **推薦表單打字時暫停 4 個全螢幕覆蓋層**（Combo / DarkHorse / GlobalHype / Interaction）
+- ✅ **`useComposingWhileTyping` 全域焦點監聽**：全站所有文字輸入框聚焦即自動防干擾、失焦恢復，零散接線
+- ✅ **預覽實測通過**：RWD 兩種斷點捲動正常；防干擾聚焦即抑制、失焦 120ms 後恢復
+- 💡 **延伸建議已寫進 ROADMAP**：見「🔕 專注輸入 / 防干擾體系延伸建議」段
 
 ### v4.6.1（2026-05-18）— CSS @import 順序救援 hotfix
 - ✅ **修復 `client/src/index.css`**：6 個 editorial CSS 的 `@import` 從 `@tailwind` 後面移到前面
@@ -693,6 +725,98 @@ npx playwright install chromium
 
 ---
 
+## 🔕 專注輸入 / 防干擾體系延伸建議
+
+> **背景**：v4.6.2 建立了 `composingGuard`（全域「專注輸入」旗標）+ `useComposingWhileTyping`（焦點監聽）。這是一塊**可長期投資的基礎設施** — 目前只用來「打字時暫停全螢幕慶祝動畫」，但同一套機制可以延伸成完整的「現場體驗節奏控制」。以下按「直接延伸 → 體系深化 → 整體輸入體驗 → 捲動體系 → 測試/可觀測性」排序，每項標 priority + 估時，方便你挑著做。
+
+### 🅰️ 防干擾體系深化（建立在 composingGuard 上）
+
+1. **🟠 P1｜防干擾「分級」而非「全有全無」（4-5h）**
+   - 現況：打字時 4 個覆蓋層全部 `return null`（hard mute）。
+   - 升級：分 `hard`（表單，全擋）/ `soft`（搜尋，只降強度）兩級。soft 模式不全關，而是把慶祝動畫**縮到角落、降透明度、縮短時長**，讓使用者搜尋時仍感受得到現場熱度但不被糊臉。
+   - 作法：`beginComposing(level)` 帶等級，`useIsComposing()` 回傳等級；覆蓋層依等級套不同 className（角落小尺寸 vs 全螢幕）。
+
+2. **🟠 P1｜搜尋框設為例外 / 可設定（30min）**
+   - 現況：聚焦搜尋框也會暫停所有動畫（符合「打字不被干擾」，但搜尋很短暫，有人可能想邊搜邊看熱度）。
+   - 作法：`isTextEntry` 加一個「排除清單」（用 `data-allow-overlays` 屬性標記），搜尋框掛上即不觸發防干擾；或做成 admin 設定開關。
+
+3. **🟡 P2｜防干擾期間的事件「補播佇列」（5-6h）**
+   - 痛點：使用者打字時剛好出現黑馬時刻 / 里程碑 → 被暫停 → 永遠錯過這個高潮。
+   - 升級：被抑制期間，把「重要事件」（黑馬、50/100/200 里程碑）推進佇列；表單關閉/失焦後，快速回放一個「剛剛你錯過了 🎉」精簡版 toast，而非完全吞掉。
+   - 價值：兼顧「不干擾」與「不漏掉現場最嗨的瞬間」。
+
+4. **🟡 P2｜整合 `prefers-reduced-motion`（1-2h）**
+   - 把系統「減少動態」偏好也接進同一條抑制管線：偵測到偏好 → 永久 soft mute（慶祝動畫改靜態徽章 / 短淡入）。
+   - 與 OpeningCurtain 已有的 `prefers-reduced-motion` 邏輯統一收斂到一個 hook。
+
+5. **🟢 P2｜抽成宣告式 `<DoNotDisturbBoundary>`（3-4h）**
+   - 現況：靠 Home 手動 `{!isComposing && <X/>}` 包 4 個覆蓋層。
+   - 升級：抽成 `<DoNotDisturbBoundary>{...overlays}</DoNotDisturbBoundary>`，內部讀 `useIsComposing()` 決定渲染，新增覆蓋層自動受保護，避免漏包。
+
+6. **🟢 P3｜防干擾涵蓋更多干擾源（依需求）**
+   - 目前只擋 4 個慶祝/互動覆蓋層。可評估是否也要在打字時暫停：UpNextBar 的脈動動畫、SW 更新 banner（`UpdatePrompt`）自動彈出、Toast 風暴（多筆投票連發 toast）。
+
+### 🅱️ 推薦表單 / 輸入體驗整體升級（延續本次脈絡）
+
+7. **🟠 P1｜表單草稿自動暫存（2-3h）**
+   - 痛點：使用者打到一半誤觸關閉 / 切走 → 全部消失，要重打。
+   - 作法：title/artist/notes 即時寫 `localStorage`，重開表單自動回填，送出成功才清除。
+
+8. **🟠 P1｜即時重複偵測（打字時就提示）（2-3h）**
+   - 現況：`checkDuplicate` 只在「送出時」擋。
+   - 升級：title `onChange` debounce 300ms 即時比對，欄位下方顯示「這首好像已經在歌單了 →」inline 提示 + 快速跳轉，減少白打一場的挫折。
+
+9. **🟠 P1｜行動裝置鍵盤遮擋處理（2-4h）**
+   - 痛點：手機鍵盤彈出時，Dialog 下半部欄位（notes / 送出鈕）容易被鍵盤蓋住。
+   - 作法：用 `visualViewport` API 偵測鍵盤高度，聚焦欄位自動 `scrollIntoView`；送出鈕改 sticky 貼在可視區底。
+
+10. **🟡 P2｜IME 組字保護（1-2h）**
+    - 痛點：注音 / 拼音 / 日文輸入「組字中」按 Enter 是要選字，不該誤觸送出。
+    - 作法：監聽 `compositionstart/end`，組字期間擋掉 Enter submit；composing guard 也可順便接 composition 事件強化偵測。
+
+11. **🟢 P2｜送出後的成功儀式（2-3h）**
+    - 現況：送出只有一個 toast。
+    - 升級：給推薦者一個 editorial 風小確認動畫（「你的推薦已投遞 №N」信封蓋章），呼應 VoterPassport 的儀式語言，提高再次推薦意願。
+
+### 🅲 RWD / 捲動體系（延續推薦清單修正）
+
+12. **🟠 P1｜抽共用 `<ResponsiveScrollList>`（2-3h）**
+    - 把本次「手機自然展開 / 桌機限高 + 原生捲動 + 細捲軸」抽成共用元件，排行榜、點播歷史、建議清單等長清單一律複用，避免每處重踩 Radix ScrollArea 陷阱。
+
+13. **🟠 P1｜全站 Radix `ScrollArea` 稽核（1-2h）**
+    - grep 全 repo 找還有沒有別處用 `ScrollArea` + `max-h` + 內部 `h-full` 的同款陷阱（可能同樣裁切看不到內容），一次修掉。
+
+14. **🟡 P2｜細捲軸樣式抽成 utility（30min）**
+    - 目前 inline arbitrary（`[&::-webkit-scrollbar]:...`）很長，抽成 `.scrollbar-editorial` CSS class 或 Tailwind plugin，重複使用更乾淨。（也呼應「UX 細節提升清單 → 滾動條樣式化」那一條，可一起做）
+
+15. **🟢 P3｜長清單虛擬化（4-6h）**
+    - 當建議數 / 排行榜破百筆，導入 `react-window` 虛擬化，只渲染可視範圍，省記憶體與捲動效能。目前資料量還沒到，列為觀察項。
+
+### 🅳 測試 / 可觀測性（把這次手測自動化）
+
+16. **🟠 P1｜composingGuard 單元測試（1-2h）**
+    - `beginComposing` 可重入計數（多次 enter/exit 平衡、release 只生效一次）、`useIsComposing` 訂閱與通知、`isTextEntry` 各類型判定。補進現有 vitest（呼應技術債「5 件套 0 測試」）。
+
+17. **🟠 P1｜Playwright e2e：防干擾行為（2-3h）**
+    - 把這次「真實聚焦輸入框 → 派發投票事件 → 斷言覆蓋層不出現；失焦後出現」寫成自動化 e2e，避免未來改動 Home 覆蓋層渲染時悄悄破壞防干擾。（與「📛 事故覆盤 B1 Playwright smoke」可共用 harness）
+
+18. **🟢 P2｜輸入漏斗 / 防干擾埋點（2-3h）**
+    - 記錄「推薦表單 開啟 → 開始打字 → 送出」漏斗與放棄率、防干擾觸發次數，回答「干擾是否真的影響推薦轉換」「分級防干擾上線後有沒有改善」。接 P0 既有 analytics 管線即可。
+
+### 🎯 防干擾體系 — 建議優先順序
+
+| 優先 | 項目 | 估時 | 一句話理由 |
+|------|------|------|-----------|
+| **1** | #16 composingGuard 單元測試 | 1-2h | 新基礎設施要先有測試護欄 |
+| **2** | #7 表單草稿自動暫存 | 2-3h | 直接救「誤關全沒」的挫折，CP 值最高 |
+| **3** | #8 即時重複偵測 | 2-3h | 減少白打一場，延續推薦表單脈絡 |
+| **4** | #1 防干擾分級 soft/hard | 4-5h | 讓搜尋時仍有現場感，不糊臉 |
+| **5** | #12 ResponsiveScrollList | 2-3h | 把這次 RWD 修法沉澱成可複用資產 |
+| **6** | #9 行動鍵盤遮擋 | 2-4h | 手機是主力裝置，遮擋很惱人 |
+| **7** | #17 Playwright 防干擾 e2e | 2-3h | 鎖住這次成果不被未來改壞 |
+
+---
+
 ## 🧹 程式碼健康度 / 技術債
 
 > v4.3.0 → v4.6.0 三週快速堆積的技術債盤點。
@@ -752,10 +876,12 @@ npx playwright install chromium
 |------|------|------|
 | 1. **API Key restrictions 檢查**（拖三版了） | 0.5h | 無 |
 | 2. 「結束今晚」confirm dialog | 0.5h | 無 |
-| 3. `index.css` 拆 5 個檔 | 2h | 無 |
-| 4. 5 件套單元測試（先寫 3 個高風險：Passport / UpNext / ShareCard） | 3h | 無 |
+| 3. 5 件套單元測試（先寫 3 個高風險：Passport / UpNext / ShareCard） | 3h | 無 |
+| 4. **🆕 composingGuard 單元測試**（防干擾體系 #16） | 1-2h | 無 |
+| 5. **🆕 推薦表單草稿自動暫存**（防干擾體系 #7，誤關不消失） | 2-3h | 無 |
 
-**驗收**：API key 有 referer 限制、index.css 最大檔 < 1500 行、testbench 240+ 個 ✅
+**驗收**：API key 有 referer 限制、testbench 240+ 個、推薦表單誤關後重開可回填 ✅
+> 💡 更多防干擾 / 輸入體驗延伸見「🔕 專注輸入 / 防干擾體系延伸建議」段的優先順序表。
 
 ### v4.8.0（下週，6-8 小時）
 > **主題：把 5 件套串得更深**
