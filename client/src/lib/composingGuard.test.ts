@@ -274,6 +274,26 @@ describe('composingGuard — useComposingWhileTyping（焦點監聽）', () => {
         expect(result.current).toBe('hard');
     });
 
+    it('data-dnd="off" 讓輸入框完全不觸發防干擾（搜尋框例外）', () => {
+        vi.useFakeTimers();
+        const { result } = renderHook(() => {
+            guard.useComposingWhileTyping();
+            return guard.useComposingLevel();
+        });
+
+        // 模擬 SearchBar：search 框掛 data-dnd="off"
+        const search = makeInput('search');
+        search.setAttribute('data-dnd', 'off');
+        document.body.appendChild(search);
+
+        act(() => {
+            search.focus();
+            search.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+        });
+        // 預設 search→soft，但 data-dnd="off" 覆寫 → null（不觸發）
+        expect(result.current).toBe(null);
+    });
+
     it('data-dnd="soft" 祖先可把一般輸入框降為 soft', () => {
         vi.useFakeTimers();
         const { result } = renderHook(() => {

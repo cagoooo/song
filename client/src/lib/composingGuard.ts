@@ -93,6 +93,7 @@ function levelForElement(el: Element | null): ComposingLevel | null {
     if (!isTextEntry(el)) return null;
     const node = el as HTMLElement;
     const override = node.closest('[data-dnd]')?.getAttribute('data-dnd');
+    if (override === 'off') return null; // 顯式例外：此輸入框完全不觸發防干擾（覆蓋層照常顯示）
     if (override === 'soft' || override === 'hard') return override;
     if (node.tagName === 'INPUT' && (node as HTMLInputElement).type === 'search') return 'soft';
     return 'hard';
