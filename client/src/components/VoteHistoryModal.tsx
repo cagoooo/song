@@ -3,7 +3,7 @@ import {
     Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ResponsiveScrollList } from '@/components/ui/ResponsiveScrollList';
 import { Music, Trash2 } from 'lucide-react';
 import type { VoteHistoryEntry } from '@/hooks/useVoteHistory';
 
@@ -124,7 +124,7 @@ export function VoteHistoryModal({
                             <span aria-hidden="true" />
                         </div>
 
-                        <ScrollArea className="max-h-[420px]">
+                        <ResponsiveScrollList cap="always" maxHeightClass="max-h-[420px]">
                             <ul className="divide-y divide-[rgba(17,17,17,0.08)]">
                                 {sortedHistory.map((entry, i) => (
                                     <li
@@ -193,7 +193,7 @@ export function VoteHistoryModal({
                                     </li>
                                 ))}
                             </ul>
-                        </ScrollArea>
+                        </ResponsiveScrollList>
 
                         {/* 底部摘要 + 清除按鈕 */}
                         <div

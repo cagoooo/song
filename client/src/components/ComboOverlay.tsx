@@ -5,18 +5,20 @@ import { getMilestone, type ComboState } from '@/hooks/useComboCounter';
 
 interface ComboOverlayProps {
     combo: ComboState | null;
+    /** soft 防干擾模式：仍顯示卡片但不放彩帶（避免搜尋時彩帶亂噴干擾） */
+    suppressConfetti?: boolean;
 }
 
 /**
  * 連擊覆蓋層 — Editorial 雜誌風拍立得
  * 白色卡片旋轉 -3° + ★ COMBO ×N ★ 黑色頂條 + 大義式藍 N× + 副標「連發點播 · 別停下來」
  */
-export function ComboOverlay({ combo }: ComboOverlayProps) {
+export function ComboOverlay({ combo, suppressConfetti = false }: ComboOverlayProps) {
     const lastConfettiKey = useRef<string>('');
     const milestone = combo ? getMilestone(combo.count) : null;
 
     useEffect(() => {
-        if (!combo || !milestone) return;
+        if (!combo || !milestone || suppressConfetti) return;
         const key = `${combo.songId}_${combo.count}`;
         if (lastConfettiKey.current === key) return;
         lastConfettiKey.current = key;
@@ -30,7 +32,7 @@ export function ComboOverlay({ combo }: ComboOverlayProps) {
             shapes: ['circle', 'square', 'star'],
             zIndex: 10000,
         });
-    }, [combo, milestone]);
+    }, [combo, milestone, suppressConfetti]);
 
     return (
         <AnimatePresence>

@@ -47,6 +47,8 @@ export default function SearchBar({
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         aria-label="搜尋歌曲或歌手"
+        // 搜尋框設為防干擾「例外」：搜尋時覆蓋層照常顯示，讓使用者邊搜邊看現場熱度
+        data-dnd="off"
         className={`pl-11 pr-28 h-12 text-base relative z-10 rounded-xl
                  bg-white
                  border-2 

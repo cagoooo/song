@@ -12,9 +12,11 @@ import { useVoteHistory, type VoteHistoryEntry } from "@/hooks/useVoteHistory";
 import { VoteHistoryButton } from "../components/VoteHistoryButton";
 import { SortSelector } from "../components/SortSelector";
 import { useSortMode } from "@/hooks/useSortMode";
+import { useComposingLevel, useComposingWhileTyping } from "@/lib/composingGuard";
 import { useComboCounter } from "@/hooks/useComboCounter";
 import { ComboOverlay } from "../components/ComboOverlay";
 import { useDarkHorse } from "@/hooks/useDarkHorse";
+import { useMissedHypeReplay } from "@/hooks/useMissedHypeReplay";
 import { DarkHorseOverlay } from "../components/DarkHorseOverlay";
 import { useGlobalHype } from "@/hooks/useGlobalHype";
 import { useVoterLeaderboard } from "@/hooks/useVoterLeaderboard";
@@ -109,6 +111,10 @@ export default function Home() {
   const [printMode, setPrintMode] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
   const curtainCheckedRef = useRef(false);
+  // 全站任一文字輸入框聚焦時自動進入「專注輸入」模式（涵蓋搜尋、登入、編輯、匯入等所有輸入框）
+  useComposingWhileTyping();
+  // 專注輸入等級：'hard'（表單）暫停覆蓋層、'soft'（搜尋）淡化、null 正常顯示
+  const composingLevel = useComposingLevel();
   const { combo } = useComboCounter();
   // PrintProgram 需要 topVoters — 只在 printMode 啟用時 mount，
   // 否則訂閱 Firestore VoterLeaderboard 會多送一次 read
@@ -150,6 +156,17 @@ export default function Home() {
   const darkHorseEvent = useDarkHorse(songs);
   const hypeEvent = useGlobalHype(songs);
   const { toast } = useToast();
+
+  // 補播佇列：填表單（hard 防干擾）時錯過的黑馬／全站熱度，打完字後補一則精簡提示
+  const handleReplayMissed = useCallback((missedLabels: string[]) => {
+    toast({
+      title: '剛剛你忙著打字，錯過了現場高潮 🎉',
+      description: (
+        <span className="block whitespace-pre-line">{missedLabels.join('\n')}</span>
+      ),
+    });
+  }, [toast]);
+  useMissedHypeReplay({ composingLevel, darkHorseEvent, hypeEvent, onReplay: handleReplayMissed });
   const { user, logout } = useUser();
   const { allTags, songTagsMap, tagSongCount } = useAllSongTags();
   const {
@@ -922,9 +939,6 @@ export default function Home() {
         }}
       />
 
-      {/* 互動動畫覆蓋層（全螢幕） */}
-      <InteractionOverlay />
-
       {/* PWA 安裝提示 */}
       <PWAInstallPrompt />
 
@@ -940,14 +954,25 @@ export default function Home() {
         onClose={dismissSuggestion}
       />
 
-      {/* 連擊計數中央大字效果 */}
-      <ComboOverlay combo={combo} />
-
-      {/* 黑馬時刻全螢幕慶祝 */}
-      <DarkHorseOverlay event={darkHorseEvent} />
-
-      {/* 全站投票熱度（1 分鐘 50/100/200 票觸發） */}
-      <GlobalHypeOverlay event={hypeEvent} />
+      {/*
+        全螢幕慶祝／互動覆蓋層群組 — 依專注輸入等級調整：
+          hard（表單）→ 整組不渲染（完全暫停）
+          soft（搜尋）→ 淡化（opacity-30）保留現場感但不糊臉；ComboOverlay 連帶不放彩帶
+          null         → 正常顯示
+        這些覆蓋層皆 position:fixed，外層 div 無 transform 不影響其定位，opacity 會一併淡化整組。
+      */}
+      {composingLevel !== 'hard' && (
+        <div className={composingLevel === 'soft' ? 'opacity-30 transition-opacity duration-300' : undefined}>
+          {/* 互動動畫覆蓋層（全螢幕） */}
+          <InteractionOverlay />
+          {/* 連擊計數中央大字效果 */}
+          <ComboOverlay combo={combo} suppressConfetti={composingLevel === 'soft'} />
+          {/* 黑馬時刻全螢幕慶祝 */}
+          <DarkHorseOverlay event={darkHorseEvent} />
+          {/* 全站投票熱度（1 分鐘 50/100/200 票觸發） */}
+          <GlobalHypeOverlay event={hypeEvent} />
+        </div>
+      )}
 
       {/* SW 新版本通知 banner (右下角) */}
       <UpdatePrompt />

@@ -1,6 +1,9 @@
 // 建議新歌曲表單對話框 - 含重複檢測功能
-import { useState, useCallback, memo, useMemo } from 'react';
+import { useState, useCallback, memo, useMemo, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { beginComposing } from '@/lib/composingGuard';
+import { loadDraft, saveDraft, clearDraft } from '@/lib/draftStorage';
+import { useScrollFocusedIntoView } from '@/hooks/useScrollFocusedIntoView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,7 +27,8 @@ import {
     AlertDialogAction,
     AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
-import { Lightbulb, Plus, Music2, FileText, PlusCircle, Sparkles, CheckCircle, ThumbsUp } from 'lucide-react';
+import { Lightbulb, Plus, Music2, FileText, PlusCircle, Sparkles, CheckCircle, ThumbsUp, RotateCcw, X, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { submitSuggestion } from '@/hooks/use-suggestions';
 import type { Song } from '@/lib/firestore';
 
@@ -38,6 +42,15 @@ interface SuggestionFormProps {
 interface MatchedSong {
     song: Song;
     matchType: 'exact' | 'partial';
+}
+
+// 表單草稿：打到一半誤關 / 切走 / 重新整理也不消失
+const DRAFT_KEY = 'song-suggestion-draft-v1';
+interface SuggestionDraft {
+    title: string;
+    artist: string;
+    suggestedBy: string;
+    notes: string;
 }
 
 // 歌手選項按鈕 — Editorial 雜誌風 chip
@@ -71,14 +84,55 @@ const ArtistOption = memo(function ArtistOption({
 });
 
 export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToSong }: SuggestionFormProps) {
-    const [title, setTitle] = useState('');
-    const [artist, setArtist] = useState('');
-    const [suggestedBy, setSuggestedBy] = useState('');
-    const [notes, setNotes] = useState('');
+    // 初始值從 localStorage 草稿回填（lazy initializer，只在 mount 時讀一次）
+    const initialDraft = useMemo(() => loadDraft<SuggestionDraft>(DRAFT_KEY), []);
+    const [title, setTitle] = useState(initialDraft?.title ?? '');
+    const [artist, setArtist] = useState(initialDraft?.artist ?? '');
+    const [suggestedBy, setSuggestedBy] = useState(initialDraft?.suggestedBy ?? '');
+    const [notes, setNotes] = useState(initialDraft?.notes ?? '');
+    // 是否有回填草稿 → 顯示「已回填上次草稿」提示，可一鍵清除
+    const [draftRestored, setDraftRestored] = useState(
+        !!(initialDraft && (initialDraft.title || initialDraft.artist || initialDraft.suggestedBy || initialDraft.notes))
+    );
     const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
     const [matchedSong, setMatchedSong] = useState<MatchedSong | null>(null);
+    // 送出成功儀式：顯示「已投遞」印章動畫，短暫停留後自動關閉
+    const [submitted, setSubmitted] = useState(false);
     const { toast } = useToast();
     const queryClient = useQueryClient();
+
+    // 表單開啟期間進入「專注輸入」模式 → 暫停全站慶祝／互動全螢幕覆蓋層，避免蓋住輸入框干擾打字
+    useEffect(() => {
+        if (!isOpen) return;
+        const release = beginComposing();
+        return release;
+    }, [isOpen]);
+
+    // 手機鍵盤彈出時，把聚焦欄位自動捲進可視區，避免被鍵盤遮住
+    useScrollFocusedIntoView(isOpen);
+
+    // 自動暫存草稿（debounce 400ms）；全部清空時移除草稿
+    useEffect(() => {
+        const isEmpty = !title && !artist && !suggestedBy && !notes;
+        if (isEmpty) {
+            clearDraft(DRAFT_KEY);
+            return;
+        }
+        const timer = setTimeout(() => {
+            saveDraft<SuggestionDraft>(DRAFT_KEY, { title, artist, suggestedBy, notes });
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [title, artist, suggestedBy, notes]);
+
+    // 清空表單 + 草稿（送出成功 / 手動清除草稿共用）
+    const resetForm = useCallback(() => {
+        setTitle('');
+        setArtist('');
+        setSuggestedBy('');
+        setNotes('');
+        setDraftRestored(false);
+        clearDraft(DRAFT_KEY);
+    }, []);
 
     // 檢測歌曲是否已存在
     const checkDuplicate = useCallback((inputTitle: string, inputArtist: string): MatchedSong | null => {
@@ -109,21 +163,43 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
         return null;
     }, [songs]);
 
+    // 即時重複偵測 — 打字時（debounce 400ms）就比對歌單，標題 ≥2 字才提示以免噪音
+    const [liveMatch, setLiveMatch] = useState<MatchedSong | null>(null);
+    useEffect(() => {
+        if (title.trim().length < 2) {
+            setLiveMatch(null);
+            return;
+        }
+        const timer = setTimeout(() => {
+            setLiveMatch(checkDuplicate(title, artist));
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [title, artist, checkDuplicate]);
+
     const addSuggestionMutation = useMutation({
         mutationFn: async () => {
             return submitSuggestion(title, artist, suggestedBy, notes);
         },
         onSuccess: () => {
-            toast({
-                title: '建議送出成功！',
-                description: '感謝您的推薦，我們會盡快審核！',
-            });
-            setTitle('');
-            setArtist('');
-            setSuggestedBy('');
-            setNotes('');
-            onOpenChange(false);
             queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
+            // 投遞成功儀式：顯示「已投遞」印章 + 小彩帶，短暫停留後自動關閉
+            setSubmitted(true);
+            void import('canvas-confetti').then(({ default: confetti }) => {
+                confetti({
+                    particleCount: 60,
+                    spread: 70,
+                    startVelocity: 38,
+                    origin: { x: 0.5, y: 0.5 },
+                    colors: ['#2b4dff', '#ffffff', '#0ea5e9', '#1d4ed8'],
+                    ticks: 90,
+                    zIndex: 10001,
+                });
+            }).catch(() => { /* 彩帶失敗不影響主流程 */ });
+            setTimeout(() => {
+                setSubmitted(false);
+                resetForm();
+                onOpenChange(false);
+            }, 1700);
         },
         onError: (error: Error) => {
             toast({
@@ -149,18 +225,29 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
         addSuggestionMutation.mutate();
     }, [title, artist, checkDuplicate, addSuggestionMutation]);
 
-    const handleNavigateToSong = useCallback(() => {
-        if (matchedSong && onNavigateToSong) {
-            onOpenChange(false);
-            setShowDuplicateDialog(false);
-            onNavigateToSong(matchedSong.song.id);
-            toast({
-                title: '🎵 找到了！',
-                description: `已跳轉至「${matchedSong.song.title}」，快來點播吧！`,
-                variant: 'success',
-            });
+    // IME 組字保護：注音／拼音／日文等「組字中」按 Enter 是選字，不該觸發表單送出
+    const handleFormKeyDown = useCallback((e: React.KeyboardEvent<HTMLFormElement>) => {
+        if (e.key === 'Enter' && (e.nativeEvent as KeyboardEvent).isComposing) {
+            e.preventDefault();
         }
-    }, [matchedSong, onNavigateToSong, onOpenChange, toast]);
+    }, []);
+
+    // 跳轉到指定歌曲（重複對話框 / 即時提示共用）
+    const navigateToSong = useCallback((song: Song) => {
+        if (!onNavigateToSong) return;
+        onOpenChange(false);
+        setShowDuplicateDialog(false);
+        onNavigateToSong(song.id);
+        toast({
+            title: '🎵 找到了！',
+            description: `已跳轉至「${song.title}」，快來點播吧！`,
+            variant: 'success',
+        });
+    }, [onNavigateToSong, onOpenChange, toast]);
+
+    const handleNavigateToSong = useCallback(() => {
+        if (matchedSong) navigateToSong(matchedSong.song);
+    }, [matchedSong, navigateToSong]);
 
     const handleForceSubmit = useCallback(() => {
         setShowDuplicateDialog(false);
@@ -192,7 +279,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                     </Button>
                 </DialogTrigger>
 
-                <DialogContent className="w-[calc(100vw-2rem)] max-w-md p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="relative w-[calc(100vw-2rem)] max-w-md p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)] max-h-[90vh] overflow-y-auto">
                     {/* 雜誌頂條 */}
                     <div className="editorial-modal-flag">
                         <span>Nº 12</span>
@@ -241,7 +328,25 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6">
+                    <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-4 px-6 pb-6">
+                        {/* 草稿回填提示 — 上次未送出的內容已自動帶回，可一鍵清除重填 */}
+                        {draftRestored && (
+                            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-[#2b4dff]/[0.06] border border-[#2b4dff]/20 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <RotateCcw className="w-3.5 h-3.5 text-[#2b4dff] shrink-0" />
+                                <span className="text-xs text-[#2b4dff] flex-1" style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.02em' }}>
+                                    已帶回上次未送出的草稿
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-red-500 transition-colors"
+                                >
+                                    <X className="w-3 h-3" />
+                                    清除重填
+                                </button>
+                            </div>
+                        )}
+
                         {/* 歌曲名稱 */}
                         <div className="space-y-1.5">
                             <Label
@@ -267,6 +372,27 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                                 className="h-11 bg-white border-[rgba(17,17,17,0.18)] focus:border-[#2b4dff] focus-visible:ring-2 focus-visible:ring-[#2b4dff]/20 rounded-md px-4 text-slate-900"
                                 placeholder="輸入歌曲名稱"
                             />
+                            {/* 即時重複偵測 — 打字時就提示歌單裡可能已有，點一下直接前往點播 */}
+                            {liveMatch && (
+                                <button
+                                    type="button"
+                                    onClick={() => navigateToSong(liveMatch.song)}
+                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left
+                                        bg-amber-50 border border-amber-200 hover:border-amber-300 hover:bg-amber-100/70
+                                        transition-colors animate-in fade-in slide-in-from-top-1 duration-200 group"
+                                >
+                                    <CheckCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                                    <span className="flex-1 min-w-0 text-xs text-amber-800">
+                                        {liveMatch.matchType === 'exact' ? '這首好像已在歌單：' : '歌單裡有相似的歌：'}
+                                        <span className="font-semibold truncate">「{liveMatch.song.title}」</span>
+                                        <span className="text-amber-600/80">（{liveMatch.song.voteCount || 0} 票）</span>
+                                    </span>
+                                    <span className="shrink-0 inline-flex items-center gap-0.5 text-[11px] font-semibold text-amber-700 group-hover:text-amber-900">
+                                        前往點播
+                                        <ThumbsUp className="w-3 h-3" />
+                                    </span>
+                                </button>
+                            )}
                         </div>
 
                         {/* 歌手 */}
@@ -357,8 +483,8 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                             />
                         </div>
 
-                        {/* 送出按鈕 */}
-                        <div className="pt-2">
+                        {/* 送出按鈕 — sticky 貼在對話框底部，長內容 / 手機鍵盤彈出時仍隨手可按 */}
+                        <div className="sticky bottom-0 z-10 -mx-6 mt-2 px-6 pt-3 pb-1 bg-[#faf7f0] border-t border-[rgba(17,17,17,0.08)]">
                             <Button
                                 type="submit"
                                 disabled={addSuggestionMutation.isPending}
@@ -378,6 +504,67 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                             </Button>
                         </div>
                     </form>
+
+                    {/* 送出成功儀式 — Editorial 投遞印章覆蓋層 */}
+                    <AnimatePresence>
+                        {submitted && (
+                            <motion.div
+                                className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-[#faf7f0] px-8 text-center"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.4, rotate: -18, opacity: 0 }}
+                                    animate={{ scale: 1, rotate: -6, opacity: 1 }}
+                                    transition={{ type: 'spring', stiffness: 260, damping: 15 }}
+                                    className="relative flex h-28 w-28 items-center justify-center rounded-full border-[3px] border-[#2b4dff]"
+                                    style={{ boxShadow: '0 12px 36px -14px rgba(43,77,255,0.55)' }}
+                                >
+                                    <Check className="h-12 w-12 text-[#2b4dff]" strokeWidth={2.5} />
+                                    <Sparkles className="absolute -right-1 -top-1 h-5 w-5 text-[#2b4dff] animate-pulse" />
+                                </motion.div>
+                                <div className="space-y-1">
+                                    <div
+                                        style={{
+                                            fontFamily: 'var(--font-mono)',
+                                            fontSize: 11,
+                                            letterSpacing: '0.24em',
+                                            textTransform: 'uppercase',
+                                            color: 'var(--ed-ink-3)',
+                                        }}
+                                    >
+                                        Delivered · 已投遞
+                                    </div>
+                                    <div
+                                        style={{
+                                            fontFamily: 'var(--font-display)',
+                                            fontStyle: 'italic',
+                                            fontWeight: 900,
+                                            fontSize: 26,
+                                            letterSpacing: '-0.02em',
+                                            color: 'var(--ed-ink-1)',
+                                            lineHeight: 1.15,
+                                        }}
+                                    >
+                                        推薦已送達<span style={{ color: '#2b4dff' }}>阿凱老師</span>
+                                    </div>
+                                </div>
+                                <p
+                                    style={{
+                                        fontFamily: 'var(--font-display)',
+                                        fontStyle: 'italic',
+                                        fontSize: 14,
+                                        color: 'var(--ed-ink-2)',
+                                        lineHeight: 1.5,
+                                    }}
+                                >
+                                    謝謝你的好品味，審核後就會出現在點播清單 ♪
+                                </p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </DialogContent>
             </Dialog>
 
