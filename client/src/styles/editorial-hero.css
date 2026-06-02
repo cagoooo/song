@@ -386,6 +386,39 @@
   border-radius: inherit;
   transition: width 0.6s ease;
 }
+
+/* === SongCard 容器查詢 RWD（依卡片自身寬度，而非視窗寬度）===
+   解決：演出投影大螢幕「整頁雙欄 × 歌單內再雙欄」巢狀佈局下，
+   每張卡片只剩 ~330px，視窗斷點卻仍展開所有裝飾元素，把歌名擠到消失。
+   改成依卡片自身寬度漸進顯示：歌名永遠優先，票數窄時用精簡版。 */
+.editorial-song-card {
+  container-type: inline-size;
+  container-name: songcard;
+}
+
+/* 預設（最窄，如手機 / 投影雙欄）：只露精簡票數，編號 / 封面 / 完整票數條收起 */
+.song-card-num,
+.song-card-cover,
+.song-card-votes {
+  display: none;
+}
+.song-card-vote-compact {
+  display: flex;
+}
+
+/* ≥ 360px：露出雜誌風排序編號 */
+@container songcard (min-width: 360px) {
+  .song-card-num { display: flex; }
+}
+/* ≥ 420px：露出黑膠 mini 封面 */
+@container songcard (min-width: 420px) {
+  .song-card-cover { display: block; }
+}
+/* ≥ 480px：改用完整票數區（大數字 + 漸層進度條），收起精簡票數 */
+@container songcard (min-width: 480px) {
+  .song-card-votes { display: flex; }
+  .song-card-vote-compact { display: none; }
+}
 .editorial-trend {
   font-family: var(--font-mono);
   font-size: 10px;

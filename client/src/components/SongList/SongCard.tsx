@@ -60,7 +60,7 @@ export const SongCard = memo(function SongCard({
     return (
         <div
             id={`song-${songId}`}
-            className={`flex items-center gap-3 p-3 sm:p-4 rounded-lg
+            className={`editorial-song-card flex items-center gap-3 p-3 sm:p-4 rounded-lg
                 bg-white border border-slate-200/80
                 hover:border-slate-300 hover:shadow-sm
                 transition-all duration-150
@@ -71,9 +71,9 @@ export const SongCard = memo(function SongCard({
                 animationFillMode: 'backwards'
             }}
         >
-            {/* 雜誌風排序編號 — 桌面顯示，手機隱藏 */}
+            {/* 雜誌風排序編號 — 卡片夠寬才顯示（容器查詢） */}
             <div
-                className="hidden sm:flex w-10 shrink-0 items-baseline justify-end tabular-nums text-slate-400"
+                className="song-card-num w-10 shrink-0 items-baseline justify-end tabular-nums text-slate-400"
                 style={{
                     fontFamily: 'var(--font-display)',
                     fontWeight: 800,
@@ -86,16 +86,16 @@ export const SongCard = memo(function SongCard({
                 {String(index + 1).padStart(2, '0')}
             </div>
 
-            {/* 黑膠 mini 封面 — 桌面顯示，手機隱藏；點擊可開歌曲詳情 */}
+            {/* 黑膠 mini 封面 — 卡片夠寬才顯示（容器查詢）；點擊可開歌曲詳情 */}
             {onOpenDetail ? (
                 <button
                     type="button"
                     onClick={() => onOpenDetail(song)}
                     aria-label={`查看「${song.title}」歌曲詳情`}
-                    className="hidden sm:block editorial-song-cover border-0 p-0 cursor-pointer hover:scale-110 transition-transform"
+                    className="song-card-cover editorial-song-cover border-0 p-0 cursor-pointer hover:scale-110 transition-transform"
                 />
             ) : (
-                <div className="hidden sm:block editorial-song-cover" aria-hidden="true" />
+                <div className="song-card-cover editorial-song-cover" aria-hidden="true" />
             )}
 
             {/* 歌曲資訊 — 標題可點開啟詳情 */}
@@ -134,8 +134,14 @@ export const SongCard = memo(function SongCard({
                 </p>
             </div>
 
-            {/* 票數 + 趨勢 + 漸層進度條（桌面顯示） */}
-            <div className="hidden md:flex flex-col items-end gap-1.5 shrink-0 min-w-[110px]">
+            {/* 精簡票數 — 窄卡片（手機 / 投影雙欄）用，避免票數消失（容器查詢） */}
+            <div className="song-card-vote-compact items-baseline gap-0.5 shrink-0">
+                <span className="text-base font-bold tabular-nums text-slate-900 leading-none">{voteCount}</span>
+                <span className="text-[10px] text-slate-400">票</span>
+            </div>
+
+            {/* 完整票數 + 漸層進度條 — 卡片夠寬才顯示（容器查詢） */}
+            <div className="song-card-votes flex-col items-end gap-1.5 shrink-0 min-w-[110px]">
                 <div className="flex items-baseline gap-2">
                     <span className="editorial-vote-num">{voteCount}</span>
                     <span className="text-xs text-slate-500">票</span>
