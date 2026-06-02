@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：10.3
-> **更新日期**：2026-06-02（v4.6.2 — 社群推薦 RWD + 全站防干擾輸入體系）
-> **當前版本**：**v4.6.2**（社群推薦清單 RWD 捲動修正 + 專注輸入防干擾 composing guard）
+> **文件版本**：10.4
+> **更新日期**：2026-06-02（v4.6.3 — 防干擾體系 Top 3 落地：測試 + 草稿暫存 + 即時重複偵測）
+> **當前版本**：**v4.6.3**（composingGuard 測試 + 表單草稿自動暫存 + 即時重複偵測）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -105,6 +105,13 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.6.3（2026-06-02）— 防干擾體系 Top 3 落地
+- ✅ **composingGuard 單元測試**（[composingGuard.test.ts](client/src/lib/composingGuard.test.ts)）：10 例涵蓋可重入計數 / release 冪等 / 焦點監聽各類型 / 切換不閃現 / unmount 解除 → 全套測試 **387 → 397** 個
+- ✅ **表單草稿自動暫存**（[draftStorage.ts](client/src/lib/draftStorage.ts) + SuggestionForm）：title/artist/suggestedBy/notes debounce 400ms 寫 localStorage，重開自動回填 + 「已帶回上次未送出的草稿」橫幅 + 一鍵清除，送出成功才清
+- ✅ **即時重複偵測**（SuggestionForm）：標題打字 debounce 400ms 比對歌單（≥2 字），inline amber 提示「這首好像已在歌單：「歌名」（N 票）→ 前往點播」，抽 `navigateToSong` 共用
+- ✅ **預覽實測**：草稿跨重整回填 / 清除、即時提示顯示與導航皆正常；tsc 0 error
+- 💡 **防干擾體系優先表 Top 3 已劃掉**，下一步見「🔕 專注輸入 / 防干擾體系延伸建議」#4 起
 
 ### v4.6.2（2026-06-02）— 社群推薦 RWD + 全站防干擾輸入
 - ✅ **社群歌曲推薦清單 RWD 捲動修正**（[SongSuggestion.tsx](client/src/components/SongSuggestion/SongSuggestion.tsx)）：丟棄 Radix `ScrollArea`，手機自然展開、桌機原生 `overflow-y-auto` 限高 520px + 自訂細捲軸
@@ -807,13 +814,15 @@ npx playwright install chromium
 
 | 優先 | 項目 | 估時 | 一句話理由 |
 |------|------|------|-----------|
-| **1** | #16 composingGuard 單元測試 | 1-2h | 新基礎設施要先有測試護欄 |
-| **2** | #7 表單草稿自動暫存 | 2-3h | 直接救「誤關全沒」的挫折，CP 值最高 |
-| **3** | #8 即時重複偵測 | 2-3h | 減少白打一場，延續推薦表單脈絡 |
-| **4** | #1 防干擾分級 soft/hard | 4-5h | 讓搜尋時仍有現場感，不糊臉 |
+| ~~**1**~~ ✅ | ~~#16 composingGuard 單元測試~~ **（v4.6.3 完成，10 例）** | 1-2h | 新基礎設施要先有測試護欄 |
+| ~~**2**~~ ✅ | ~~#7 表單草稿自動暫存~~ **（v4.6.3 完成，含回填橫幅）** | 2-3h | 直接救「誤關全沒」的挫折，CP 值最高 |
+| ~~**3**~~ ✅ | ~~#8 即時重複偵測~~ **（v4.6.3 完成，inline amber 提示）** | 2-3h | 減少白打一場，延續推薦表單脈絡 |
+| **4**（下一個） | #1 防干擾分級 soft/hard | 4-5h | 讓搜尋時仍有現場感，不糊臉 |
 | **5** | #12 ResponsiveScrollList | 2-3h | 把這次 RWD 修法沉澱成可複用資產 |
 | **6** | #9 行動鍵盤遮擋 | 2-4h | 手機是主力裝置，遮擋很惱人 |
 | **7** | #17 Playwright 防干擾 e2e | 2-3h | 鎖住這次成果不被未來改壞 |
+
+> ✅ **v4.6.3（2026-06-02）已完成 Top 3**（#16 / #7 / #8）。下一步建議從 **#4 防干擾分級** 或 **#5 ResponsiveScrollList** 接續。
 
 ---
 
@@ -877,11 +886,12 @@ npx playwright install chromium
 | 1. **API Key restrictions 檢查**（拖三版了） | 0.5h | 無 |
 | 2. 「結束今晚」confirm dialog | 0.5h | 無 |
 | 3. 5 件套單元測試（先寫 3 個高風險：Passport / UpNext / ShareCard） | 3h | 無 |
-| 4. **🆕 composingGuard 單元測試**（防干擾體系 #16） | 1-2h | 無 |
-| 5. **🆕 推薦表單草稿自動暫存**（防干擾體系 #7，誤關不消失） | 2-3h | 無 |
+| ~~4. composingGuard 單元測試（防干擾體系 #16）~~ | ✅ v4.6.3 | 完成（10 例）|
+| ~~5. 推薦表單草稿自動暫存（防干擾體系 #7）~~ | ✅ v4.6.3 | 完成（含回填橫幅）|
+| 6. **🆕 即時重複偵測也已順手完成**（防干擾體系 #8） | ✅ v4.6.3 | 完成（inline amber 提示）|
 
-**驗收**：API key 有 referer 限制、testbench 240+ 個、推薦表單誤關後重開可回填 ✅
-> 💡 更多防干擾 / 輸入體驗延伸見「🔕 專注輸入 / 防干擾體系延伸建議」段的優先順序表。
+**驗收**：API key 有 referer 限制、testbench 397 個 ✅、推薦表單誤關後重開可回填 ✅
+> 💡 更多防干擾 / 輸入體驗延伸見「🔕 專注輸入 / 防干擾體系延伸建議」段的優先順序表（Top 3 已劃掉，下一步從 #4 起）。
 
 ### v4.8.0（下週，6-8 小時）
 > **主題：把 5 件套串得更深**
