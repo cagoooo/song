@@ -11,14 +11,14 @@ import { useDarkHorse } from '@/hooks/useDarkHorse';
 import { DarkHorseOverlay } from '@/components/DarkHorseOverlay';
 import { useGlobalHype } from '@/hooks/useGlobalHype';
 import { GlobalHypeOverlay } from '@/components/GlobalHypeOverlay';
+import { useMagazine } from '@/hooks/useMagazine';
 
 const TOP_N = 5;
-const TICKER_ITEMS = [
-    '桃園 SMES · 2025',
+// 固定的場邊跑馬燈文案（期數 / 標題相關的動態項在元件內組合）
+const TICKER_BASE = [
+    '桃園 SMES · 石門國小',
     '歡迎合唱',
     '投票即催歌',
-    'SIDE A · 33⅓ RPM',
-    '阿凱彈唱之夜 第十二場',
     '掃 QR 點下一首',
 ];
 
@@ -100,6 +100,17 @@ export default function StagePage() {
     const showControls = useIdleHide(4000);
     const nowPlaying = useNowPlaying();
     const clock = useClock();
+    // D1 雜誌期數設定 — 取代硬編的「ISSUE #12 / 阿凱彈唱之夜」（admin 改期數即時反映）
+    const { settings } = useMagazine();
+
+    const tickerItems = useMemo(
+        () => [
+            ...TICKER_BASE,
+            `SIDE ${settings.currentSideLabel} · 33⅓ RPM`,
+            `${settings.currentIssueTitle} 第 ${settings.currentIssueNumber} 場`,
+        ],
+        [settings.currentSideLabel, settings.currentIssueTitle, settings.currentIssueNumber]
+    );
 
     useEffect(() => {
         const unsub = subscribeSongs(setSongs);
@@ -189,9 +200,9 @@ export default function StagePage() {
             <header className="editorial-stage-topbar">
                 <div className="flex items-center gap-3">
                     <span className="live-dot" aria-hidden="true" />
-                    <span>LIVE · ISSUE #12</span>
+                    <span>LIVE · ISSUE #{settings.currentIssueNumber}</span>
                 </div>
-                <div className="center">阿凱彈唱之夜</div>
+                <div className="center">{settings.currentIssueTitle}</div>
                 <div className="right">
                     {formatHM(clock)} <span className="ml-3 opacity-50">ESC</span>
                 </div>
@@ -569,7 +580,7 @@ export default function StagePage() {
             {/* 底部 ticker */}
             <div className="editorial-stage-marquee" aria-hidden="true">
                 <div className="track">
-                    {[...TICKER_ITEMS, ...TICKER_ITEMS].map((t, i) => (
+                    {[...tickerItems, ...tickerItems].map((t, i) => (
                         <span key={i}>★ {t}</span>
                     ))}
                 </div>
