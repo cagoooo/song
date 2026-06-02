@@ -18,8 +18,10 @@ import { ComboOverlay } from "../components/ComboOverlay";
 import { useDarkHorse } from "@/hooks/useDarkHorse";
 import { useMissedHypeReplay } from "@/hooks/useMissedHypeReplay";
 import { trackEvent } from "@/lib/funnelAnalytics";
+import { recordHighlight } from "@/lib/liveRecap";
+import { LiveRecap } from "../components/LiveRecap";
 import { DarkHorseOverlay } from "../components/DarkHorseOverlay";
-import { useGlobalHype } from "@/hooks/useGlobalHype";
+import { useGlobalHype, HYPE_META } from "@/hooks/useGlobalHype";
 import { useVoterLeaderboard } from "@/hooks/useVoterLeaderboard";
 import { GlobalHypeOverlay } from "../components/GlobalHypeOverlay";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -178,6 +180,34 @@ export default function Home() {
     }
     prevComposingRef.current = composingLevel;
   }, [composingLevel]);
+
+  // 現場回顧：把黑馬 / 全站熱度記入時間軸（標記是否在打字 hard 時錯過），供 LiveRecap 補看
+  const recapDarkHorseRef = useRef(0);
+  useEffect(() => {
+    if (!darkHorseEvent || darkHorseEvent.triggeredAt === recapDarkHorseRef.current) return;
+    recapDarkHorseRef.current = darkHorseEvent.triggeredAt;
+    recordHighlight({
+      id: `dh-${darkHorseEvent.triggeredAt}`,
+      kind: 'darkhorse',
+      title: '🐎 黑馬時刻',
+      detail: `「${darkHorseEvent.songTitle}」衝進第 ${darkHorseEvent.toRank} 名`,
+      missed: composingLevel === 'hard',
+    });
+  }, [darkHorseEvent, composingLevel]);
+
+  const recapHypeRef = useRef(0);
+  useEffect(() => {
+    if (!hypeEvent || hypeEvent.triggeredAt === recapHypeRef.current) return;
+    recapHypeRef.current = hypeEvent.triggeredAt;
+    const meta = HYPE_META[hypeEvent.level];
+    recordHighlight({
+      id: `hype-${hypeEvent.triggeredAt}`,
+      kind: 'hype',
+      title: `${meta.emoji} ${meta.label}`,
+      detail: `全站 ${hypeEvent.count} 票`,
+      missed: composingLevel === 'hard',
+    });
+  }, [hypeEvent, composingLevel]);
   const { user, logout } = useUser();
   const { allTags, songTagsMap, tagSongCount } = useAllSongTags();
   const {
@@ -984,6 +1014,9 @@ export default function Home() {
           <GlobalHypeOverlay event={hypeEvent} />
         </div>
       )}
+
+      {/* 現場回顧 — 可點開的時間軸，補看打字時錯過的黑馬/熱度（左下浮動 pill，無亮點時隱藏） */}
+      <LiveRecap />
 
       {/* SW 新版本通知 banner (右下角) */}
       <UpdatePrompt />
