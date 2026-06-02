@@ -4,6 +4,7 @@ import { useRef, useCallback, memo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { SongCard } from './SongCard';
 import { Loader2 } from 'lucide-react';
+import { useWideColumns } from '@/hooks/useWideColumns';
 import type { Song } from '@/lib/firestore';
 import type { AppUser } from '@/lib/auth';
 
@@ -66,12 +67,15 @@ export const VirtualSongList = memo(function VirtualSongList({
     totalCount,
 }: VirtualSongListProps) {
     const parentRef = useRef<HTMLDivElement>(null);
+    // 超寬螢幕（2xl）排雙欄；其餘單欄（columns=1 時行為與單欄完全一致）
+    const columns = useWideColumns();
 
     const virtualizer = useVirtualizer({
         count: songs.length,
         getScrollElement: () => parentRef.current,
         estimateSize: () => ESTIMATED_ITEM_SIZE,
         overscan: 5, // 預先渲染上下各 5 個項目，減少滾動時的空白
+        lanes: columns, // 多欄虛擬捲動：react-virtual 依各欄高度自動分配
     });
 
     const virtualItems = virtualizer.getVirtualItems();
@@ -119,11 +123,11 @@ export const VirtualSongList = memo(function VirtualSongList({
                             style={{
                                 position: 'absolute',
                                 top: 0,
-                                left: 0,
-                                width: '100%',
+                                left: `${(virtualItem.lane / columns) * 100}%`,
+                                width: `${100 / columns}%`,
                                 transform: `translateY(${virtualItem.start}px)`,
                             }}
-                            className="pb-4"
+                            className={columns > 1 ? 'pb-4 px-2' : 'pb-4'}
                         >
                             <SongCard
                                 song={song}

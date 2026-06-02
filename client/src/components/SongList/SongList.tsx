@@ -227,7 +227,8 @@ export default function SongList({
                 />
             ) : (
                 <ScrollArea className="h-[400px] sm:h-[500px] w-full pr-4">
-                    <div className="space-y-4">
+                    {/* 超寬螢幕（2xl）排雙欄善用演出投影大螢幕，其餘單欄 */}
+                    <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
                         {filteredSongs.map((song, index) => (
                             <SongCard
                                 key={song.id}
