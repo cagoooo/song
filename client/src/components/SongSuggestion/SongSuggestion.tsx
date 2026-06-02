@@ -11,6 +11,7 @@ import type { Song } from '@/lib/firestore';
 // 拆分的子元件
 import { SuggestionForm } from './SuggestionForm';
 import { SuggestionCard } from './SuggestionCard';
+import { MySuggestions } from './MySuggestions';
 import { resolveBatchTargets } from './batchSuggestions';
 
 interface SongSuggestionProps {
@@ -110,6 +111,9 @@ export default function SongSuggestion({
                 songs={songs}
                 onNavigateToSong={onNavigateToSong}
             />
+
+            {/* 我的推薦追蹤 — 訪客看到自己推薦的歌目前狀態（無本機紀錄時自動隱藏） */}
+            <MySuggestions suggestions={suggestions} />
 
             {/* 建議列表 — Editorial 雜誌風 collapse panel */}
             {suggestions.length > 0 && (
