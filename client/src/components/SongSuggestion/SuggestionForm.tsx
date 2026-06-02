@@ -5,6 +5,7 @@ import { beginComposing } from '@/lib/composingGuard';
 import { loadDraft, saveDraft, clearDraft } from '@/lib/draftStorage';
 import { useScrollFocusedIntoView } from '@/hooks/useScrollFocusedIntoView';
 import { trackEvent } from '@/lib/funnelAnalytics';
+import { addMySuggestion } from '@/lib/mySuggestions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -220,9 +221,19 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
         mutationFn: async () => {
             return submitSuggestion(title, artist, suggestedBy, notes);
         },
-        onSuccess: () => {
+        onSuccess: (newId) => {
             submittedThisSessionRef.current = true;
             trackEvent('suggestion_submit_success');
+            // 「我的推薦」本機追蹤：記下這筆 doc id，之後可比對狀態（待審核/已採納…）
+            if (typeof newId === 'string' && newId) {
+                addMySuggestion({
+                    id: newId,
+                    title: title.trim(),
+                    artist: artist.trim(),
+                    ts: Date.now(),
+                    seenStatus: 'pending',
+                });
+            }
             queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });
             // 投遞成功儀式：顯示「已投遞」印章 + 小彩帶，短暫停留後自動關閉
             setSubmitted(true);
