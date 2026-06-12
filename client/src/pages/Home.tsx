@@ -53,6 +53,9 @@ const OpeningCurtain = lazy(() =>
 const PrintProgram = lazy(() =>
   import("../components/PrintProgram").then((m) => ({ default: m.PrintProgram }))
 );
+const TransposeToolModal = lazy(() =>
+  import("../components/TransposeToolModal").then((m) => ({ default: m.TransposeToolModal }))
+);
 
 // VoteHistoryModal 不在首屏關鍵路徑，lazy load
 const VoteHistoryModal = lazy(() =>
@@ -108,6 +111,7 @@ export default function Home() {
   const [thankYouOpen, setThankYouOpen] = useState(false);
   const [passportOpen, setPassportOpen] = useState(false);
   const [curtainOpen, setCurtainOpen] = useState(false);
+  const [transposeToolOpen, setTransposeToolOpen] = useState(false);
   const [printMode, setPrintMode] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
   const curtainCheckedRef = useRef(false);
@@ -570,8 +574,19 @@ export default function Home() {
             <span>阿凱 · Guitar Singalong</span>
             <span className="editorial-topbar-issue">ISSUE №12 · {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()}</span>
           </div>
-          <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-            <ShareButton />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              className="ttm-entry"
+              onClick={() => setTransposeToolOpen(true)}
+              aria-label="開啟快速轉調工具"
+              title="貼上任何吉他譜 → 自動偵測調性 → 即時轉調（給吉他手的工具）"
+            >
+              <span aria-hidden="true">🎸</span>
+              <span className="hidden sm:inline">轉調工具</span>
+            </button>
+            <span className="hidden sm:flex items-center gap-1.5">
+              <ShareButton />
+            </span>
           </div>
         </div>
 
@@ -1032,6 +1047,16 @@ export default function Home() {
           <ShortcutsHelpModal
             isOpen={shortcutsHelpOpen}
             onClose={() => setShortcutsHelpOpen(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* 🎸 快速轉調工具（貼譜 → 自動偵測調性 → 即時轉調） — lazy load */}
+      {transposeToolOpen && (
+        <Suspense fallback={null}>
+          <TransposeToolModal
+            isOpen={transposeToolOpen}
+            onClose={() => setTransposeToolOpen(false)}
           />
         </Suspense>
       )}

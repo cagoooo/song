@@ -7,6 +7,11 @@ import {
 import type { Song } from '@/lib/firestore';
 import { ChordSvg } from './ChordSvg';
 import { getSongDetail, findSimilarSongs } from './data';
+import {
+    transposeChordSymbol, transposeProgression, transposeLyricBlocks,
+    preferFlatForKey, isChordSymbol,
+} from '@/lib/transpose';
+import { getFingerings } from './chordShapes';
 
 interface SongDetailModalProps {
     song: Song | null;
@@ -23,13 +28,16 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
     const [voted, setVoted] = useState(false);
     const [voteBump, setVoteBump] = useState(false);
     const [toast, setToast] = useState<string | null>(null);
+    /** 轉調位移（半音）：0 = 原調，每按一次 −/＋ 移 1 半音 */
+    const [transposeSteps, setTransposeSteps] = useState(0);
     const btnRef = useRef<HTMLButtonElement>(null);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // 每次切歌都重置投票狀態
+    // 每次切歌都重置投票狀態與轉調
     useEffect(() => {
         setVoted(false);
         setVoteBump(false);
+        setTransposeSteps(0);
     }, [song?.id]);
 
     const showToast = useCallback((msg: string) => {
@@ -45,6 +53,39 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
     }, []);
 
     const detail = useMemo(() => (song ? getSongDetail(song) : null), [song]);
+
+    // ===== 自動轉調（91 譜式即時轉調） =====
+    // 依轉調後的目標調決定整份譜 #/b 拼法，再轉 key / 進行 / 歌詞和弦行
+    const view = useMemo(() => {
+        if (!detail) return null;
+        if (transposeSteps === 0) {
+            return { key: detail.key, progression: detail.progression, lyrics: detail.lyrics };
+        }
+        const preferFlat = preferFlatForKey(transposeChordSymbol(detail.key, transposeSteps));
+        const opts = { preferFlat };
+        return {
+            key: transposeChordSymbol(detail.key, transposeSteps, opts),
+            progression: transposeProgression(detail.progression, transposeSteps, opts),
+            lyrics: transposeLyricBlocks(detail.lyrics, transposeSteps, opts),
+        };
+    }, [detail, transposeSteps]);
+
+    // 指型卡改從「目前顯示的調」推導：進行 + 歌詞和弦行的所有和弦，查不到才退回預設 6 卡
+    const fingerings = useMemo(() => {
+        if (!detail || !view) return [];
+        const lyricChords = view.lyrics.flatMap((b) =>
+            b.rows.flatMap((r) => (r.chord ? r.chord.trim().split(/\s+/).filter(isChordSymbol) : []))
+        );
+        const cards = getFingerings([...view.progression, ...lyricChords], 6);
+        return cards.length > 0 ? cards : detail.fingerings;
+    }, [detail, view]);
+
+    // Capo 等效提示：升 n 半音（1-7）= 夾 Capo n 彈原調指型
+    const capoHint = useMemo(() => {
+        const n = ((transposeSteps % 12) + 12) % 12;
+        return n >= 1 && n <= 7 ? n : null;
+    }, [transposeSteps]);
+
     const similar = useMemo(() => {
         if (!song) return [];
         if (detail && detail.similar.length > 0) return detail.similar;
@@ -80,7 +121,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
         showToast('✓ 已點播 + 1，下一首可能就是你選的');
     };
 
-    if (!song || !detail) return null;
+    if (!song || !detail || !view) return null;
 
     return (
         <Dialog open={!!song} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -137,7 +178,12 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                                 </div>
                                 <div className="sdp-meta-cell">
                                     <div className="sdp-meta-l">KEY</div>
-                                    <div className="sdp-meta-v">{detail.key}</div>
+                                    <div className="sdp-meta-v">
+                                        {view.key}
+                                        {transposeSteps !== 0 && (
+                                            <span className="sdp-meta-orig">原 {detail.key}</span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="sdp-meta-cell">
                                     <div className="sdp-meta-l">BPM</div>
@@ -165,11 +211,52 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                         <div className="sdp-section-h">
                             <span className="chap">No. 01 / 和弦</span>
                             <span className="ttl">彈這幾個和弦就夠了</span>
-                            <span className="meta">{detail.progression.length} STEPS</span>
+                            <span className="meta">{view.progression.length} STEPS</span>
+                        </div>
+
+                        {/* 自動轉調控制列 — 91 譜式即時轉調 */}
+                        <div className="sdp-transpose" role="group" aria-label="自動轉調">
+                            <span className="sdp-trans-label">轉調 TRANSPOSE</span>
+                            <button
+                                className="sdp-trans-btn"
+                                onClick={() => setTransposeSteps((s) => Math.max(s - 1, -11))}
+                                disabled={transposeSteps <= -11}
+                                aria-label="降半音"
+                            >
+                                −
+                            </button>
+                            <span className="sdp-trans-key" aria-live="polite">
+                                {view.key}
+                                <span className="sdp-trans-steps">
+                                    {transposeSteps === 0 ? '原調' : (transposeSteps > 0 ? `+${transposeSteps}` : `${transposeSteps}`)}
+                                </span>
+                            </span>
+                            <button
+                                className="sdp-trans-btn"
+                                onClick={() => setTransposeSteps((s) => Math.min(s + 1, 11))}
+                                disabled={transposeSteps >= 11}
+                                aria-label="升半音"
+                            >
+                                ＋
+                            </button>
+                            {transposeSteps !== 0 && (
+                                <button
+                                    className="sdp-trans-reset"
+                                    onClick={() => setTransposeSteps(0)}
+                                    aria-label={`回到原調 ${detail.key}`}
+                                >
+                                    ↺ 回原調 {detail.key}
+                                </button>
+                            )}
+                            {capoHint !== null && (
+                                <span className="sdp-trans-capo">
+                                    或夾 CAPO {capoHint} 彈 {detail.key} 指型
+                                </span>
+                            )}
                         </div>
 
                         <div className="sdp-prog">
-                            {detail.progression.map((c, i) => (
+                            {view.progression.map((c, i) => (
                                 <div key={`prog-${i}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
                                     <button
                                         className="sdp-prog-pill"
@@ -178,7 +265,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                                     >
                                         {c}
                                     </button>
-                                    {i < detail.progression.length - 1 && (
+                                    {i < view.progression.length - 1 && (
                                         <span className="sdp-prog-arrow" aria-hidden="true">→</span>
                                     )}
                                 </div>
@@ -186,7 +273,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                         </div>
 
                         <div className="sdp-chord-grid">
-                            {detail.fingerings.map((f) => (
+                            {fingerings.map((f) => (
                                 <div
                                     key={f.name}
                                     className="sdp-chord-card"
@@ -197,7 +284,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                                     aria-label={`複製和弦 ${f.label}`}
                                 >
                                     <div className="sdp-chord-name">{f.name}</div>
-                                    <ChordSvg dots={f.dots} />
+                                    <ChordSvg dots={f.dots} baseFret={f.baseFret} />
                                     <div className="sdp-chord-label">{f.label}</div>
                                 </div>
                             ))}
@@ -209,11 +296,11 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                         <div className="sdp-section-h">
                             <span className="chap">No. 02 / 歌詞</span>
                             <span className="ttl">跟著彈，跟著唱</span>
-                            <span className="meta">{detail.lyrics.length} SECTIONS</span>
+                            <span className="meta">{view.lyrics.length} SECTIONS</span>
                         </div>
 
                         <div className="sdp-lyrics">
-                            {detail.lyrics.map((b, i) => (
+                            {view.lyrics.map((b, i) => (
                                 <div key={i} className={'sdp-lyr-block' + (b.chorus ? ' chorus' : '')}>
                                     <div className="sdp-lyr-sec">[{b.sec}]</div>
                                     {b.rows.map((r, j) => (

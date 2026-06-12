@@ -16,6 +16,11 @@ export interface ChordFingering {
     label: string;
     /** 6 = 低音 E（最粗弦） → 1 = 高音 E（最細弦）；值為 fret 數或 0 (open) 或 "x" (mute) */
     dots: Record<1 | 2 | 3 | 4 | 5 | 6, number | 'x'>;
+    /**
+     * 把位（封閉和弦用）：dots 的 1 = 第 baseFret 格。
+     * 省略 = 1（開放把位，頂線畫 nut 粗線）。
+     */
+    baseFret?: number;
 }
 
 // 重新 export 給其他模組（保留歷史 import 路徑相容）
