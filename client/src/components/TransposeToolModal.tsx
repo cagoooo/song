@@ -290,16 +290,100 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     /** 結果調性標籤（檔名 / 分享標題用） */
     const resultLabel = showDegrees ? '級數' : (targetKey ? `${targetKey}調` : '原調');
 
-    // 下載成 .txt（檔名帶調性，現場存檔 / 傳團員）
-    const handleDownload = () => {
-        if (!output) return;
-        const blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
+    // ===== 多格式下載（純文字 / 圖片 / PDF）=====
+    const [dlMenuOpen, setDlMenuOpen] = useState(false);
+    const [dlBusy, setDlBusy] = useState<string | null>(null);
+    const dlRef = useRef<HTMLDivElement>(null);
+    const outputRef = useRef<HTMLPreElement>(null);
+
+    // 點選單外面就關閉
+    useEffect(() => {
+        if (!dlMenuOpen) return;
+        const onDocClick = (e: MouseEvent) => {
+            if (dlRef.current && !dlRef.current.contains(e.target as Node)) setDlMenuOpen(false);
+        };
+        document.addEventListener('mousedown', onDocClick);
+        return () => document.removeEventListener('mousedown', onDocClick);
+    }, [dlMenuOpen]);
+
+    const triggerDownload = (href: string, filename: string) => {
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `吉他譜_${resultLabel}.txt`;
+        a.href = href;
+        a.download = filename;
         a.click();
+    };
+
+    // 下載 .txt
+    const handleDownloadTxt = () => {
+        if (!output) return;
+        const url = URL.createObjectURL(new Blob([output], { type: 'text/plain;charset=utf-8' }));
+        triggerDownload(url, `吉他譜_${resultLabel}.txt`);
         URL.revokeObjectURL(url);
+        setDlMenuOpen(false);
+    };
+
+    // 把轉調結果譜面渲染成 PNG dataURL（中文走瀏覽器渲染，不會 tofu；展開完整高度）
+    const renderOutputPng = async (): Promise<string | null> => {
+        const el = outputRef.current;
+        if (!el) return null;
+        setEditing(null); // 別把編輯中的 input 也截進去
+        // 截圖前暫時展開（移除限高/捲動）以截完整譜面，截完恢復 —
+        // 用 DOM 直接改比傳 toPng 的 width/height/style 可靠（後者會 hang）
+        const prevMaxH = el.style.maxHeight;
+        const prevOverflow = el.style.overflow;
+        el.style.maxHeight = 'none';
+        el.style.overflow = 'visible';
+        try {
+            const { toPng } = await import('html-to-image');
+            // fontEmbedCSS:'' — embedWebFonts 看到非 null 就直接用它、完全不去
+            // 讀/fetch Google Fonts（否則 cross-origin fetch 會拖慢甚至卡住）。
+            // 字型在同瀏覽器渲染本已載入，不需 inline。
+            return await toPng(el, {
+                pixelRatio: 2,
+                cacheBust: true,
+                backgroundColor: '#ffffff',
+                fontEmbedCSS: '',
+            });
+        } finally {
+            el.style.maxHeight = prevMaxH;
+            el.style.overflow = prevOverflow;
+        }
+    };
+
+    // 下載圖片 .png
+    const handleDownloadPng = async () => {
+        if (!output || dlBusy) return;
+        setDlBusy('png');
+        setDlMenuOpen(false);
+        try {
+            const dataUrl = await renderOutputPng();
+            if (dataUrl) triggerDownload(dataUrl, `吉他譜_${resultLabel}.png`);
+        } catch { /* 產圖失敗忽略 */ } finally { setDlBusy(null); }
+    };
+
+    // 下載 PDF（A4 直式，整張譜面置中縮放；中文是圖片不會 tofu）
+    const handleDownloadPdf = async () => {
+        if (!output || dlBusy) return;
+        setDlBusy('pdf');
+        setDlMenuOpen(false);
+        try {
+            const dataUrl = await renderOutputPng();
+            if (!dataUrl) return;
+            const img = new Image();
+            img.src = dataUrl;
+            await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(); });
+            const { jsPDF } = await import('jspdf');
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const margin = 10;
+            let w = pageW - margin * 2;
+            let h = (img.height / img.width) * w;
+            const usableH = pageH - margin * 2;
+            if (h > usableH) { h = usableH; w = (img.width / img.height) * h; }
+            pdf.addImage(dataUrl, 'PNG', (pageW - w) / 2, margin, w, h);
+            pdf.save(`吉他譜_${resultLabel}.pdf`);
+        } catch { /* 產 PDF 失敗忽略 */ } finally { setDlBusy(null); }
     };
 
     // 分享（手機可直接傳 LINE / 訊息）— 不支援 Web Share 的桌機改走複製
@@ -529,14 +613,25 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                         : <>🎼 轉調結果{targetKey && steps !== 0 && <em className="ttm-pane-key"> → {targetKey} 調</em>}</>}
                                 </span>
                                 <span className="ttm-out-actions">
-                                    <button
-                                        className="ttm-copy"
-                                        onClick={handleDownload}
-                                        disabled={!output}
-                                        title="下載成 .txt 檔（現場存檔 / 傳團員）"
-                                    >
-                                        ⬇ 下載
-                                    </button>
+                                    <span className="ttm-dl" ref={dlRef}>
+                                        <button
+                                            className="ttm-copy"
+                                            onClick={() => setDlMenuOpen((v) => !v)}
+                                            disabled={!output || !!dlBusy}
+                                            aria-haspopup="menu"
+                                            aria-expanded={dlMenuOpen}
+                                            title="下載成 文字 / 圖片 / PDF"
+                                        >
+                                            {dlBusy === 'png' ? '產圖中…' : dlBusy === 'pdf' ? '產 PDF 中…' : '⬇ 下載 ▾'}
+                                        </button>
+                                        {dlMenuOpen && (
+                                            <div className="ttm-dl-menu" role="menu">
+                                                <button role="menuitem" onClick={handleDownloadTxt}>📄 純文字 .txt</button>
+                                                <button role="menuitem" onClick={handleDownloadPng}>🖼️ 圖片 .png</button>
+                                                <button role="menuitem" onClick={handleDownloadPdf}>📕 PDF .pdf</button>
+                                            </div>
+                                        )}
+                                    </span>
                                     {canShare && (
                                         <button
                                             className="ttm-copy"
@@ -562,7 +657,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                     或修掉黏在和弦上的怪符號（OCR 偶爾把 | 認成 I / l / 1）。
                                 </div>
                             )}
-                            <pre className="ttm-output" aria-label="轉調結果" aria-live="polite">
+                            <pre className="ttm-output" aria-label="轉調結果" aria-live="polite" ref={outputRef}>
                                 {output
                                     ? renderOutputLines()
                                     : <div className="ttm-empty">轉調後的譜會即時出現在這裡</div>}

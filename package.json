@@ -65,6 +65,7 @@
     "fuse.js": "^7.1.0",
     "html-to-image": "^1.11.13",
     "input-otp": "^1.2.4",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.453.0",
     "pinyin-pro": "^3.28.1",
     "qrcode.react": "^4.2.0",
