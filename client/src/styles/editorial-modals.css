@@ -487,14 +487,30 @@
 .ttm-line-chord { color: var(--ed-accent); font-weight: 600; }
 .ttm-line-lyric { color: var(--ed-ink-1); }
 .ttm-empty { color: var(--ed-ink-3); font-size: 12px; }
-/* 可疑辨識字 — 和弦行內辨識不出的 token 標黃底，提示校對 */
+/* 可疑辨識字 — 和弦行內辨識不出的 token 標黃底，點一下就地修正 */
 .ttm-suspect {
   background: #fde68a;
   color: #92400e;
   border-radius: 3px;
   padding: 0 2px;
   box-shadow: inset 0 -1.5px 0 #f59e0b;
-  cursor: help;
+  cursor: pointer;
+}
+.ttm-suspect:hover { background: #fcd34d; }
+.ttm-suspect:focus-visible { outline: 2px solid var(--ed-accent); outline-offset: 1px; }
+/* 就地編輯可疑字的輸入框 — 與譜面同字型，不破壞對齊 */
+.ttm-suspect-input {
+  font-family: var(--font-mono);
+  font-size: inherit;
+  line-height: inherit;
+  background: #fffbeb;
+  color: #92400e;
+  border: 1.5px solid #f59e0b;
+  border-radius: 3px;
+  padding: 0 2px;
+  margin: 0;
+  outline: none;
+  vertical-align: baseline;
 }
 .ttm-copy {
   border: 1.5px solid var(--ed-ink-1);

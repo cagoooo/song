@@ -21,6 +21,19 @@ import type { OcrProgress } from '@/lib/sheetOcr';
 
 const HAS_CJK_RE = /[一-鿿぀-ヿ가-힯]/;
 
+/** 把一行裡第 idx 個「非空白 token」換成 newTok（保留原空白對齊） */
+function replaceNonSpaceToken(line: string, idx: number, newTok: string): string {
+    const parts = line.split(/(\s+)/);
+    let n = -1;
+    for (let i = 0; i < parts.length; i++) {
+        if (parts[i] && !/^\s+$/.test(parts[i])) {
+            n++;
+            if (n === idx) { parts[i] = newTok; break; }
+        }
+    }
+    return parts.join('');
+}
+
 interface TransposeToolModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -177,27 +190,82 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
         changeSteps(diff);
     };
 
-    /** 右欄逐行渲染：和弦行內辨識不出的 token 標黃（可疑字），級數模式不標 */
+    // 就地修正可疑字：點右欄黃字 → 變 input → 改完寫回原譜對應 token → 重新轉調。
+    // 因為轉調不增減 token，「output 行第 t 個非空白 token」對應「input 同行第 t 個」。
+    const [editing, setEditing] = useState<{ line: number; tokenIdx: number; value: string } | null>(null);
+    const commitEdit = useCallback(() => {
+        if (!editing) return;
+        const lines = input.split('\n');
+        if (editing.line < lines.length) {
+            const next = [...lines];
+            next[editing.line] = replaceNonSpaceToken(next[editing.line], editing.tokenIdx, editing.value.trim());
+            const joined = next.join('\n');
+            if (joined !== input) {
+                // 修錯字是「同一份譜的微調」— 先更新記憶 key，避免 input effect
+                // 把它當新譜而把目前轉調位移歸零
+                lastSheetKeyRef.current = sheetMemoryKey(joined);
+                setInput(joined);
+                setOcrDone(false);
+            }
+        }
+        setEditing(null);
+    }, [editing, input]);
+
+    /** 右欄逐行渲染：和弦行內辨識不出的 token 標黃且可「就地點擊修正」，級數模式不標 */
     const renderOutputLines = () => {
         const outLines = output.split('\n');
         const refLines = showDegrees ? input.split('\n') : outLines;
         return outLines.map((line, i) => {
             const isChord = isChordLine(refLines[i] ?? line);
+            if (showDegrees || !isChord) {
+                return <div key={i} className={isChord ? 'ttm-line-chord' : 'ttm-line-lyric'}>{line || ' '}</div>;
+            }
+            let nonSpace = -1;
             return (
-                <div key={i} className={isChord ? 'ttm-line-chord' : 'ttm-line-lyric'}>
-                    {!showDegrees && isChord
-                        ? line.split(/(\s+)/).map((tok, j) => {
-                            if (!tok || /^\s+$/.test(tok)) return tok;
-                            if (classifyToken(tok) === 'word' && !HAS_CJK_RE.test(tok)) {
-                                return (
-                                    <span key={j} className="ttm-suspect" title="辨識可能有誤，點左欄「✏️ 修正辨識文字」可改">
-                                        {tok}
-                                    </span>
-                                );
-                            }
-                            return tok;
-                        })
-                        : (line || ' ')}
+                <div key={i} className="ttm-line-chord">
+                    {line.split(/(\s+)/).map((tok, j) => {
+                        if (!tok || /^\s+$/.test(tok)) return tok;
+                        nonSpace++;
+                        const idx = nonSpace;
+                        const suspect = classifyToken(tok) === 'word' && !HAS_CJK_RE.test(tok);
+                        if (!suspect) return tok;
+                        if (editing && editing.line === i && editing.tokenIdx === idx) {
+                            return (
+                                <input
+                                    key={j}
+                                    className="ttm-suspect-input"
+                                    value={editing.value}
+                                    autoFocus
+                                    size={Math.max(editing.value.length, 2)}
+                                    onChange={(e) => setEditing({ ...editing, value: e.target.value })}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+                                        else if (e.key === 'Escape') { e.preventDefault(); setEditing(null); }
+                                    }}
+                                    onBlur={commitEdit}
+                                    aria-label={`修正辨識字 ${tok}`}
+                                />
+                            );
+                        }
+                        return (
+                            <span
+                                key={j}
+                                className="ttm-suspect"
+                                title="點我就地修正辨識錯字"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setEditing({ line: i, tokenIdx: idx, value: tok })}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        setEditing({ line: i, tokenIdx: idx, value: tok });
+                                    }
+                                }}
+                            >
+                                {tok}
+                            </span>
+                        );
+                    })}
                 </div>
             );
         });
@@ -448,9 +516,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                             )}
                             {ocrDone && (
                                 <div className="ttm-ocr-tip">
-                                    {srcImageUrl && !showOcrText
-                                        ? '✓ 辨識完成 — 轉調結果在右欄；發現錯字點上方「✏️ 修正辨識文字」。'
-                                        : '✓ 辨識完成 — 有小錯字可直接在上面修正，不影響其他行。'}
+                                    ✓ 辨識完成 — 右欄<b>黃色字</b>是可能辨識錯的，直接點它就能就地修正。
                                 </div>
                             )}
                         </div>
