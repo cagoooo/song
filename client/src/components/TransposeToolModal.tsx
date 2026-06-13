@@ -447,10 +447,10 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                     <div className="ttm-panes">
                         <div className="ttm-pane">
                             <div className="ttm-pane-h">
-                                <span>{srcImageUrl ? '原圖參照' : '貼上原譜（文字或截圖）'}</span>
+                                <span className="ttm-pane-title">{srcImageUrl ? '🖼️ 原圖參照' : '📋 貼上原譜'}</span>
                                 <span className="ttm-pane-actions">
                                     <button
-                                        className="ttm-ocr-btn"
+                                        className="ttm-pane-btn primary"
                                         onClick={() => fileInputRef.current?.click()}
                                         disabled={!!ocrMsg}
                                     >
@@ -459,23 +459,23 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                     {srcImageUrl && (
                                         <>
                                             <button
-                                                className="ttm-ocr-btn"
+                                                className="ttm-pane-btn"
                                                 onClick={() => setShowOcrText((v) => !v)}
                                             >
-                                                {showOcrText ? '🖼️ 看原圖' : '✏️ 修正辨識文字'}
+                                                {showOcrText ? '🖼️ 看原圖' : '✏️ 修正文字'}
                                             </button>
                                             <button
-                                                className="sdp-trans-reset"
+                                                className="ttm-pane-btn danger"
                                                 onClick={() => { setSrcImageUrl(null); setShowOcrText(false); }}
                                                 aria-label="清除圖片，回到文字輸入"
                                             >
-                                                ✕ 清除圖片
+                                                ✕ 清除
                                             </button>
                                         </>
                                     )}
                                     {!srcImageUrl && !input && !ocrMsg && (
-                                        <button className="sdp-trans-reset" onClick={() => setInput(EXAMPLE_SHEET)}>
-                                            載入範例
+                                        <button className="ttm-pane-btn ghost" onClick={() => setInput(EXAMPLE_SHEET)}>
+                                            ＋ 載入範例
                                         </button>
                                     )}
                                 </span>
@@ -523,10 +523,10 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
 
                         <div className="ttm-pane">
                             <div className="ttm-pane-h">
-                                <span>
+                                <span className="ttm-pane-title">
                                     {showDegrees
-                                        ? <>數字級數{detected && <em className="ttm-pane-key"> 以 {detected.key} 調為 1</em>}</>
-                                        : <>轉調結果{targetKey && steps !== 0 && <em className="ttm-pane-key"> → {targetKey} 調</em>}</>}
+                                        ? <>🔢 數字級數{detected && <em className="ttm-pane-key"> 以 {detected.key} 調為 1</em>}</>
+                                        : <>🎼 轉調結果{targetKey && steps !== 0 && <em className="ttm-pane-key"> → {targetKey} 調</em>}</>}
                                 </span>
                                 <span className="ttm-out-actions">
                                     <button

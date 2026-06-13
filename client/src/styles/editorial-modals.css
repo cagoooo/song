@@ -460,15 +460,58 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ed-ink-3);
-  margin-bottom: 8px;
-  min-height: 28px;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  min-height: 32px;
 }
-.ttm-pane-key { color: var(--ed-accent); font-style: normal; }
+/* pane 標題 — 帶圖示的小標 */
+.ttm-pane-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--ed-ink-1);
+  white-space: nowrap;
+}
+.ttm-pane-key {
+  color: var(--ed-accent);
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+/* pane header 統一按鈕（上傳 / 修正 / 清除 / 載入範例） */
+.ttm-pane-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1.5px solid var(--ed-ink-1);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ed-ink-1);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.ttm-pane-btn:hover:not(:disabled) { background: var(--ed-ink-1); color: #fff; }
+.ttm-pane-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ttm-pane-btn.primary { border-color: var(--ed-accent); color: var(--ed-accent); }
+.ttm-pane-btn.primary:hover:not(:disabled) { background: var(--ed-accent); border-color: var(--ed-accent); color: #fff; }
+.ttm-pane-btn.danger { border-color: var(--ed-line-strong, var(--ed-ink-3)); color: var(--ed-ink-2); }
+.ttm-pane-btn.danger:hover:not(:disabled) { background: #dc2626; border-color: #dc2626; color: #fff; }
+.ttm-pane-btn.ghost { border-style: dashed; color: var(--ed-ink-3); }
+.ttm-pane-btn.ghost:hover:not(:disabled) { background: var(--ed-paper-2, #f6f3ee); color: var(--ed-ink-1); border-color: var(--ed-ink-1); }
 .ttm-input, .ttm-output {
   border: 1.5px solid var(--ed-ink-1);
   border-radius: 6px;
@@ -597,22 +640,7 @@
 }
 
 /* OCR 譜圖辨識（上傳 / 貼截圖 / 拖放） */
-.ttm-pane-actions { display: inline-flex; align-items: center; gap: 8px; }
-.ttm-ocr-btn {
-  border: 1.5px solid var(--ed-ink-1);
-  border-radius: 6px;
-  background: #fff;
-  color: var(--ed-ink-1);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  padding: 5px 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  text-transform: none;
-}
-.ttm-ocr-btn:hover:not(:disabled) { background: var(--ed-accent); border-color: var(--ed-accent); color: #fff; }
-.ttm-ocr-btn:disabled { opacity: 0.4; cursor: wait; }
+.ttm-pane-actions { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .ttm-ocr-status {
   display: flex;
   align-items: center;
@@ -674,8 +702,12 @@
   .ttm-panes { grid-template-columns: 1fr; }
   .ttm-input, .ttm-output { min-height: 220px; font-size: 12px; }
   .ttm-img-full { max-height: 45vh; }
-  .ttm-pane-h { flex-wrap: wrap; gap: 6px; }
-  .ttm-pane-actions { flex-wrap: wrap; }
+  /* 手機：標題與按鈕分兩行，按鈕排滿一列、靠左不擠 */
+  .ttm-pane-h { flex-direction: column; align-items: stretch; gap: 8px; }
+  .ttm-pane-title { font-size: 16px; }
+  .ttm-pane-actions { justify-content: flex-start; }
+  .ttm-out-actions { justify-content: flex-start; }
+  .ttm-pane-btn { flex: 1 1 auto; justify-content: center; min-height: 36px; }
 }
 
 /* KEY meta cell 的「原調」小標 */
