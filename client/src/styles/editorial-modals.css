@@ -544,32 +544,17 @@
   color: #059669;
 }
 
-/* 原圖參照面板（OCR 後顯示在輸入欄上方，對照抓錯字） */
-.ttm-img-ref {
+/* 原圖滿版面板 — OCR 後左欄直接呈現完整原圖（辨識文字收進「✏️ 修正」切換） */
+.ttm-img-full {
   border: 1.5px solid var(--ed-ink-1);
   border-radius: 6px;
-  margin-bottom: 8px;
-  overflow: hidden;
   background: #fff;
-}
-.ttm-img-ref-h {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--ed-line);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: var(--ed-ink-3);
-  text-transform: none;
-}
-.ttm-img-ref-body {
-  max-height: 240px;
   overflow: auto;
   overscroll-behavior: contain;
+  /* 高度跟著圖片走，太長就限高捲動 — 小圖不留尷尬空白 */
+  max-height: 62vh;
 }
-.ttm-img-ref-body img {
+.ttm-img-full img {
   display: block;
   width: 100%;
   height: auto;
@@ -580,6 +565,9 @@
   .ttm-title { font-size: 24px; }
   .ttm-panes { grid-template-columns: 1fr; }
   .ttm-input, .ttm-output { min-height: 220px; font-size: 12px; }
+  .ttm-img-full { max-height: 45vh; }
+  .ttm-pane-h { flex-wrap: wrap; gap: 6px; }
+  .ttm-pane-actions { flex-wrap: wrap; }
 }
 
 /* KEY meta cell 的「原調」小標 */

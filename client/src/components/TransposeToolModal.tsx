@@ -45,8 +45,10 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
     const [ocrError, setOcrError] = useState<string | null>(null);
     /** 剛完成 OCR（顯示「可修正錯字」提示，使用者一動手編輯就收掉） */
     const [ocrDone, setOcrDone] = useState(false);
-    /** 上傳的原圖（object URL）— 顯示在輸入欄上方供對照辨識結果 */
+    /** 上傳的原圖（object URL）— OCR 後左欄直接顯示原圖（取代辨識文字） */
     const [srcImageUrl, setSrcImageUrl] = useState<string | null>(null);
+    /** 圖片模式下切回文字編輯（修正辨識錯字用） */
+    const [showOcrText, setShowOcrText] = useState(false);
 
     // object URL 生命週期：換圖或關閉 modal 時釋放
     useEffect(() => {
@@ -69,6 +71,7 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                 setInput(sheet);
                 setSteps(0);
                 setOcrDone(true);
+                setShowOcrText(false); // 回到原圖模式 — 辨識文字不用再看，結果在右欄
             }
         } catch {
             setOcrError('辨識引擎載入失敗 — 請檢查網路後重試（首次使用需下載中文語言檔）');
@@ -239,7 +242,7 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                     <div className="ttm-panes">
                         <div className="ttm-pane">
                             <div className="ttm-pane-h">
-                                <span>貼上原譜（文字或截圖）</span>
+                                <span>{srcImageUrl ? '原圖參照' : '貼上原譜（文字或截圖）'}</span>
                                 <span className="ttm-pane-actions">
                                     <button
                                         className="ttm-ocr-btn"
@@ -248,7 +251,24 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                                     >
                                         📷 上傳譜圖
                                     </button>
-                                    {!input && !ocrMsg && (
+                                    {srcImageUrl && (
+                                        <>
+                                            <button
+                                                className="ttm-ocr-btn"
+                                                onClick={() => setShowOcrText((v) => !v)}
+                                            >
+                                                {showOcrText ? '🖼️ 看原圖' : '✏️ 修正辨識文字'}
+                                            </button>
+                                            <button
+                                                className="sdp-trans-reset"
+                                                onClick={() => { setSrcImageUrl(null); setShowOcrText(false); }}
+                                                aria-label="清除圖片，回到文字輸入"
+                                            >
+                                                ✕ 清除圖片
+                                            </button>
+                                        </>
+                                    )}
+                                    {!srcImageUrl && !input && !ocrMsg && (
                                         <button className="sdp-trans-reset" onClick={() => setInput(EXAMPLE_SHEET)}>
                                             載入範例
                                         </button>
@@ -272,36 +292,28 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                             {ocrError && (
                                 <div className="ttm-ocr-error" role="alert">⚠ {ocrError}</div>
                             )}
-                            {srcImageUrl && (
-                                <div className="ttm-img-ref">
-                                    <div className="ttm-img-ref-h">
-                                        <span>原圖參照 — 對照下方辨識結果抓錯字</span>
-                                        <button
-                                            className="sdp-trans-reset"
-                                            onClick={() => setSrcImageUrl(null)}
-                                            aria-label="收起原圖"
-                                        >
-                                            ✕ 收起
-                                        </button>
-                                    </div>
-                                    <div className="ttm-img-ref-body">
-                                        <img src={srcImageUrl} alt="上傳的譜圖原圖" />
-                                    </div>
+                            {srcImageUrl && !showOcrText ? (
+                                /* 圖片模式：原圖完整呈現（辨識文字不用再看，轉調結果在右欄） */
+                                <div className="ttm-img-full">
+                                    <img src={srcImageUrl} alt="上傳的譜圖原圖" />
                                 </div>
+                            ) : (
+                                <textarea
+                                    className="ttm-input"
+                                    value={input}
+                                    onChange={(e) => { setInput(e.target.value); setOcrDone(false); }}
+                                    onDrop={handleDrop}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    placeholder={'三種餵譜方式：\n\n1. 文字 — 把譜整段貼進來\n2. 截圖 — 直接 Ctrl+V 貼上（91 譜等圖檔譜適用）\n3. 圖檔 — 點「📷 上傳譜圖」或拖放到這裡\n\n辨識結果落在這裡，可直接修正錯字'}
+                                    spellCheck={false}
+                                    aria-label="原譜輸入區"
+                                />
                             )}
-                            <textarea
-                                className="ttm-input"
-                                value={input}
-                                onChange={(e) => { setInput(e.target.value); setOcrDone(false); }}
-                                onDrop={handleDrop}
-                                onDragOver={(e) => e.preventDefault()}
-                                placeholder={'三種餵譜方式：\n\n1. 文字 — 把譜整段貼進來\n2. 截圖 — 直接 Ctrl+V 貼上（91 譜等圖檔譜適用）\n3. 圖檔 — 點「📷 上傳譜圖」或拖放到這裡\n\n辨識結果落在這裡，可直接修正錯字'}
-                                spellCheck={false}
-                                aria-label="原譜輸入區"
-                            />
                             {ocrDone && (
                                 <div className="ttm-ocr-tip">
-                                    ✓ 辨識完成 — 有小錯字可直接在上面修正，不影響其他行。
+                                    {srcImageUrl && !showOcrText
+                                        ? '✓ 辨識完成 — 轉調結果在右欄；發現錯字點上方「✏️ 修正辨識文字」。'
+                                        : '✓ 辨識完成 — 有小錯字可直接在上面修正，不影響其他行。'}
                                 </div>
                             )}
                         </div>
