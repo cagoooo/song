@@ -638,7 +638,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                     <div className="ttm-ai-progress-track">
                                         <div className="ttm-ai-progress-bar" style={{ width: `${aiProgress}%` }} />
                                     </div>
-                                    <div className="ttm-ai-progress-hint">看圖辨識中，約 5–10 秒，請稍候</div>
+                                    <div className="ttm-ai-progress-hint">看圖辨識中，請稍候…（圖較大時多等幾秒）</div>
                                 </div>
                             )}
                             {ocrError && (
