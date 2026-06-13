@@ -80,10 +80,15 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     }, [srcImageUrl]);
     const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    /** 保留原始圖檔給「✨ AI 辨識」用（srcImageUrl 是 object URL，AI 要原始資料） */
+    const srcFileRef = useRef<File | Blob | null>(null);
+    /** AI 辨識進行中 */
+    const [aiBusy, setAiBusy] = useState(false);
 
     // 圖片 → OCR → 文字譜進左欄（91 譜這類只給圖檔的譜直接截圖丟進來）
     const handleImage = useCallback(async (file: File | Blob) => {
         setOcrError(null);
+        srcFileRef.current = file;
         setSrcImageUrl(URL.createObjectURL(file));
         setOcrMsg('準備辨識引擎…');
         try {
@@ -103,6 +108,29 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
             setOcrMsg(null);
         }
     }, []);
+
+    // ✨ AI 辨識（Gemini Vision）— 比 Tesseract 準，連反白標籤 / 手機拍照都讀得懂
+    const handleAiRecognize = useCallback(async () => {
+        if (!srcFileRef.current || aiBusy) return;
+        setAiBusy(true);
+        setOcrError(null);
+        try {
+            const { aiRecognizeSheet } = await import('@/lib/aiSheetOcr');
+            const sheet = await aiRecognizeSheet(srcFileRef.current);
+            if (sheet.trim()) {
+                setInput(sheet);
+                setSteps(0);
+                setOcrDone(true);
+                setShowOcrText(false);
+            } else {
+                setOcrError('AI 沒辨識出內容，請換更清楚的圖');
+            }
+        } catch (e) {
+            setOcrError(e instanceof Error ? e.message : 'AI 辨識失敗，請稍後再試');
+        } finally {
+            setAiBusy(false);
+        }
+    }, [aiBusy]);
 
     const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -543,6 +571,14 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                     {srcImageUrl && (
                                         <>
                                             <button
+                                                className="ttm-pane-btn ai"
+                                                onClick={handleAiRecognize}
+                                                disabled={aiBusy || !!ocrMsg}
+                                                title="用 AI 重新辨識（更準，連反白標籤 / 手機拍照都讀得懂）"
+                                            >
+                                                {aiBusy ? '✨ AI 辨識中…' : '✨ AI 辨識'}
+                                            </button>
+                                            <button
                                                 className="ttm-pane-btn"
                                                 onClick={() => setShowOcrText((v) => !v)}
                                             >
@@ -550,7 +586,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                             </button>
                                             <button
                                                 className="ttm-pane-btn danger"
-                                                onClick={() => { setSrcImageUrl(null); setShowOcrText(false); }}
+                                                onClick={() => { setSrcImageUrl(null); srcFileRef.current = null; setShowOcrText(false); }}
                                                 aria-label="清除圖片，回到文字輸入"
                                             >
                                                 ✕ 清除
@@ -600,7 +636,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                             )}
                             {ocrDone && (
                                 <div className="ttm-ocr-tip">
-                                    ✓ 辨識完成 — 右欄<b>黃色字</b>是可能辨識錯的，直接點它就能就地修正。
+                                    ✓ 辨識完成 — 右欄<b>黃色字</b>可直接點它就地修正；辨識不理想時按 <b>✨ AI 辨識</b> 用 AI 重辨（更準）。
                                 </div>
                             )}
                         </div>

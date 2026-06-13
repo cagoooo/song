@@ -49,7 +49,7 @@ G3b-2 AI Vision 辨識 ....... 🔮 規劃（Gemini Flash）
 
 ## 🟧 P1 — 中價值、中成本（體驗或品質跳級）
 
-### P1-1　G3b-2 AI Vision 辨識（辨識品質天花板）
+### P1-1　G3b-2 AI Vision 辨識（辨識品質天花板）✅ 已完成（v4.11.0）
 - **問題**：反白標籤（`[前奏]→[41%]`）、手機拍照、複雜版面 Tesseract 力有未逮。
 - **做法**：Gemini 2.x Flash 視覺模型「看圖直接輸出結構化文字譜」，版面理解接近人工抄譜。**後端代理藏 key**：Supabase Edge Function（免費額度）。UI 做「Tesseract 先免費即時 → 不滿意按『AI 強化辨識』」混合模式，控制每日用量。
 - **成本**：1-2 天　**依賴**：Supabase Edge Function　**價值**：⭐⭐⭐⭐⭐

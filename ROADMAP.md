@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：12.5
-> **更新日期**：2026-06-13（v4.10.3 — 轉調結果多格式下載：文字 / 圖片 / PDF）
-> **當前版本**：**v4.10.3**（下載選單 .txt / .png / .pdf；圖片 PDF 中文不 tofu）
+> **文件版本**：12.6
+> **更新日期**：2026-06-13（v4.11.0 — AI Vision 譜圖辨識：Gemini Flash 看圖出譜）
+> **當前版本**：**v4.11.0**（✨ AI 辨識 — Supabase Edge Function 代理 Gemini Vision，反白標籤/手機拍照都讀得懂）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -106,6 +106,18 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.11.0（2026-06-13）— ✨ AI Vision 譜圖辨識（辨識品質天花板）
+
+> **背景**：Tesseract 搞不定反白段落標籤（`[前奏]→[41%]`）、手機拍照歪斜的譜。用 Gemini Flash 看圖直接出譜，品質接近人工抄譜。
+> **📐 設計文件**：[G3-sheet-ocr.md](docs/design/G3-sheet-ocr.md#g3b-2-落地架構2026-06-13)
+
+- ✅ **後端代理**（Supabase Edge Function `guitar-ai-sheet`）：藏 Gemini key、CORS、限流、service_role 讀 key → Gemini 2.5 Flash Vision；落腳既有 active 專案 smes-inventory + `guitar_` 前綴隔離，不碰原 app、不開新專案（免費方案 2 active 已滿）
+- ✅ **金鑰安全**：Gemini key（**新版 `AQ.` 格式**，實測有效，已記入 gemini-api-integration skill）存 RLS 鎖死的 `guitar_config` 表，公開讀不到；前端只帶公開 anon key
+- ✅ **限流零破產**：全站 200/日 + 單裝置 30/日原子計數；Gemini 維持免費層超量回 429 不扣錢
+- ✅ **前端**（[aiSheetOcr.ts](client/src/lib/aiSheetOcr.ts) + TransposeToolModal）：圖片模式「✨ AI 辨識」紫色按鈕，與 Tesseract 混合（免費即時當預設，不滿意按 AI 重辨）
+- ✅ **實測**：合成譜圖（含反白 `[前奏]` 標籤）→ Gemini 完整正確辨識，瀏覽器端 CORS + 後端 + Gemini 全通，5 秒回應 — **OCR 的反白標籤硬骨頭一次解掉**
+- ✅ 測試 590 全綠；tsc 乾淨；build 無 warning
 
 ### v4.10.3（2026-06-13）— 轉調結果多格式下載 📥（文字 / 圖片 / PDF）
 

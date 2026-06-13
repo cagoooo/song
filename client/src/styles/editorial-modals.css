@@ -512,6 +512,14 @@
 .ttm-pane-btn.danger:hover:not(:disabled) { background: #dc2626; border-color: #dc2626; color: #fff; }
 .ttm-pane-btn.ghost { border-style: dashed; color: var(--ed-ink-3); }
 .ttm-pane-btn.ghost:hover:not(:disabled) { background: var(--ed-paper-2, #f6f3ee); color: var(--ed-ink-1); border-color: var(--ed-ink-1); }
+/* ✨ AI 辨識 — 紫色強調，跟一般辨識區隔 */
+.ttm-pane-btn.ai {
+  border-color: #7c3aed;
+  color: #7c3aed;
+  font-weight: 600;
+}
+.ttm-pane-btn.ai:hover:not(:disabled) { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+.ttm-pane-btn.ai:disabled { opacity: 0.55; cursor: wait; }
 .ttm-input, .ttm-output {
   border: 1.5px solid var(--ed-ink-1);
   border-radius: 6px;
