@@ -40,11 +40,41 @@ describe('fixChordLineNoise — 小節線誤判修正', () => {
 
     it('歌詞行的 I 不能動（換了也不會變和弦行）', () => {
         expect(fixChordLineNoise('I love you so')).toBe('I love you so');
+        expect(fixChordLineNoise('I am here now')).toBe('I am here now'); // am 在小寫黑名單
     });
 
     it('區段標頭整行跳過', () => {
         expect(fixChordLineNoise('[INTRO]')).toBe('[INTRO]');
         expect(fixChordLineNoise('[CHORUS]*')).toBe('[CHORUS]*');
+    });
+
+    // === 91 譜「特別的人」真實 OCR 雜訊（2026-06-13 使用者實測截圖） ===
+
+    it('91 譜實測行 1：[ 和 l 認成小節線 + CID = C/D', () => {
+        expect(fixChordLineNoise('[A]  [Cmaj7  [Bm7  |Am7  CID  lGmaj7  |'))
+            .toBe('[A]  |Cmaj7  |Bm7  |Am7  C/D  |Gmaj7  |');
+    });
+
+    it('91 譜實測行 2：IG=|G、Cmai7=Cmaj7、Bm?=Bm7、lam7=|Am7', () => {
+        expect(fixChordLineNoise('IG  B7  [Em7  Dm7  [Cmai7  Bm?  lam7  D  |'))
+            .toBe('|G  B7  |Em7  Dm7  |Cmaj7  Bm7  |Am7  D  |');
+    });
+
+    it('91 譜實測行 3：小寫 lcm = |Cm、1Gmaj7 = |Gmaj7', () => {
+        expect(fixChordLineNoise('lcmaj7  [Bm7  Em7  |Am7  lcm  1Gmaj7  |'))
+            .toBe('|Cmaj7  |Bm7  Em7  |Am7  |Cm  |Gmaj7  |');
+    });
+
+    it('連寫和弦 [Em7-Dm7 → |Em7-Dm7', () => {
+        expect(fixChordLineNoise('6  B7  [Em7-Dm7  G  |'))
+            .toBe('6  B7  |Em7-Dm7  G  |');
+    });
+
+    it('修正後的行可直接轉調（端到端）', () => {
+        const fixed = fixChordLineNoise('[Cmaj7  [Bm7  |Am7  CID  lGmaj7');
+        const transposed = transposeChordSheet(fixed, 2, { preferFlat: false });
+        // |Bm7 → |C#m7 變長 1 字元 → 後面空白吃 1 格保持對齊
+        expect(transposed).toBe('|Dmaj7  |C#m7 |Bm7  D/E  |Amaj7');
     });
 });
 

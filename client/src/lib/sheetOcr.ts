@@ -12,7 +12,7 @@
 //     不追求 100% 正確，追求「比手打快 10 倍」
 //   • worker 模組級快取：同一個 session 第二張圖不用重新下載語言檔
 
-import { isChordLine } from '@/lib/transpose';
+import { isChordLine, isChordSymbol, countChordTokens } from '@/lib/transpose';
 
 // ============================================================================
 // 型別（與 tesseract.js Page/Line/Word 對齊，但只取需要的欄位）
@@ -63,19 +63,73 @@ export function visualWidth(s: string): number {
 }
 
 /**
- * OCR 雜訊修正：小節線「|」常被認成 I / l / [ / ]。
- * 只在「替換後該行變成和弦行」時才採用替換版（歌詞行的 I/l 不能亂動）。
- * `[INTRO]` 這類區段標頭整行跳過。
+ * OCR 雜訊修正 — 針對 91 譜這類「|和弦」黏寫譜的常見誤認：
+ *
+ *   • 小節線 | → I / l / 1 / ! / [ / ]（lGmaj7 → |Gmaj7、[Bm7 → |Bm7）
+ *   • 分數和弦的 / → I（CID → C/D）
+ *   • 7 → ?（Bm? → Bm7）、maj 的 j → i（Cmai7 → Cmaj7）
+ *   • 和弦被認成小寫（cm → Cm；但 a/am/em 等真實英文字不動）
+ *
+ * 安全閘門：整行修完必須「變成和弦行」且和弦數不減少才採用 —
+ * 英文歌詞行（I love you）修了也變不成和弦行，會原樣保留。
+ * 含 CJK 的行（歌詞）與 [INTRO] 區段標頭整行跳過。
  */
+
+/** 容易跟真實英文單字撞名的小寫核心 — 不做大寫修正（a → A 和弦太危險） */
+const LOWERCASE_BLOCKLIST = new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'am', 'em']);
+
+/** 修單一 token 的「和弦核心」；修不成合法和弦 → null */
+function fixCore(core: string): string | null {
+    let c = core
+        .replace(/mai(?=\d)/, 'maj')   // Cmai7 → Cmaj7（j 認成 i）
+        .replace(/\?$/, '7');          // Bm? → Bm7（7 認成 ?）
+    // 小寫和弦 → 首字大寫（cm → Cm），但排除真實英文字
+    if (/^[a-g]/.test(c) && !LOWERCASE_BLOCKLIST.has(core.toLowerCase())) {
+        c = c[0].toUpperCase() + c.slice(1);
+    }
+    // 分數和弦的 / 認成 I/l/1：CID → C/D
+    const slash = c.match(/^([A-G][#b♯♭]?)[Il1]([A-G][#b♯♭]?)$/);
+    if (slash) c = `${slash[1]}/${slash[2]}`;
+    if (isChordSymbol(c)) return c;
+    // 連寫和弦 Em7-Dm7
+    if (c.includes('-')) {
+        const parts = c.split('-');
+        if (parts.length > 1 && parts.every((p) => p && isChordSymbol(p))) return c;
+    }
+    return null;
+}
+
+/** 可能是「| 誤認」的雜訊字元（黏在和弦前後 / 獨立成 token） */
+const NOISE_RUN_RE = /^[Il1!|｜\[\]]+$/;
+const NOISE_PREFIX_RE = /^[Il1!|｜\[\]]+/;
+const NOISE_SUFFIX_RE = /[!|｜\[\]]+$/;
+
+function fixToken(tok: string): string {
+    if (NOISE_RUN_RE.test(tok)) return '|';            // 純雜訊 run → 單一小節線
+    if (/^\[.+\]$/.test(tok)) return tok;              // [A] 段落記號整顆保留
+    let core = tok;
+    let pre = '';
+    let post = '';
+    const pm = core.match(NOISE_PREFIX_RE);
+    if (pm) { pre = '|'; core = core.slice(pm[0].length); }
+    const sm = core.match(NOISE_SUFFIX_RE);
+    if (sm) { post = '|'; core = core.slice(0, core.length - sm[0].length); }
+    if (!core) return pre || post ? '|' : tok;
+    const fixed = fixCore(core);
+    return fixed ? pre + fixed + post : tok;
+}
+
 export function fixChordLineNoise(line: string): string {
     const trimmed = line.trim();
-    if (!trimmed || /^\[.+\]\*?$/.test(trimmed)) return line;
-    if (isChordLine(line)) return line;
-    const candidate = line
+    if (!trimmed || /^\[.+\]\*?$/.test(trimmed) || HAS_CJK_RE.test(line)) return line;
+    const fixed = line
         .split(/(\s+)/)
-        .map((tok) => (/^[Il\[\]]+$/.test(tok) ? '|'.repeat(tok.length) : tok))
+        .map((tok) => (!tok || /^\s+$/.test(tok) ? tok : fixToken(tok)))
         .join('');
-    return isChordLine(candidate) ? candidate : line;
+    if (fixed === line) return line;
+    // 安全閘門：修完要是和弦行、且和弦數不能變少
+    if (isChordLine(fixed) && countChordTokens(fixed) >= countChordTokens(line)) return fixed;
+    return line;
 }
 
 /**
