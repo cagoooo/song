@@ -681,6 +681,43 @@
 
 /* OCR 譜圖辨識（上傳 / 貼截圖 / 拖放） */
 .ttm-pane-actions { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* ✨ AI 辨識模擬進度條（單一 fetch 無真實進度，緩升動畫讓使用者知道在跑） */
+.ttm-ai-progress {
+  border: 1.5px solid #7c3aed;
+  border-radius: 8px;
+  background: #faf5ff;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}
+.ttm-ai-progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: #7c3aed;
+}
+.ttm-ai-progress-pct { font-variant-numeric: tabular-nums; }
+.ttm-ai-progress-track {
+  height: 7px;
+  border-radius: 999px;
+  background: #ede9fe;
+  overflow: hidden;
+  margin: 7px 0 5px;
+}
+.ttm-ai-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #a78bfa, #7c3aed);
+  transition: width 0.35s ease;
+}
+.ttm-ai-progress-hint {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ed-ink-3);
+}
+
 .ttm-ocr-status {
   display: flex;
   align-items: center;
@@ -737,11 +774,20 @@
 }
 
 @media (max-width: 768px) {
-  .ttm-page { padding: 20px 16px 24px; }
-  .ttm-title { font-size: 24px; }
-  .ttm-panes { grid-template-columns: 1fr; }
-  .ttm-input, .ttm-output { min-height: 220px; font-size: 12px; }
-  .ttm-img-full { max-height: 45vh; }
+  .ttm-page { padding: 16px 14px 22px; }
+  .ttm-head { padding-bottom: 12px; margin-bottom: 12px; }
+  .ttm-title { font-size: 22px; }
+  .ttm-sub { font-size: 12px; }
+  .ttm-panes { grid-template-columns: 1fr; gap: 14px; }
+  /* 輸入區矮一點讓「轉調結果」上移（手機最在意快看到結果）；結果區維持夠高 */
+  .ttm-input { min-height: 150px; font-size: 12px; }
+  .ttm-output { min-height: 200px; font-size: 12px; }
+  .ttm-img-full { max-height: 38vh; }
+  /* 控制列瘦身 */
+  .ttm-controls { gap: 8px 10px; padding: 10px 12px; }
+  /* 目標調 12 鍵：手機改「橫向可捲一列」，不再堆成 3-4 行吃掉垂直空間 */
+  .ttm-keys { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; max-width: 100%; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .ttm-keys .ttm-key-pill { flex: 0 0 auto; }
   /* 手機：標題與按鈕分兩行，按鈕排滿一列、靠左不擠 */
   .ttm-pane-h { flex-direction: column; align-items: stretch; gap: 8px; }
   .ttm-pane-title { font-size: 16px; }
