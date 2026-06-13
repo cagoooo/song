@@ -169,6 +169,53 @@ export function transposeChordSymbol(symbol: string, semitones: number, options?
 /** 和弦行裡允許出現的「非和弦」記號 — 不影響和弦行判定，移調時原樣保留 */
 const NEUTRAL_TOKEN_RE = /^(?:\||-|–|—|→|%|\.|,|x\d+|X\d+|N\.?C\.?|\(|\)|\*)+$/i;
 
+// ============================================================================
+// Token 裝飾處理 — 91 譜文字格式的「黏寫」慣例
+// ============================================================================
+// 91 譜等網站的和弦常黏著記號：|Cmaj7（小節線）、(C)（過門）、Em7-Dm7（連寫）。
+// [A]、[前奏] 這種「全括號」是段落記號 — 整顆中性，永不移調。
+
+const BRACKETED_TOKEN_RE = /^\[.+\]$/;
+const DECOR_TOKEN_RE = /^([|([\]]*)(.*?)([|()\[\],.]*)$/;
+
+interface ChordToken {
+    prefix: string;
+    /** 和弦本體：連寫拆解含分隔符（['Em7','-','Dm7']）；單顆就一個元素 */
+    parts: string[];
+    suffix: string;
+}
+
+/** 把 token 拆成 裝飾前綴 + 和弦本體 + 裝飾後綴；不是和弦 token → null */
+function parseChordToken(token: string): ChordToken | null {
+    if (BRACKETED_TOKEN_RE.test(token)) return null; // [A] 段落記號
+    const m = token.match(DECOR_TOKEN_RE);
+    if (!m) return null;
+    const [, prefix, core, suffix] = m;
+    if (!core) return null;
+    if (isChordSymbol(core)) return { prefix, parts: [core], suffix };
+    // 連寫和弦 Em7-Dm7 / C-G — 先整顆試過才拆，避免誤拆 Cm7-5
+    if (core.includes('-')) {
+        const segs = core.split(/(-)/);
+        const chords = segs.filter((_, i) => i % 2 === 0);
+        if (chords.length > 1 && chords.every((c) => c && isChordSymbol(c))) {
+            return { prefix, parts: segs, suffix };
+        }
+    }
+    return null;
+}
+
+/** token 分類：中性（| x2 N.C. [A]）/ 和弦（含黏寫裝飾）/ 一般文字 */
+function classifyToken(token: string): 'neutral' | 'chord' | 'word' {
+    if (NEUTRAL_TOKEN_RE.test(token) || BRACKETED_TOKEN_RE.test(token)) return 'neutral';
+    return parseChordToken(token) ? 'chord' : 'word';
+}
+
+/** 一行裡「和弦 token」的數量（OCR 雜訊修正的採用門檻用） */
+export function countChordTokens(line: string): number {
+    if (!line.trim()) return 0;
+    return line.trim().split(/\s+/).filter((t) => classifyToken(t) === 'chord').length;
+}
+
 /**
  * 移調一整行和弦（如 'C    G    Am   Em'），盡量保持原本的欄位對齊：
  * 和弦名變長 N 字元 → 從它後面的空白吃掉 N 個（至少留 1 格）；
@@ -195,7 +242,12 @@ export function transposeChordLine(line: string, semitones: number, options?: Tr
             out += ' '.repeat(ws);
             continue;
         }
-        const transposed = isChordSymbol(part) ? transposeChordSymbol(part, semitones, options) : part;
+        const tok = parseChordToken(part);
+        const transposed = tok
+            ? tok.prefix
+              + tok.parts.map((p, i) => (i % 2 === 0 ? transposeChordSymbol(p, semitones, options) : p)).join('')
+              + tok.suffix
+            : part;
         debt += transposed.length - part.length;
         out += transposed;
     }
@@ -227,8 +279,9 @@ export function isChordLine(line: string): boolean {
     let chordCount = 0;
     let wordCount = 0;
     for (const t of tokens) {
-        if (NEUTRAL_TOKEN_RE.test(t)) continue;
-        if (isChordSymbol(t)) chordCount++;
+        const cls = classifyToken(t);
+        if (cls === 'neutral') continue;
+        if (cls === 'chord') chordCount++;
         else wordCount++;
     }
     if (chordCount === 0) return false;
@@ -241,7 +294,9 @@ export function extractChords(text: string): string[] {
     for (const line of text.split('\n')) {
         if (!isChordLine(line)) continue;
         for (const t of line.trim().split(/\s+/)) {
-            if (isChordSymbol(t)) chords.push(t);
+            const tok = parseChordToken(t);
+            if (!tok) continue;
+            tok.parts.forEach((p, i) => { if (i % 2 === 0) chords.push(p); });
         }
     }
     return chords;

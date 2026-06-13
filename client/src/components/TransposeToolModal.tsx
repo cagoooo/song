@@ -119,6 +119,9 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
         return capoSuggestions(targetKey).filter((c) => c.capo > 0).slice(0, 2);
     }, [targetKey, steps]);
 
+    // 位移 ≠ 0 卻一行都沒變 → 沒有任何行被判定成「和弦行」，給使用者線索
+    const nothingTransposed = steps !== 0 && input.trim() !== '' && output === input;
+
     const handlePickKey = (key: string) => {
         if (!detected) return;
         // 用半音值算位移（同音異名 F# / Gb 也能對上），取 -5 ~ +6 最短路徑
@@ -292,6 +295,12 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                                     {copied ? '✓ 已複製' : '複製結果'}
                                 </button>
                             </div>
+                            {nothingTransposed && (
+                                <div className="ttm-ocr-error" role="alert">
+                                    ⚠ 沒有偵測到可轉調的「和弦行」— 確認和弦行裡沒夾中文字，
+                                    或修掉黏在和弦上的怪符號（OCR 偶爾把 | 認成 I / l / 1）。
+                                </div>
+                            )}
                             <pre className="ttm-output" aria-label="轉調結果" aria-live="polite">
                                 {output
                                     ? output.split('\n').map((line, i) => (

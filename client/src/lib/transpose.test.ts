@@ -11,6 +11,7 @@ import {
     isChordLine,
     extractChords,
     detectKey,
+    countChordTokens,
     capoSuggestions,
     preferFlatForKey,
     noteToSemitone,
@@ -153,6 +154,41 @@ describe('transposeChordLine — 整行移調保持對齊', () => {
 
     it('整行非和弦不動', () => {
         expect(transposeChordLine('---- intro ----', 2)).toBe('---- intro ----');
+    });
+});
+
+describe('91 譜黏寫格式 — |Cmaj7 / (C) / Em7-Dm7 / [A]', () => {
+    it('小節線黏在和弦上也能轉（91 譜文字格式）', () => {
+        const out = transposeChordLine('|Cmaj7 |Bm7 |Am7 C/D |Gmaj7 |', 2, { preferFlat: false });
+        expect(out).toBe('|Dmaj7 |C#m7 |Bm7 D/E |Amaj7 |');
+    });
+
+    it('[A] 段落記號永不移調', () => {
+        expect(transposeChordLine('[A] |C |G', 2)).toBe('[A] |D |A');
+        expect(transposeChordLine('[前奏] C G', 2)).toBe('[前奏] D A');
+    });
+
+    it('括號過門和弦 (C) 會轉', () => {
+        expect(transposeChordLine('(C) G', 2)).toBe('(D) A');
+    });
+
+    it('連寫和弦 Em7-Dm7 兩顆都轉', () => {
+        expect(transposeChordLine('|Em7-Dm7 G |', 2, { preferFlat: false })).toBe('|F#m7-Em7 A |');
+    });
+
+    it('連寫不誤拆 Cm7-5（先整顆解析）', () => {
+        expect(transposeChordLine('Cm7-5', 2)).toBe('Dm7-5');
+    });
+
+    it('黏寫格式的行被判定為和弦行 + 調性偵測有效', () => {
+        expect(isChordLine('[A] |Cmaj7 |Bm7 |Am7 C/D |Gmaj7 |')).toBe(true);
+        expect(extractChords('|Cmaj7 |Bm7 |Am7 C/D |Gmaj7 |')).toEqual(['Cmaj7', 'Bm7', 'Am7', 'C/D', 'Gmaj7']);
+        expect(detectKey(extractChords('|Cmaj7 |Bm7 |Em7 |Am7 |D |Gmaj7'))?.key).toBe('G');
+    });
+
+    it('countChordTokens', () => {
+        expect(countChordTokens('|Cmaj7 [Bm7 Em7 hello')).toBe(3);
+        expect(countChordTokens('故事的小黃花')).toBe(0);
     });
 });
 
