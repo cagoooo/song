@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：12.4
-> **更新日期**：2026-06-13（v4.10.2 — 轉調工具雙欄 header 排版統一 + RWD）
-> **當前版本**：**v4.10.2**（截圖區三按鈕統一膠囊風 + variant 色；桌機同行、手機等分一列）
+> **文件版本**：12.5
+> **更新日期**：2026-06-13（v4.10.3 — 轉調結果多格式下載：文字 / 圖片 / PDF）
+> **當前版本**：**v4.10.3**（下載選單 .txt / .png / .pdf；圖片 PDF 中文不 tofu）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -106,6 +106,17 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.10.3（2026-06-13）— 轉調結果多格式下載 📥（文字 / 圖片 / PDF）
+
+> **背景**：原本只能下載 .txt。使用者要圖片與 PDF — 傳團員、列印、存檔更好用。
+
+- ✅ **下載選單**（[TransposeToolModal.tsx](client/src/components/TransposeToolModal.tsx)）：「⬇ 下載 ▾」點開三選項 📄 .txt / 🖼️ .png / 📕 .pdf（點外面自動關、產圖中顯示忙碌狀態）
+- ✅ **圖片 PNG**（html-to-image）：把轉調結果譜面渲染成 2× 高解析 PNG，截前暫時展開限高截完整；**中文走瀏覽器渲染不會 tofu**
+- ✅ **PDF**（jsPDF，dynamic import 獨立 chunk 不進主 bundle）：PNG 置中塞進 A4 直式，中文是圖片不 tofu；Node 端對端驗證產出有效 PDF（190mm 寬、比例正確）
+- ✅ **關鍵修復**：`fontEmbedCSS:''` 讓 html-to-image 不去 fetch Google Fonts cross-origin CSS（否則 CORS 拖慢甚至卡死產圖）— 讀 html-to-image 原始碼確認此參數會完全跳過字型處理
+- ✅ 測試 590 全綠；tsc 乾淨；build 無 warning（jspdf 獨立 chunk 390KB gzip 128KB）
+- ⚠️ PNG/PDF 因 preview 無頭隱藏分頁的 SVG→Image 渲染限制無法自動截驗（[claude-preview-headless-verify-traps]），但 PNG 邏輯與 production 已上線的 ShareCardModal 一致、PDF 經 Node 端對端驗證
 
 ### v4.10.2（2026-06-13）— 轉調工具 header 排版統一 + RWD 🎨
 
