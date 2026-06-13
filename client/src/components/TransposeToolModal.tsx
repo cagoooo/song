@@ -12,9 +12,12 @@ import {
 import {
     transposeChordSheet, transposeChordSymbol, isChordLine,
     extractChords, detectKey, preferFlatForKey, capoSuggestions,
-    noteToSemitone, KEY_OPTIONS,
+    noteToSemitone, KEY_OPTIONS, nashvilleSheet, classifyToken,
 } from '@/lib/transpose';
+import { getRememberedSteps, rememberSteps, sheetMemoryKey } from '@/lib/transposeMemory';
 import type { OcrProgress } from '@/lib/sheetOcr';
+
+const HAS_CJK_RE = /[一-鿿぀-ヿ가-힯]/;
 
 interface TransposeToolModalProps {
     isOpen: boolean;
@@ -49,6 +52,10 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
     const [srcImageUrl, setSrcImageUrl] = useState<string | null>(null);
     /** 圖片模式下切回文字編輯（修正辨識錯字用） */
     const [showOcrText, setShowOcrText] = useState(false);
+    /** 顯示模式：false = 和弦、true = 數字級數（Nashville） */
+    const [showDegrees, setShowDegrees] = useState(false);
+    /** 上一份譜的記憶 key — 內容真的變才重設位移（只是 steps 變不動） */
+    const lastSheetKeyRef = useRef('');
 
     // object URL 生命週期：換圖或關閉 modal 時釋放
     useEffect(() => {
@@ -109,6 +116,25 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
     // 偵測貼進來的譜是什麼調
     const detected = useMemo(() => detectKey(extractChords(input)), [input]);
 
+    // 新譜貼入 → 套用上次記住的調（同份譜重貼免重設；只是改位移不觸發）
+    useEffect(() => {
+        const key = input.trim() ? sheetMemoryKey(input) : '';
+        if (key === lastSheetKeyRef.current) return;
+        lastSheetKeyRef.current = key;
+        if (key) setSteps(getRememberedSteps(key) ?? 0);
+    }, [input]);
+
+    // 使用者實際操作轉調才存記憶（OCR / 貼入造成的位移重設不會誤存）。
+    // functional updater 讀最新值，快速連點也不丟。
+    const changeSteps = useCallback((next: number | ((s: number) => number)) => {
+        setSteps((prev) => {
+            const raw = typeof next === 'function' ? next(prev) : next;
+            const clamped = Math.max(-11, Math.min(11, raw));
+            if (input.trim()) rememberSteps(sheetMemoryKey(input), clamped);
+            return clamped;
+        });
+    }, [input]);
+
     // 目前的目標調（沒偵測到原調就只顯示位移量）
     const targetKey = useMemo(() => {
         if (!detected) return null;
@@ -117,12 +143,14 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
         return transposeChordSymbol(detected.key, steps, { preferFlat: preferFlatForKey(rough) });
     }, [detected, steps]);
 
-    // 轉調後的完整譜面
+    // 右欄譜面：級數模式顯示 Nashville 數字級數（與位移無關，相對偵測調）；
+    // 否則顯示轉調後的和弦
     const output = useMemo(() => {
         if (!input) return '';
+        if (showDegrees) return detected ? nashvilleSheet(input, detected.key) : input;
         const preferFlat = targetKey ? preferFlatForKey(targetKey) : undefined;
         return transposeChordSheet(input, steps, { preferFlat });
-    }, [input, steps, targetKey]);
+    }, [input, steps, targetKey, showDegrees, detected]);
 
     // Capo 等效建議（目標調用開放指型怎麼彈）
     const capos = useMemo(() => {
@@ -131,7 +159,7 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
     }, [targetKey, steps]);
 
     // 位移 ≠ 0 卻一行都沒變 → 沒有任何行被判定成「和弦行」，給使用者線索
-    const nothingTransposed = steps !== 0 && input.trim() !== '' && output === input;
+    const nothingTransposed = !showDegrees && steps !== 0 && input.trim() !== '' && output === input;
 
     const handlePickKey = (key: string) => {
         if (!detected) return;
@@ -142,7 +170,33 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
         let diff = to - from;
         if (diff > 6) diff -= 12;
         if (diff < -5) diff += 12;
-        setSteps(diff);
+        changeSteps(diff);
+    };
+
+    /** 右欄逐行渲染：和弦行內辨識不出的 token 標黃（可疑字），級數模式不標 */
+    const renderOutputLines = () => {
+        const outLines = output.split('\n');
+        const refLines = showDegrees ? input.split('\n') : outLines;
+        return outLines.map((line, i) => {
+            const isChord = isChordLine(refLines[i] ?? line);
+            return (
+                <div key={i} className={isChord ? 'ttm-line-chord' : 'ttm-line-lyric'}>
+                    {!showDegrees && isChord
+                        ? line.split(/(\s+)/).map((tok, j) => {
+                            if (!tok || /^\s+$/.test(tok)) return tok;
+                            if (classifyToken(tok) === 'word' && !HAS_CJK_RE.test(tok)) {
+                                return (
+                                    <span key={j} className="ttm-suspect" title="辨識可能有誤，點左欄「✏️ 修正辨識文字」可改">
+                                        {tok}
+                                    </span>
+                                );
+                            }
+                            return tok;
+                        })
+                        : (line || ' ')}
+                </div>
+            );
+        });
     };
 
     /** 同音異名也算同一顆（targetKey 可能拼成 Gb、pill 是 F#） */
@@ -195,20 +249,36 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                             <span className="ttm-ctrl-label">半音位移</span>
                             <button
                                 className="sdp-trans-btn"
-                                onClick={() => setSteps((s) => Math.max(s - 1, -11))}
-                                disabled={steps <= -11}
+                                onClick={() => changeSteps((s) => s - 1)}
+                                disabled={steps <= -11 || showDegrees}
                                 aria-label="降半音"
                             >−</button>
                             <span className="ttm-steps">{steps > 0 ? `+${steps}` : steps}</span>
                             <button
                                 className="sdp-trans-btn"
-                                onClick={() => setSteps((s) => Math.min(s + 1, 11))}
-                                disabled={steps >= 11}
+                                onClick={() => changeSteps((s) => s + 1)}
+                                disabled={steps >= 11 || showDegrees}
                                 aria-label="升半音"
                             >＋</button>
                             {steps !== 0 && (
-                                <button className="sdp-trans-reset" onClick={() => setSteps(0)}>↺ 歸零</button>
+                                <button className="sdp-trans-reset" onClick={() => changeSteps(0)}>↺ 歸零</button>
                             )}
+                        </div>
+
+                        <div className="ttm-ctrl-group" role="group" aria-label="顯示模式">
+                            <span className="ttm-ctrl-label">顯示</span>
+                            <button
+                                className={'ttm-toggle' + (!showDegrees ? ' active' : '')}
+                                onClick={() => setShowDegrees(false)}
+                                aria-pressed={!showDegrees}
+                            >♪ 和弦</button>
+                            <button
+                                className={'ttm-toggle' + (showDegrees ? ' active' : '')}
+                                onClick={() => setShowDegrees(true)}
+                                disabled={!detected}
+                                aria-pressed={showDegrees}
+                                title={detected ? '用數字級數表示（1-4-5-6m），教學/移調思考超直覺' : '偵測不到調性，無法顯示級數'}
+                            >🔢 級數</button>
                         </div>
 
                         {detected && (
@@ -321,8 +391,9 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                         <div className="ttm-pane">
                             <div className="ttm-pane-h">
                                 <span>
-                                    轉調結果
-                                    {targetKey && steps !== 0 && <em className="ttm-pane-key"> → {targetKey} 調</em>}
+                                    {showDegrees
+                                        ? <>數字級數{detected && <em className="ttm-pane-key"> 以 {detected.key} 調為 1</em>}</>
+                                        : <>轉調結果{targetKey && steps !== 0 && <em className="ttm-pane-key"> → {targetKey} 調</em>}</>}
                                 </span>
                                 <button
                                     className={'ttm-copy' + (copied ? ' done' : '')}
@@ -340,11 +411,7 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                             )}
                             <pre className="ttm-output" aria-label="轉調結果" aria-live="polite">
                                 {output
-                                    ? output.split('\n').map((line, i) => (
-                                        <div key={i} className={isChordLine(line) ? 'ttm-line-chord' : 'ttm-line-lyric'}>
-                                            {line || ' '}
-                                        </div>
-                                    ))
+                                    ? renderOutputLines()
                                     : <div className="ttm-empty">轉調後的譜會即時出現在這裡</div>}
                             </pre>
                         </div>

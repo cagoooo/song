@@ -204,8 +204,8 @@ function parseChordToken(token: string): ChordToken | null {
     return null;
 }
 
-/** token 分類：中性（| x2 N.C. [A]）/ 和弦（含黏寫裝飾）/ 一般文字 */
-function classifyToken(token: string): 'neutral' | 'chord' | 'word' {
+/** token 分類：中性（| x2 N.C. [A]）/ 和弦（含黏寫裝飾）/ 一般文字（給 UI 標可疑字用） */
+export function classifyToken(token: string): 'neutral' | 'chord' | 'word' {
     if (NEUTRAL_TOKEN_RE.test(token) || BRACKETED_TOKEN_RE.test(token)) return 'neutral';
     return parseChordToken(token) ? 'chord' : 'word';
 }
@@ -222,7 +222,12 @@ export function countChordTokens(line: string): number {
  * 變短 N 字元 → 補回 N 個空白。這樣下一個和弦的起始欄位盡量不動，
  * 歌詞對照不會跑位。
  */
-export function transposeChordLine(line: string, semitones: number, options?: TransposeOptions): string {
+/**
+ * 對一行裡的每顆和弦套用 mapChord，盡量保持原本的欄位對齊：
+ * 結果變長 N 字元 → 從後面的空白吃掉 N 個（至少留 1 格）；變短 → 補回。
+ * 轉調與級數轉換共用此邏輯（差別只在 mapChord）。
+ */
+function mapChordLine(line: string, mapChord: (chord: string) => string): string {
     if (!line) return line;
     // 切成 [空白][token][空白][token]… 的序列（保留空白原樣）
     const parts = line.split(/(\s+)/);
@@ -243,15 +248,19 @@ export function transposeChordLine(line: string, semitones: number, options?: Tr
             continue;
         }
         const tok = parseChordToken(part);
-        const transposed = tok
+        const mapped = tok
             ? tok.prefix
-              + tok.parts.map((p, i) => (i % 2 === 0 ? transposeChordSymbol(p, semitones, options) : p)).join('')
+              + tok.parts.map((p, i) => (i % 2 === 0 ? mapChord(p) : p)).join('')
               + tok.suffix
             : part;
-        debt += transposed.length - part.length;
-        out += transposed;
+        debt += mapped.length - part.length;
+        out += mapped;
     }
     return out;
+}
+
+export function transposeChordLine(line: string, semitones: number, options?: TransposeOptions): string {
+    return mapChordLine(line, (c) => transposeChordSymbol(c, semitones, options));
 }
 
 // ============================================================================
@@ -445,4 +454,51 @@ export function transposeLyricBlocks(blocks: LyricBlock[], semitones: number, op
 export function transposeProgression(progression: string[], semitones: number, options?: TransposeOptions): string[] {
     if (semitones % 12 === 0) return progression;
     return progression.map((c) => transposeChordSymbol(c, semitones, options));
+}
+
+// ============================================================================
+// 數字級數（Nashville Number System）
+// ============================================================================
+// 把和弦改用「相對主音的級數」表示：C 調的 C/F/G/Am → 1/4/5/6m。
+// 級數的好處 = 與絕對調無關，看懂一次到處通用，教學/移調思考超直覺。
+//
+// 慣例：以「大調主音」為 1。小調歌（detectKey 回關係大調）會以關係大調級數
+// 表示（Am 的歌主和弦顯示 6m）— 與 91 譜等華語數字譜的標法一致。
+
+const DEGREE_NAMES = ['1', 'b2', '2', 'b3', '3', '4', 'b5', '5', 'b6', '6', 'b7', '7'] as const;
+
+function semitoneToDegree(semitone: number, tonic: number): string {
+    return DEGREE_NAMES[((semitone - tonic) % 12 + 12) % 12];
+}
+
+/**
+ * 單顆和弦 → 級數字串（相對 keyRoot 大調主音）。
+ * 後綴原樣保留（Am7 → 6m7、G7 → 57、C/E → 1/3）。非和弦原樣回傳。
+ */
+export function chordToNashville(symbol: string, keyRoot: string): string {
+    const parsed = parseChord(symbol);
+    if (!parsed) return symbol;
+    const tonic = noteToSemitone(parseChord(keyRoot)?.root ?? keyRoot);
+    const rootSemi = noteToSemitone(parsed.root);
+    if (tonic === null || rootSemi === null) return symbol;
+    let out = semitoneToDegree(rootSemi, tonic) + parsed.suffix;
+    if (parsed.bass) {
+        const bassSemi = noteToSemitone(parsed.bass);
+        if (bassSemi !== null) out += '/' + semitoneToDegree(bassSemi, tonic);
+    }
+    return out;
+}
+
+/** 整行和弦 → 級數（保持欄位對齊；含黏寫 |Cmaj7 / 連寫 Em7-Dm7） */
+export function chordLineToNashville(line: string, keyRoot: string): string {
+    return mapChordLine(line, (c) => chordToNashville(c, keyRoot));
+}
+
+/** 整份譜 → 級數（逐行：和弦行轉級數，歌詞行原樣保留） */
+export function nashvilleSheet(text: string, keyRoot: string): string {
+    if (!text) return text;
+    return text
+        .split('\n')
+        .map((line) => (isChordLine(line) ? chordLineToNashville(line, keyRoot) : line))
+        .join('\n');
 }
