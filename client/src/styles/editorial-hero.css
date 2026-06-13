@@ -340,9 +340,35 @@
   margin-left: 4px;
   border-left: 1px solid var(--ed-line);
 }
+/* 轉調工具入口（topbar 右側） */
+.ttm-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid var(--ed-ink-1);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ed-ink-1);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.ttm-entry:hover {
+  background: var(--ed-accent);
+  border-color: var(--ed-accent);
+  color: #fff;
+}
+
 @media (max-width: 640px) {
   .editorial-topbar-issue { display: none; }
   .editorial-topbar { padding-bottom: 12px; margin-bottom: 14px; }
+  .ttm-entry { padding: 0 10px; }
 }
 
 /* ==========================================================================

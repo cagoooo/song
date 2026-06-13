@@ -3,16 +3,18 @@ import type { ChordFingering } from './data';
 
 interface ChordSvgProps {
     dots: ChordFingering['dots'];
+    /** 把位：dots 的 1 = 第 baseFret 格；>1 時頂線改細線並標示把位數字 */
+    baseFret?: number;
 }
 
 /**
  * 弦索引：6 = 低音 E（最左/粗）→ 1 = 高音 E（最右/細）
  * dots 值：number = fret 數（1-5）/ 0 = 開放弦 / 'x' = 不彈
  */
-export function ChordSvg({ dots }: ChordSvgProps) {
+export function ChordSvg({ dots, baseFret = 1 }: ChordSvgProps) {
     const W = 80;
     const H = 100;
-    const left = 8;
+    const left = baseFret > 1 ? 20 : 8; // 高把位左側留空標把位數字
     const right = W - 8;
     const top = 18;
     const bottom = 88;
@@ -29,15 +31,29 @@ export function ChordSvg({ dots }: ChordSvgProps) {
             preserveAspectRatio="xMidYMid meet"
             aria-hidden="true"
         >
-            {/* nut (頂部粗黑線) */}
+            {/* nut (頂部粗黑線)；高把位時改細線 + 把位數字 */}
             <line
                 className="sdp-nut"
                 x1={left} y1={top}
                 x2={right} y2={top}
                 stroke="#111"
-                strokeWidth="3"
+                strokeWidth={baseFret > 1 ? 1 : 3}
+                opacity={baseFret > 1 ? 0.5 : 1}
                 strokeLinecap="butt"
             />
+            {baseFret > 1 && (
+                <text
+                    x={left - 4}
+                    y={top + ((0.5) / frets) * (bottom - top) + 3}
+                    textAnchor="end"
+                    fontFamily="JetBrains Mono, monospace"
+                    fontSize="9"
+                    fontWeight="600"
+                    fill="#111"
+                >
+                    {baseFret}
+                </text>
+            )}
             {/* fret lines */}
             {Array.from({ length: frets }).map((_, i) => (
                 <line

@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：11.5
-> **更新日期**：2026-06-02（v4.7.4 — A2 +1 附議 + C3 投影期數動態 + F4 CHANGELOG）
-> **當前版本**：**v4.7.4**（「+1 我也想聽」附議 / 演出投影期數動態 / CHANGELOG）
+> **文件版本**：11.6
+> **更新日期**：2026-06-13（v4.8.0 — G1 自動轉調系統：91 譜式即時轉調 + 貼譜工具）
+> **當前版本**：**v4.8.0**（自動轉調引擎 / 歌曲詳情頁即時轉調 / 貼譜快速轉調工具）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -106,6 +106,18 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.8.0（2026-06-13）— G1 自動轉調系統 🎸（吉他手工具線第一彈）
+
+> **背景**：網路上的譜常不是原 Key（原曲 G 卻寫成 C），現場得靠移調夾湊。需求 = 91 譜的即時轉調體驗，但免費。
+> **📐 設計文件**：[G1-transpose.md](docs/design/G1-transpose.md)（含 G2 Chordify 式自動採譜研究筆記）
+
+- ✅ **轉調引擎**（[transpose.ts](client/src/lib/transpose.ts)，47 測試）：和弦解析（複雜後綴/分數和弦/C6∕9 特例）、半音移調、**整行移調保持對齊**（和弦變長吃後方空白、變短補回 — 歌詞對照不跑位）、和弦行偵測（CJK + 英文歌詞 60% token 比例規則）、調性偵測（順階和弦計分 + 信心 %）、#/b 拼法依目標調智慧選、Capo 等效建議
+- ✅ **指型字典**（[chordShapes.ts](client/src/components/SongDetail/chordShapes.ts)，15 測試）：30 個開放和弦 + E-shape/A-shape 封閉和弦自動產生（baseFret 把位標示，ChordSvg 高把位渲染）；指型卡從寫死 6 張改為依當前進行實際推導
+- ✅ **歌曲詳情頁即時轉調**（SongDetailModal）：轉調控制列 −/＋/↺ 回原調 + Capo 提示；進行 / 歌詞和弦行 / 指型卡 / KEY meta 全部即時連動；小調歌正確（Em +2 → F#m 實測）；切歌自動歸零
+- ✅ **貼譜快速轉調工具**（[TransposeToolModal.tsx](client/src/components/TransposeToolModal.tsx)，lazy load）：topbar「🎸 轉調工具」入口全民可用；貼上外部譜 → 自動偵測調性 → 12 鍵目標調 pill / 半音 stepper → 即時雙欄預覽（和弦行高亮）→ 一鍵複製；同音異名 F#/Gb 以半音值比對
+- ✅ **測試 468 → 530（+62）**；tsc 乾淨；preview 實測：範例譜偵測 C 74%、+2 → D/Em/Bm 正確、Capo 建議「夾 2 彈 C」正確
+- 🔮 **G2 預告**：Chordify 式自動採譜 — chromagram + 和弦分類原理已研究完，建議走 essentia.js 瀏覽器端 MVP（零後端費用、音訊不離開使用者裝置避開版權），詳見 G1 文末研究筆記
 
 ### v4.7.4（2026-06-02）— +1 附議 + 投影期數動態 + CHANGELOG（A2/C3/F4）
 - ✅ **A2 ·「+1 我也想聽」附議**（[suggestions.ts](client/src/lib/firestore/suggestions.ts) + [suggestionUpvotes.ts](client/src/lib/suggestionUpvotes.ts) + SuggestionCard）：待審核卡片可附議，🔥 計數即時回流、本機去重；**Firestore rules `isValidUpvote()` 僅允許對 pending 的 upvotes +1**（已部署 guitar-ff931）。群眾訊號供阿凱排歌
