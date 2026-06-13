@@ -452,10 +452,14 @@
 }
 .ttm-panes {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr)：軌道可縮到比內容窄，譜面（white-space:pre）才不會撐破版面 */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
 }
-.ttm-pane { display: flex; flex-direction: column; min-height: 0; }
+/* min-width: 0 — 關鍵！grid/flex item 預設 min-width:auto 會被內容（white-space:pre
+   的長和弦譜行）撐破 → 整個 modal 橫向溢出視窗。設 0 讓欄位可縮，譜面靠自己
+   overflow-x 橫捲，手機才不會破版。 */
+.ttm-pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .ttm-pane-h {
   display: flex;
   align-items: center;
