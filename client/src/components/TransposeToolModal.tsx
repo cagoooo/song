@@ -84,6 +84,12 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const srcFileRef = useRef<File | Blob | null>(null);
     /** AI 辨識進行中 */
     const [aiBusy, setAiBusy] = useState(false);
+    /** AI 辨識模擬進度 0-100（單一 fetch 無真實進度，用緩升動畫讓使用者知道在跑） */
+    const [aiProgress, setAiProgress] = useState(0);
+    const aiTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // 卸載時清掉進度計時器
+    useEffect(() => () => { if (aiTimerRef.current) clearInterval(aiTimerRef.current); }, []);
 
     // 圖片 → OCR → 文字譜進左欄（91 譜這類只給圖檔的譜直接截圖丟進來）
     const handleImage = useCallback(async (file: File | Blob) => {
@@ -114,10 +120,17 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
         if (!srcFileRef.current || aiBusy) return;
         setAiBusy(true);
         setOcrError(null);
+        setAiProgress(6);
+        // 緩升進度：越接近越慢，停在 92%（留給真正完成跳 100%）
+        if (aiTimerRef.current) clearInterval(aiTimerRef.current);
+        aiTimerRef.current = setInterval(() => {
+            setAiProgress((p) => (p >= 92 ? p : Math.min(92, p + (p < 50 ? 4 : p < 75 ? 2 : 1))));
+        }, 350);
         try {
             const { aiRecognizeSheet } = await import('@/lib/aiSheetOcr');
             const sheet = await aiRecognizeSheet(srcFileRef.current);
             if (sheet.trim()) {
+                setAiProgress(100);
                 setInput(sheet);
                 setSteps(0);
                 setOcrDone(true);
@@ -128,7 +141,9 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
         } catch (e) {
             setOcrError(e instanceof Error ? e.message : 'AI 辨識失敗，請稍後再試');
         } finally {
+            if (aiTimerRef.current) { clearInterval(aiTimerRef.current); aiTimerRef.current = null; }
             setAiBusy(false);
+            setTimeout(() => setAiProgress(0), 600); // 100% 顯示一下再收
         }
     }, [aiBusy]);
 
@@ -612,6 +627,18 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                 <div className="ttm-ocr-status" role="status">
                                     <span className="ttm-ocr-spin" aria-hidden="true" />
                                     {ocrMsg}
+                                </div>
+                            )}
+                            {aiBusy && (
+                                <div className="ttm-ai-progress" role="status" aria-live="polite">
+                                    <div className="ttm-ai-progress-label">
+                                        <span>✨ AI 辨識中…</span>
+                                        <span className="ttm-ai-progress-pct">{aiProgress}%</span>
+                                    </div>
+                                    <div className="ttm-ai-progress-track">
+                                        <div className="ttm-ai-progress-bar" style={{ width: `${aiProgress}%` }} />
+                                    </div>
+                                    <div className="ttm-ai-progress-hint">看圖辨識中，約 5–10 秒，請稍候</div>
                                 </div>
                             )}
                             {ocrError && (
