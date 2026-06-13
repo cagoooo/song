@@ -84,7 +84,8 @@ const LOWERCASE_BLOCKLIST = new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'am', 'e
 function fixCore(core: string): string | null {
     let c = core
         .replace(/mai(?=\d)/, 'maj')   // Cmai7 → Cmaj7（j 認成 i）
-        .replace(/\?$/, '7');          // Bm? → Bm7（7 認成 ?）
+        .replace(/\?$/, '7')           // Bm? → Bm7（7 認成 ?）
+        .replace(/T$/, '7');           // ET → E7（7 認成 T）— 靠後面的合法性驗證擋誤殺
     // 小寫和弦 → 首字大寫（cm → Cm），但排除真實英文字
     if (/^[a-g]/.test(c) && !LOWERCASE_BLOCKLIST.has(core.toLowerCase())) {
         c = c[0].toUpperCase() + c.slice(1);
@@ -101,14 +102,26 @@ function fixCore(core: string): string | null {
     return null;
 }
 
-/** 可能是「| 誤認」的雜訊字元（黏在和弦前後 / 獨立成 token） */
-const NOISE_RUN_RE = /^[Il1!|｜\[\]]+$/;
-const NOISE_PREFIX_RE = /^[Il1!|｜\[\]]+/;
+/** 可能是「| 誤認」的雜訊字元（黏在和弦前後 / 獨立成 token）— J 也是 | 的常見誤認 */
+const NOISE_RUN_RE = /^[IJl1!|｜\[\]]+$/;
+const NOISE_PREFIX_RE = /^[IJl1!|｜\[\]]+/;
 const NOISE_SUFFIX_RE = /[!|｜\[\]]+$/;
 
 function fixToken(tok: string): string {
     if (NOISE_RUN_RE.test(tok)) return '|';            // 純雜訊 run → 單一小節線
     if (/^\[.+\]$/.test(tok)) return tok;              // [A] 段落記號整顆保留
+    // [尾奏]|Cmaj7 黏成一坨 → 拆成「標籤 + 和弦」兩個 token
+    const glued = tok.match(/^(\[[^\]]*\])(.+)$/);
+    if (glued) {
+        const rest = fixToken(glued[2]);
+        if (countChordTokens(rest) >= 1) return `${glued[1]} ${rest}`;
+        return tok;
+    }
+    // D_IG（D |G 被底線黏住）→ 逐段修、全部修成和弦才拆
+    if (tok.includes('_')) {
+        const parts = tok.split('_').filter(Boolean).map((p) => fixToken(p));
+        if (parts.length > 1 && parts.every((p) => countChordTokens(p) >= 1)) return parts.join(' ');
+    }
     let core = tok;
     let pre = '';
     let post = '';
@@ -170,17 +183,77 @@ export function reconstructSheet(lines: OcrLine[]): string {
         const words = [...line.words].sort((a, b) => a.x0 - b.x0);
         let row = '';
         let pos = 0;
+        let prevX1: number | null = null;
         for (const w of words) {
             const text = toHalfWidth(w.text).trim();
             if (!text) continue;
             const col = Math.round((w.x0 - originX) / charW);
-            const pad = Math.max(col - pos, row ? 1 : 0);
+            // OCR 常把連續文字拆成逐字 word（中文尤其嚴重：有 時 候）——
+            // 像素間距夠小就直接黏回，不補空白。中文邊界容忍度放寬一點，
+            // 純拉丁（被拆開的和弦如 Cmaj + 7）門檻收緊避免兩顆和弦誤黏。
+            const gapPx = prevX1 === null ? Infinity : w.x0 - prevX1;
+            // CJK 字框間距天生鬆散（浮水印干擾下更甚），1.2 個半形寬內都算
+            // 連續；歌詞裡「真正的空白」是對齊用的大空隙（≥ 4 個半形寬），
+            // 不會誤黏。純拉丁門檻收緊避免兩顆和弦誤黏。
+            const cjkBoundary = row !== '' && (HAS_CJK_RE.test(row[row.length - 1]) || HAS_CJK_RE.test(text[0]));
+            const joinThreshold = charW * (cjkBoundary ? 1.2 : 0.3);
+            const pad = row !== '' && gapPx < joinThreshold
+                ? 0
+                : Math.max(col - pos, row ? 1 : 0);
             row += ' '.repeat(pad) + text;
-            pos = col >= pos ? col + visualWidth(text) : pos + pad + visualWidth(text);
+            pos = pos + pad + visualWidth(text);
+            prevX1 = w.x1;
         }
         out.push(fixChordLineNoise(row.trimEnd()));
     }
     return out.join('\n');
+}
+
+// ============================================================================
+// 影像預處理 — OCR 前先把圖洗乾淨（G3b-1）
+// ============================================================================
+// 91 譜這類譜站常有大面積「紅色 logo 浮水印」壓在譜面上，會嚴重干擾辨識
+// （和弦整顆消失、| 認成 J）。預處理三件事：
+//   1. 去紅：偏紅像素（R 明顯高於 G、B）直接漂白 — 黑字與藍色和弦不受影響
+//   2. 放大：小圖放大到寬 ~1800px（Tesseract 對小字辨識率差很多）
+//   3. 對比強化：淺底拉白、深字拉黑，中間灰階保留給引擎自己二值化
+// 任何一步失敗（舊瀏覽器 / Node 環境）→ 回傳 null 用原圖，絕不擋住流程。
+
+async function preprocessSheetImage(image: File | Blob): Promise<Blob | null> {
+    try {
+        if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') return null;
+        const bmp = await createImageBitmap(image);
+        const scale = Math.min(3, Math.max(1, 1800 / bmp.width));
+        const w = Math.round(bmp.width * scale);
+        const h = Math.round(bmp.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return null;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(bmp, 0, 0, w, h);
+        const img = ctx.getImageData(0, 0, w, h);
+        const d = img.data;
+        for (let i = 0; i < d.length; i += 4) {
+            const r = d[i];
+            const g = d[i + 1];
+            const b = d[i + 2];
+            // 紅色浮水印 → 漂白（黑字 R≈G≈B、藍和弦 B>R，都不會中）
+            if (r > g + 30 && r > b + 30) {
+                d[i] = d[i + 1] = d[i + 2] = 255;
+                continue;
+            }
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            const v = lum > 200 ? 255 : lum < 90 ? 0 : lum;
+            d[i] = d[i + 1] = d[i + 2] = v;
+        }
+        ctx.putImageData(img, 0, 0);
+        return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+    } catch {
+        return null;
+    }
 }
 
 // ============================================================================
@@ -253,9 +326,15 @@ export async function ocrImageToSheet(
 ): Promise<string> {
     currentProgressCb = onProgress ?? null;
     try {
+        onProgress?.({ stage: 'init', progress: 0, message: '圖片前處理（去浮水印 / 放大）…' });
+        let input: File | Blob | string = image;
+        if (typeof image !== 'string') {
+            const cleaned = await preprocessSheetImage(image);
+            if (cleaned) input = cleaned;
+        }
         onProgress?.({ stage: 'init', progress: 0, message: '準備辨識引擎…' });
         const worker = await getWorker();
-        const { data } = await worker.recognize(image, {}, { blocks: true, text: true });
+        const { data } = await worker.recognize(input, {}, { blocks: true, text: true });
         return reconstructSheet(blocksToOcrLines(data as unknown as TessBlocks));
     } finally {
         currentProgressCb = null;

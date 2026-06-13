@@ -84,6 +84,22 @@ describe('fixChordLineNoise — 小節線誤判修正', () => {
         expect(fixChordLineNoise(lyric)).toBe(lyric);
     });
 
+    // === 91 譜「特別的人」第二段（紅浮水印區）真實 OCR 雜訊 ===
+
+    it('91 譜二段：J 認成 |、E7 認成 ET', () => {
+        expect(fixChordLineNoise('I        Bm7      ET         JAm7'))
+            .toBe('|        Bm7      E7         |Am7');
+    });
+
+    it('91 譜二段：[尾奏]|Cmaj7 黏成 [B%]|ICmaj7、D |G 黏成 D_IG', () => {
+        expect(fixChordLineNoise('[B%]|ICmaj7  |Am7    D_IG  |'))
+            .toBe('[B%] |Cmaj7  |Am7    D |G  |');
+    });
+
+    it('英文行不被 T→7 規則誤殺（AT ≠ A7）', () => {
+        expect(fixChordLineNoise('AT WHAT TIME')).toBe('AT WHAT TIME');
+    });
+
     it('修正後的行可直接轉調（端到端）', () => {
         const fixed = fixChordLineNoise('[Cmaj7  [Bm7  |Am7  CID  lGmaj7');
         const transposed = transposeChordSheet(fixed, 2, { preferFlat: false });
@@ -147,7 +163,35 @@ describe('reconstructSheet — 版面重建', () => {
             { y0: 0, words: [{ text: 'G', x0: 50, x1: 60 }, { text: 'C', x0: 0, x1: 10 }, { text: 'D', x0: 52, x1: 62 }] },
         ]);
         expect(messy).toContain('C');
-        expect(messy).toContain('G D');
+        // 重疊框視為同一個字的碎片 → 黏回
+        expect(messy).toContain('GD');
+    });
+
+    it('CJK 逐字 word 自動黏回（不再「有 時 候」滿版空格）', () => {
+        const sheet = reconstructSheet([
+            {
+                y0: 0,
+                words: [
+                    { text: 'Cmaj', x0: 0, x1: 40 },
+                    { text: '7', x0: 41, x1: 51 },     // 被拆開的和弦 → 黏回 Cmaj7
+                    { text: 'G', x0: 140, x1: 150 },
+                ],
+            },
+            {
+                y0: 30,
+                words: [
+                    { text: '有', x0: 0, x1: 20 },
+                    { text: '時', x0: 21, x1: 41 },
+                    { text: '候', x0: 42, x1: 62 },
+                    { text: '寂寞', x0: 63, x1: 103 },
+                    { text: '有時', x0: 140, x1: 180 }, // 大空隙（原譜本來的對齊空白）保留
+                ],
+            },
+        ]);
+        const [chordLine, lyricLine] = sheet.split('\n');
+        expect(chordLine).toBe('Cmaj7         G');
+        expect(lyricLine.startsWith('有時候寂寞')).toBe(true);
+        expect(lyricLine).toMatch(/寂寞\s+有時$/);
     });
 });
 
