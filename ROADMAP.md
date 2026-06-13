@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：11.9
-> **更新日期**：2026-06-13（v4.8.3 — 譜圖辨識後原圖呈現 UI + 吉他手工具線未來路線圖）
-> **當前版本**：**v4.8.3**（自動轉調引擎 / 即時轉調 / 貼譜工具 / 譜圖 OCR + 預處理 + 原圖對照 UI）
+> **文件版本**：12.0
+> **更新日期**：2026-06-13（v4.9.0 — P0 三連發：可疑字高亮 + 慣用調記憶 + 數字級數）
+> **當前版本**：**v4.9.0**（轉調工具線 P0 打磨：OCR 校對高亮 / 慣用調記憶 / Nashville 級數）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -106,6 +106,15 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.9.0（2026-06-13）— 吉他手工具線 P0 三連發 🎯（打磨到順手）
+
+> **背景**：依 [G-toolbox-roadmap.md](docs/design/G-toolbox-roadmap.md) P0 清單，低成本高感受三項一次到位。
+
+- ✅ **P0-1 可疑辨識字高亮**（[transpose.ts](client/src/lib/transpose.ts) export classifyToken + TransposeToolModal）：右欄轉調結果裡「和弦行內辨識不出、又非中文」的 token 標黃底（`.ttm-suspect`），OCR 校對不用整張圖用眼睛掃，直接看哪裡標黃去修
+- ✅ **P0-2 個人慣用調記憶**（[transposeMemory.ts](client/src/lib/transposeMemory.ts)，12 測試）：localStorage 記每首歌（SongDetail 用 song.id）/ 每份譜（工具用內容 hash）上次轉到的調，下次打開自動套用；functional updater 防快速連點丟值
+- ✅ **P0-4 數字級數顯示（Nashville）**（transpose.ts: chordToNashville/chordLineToNashville/nashvilleSheet）：「♪ 和弦 ↔ 🔢 級數」切換，C 調的 C/F/G/Am → 1/4/5/6m，教學/移調思考超直覺；級數相對偵測調、與位移無關
+- ✅ 測試 564 → **584（+20）**；tsc 乾淨；build 無 warning；preview 三項實測通過（雜訊字標黃、級數 C→1/5/6m、記憶重貼自動套 +2）
 
 ### v4.8.3（2026-06-13）— 譜圖辨識後原圖呈現 UI 🖼️ + 吉他手工具線路線圖
 

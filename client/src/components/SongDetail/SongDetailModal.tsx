@@ -11,6 +11,7 @@ import {
     transposeChordSymbol, transposeProgression, transposeLyricBlocks,
     preferFlatForKey, isChordSymbol,
 } from '@/lib/transpose';
+import { getRememberedSteps, rememberSteps } from '@/lib/transposeMemory';
 import { getFingerings } from './chordShapes';
 
 interface SongDetailModalProps {
@@ -33,12 +34,23 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
     const btnRef = useRef<HTMLButtonElement>(null);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // 每次切歌都重置投票狀態與轉調
+    // 每次切歌都重置投票狀態；轉調套用「上次記住的調」（慣用調記憶）
     useEffect(() => {
         setVoted(false);
         setVoteBump(false);
-        setTransposeSteps(0);
+        setTransposeSteps(song ? (getRememberedSteps('song:' + song.id) ?? 0) : 0);
     }, [song?.id]);
+
+    // 使用者實際操作轉調時才存記憶（切歌的自動設定不經過這裡，避免誤存）。
+    // functional updater 讀最新值，快速連點也不丟。
+    const changeTranspose = useCallback((next: number | ((s: number) => number)) => {
+        setTransposeSteps((prev) => {
+            const raw = typeof next === 'function' ? next(prev) : next;
+            const clamped = Math.max(-11, Math.min(11, raw));
+            if (song) rememberSteps('song:' + song.id, clamped);
+            return clamped;
+        });
+    }, [song]);
 
     const showToast = useCallback((msg: string) => {
         setToast(msg);
@@ -219,7 +231,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                             <span className="sdp-trans-label">轉調 TRANSPOSE</span>
                             <button
                                 className="sdp-trans-btn"
-                                onClick={() => setTransposeSteps((s) => Math.max(s - 1, -11))}
+                                onClick={() => changeTranspose((s) => s - 1)}
                                 disabled={transposeSteps <= -11}
                                 aria-label="降半音"
                             >
@@ -233,7 +245,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                             </span>
                             <button
                                 className="sdp-trans-btn"
-                                onClick={() => setTransposeSteps((s) => Math.min(s + 1, 11))}
+                                onClick={() => changeTranspose((s) => s + 1)}
                                 disabled={transposeSteps >= 11}
                                 aria-label="升半音"
                             >
@@ -242,7 +254,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                             {transposeSteps !== 0 && (
                                 <button
                                     className="sdp-trans-reset"
-                                    onClick={() => setTransposeSteps(0)}
+                                    onClick={() => changeTranspose(0)}
                                     aria-label={`回到原調 ${detail.key}`}
                                 >
                                     ↺ 回原調 {detail.key}

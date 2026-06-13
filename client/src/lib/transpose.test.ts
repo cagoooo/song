@@ -16,6 +16,10 @@ import {
     preferFlatForKey,
     noteToSemitone,
     KEY_OPTIONS,
+    chordToNashville,
+    chordLineToNashville,
+    nashvilleSheet,
+    classifyToken,
 } from './transpose';
 import type { LyricBlock } from '@/lib/firestore';
 
@@ -365,5 +369,66 @@ describe('extractChords + KEY_OPTIONS', () => {
         expect(KEY_OPTIONS).toHaveLength(12);
         const semis = KEY_OPTIONS.map((k) => noteToSemitone(k.replace('♭', 'b')));
         expect(new Set(semis).size).toBe(12);
+    });
+});
+
+describe('Nashville 數字級數', () => {
+    it('C 調順階：1 2m 3m 4 5 6m', () => {
+        expect(chordToNashville('C', 'C')).toBe('1');
+        expect(chordToNashville('Dm', 'C')).toBe('2m');
+        expect(chordToNashville('Em', 'C')).toBe('3m');
+        expect(chordToNashville('F', 'C')).toBe('4');
+        expect(chordToNashville('G', 'C')).toBe('5');
+        expect(chordToNashville('Am', 'C')).toBe('6m');
+    });
+
+    it('後綴原樣保留 + 分數和弦 bass 也轉級數', () => {
+        expect(chordToNashville('G7', 'C')).toBe('57');
+        expect(chordToNashville('Cmaj7', 'C')).toBe('1maj7');
+        expect(chordToNashville('Am7', 'C')).toBe('6m7');
+        expect(chordToNashville('C/E', 'C')).toBe('1/3');
+        expect(chordToNashville('D/F#', 'C')).toBe('2/b5'); // F# = C 調第 6 半音 → b5
+    });
+
+    it('非順階音用降記號表示', () => {
+        expect(chordToNashville('Bb', 'C')).toBe('b7');
+        expect(chordToNashville('Eb', 'C')).toBe('b3');
+        expect(chordToNashville('F#', 'C')).toBe('b5');
+    });
+
+    it('G 調：G=1、C=4、D=5、Em=6m', () => {
+        expect(chordToNashville('G', 'G')).toBe('1');
+        expect(chordToNashville('C', 'G')).toBe('4');
+        expect(chordToNashville('D', 'G')).toBe('5');
+        expect(chordToNashville('Em', 'G')).toBe('6m');
+    });
+
+    it('非和弦原樣回傳', () => {
+        expect(chordToNashville('Bridge', 'C')).toBe('Bridge');
+        expect(chordToNashville('|', 'C')).toBe('|');
+    });
+
+    it('整行轉級數（保持對齊 + 黏寫 |）', () => {
+        expect(chordLineToNashville('C    G    Am   F', 'C')).toBe('1    5    6m   4');
+        expect(chordLineToNashville('|Cmaj7 |Bm7 |Am7', 'G')).toBe('|4maj7 |3m7 |2m7');
+    });
+
+    it('整份譜：和弦行轉級數、歌詞行保留', () => {
+        const sheet = 'C       G       Am\n故事的小黃花\nF   G   C';
+        const out = nashvilleSheet(sheet, 'C');
+        expect(out.split('\n')[0].trim().split(/\s+/)).toEqual(['1', '5', '6m']);
+        expect(out.split('\n')[1]).toBe('故事的小黃花');
+        expect(out.split('\n')[2].trim().split(/\s+/)).toEqual(['4', '5', '1']);
+    });
+});
+
+describe('classifyToken（給 UI 可疑字高亮）', () => {
+    it('中性 / 和弦 / 一般文字三分類', () => {
+        expect(classifyToken('|')).toBe('neutral');
+        expect(classifyToken('[INTRO]')).toBe('neutral');
+        expect(classifyToken('Cmaj7')).toBe('chord');
+        expect(classifyToken('|Am7')).toBe('chord');
+        expect(classifyToken('ERREMTFERE')).toBe('word'); // OCR 雜訊 → 可疑
+        expect(classifyToken('CID')).toBe('word');
     });
 });
