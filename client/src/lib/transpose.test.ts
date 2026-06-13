@@ -201,7 +201,15 @@ describe('isChordLine — 和弦行偵測', () => {
 
     it('中文歌詞行', () => {
         expect(isChordLine('故事的小黃花')).toBe(false);
-        expect(isChordLine('C 大調的歌')).toBe(false); // 含中文即歌詞
+        expect(isChordLine('C 大調的歌')).toBe(false); // 和弦佔比 50% < 60%
+        expect(isChordLine('Em 怎麼了')).toBe(false);
+    });
+
+    it('混合行：黏寫和弦＝鐵證（OCR 把譜邊中文註記併進和弦行）', () => {
+        expect(isChordLine('|Cmaj7 |Bm7 |Am7 C/D |Gmaj7 | 參考 指法')).toBe(true);
+        expect(isChordLine('|Am7 Ip |')).toBe(true); // 比例僅 50%，但 |Am7 黏寫是鐵證
+        expect(transposeChordLine('|Am7 D | 參考 指法', 2, { preferFlat: false }))
+            .toBe('|Bm7 E | 參考 指法');
     });
 
     it('英文歌詞行', () => {

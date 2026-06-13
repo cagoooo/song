@@ -258,33 +258,38 @@ export function transposeChordLine(line: string, semitones: number, options?: Tr
 // 和弦行偵測（貼譜工具用）
 // ============================================================================
 
-const HAS_CJK_RE = /[一-鿿぀-ヿ가-힯]/;
-
 /**
  * 判斷一行文字是不是「和弦行」。
  *
  * 規則：
- *   • 含中日韓文字 → 歌詞行
  *   • 空行 → 不是
- *   • 把行切 token，扣掉中性記號（| - x2 N.C. …）後，
+ *   • 行裡只要有「黏寫和弦」（|Am7 / [Cmaj7 — 小節線黏在和弦上）→ 鐵證，
+ *     直接判定為和弦行。真實歌詞不會出現這種寫法；這條救回
+ *     「OCR 把譜邊註記（參考指法等中文）併進和弦行」的混合行
+ *   • 否則把行切 token，扣掉中性記號（| - x2 N.C. [A] …）後，
  *     「能解析成和弦的 token」佔比 ≥ 60% 且至少 1 個 → 和弦行
  *
- * 這讓英文歌詞（'Amazing grace how sweet the sound'）不會被誤判 —
- * 單字大多解析不成和弦。
+ * 中文 / 英文歌詞都靠佔比規則排除：歌詞單字（含 CJK token）解析不成和弦，
+ * 'Amazing grace how sweet'、'C 大調的歌' 都不會被誤判。
  */
 export function isChordLine(line: string): boolean {
     if (!line || !line.trim()) return false;
-    if (HAS_CJK_RE.test(line)) return false;
     const tokens = line.trim().split(/\s+/);
     let chordCount = 0;
     let wordCount = 0;
+    let hasGluedChord = false;
     for (const t of tokens) {
         const cls = classifyToken(t);
         if (cls === 'neutral') continue;
-        if (cls === 'chord') chordCount++;
-        else wordCount++;
+        if (cls === 'chord') {
+            chordCount++;
+            if (/^[|[]/.test(t)) hasGluedChord = true;
+        } else {
+            wordCount++;
+        }
     }
     if (chordCount === 0) return false;
+    if (hasGluedChord) return true;
     return chordCount / (chordCount + wordCount) >= 0.6;
 }
 

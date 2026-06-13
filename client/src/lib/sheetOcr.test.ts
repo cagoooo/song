@@ -70,6 +70,20 @@ describe('fixChordLineNoise — 小節線誤判修正', () => {
             .toBe('6  B7  |Em7-Dm7  G  |');
     });
 
+    it('91 譜實測行 4：前奏行尾端被 OCR 併入「參考指法」中文註記（混合行）', () => {
+        expect(fixChordLineNoise('[A]  [Cmaj7  [Bm7  |Am7  CID  lGmaj7  |      參考 指法'))
+            .toBe('[A]  |Cmaj7  |Bm7  |Am7  C/D  |Gmaj7  |      參考 指法');
+    });
+
+    it('91 譜實測行 5：lAm7 Ip | → |Am7 修得動（黏寫鐵證救 50% 比例行）', () => {
+        expect(fixChordLineNoise('lAm7   Ip   |')).toBe('|Am7   Ip   |');
+    });
+
+    it('中文歌詞行完全不動（含夾雜的 [ 雜訊）', () => {
+        const lyric = '愛 一 個 人 或 許 要 慷慨 [若 只 想 要 被 愛';
+        expect(fixChordLineNoise(lyric)).toBe(lyric);
+    });
+
     it('修正後的行可直接轉調（端到端）', () => {
         const fixed = fixChordLineNoise('[Cmaj7  [Bm7  |Am7  CID  lGmaj7');
         const transposed = transposeChordSheet(fixed, 2, { preferFlat: false });
