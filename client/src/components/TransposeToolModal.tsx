@@ -571,8 +571,8 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                     </div>
 
                     {/* 輸入 / 輸出 雙欄 */}
-                    <div className="ttm-panes">
-                        <div className="ttm-pane">
+                    <div className={'ttm-panes' + (output ? ' has-result' : '')}>
+                        <div className="ttm-pane ttm-pane-source">
                             <div className="ttm-pane-h">
                                 <span className="ttm-pane-title">{srcImageUrl ? '🖼️ 原圖參照' : '📋 貼上原譜'}</span>
                                 <span className="ttm-pane-actions">
@@ -668,7 +668,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                             )}
                         </div>
 
-                        <div className="ttm-pane">
+                        <div className="ttm-pane ttm-pane-result">
                             <div className="ttm-pane-h">
                                 <span className="ttm-pane-title">
                                     {showDegrees

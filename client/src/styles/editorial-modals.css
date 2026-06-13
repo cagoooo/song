@@ -783,6 +783,9 @@
   .ttm-title { font-size: 22px; }
   .ttm-sub { font-size: 12px; }
   .ttm-panes { grid-template-columns: 1fr; gap: 14px; }
+  /* 手機 + 已有結果：轉調結果排到「貼上原譜」上方，緊鄰控制列方便邊切調邊看 */
+  .ttm-panes.has-result .ttm-pane-result { order: -1; }
+  .ttm-panes.has-result .ttm-pane-source { order: 0; }
   /* 輸入區矮一點讓「轉調結果」上移（手機最在意快看到結果）；結果區維持夠高 */
   .ttm-input { min-height: 150px; font-size: 12px; }
   .ttm-output { min-height: 200px; font-size: 12px; }
