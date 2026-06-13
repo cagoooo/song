@@ -5,7 +5,7 @@
 // 解決的痛點：網路上的譜常不是原 Key（原曲 G 卻寫成 C），
 // 現場彈唱前把譜貼進來，按幾下就拿到目標調的譜，不用手動逐顆改。
 
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
     Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -14,6 +14,7 @@ import {
     extractChords, detectKey, preferFlatForKey, capoSuggestions,
     noteToSemitone, KEY_OPTIONS,
 } from '@/lib/transpose';
+import type { OcrProgress } from '@/lib/sheetOcr';
 
 interface TransposeToolModalProps {
     isOpen: boolean;
@@ -39,7 +40,60 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
     const [input, setInput] = useState('');
     const [steps, setSteps] = useState(0);
     const [copied, setCopied] = useState(false);
+    /** OCR 進行中的進度訊息（null = 沒在跑） */
+    const [ocrMsg, setOcrMsg] = useState<string | null>(null);
+    const [ocrError, setOcrError] = useState<string | null>(null);
+    /** 剛完成 OCR（顯示「可修正錯字」提示，使用者一動手編輯就收掉） */
+    const [ocrDone, setOcrDone] = useState(false);
     const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // 圖片 → OCR → 文字譜進左欄（91 譜這類只給圖檔的譜直接截圖丟進來）
+    const handleImage = useCallback(async (file: File | Blob) => {
+        setOcrError(null);
+        setOcrMsg('準備辨識引擎…');
+        try {
+            const { ocrImageToSheet } = await import('@/lib/sheetOcr');
+            const sheet = await ocrImageToSheet(file, (p: OcrProgress) => setOcrMsg(p.message));
+            if (!sheet.trim()) {
+                setOcrError('辨識不到文字 — 試試解析度更高的截圖（文字越清晰效果越好）');
+            } else {
+                setInput(sheet);
+                setSteps(0);
+                setOcrDone(true);
+            }
+        } catch {
+            setOcrError('辨識引擎載入失敗 — 請檢查網路後重試（首次使用需下載中文語言檔）');
+        } finally {
+            setOcrMsg(null);
+        }
+    }, []);
+
+    const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) void handleImage(file);
+        e.target.value = ''; // 同一張圖可重選
+    };
+
+    // Ctrl+V 直接貼截圖（整個 modal 範圍都吃）
+    const handlePaste = useCallback((e: React.ClipboardEvent) => {
+        const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith('image/'));
+        if (!item) return;
+        const file = item.getAsFile();
+        if (file) {
+            e.preventDefault();
+            void handleImage(file);
+        }
+    }, [handleImage]);
+
+    // 拖放圖檔到左欄
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        const file = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/'));
+        if (file) {
+            e.preventDefault();
+            void handleImage(file);
+        }
+    }, [handleImage]);
 
     // 偵測貼進來的譜是什麼調
     const detected = useMemo(() => detectKey(extractChords(input)), [input]);
@@ -101,13 +155,14 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                     貼上吉他譜文字，自動偵測調性並即時轉調，完成後可一鍵複製。
                 </DialogDescription>
 
-                <div className="ttm-page flex-1 overflow-y-auto">
+                <div className="ttm-page flex-1 overflow-y-auto" onPaste={handlePaste}>
                     {/* 標題列 */}
                     <div className="ttm-head">
                         <div className="ttm-eyebrow">GUITAR TOOLBOX · 給吉他手的工具</div>
                         <h2 className="ttm-title">快速轉調工具</h2>
                         <p className="ttm-sub">
-                            網路上抓的譜不是原 Key？貼進來，選目標調，整份譜的和弦立刻轉好 — 不用再逐顆手改。
+                            網路上抓的譜不是原 Key？貼文字、<b>截圖直接 Ctrl+V</b>、或上傳譜圖 —
+                            自動辨識調性，選目標調，整份譜的和弦立刻轉好，不用再逐顆手改。
                         </p>
                     </div>
 
@@ -173,21 +228,54 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                     <div className="ttm-panes">
                         <div className="ttm-pane">
                             <div className="ttm-pane-h">
-                                <span>貼上原譜</span>
-                                {!input && (
-                                    <button className="sdp-trans-reset" onClick={() => setInput(EXAMPLE_SHEET)}>
-                                        載入範例
+                                <span>貼上原譜（文字或截圖）</span>
+                                <span className="ttm-pane-actions">
+                                    <button
+                                        className="ttm-ocr-btn"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={!!ocrMsg}
+                                    >
+                                        📷 上傳譜圖
                                     </button>
-                                )}
+                                    {!input && !ocrMsg && (
+                                        <button className="sdp-trans-reset" onClick={() => setInput(EXAMPLE_SHEET)}>
+                                            載入範例
+                                        </button>
+                                    )}
+                                </span>
                             </div>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleFilePick}
+                                aria-label="選擇譜圖檔案"
+                            />
+                            {ocrMsg && (
+                                <div className="ttm-ocr-status" role="status">
+                                    <span className="ttm-ocr-spin" aria-hidden="true" />
+                                    {ocrMsg}
+                                </div>
+                            )}
+                            {ocrError && (
+                                <div className="ttm-ocr-error" role="alert">⚠ {ocrError}</div>
+                            )}
                             <textarea
                                 className="ttm-input"
                                 value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder={'把吉他譜整段貼進來，例如：\n\nC        G        Am\n你的歌詞在和弦下面這樣對齊…\n\n（和弦行會自動辨識，歌詞行原樣保留）'}
+                                onChange={(e) => { setInput(e.target.value); setOcrDone(false); }}
+                                onDrop={handleDrop}
+                                onDragOver={(e) => e.preventDefault()}
+                                placeholder={'三種餵譜方式：\n\n1. 文字 — 把譜整段貼進來\n2. 截圖 — 直接 Ctrl+V 貼上（91 譜等圖檔譜適用）\n3. 圖檔 — 點「📷 上傳譜圖」或拖放到這裡\n\n辨識結果落在這裡，可直接修正錯字'}
                                 spellCheck={false}
                                 aria-label="原譜輸入區"
                             />
+                            {ocrDone && (
+                                <div className="ttm-ocr-tip">
+                                    ✓ 辨識完成 — 有小錯字可直接在上面修正，不影響其他行。
+                                </div>
+                            )}
                         </div>
 
                         <div className="ttm-pane">
