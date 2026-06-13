@@ -15,6 +15,8 @@ import {
     noteToSemitone, KEY_OPTIONS, nashvilleSheet, classifyToken,
 } from '@/lib/transpose';
 import { getRememberedSteps, rememberSteps, sheetMemoryKey } from '@/lib/transposeMemory';
+import { buildChartFromSheet } from '@/lib/songChart';
+import { addSongWithChart } from '@/lib/firestore';
 import type { OcrProgress } from '@/lib/sheetOcr';
 
 const HAS_CJK_RE = /[一-鿿぀-ヿ가-힯]/;
@@ -22,6 +24,8 @@ const HAS_CJK_RE = /[一-鿿぀-ヿ가-힯]/;
 interface TransposeToolModalProps {
     isOpen: boolean;
     onClose: () => void;
+    /** 管理員可把轉好的譜一鍵存進歌庫（rules 限制 songs 寫入為 admin） */
+    isAdmin?: boolean;
 }
 
 const EXAMPLE_SHEET = `[INTRO]
@@ -39,7 +43,7 @@ C              G               Am          Em
 F              G                C
 雨漸漸 大到我看你不見`;
 
-export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps) {
+export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: TransposeToolModalProps) {
     const [input, setInput] = useState('');
     const [steps, setSteps] = useState(0);
     const [copied, setCopied] = useState(false);
@@ -239,6 +243,42 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
         } catch {
             // 使用者取消 / 不支援 → 靜默退回複製
             void handleCopy();
+        }
+    };
+
+    // ===== 存進歌庫（admin）— 把轉好的譜沉澱成歌庫資產 =====
+    const [saveOpen, setSaveOpen] = useState(false);
+    const [saveTitle, setSaveTitle] = useState('');
+    const [saveArtist, setSaveArtist] = useState('');
+    const [saveNote, setSaveNote] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [saveResult, setSaveResult] = useState<{ ok: boolean; msg: string } | null>(null);
+    const songKeyForSave = targetKey ?? detected?.key ?? null;
+
+    const handleSaveToLibrary = async () => {
+        if (!saveTitle.trim() || saving) return;
+        setSaving(true);
+        setSaveResult(null);
+        try {
+            // 存「和弦版」的目前調（不管畫面是否在級數模式）
+            const preferFlat = songKeyForSave ? preferFlatForKey(songKeyForSave) : undefined;
+            const chordSheet = transposeChordSheet(input, steps, { preferFlat });
+            const { progression, lyricBlocks } = buildChartFromSheet(chordSheet);
+            await addSongWithChart({
+                title: saveTitle,
+                artist: saveArtist,
+                songKey: songKeyForSave,
+                progression,
+                lyricBlocks,
+                kaiNote: saveNote,
+            });
+            setSaveResult({ ok: true, msg: `✓ 已存進歌庫（${songKeyForSave ?? '原'}調）— 歌單與詳情頁立即可見` });
+            setSaveOpen(false);
+            setSaveTitle(''); setSaveArtist(''); setSaveNote('');
+        } catch (e) {
+            setSaveResult({ ok: false, msg: e instanceof Error ? e.message : '存入失敗，請重試' });
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -461,6 +501,65 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                                     ? renderOutputLines()
                                     : <div className="ttm-empty">轉調後的譜會即時出現在這裡</div>}
                             </pre>
+
+                            {/* 存進歌庫（admin）— 把轉好的譜沉澱成歌庫資產 */}
+                            {isAdmin && output && (
+                                <div className="ttm-save">
+                                    {!saveOpen ? (
+                                        <button className="ttm-save-toggle" onClick={() => { setSaveOpen(true); setSaveResult(null); }}>
+                                            💾 存進歌庫
+                                        </button>
+                                    ) : (
+                                        <div className="ttm-save-form">
+                                            <div className="ttm-save-h">
+                                                存進歌庫
+                                                <em>{songKeyForSave ? `${songKeyForSave} 調` : ''}</em>
+                                            </div>
+                                            <input
+                                                className="ttm-save-input"
+                                                placeholder="歌名（必填）"
+                                                value={saveTitle}
+                                                onChange={(e) => setSaveTitle(e.target.value)}
+                                                maxLength={100}
+                                                aria-label="歌名"
+                                            />
+                                            <input
+                                                className="ttm-save-input"
+                                                placeholder="歌手（留空為「不確定」）"
+                                                value={saveArtist}
+                                                onChange={(e) => setSaveArtist(e.target.value)}
+                                                maxLength={50}
+                                                aria-label="歌手"
+                                            />
+                                            <input
+                                                className="ttm-save-input"
+                                                placeholder="阿凱筆記（選填）"
+                                                value={saveNote}
+                                                onChange={(e) => setSaveNote(e.target.value)}
+                                                maxLength={500}
+                                                aria-label="阿凱筆記"
+                                            />
+                                            <div className="ttm-save-actions">
+                                                <button
+                                                    className="ttm-copy"
+                                                    onClick={handleSaveToLibrary}
+                                                    disabled={!saveTitle.trim() || saving}
+                                                >
+                                                    {saving ? '存入中…' : '確認存入'}
+                                                </button>
+                                                <button className="sdp-trans-reset" onClick={() => setSaveOpen(false)}>
+                                                    取消
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {saveResult && (
+                                        <div className={saveResult.ok ? 'ttm-save-ok' : 'ttm-save-err'} role="status">
+                                            {saveResult.ok ? saveResult.msg : `⚠ ${saveResult.msg}`}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

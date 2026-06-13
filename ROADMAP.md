@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：12.1
-> **更新日期**：2026-06-13（v4.9.1 — P0-3 轉調結果下載 .txt + 分享；P0 清單全四項完成）
-> **當前版本**：**v4.9.1**（轉調工具線 P0 全完成：高亮 / 記憶 / 級數 / 下載分享）
+> **文件版本**：12.2
+> **更新日期**：2026-06-13（v4.10.0 — P1-3 轉調工具「存進歌庫」：歌庫生產線）
+> **當前版本**：**v4.10.0**（轉好的譜一鍵入庫 — 詳情頁讀真實樂譜、修復 T3 讀取斷鏈）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -106,6 +106,16 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.10.0（2026-06-13）— P1-3 轉調工具「存進歌庫」📥（一次性工具 → 歌庫生產線）
+
+> **背景**：辛苦轉好的譜關掉就沒了。讓 admin 一鍵把轉好的譜沉澱成歌庫資產，詳情頁拿得到真實樂譜。
+
+- ✅ **譜→歌庫欄位純函式**（[songChart.ts](client/src/lib/songChart.ts)，6 測試）：buildChartFromSheet 把純文字譜拆成 progression（去重前 8）+ lyricBlocks（沿用 lyrics-DSL 解析）
+- ✅ **歌庫寫入**（[songs.ts](client/src/lib/firestore/songs.ts)）：addSongWithChart 寫完整樂譜欄位（含查重），payload 符合 firestore.rules isValidSongPayload
+- ✅ **修復 T3 讀取斷鏈**：subscribeSongs / getSongs 抽 mapSongDoc 統一補讀 songKey/capo/bpm/progression/lyricBlocks/kaiNote + D5 標記 —— **既有填過樂譜的歌詳情頁從此顯示真實資料而非 fallback**（先前 subscribe 漏讀，T3 資料一直讀不到）
+- ✅ **存庫 UI**（TransposeToolModal）：admin 限定「💾 存進歌庫」→ 內嵌表單（歌名/歌手/筆記）→ 存入後歌單與詳情頁即時可見；存「目前調的和弦版」（級數模式也轉回和弦）；查重防呆
+- ✅ 測試 584 → **590**；tsc 乾淨；build 無 warning；preview 迴歸（非 admin 正確隱藏存庫鈕、轉調正常）。admin 寫入端對端待 production 登入驗證（避免污染正式歌庫）
 
 ### v4.9.1（2026-06-13）— P0-3 轉調結果下載 + 分享 📤（P0 清單全四項完成）
 

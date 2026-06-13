@@ -515,6 +515,71 @@
 /* 結果列操作按鈕組（下載 / 分享 / 複製）— RWD 自動換行 */
 .ttm-out-actions { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
+/* 存進歌庫（admin）— 把轉好的譜沉澱成歌庫資產 */
+.ttm-save { margin-top: 10px; }
+.ttm-save-toggle {
+  width: 100%;
+  border: 1.5px dashed var(--ed-accent);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ed-accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ttm-save-toggle:hover { background: var(--ed-accent); color: #fff; }
+.ttm-save-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1.5px solid var(--ed-ink-1);
+  border-left: 3px solid var(--ed-accent);
+  border-radius: 6px;
+  padding: 12px;
+  background: #fff;
+}
+.ttm-save-h {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.ttm-save-h em {
+  font-style: normal;
+  color: var(--ed-accent);
+  font-weight: 600;
+}
+.ttm-save-input {
+  border: 1px solid var(--ed-line-strong, var(--ed-ink-3));
+  border-radius: 5px;
+  padding: 7px 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ed-ink-1);
+  background: #fff;
+}
+.ttm-save-input:focus { outline: 2px solid var(--ed-accent); outline-offset: 1px; }
+.ttm-save-actions { display: flex; align-items: center; gap: 10px; }
+.ttm-save-ok {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #059669;
+}
+.ttm-save-err {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #dc2626;
+}
+
 /* OCR 譜圖辨識（上傳 / 貼截圖 / 拖放） */
 .ttm-pane-actions { display: inline-flex; align-items: center; gap: 8px; }
 .ttm-ocr-btn {

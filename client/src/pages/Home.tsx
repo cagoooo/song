@@ -1057,6 +1057,7 @@ export default function Home() {
           <TransposeToolModal
             isOpen={transposeToolOpen}
             onClose={() => setTransposeToolOpen(false)}
+            isAdmin={!!user?.isAdmin}
           />
         </Suspense>
       )}
