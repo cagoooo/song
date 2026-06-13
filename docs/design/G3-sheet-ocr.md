@@ -56,8 +56,16 @@
 | 方案 | 做法 | 成本 | 狀態 |
 |------|------|------|------|
 | **G3b-1 預處理強化** | OCR 前 canvas 預處理：**去紅浮水印**（R 明顯高於 G/B 的像素漂白 — 黑字/藍和弦不受影響）、放大至寬 1800px、對比強化（淺底拉白/深字拉黑） | 0.5 天 | ✅ **2026-06-13 已完成** — 實測紅 logo 壓住的和弦行從「整顆消失」變全數辨識 |
-| **G3b-2 AI Vision** | Gemini 2.x Flash 視覺模型直接「看圖輸出結構化文字譜」— 對版面理解遠勝 OCR（和弦歌詞配對、區段標頭、刷法都讀得懂）。**需後端代理藏 API key**：Supabase Edge Function（免費額度）+ 既有 gemini-free-tier-first 模式 | 1-2 天 | 規劃中 |
-| **混合** | Tesseract 先試（免費即時）→ 不滿意按「AI 強化辨識」走 Gemini（每日限量） | — | 規劃中 |
+| **G3b-2 AI Vision** | Gemini 2.5 Flash 視覺模型直接「看圖輸出結構化文字譜」— 對版面理解遠勝 OCR（和弦歌詞配對、區段標頭都讀得懂） | — | ✅ **2026-06-13 已完成** |
+| **混合** | Tesseract 先試（免費即時）→ 不滿意按「✨ AI 辨識」走 Gemini（每日限量） | — | ✅ 已完成 |
+
+### G3b-2 落地架構（2026-06-13）
+
+- **後端代理**（藏 Gemini key）：Supabase Edge Function `guitar-ai-sheet`（落腳既有 active 專案 smes-inventory，`guitar_` 前綴隔離，不碰原 app）
+- **金鑰安全**：Gemini key（新版 `AQ.` 格式）存 `guitar_config` 表（RLS 鎖死，公開讀不到），edge function 用自動注入的 `SUPABASE_SERVICE_ROLE_KEY` 繞 RLS 讀；前端只帶公開 anon key
+- **限流**：`guitar_ai_check_and_bump()` 原子函式，全站 200/日 + 單裝置 30/日；Gemini 維持免費層超量回 429 不扣錢
+- **前端**（[aiSheetOcr.ts](../../client/src/lib/aiSheetOcr.ts) + TransposeToolModal）：圖片模式「✨ AI 辨識」按鈕（紫色強調）→ POST 圖片到 edge function → 結果進 input；與 Tesseract 混合（免費即時當預設，不滿意按 AI）
+- **實測**：合成譜圖（含反白 `[前奏]` 標籤）→ Gemini 完整正確辨識（`[前奏] |C |G |Am |F` + 中文歌詞），瀏覽器端 CORS + 後端 + Gemini 全通，5 秒回應 — **OCR 搞不定的反白標籤一次解掉**
 
 ### G3b-1 同梯次落地（2026-06-13，第二輪使用者實測回饋）
 
