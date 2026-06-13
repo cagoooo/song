@@ -80,8 +80,17 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     }, [srcImageUrl]);
     const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    /** 控制列（半音/目標調/結果）— 辨識完成後自動捲到這，控制列+結果同框可見 */
+    const controlsRef = useRef<HTMLDivElement>(null);
     /** 保留原始圖檔給「✨ AI 辨識」用（srcImageUrl 是 object URL，AI 要原始資料） */
     const srcFileRef = useRef<File | Blob | null>(null);
+
+    // 辨識完成後自動捲到控制列（控制列 + 轉調結果同框）— 等 React 渲染出結果再捲
+    const scrollToResult = useCallback(() => {
+        setTimeout(() => {
+            controlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 220);
+    }, []);
     /** AI 辨識進行中 */
     const [aiBusy, setAiBusy] = useState(false);
     /** AI 辨識模擬進度 0-100（單一 fetch 無真實進度，用緩升動畫讓使用者知道在跑） */
@@ -107,13 +116,14 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                 setSteps(0);
                 setOcrDone(true);
                 setShowOcrText(false); // 回到原圖模式 — 辨識文字不用再看，結果在右欄
+                scrollToResult();
             }
         } catch {
             setOcrError('辨識引擎載入失敗 — 請檢查網路後重試（首次使用需下載中文語言檔）');
         } finally {
             setOcrMsg(null);
         }
-    }, []);
+    }, [scrollToResult]);
 
     // ✨ AI 辨識（Gemini Vision）— 比 Tesseract 準，連反白標籤 / 手機拍照都讀得懂
     const handleAiRecognize = useCallback(async () => {
@@ -135,6 +145,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                 setSteps(0);
                 setOcrDone(true);
                 setShowOcrText(false);
+                scrollToResult();
             } else {
                 setOcrError('AI 沒辨識出內容，請換更清楚的圖');
             }
@@ -145,7 +156,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
             setAiBusy(false);
             setTimeout(() => setAiProgress(0), 600); // 100% 顯示一下再收
         }
-    }, [aiBusy]);
+    }, [aiBusy, scrollToResult]);
 
     const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -497,7 +508,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                     </div>
 
                     {/* 控制列 */}
-                    <div className="ttm-controls">
+                    <div className="ttm-controls" ref={controlsRef}>
                         <div className="ttm-ctrl-group">
                             <span className="ttm-ctrl-label">偵測調性</span>
                             <span className="ttm-detected">
