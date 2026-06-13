@@ -3,7 +3,47 @@ import {
     onSnapshot, Timestamp, type Unsubscribe,
 } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../firebase';
-import type { Song } from './types';
+import type { Song, LyricBlock } from './types';
+
+/**
+ * Firestore doc data → Song。統一 getSongs / subscribeSongs 的對應，
+ * 補讀 T3 樂譜欄位（songKey / progression / lyricBlocks …）與 D5 標記 —
+ * 否則存進去的譜在詳情頁讀不到（getSongDetail 會一直走 fallback）。
+ */
+function mapSongDoc(
+    id: string,
+    data: Record<string, any>,
+    extra: { voteCount?: number; isPlayed?: boolean; isNowPlaying?: boolean } = {},
+): Song {
+    return {
+        id,
+        title: data.title,
+        artist: data.artist,
+        notes: data.notes,
+        lyrics: data.lyrics,
+        audioUrl: data.audioUrl,
+        difficulty: data.difficulty,
+        isActive: data.isActive,
+        createdAt: data.createdAt?.toDate?.() || new Date(),
+        voteCount: extra.voteCount ?? 0,
+        isPlayed: extra.isPlayed,
+        isNowPlaying: extra.isNowPlaying,
+        // T3 樂譜欄位
+        songKey: data.songKey,
+        capo: data.capo,
+        bpm: data.bpm,
+        length: data.length,
+        progression: data.progression,
+        lyricBlocks: data.lyricBlocks,
+        youtubeId: data.youtubeId,
+        kaiNote: data.kaiNote,
+        // D5 結構化標記
+        version: data.version,
+        mood: data.mood,
+        era: data.era,
+        genre: data.genre,
+    };
+}
 
 async function getVoteCounts(): Promise<Map<string, number>> {
     const votesRef = collection(db, COLLECTIONS.votes);
@@ -24,19 +64,7 @@ export async function getSongs(): Promise<Song[]> {
 
     const songs: Song[] = [];
     songsSnapshot.forEach((doc) => {
-        const data = doc.data();
-        songs.push({
-            id: doc.id,
-            title: data.title,
-            artist: data.artist,
-            notes: data.notes,
-            lyrics: data.lyrics,
-            audioUrl: data.audioUrl,
-            difficulty: data.difficulty,
-            isActive: data.isActive,
-            createdAt: data.createdAt?.toDate?.() || new Date(),
-            voteCount: voteMap.get(doc.id) || 0,
-        });
+        songs.push(mapSongDoc(doc.id, doc.data(), { voteCount: voteMap.get(doc.id) || 0 }));
     });
     return songs;
 }
@@ -53,19 +81,11 @@ export function subscribeSongs(callback: (songs: Song[]) => void): Unsubscribe {
     const updateCallback = () => {
         const songList: Song[] = [];
         songs.forEach((data, id) => {
-            songList.push({
-                id,
-                title: data.title,
-                artist: data.artist,
-                notes: data.notes,
-                lyrics: data.lyrics,
-                audioUrl: data.audioUrl,
-                isActive: data.isActive,
-                createdAt: data.createdAt?.toDate?.() || new Date(),
+            songList.push(mapSongDoc(id, data, {
                 voteCount: votes.get(id) || 0,
                 isPlayed: playedSongs.has(id),
                 isNowPlaying: nowPlayingSongId === id,
-            });
+            }));
         });
         callback(songList);
     };
@@ -133,6 +153,52 @@ export async function addSong(title: string, artist: string, notes?: string): Pr
         isActive: true,
         createdAt: Timestamp.now(),
     });
+    return newDoc.id;
+}
+
+export interface SongChartInput {
+    title: string;
+    artist: string;
+    songKey?: string | null;
+    capo?: number | null;
+    progression?: string[];
+    lyricBlocks?: LyricBlock[];
+    kaiNote?: string | null;
+}
+
+/**
+ * 新增「帶完整樂譜」的歌曲（轉調工具一鍵入庫用）。
+ * 只寫有值的樂譜欄位，符合 firestore.rules isValidSongPayload 的型別/長度限制。
+ * 重複（同名同歌手）會丟錯。需 admin 權限（rules 限制 songs create 為 admin）。
+ */
+export async function addSongWithChart(input: SongChartInput): Promise<string> {
+    const songsRef = collection(db, COLLECTIONS.songs);
+    const existingSnapshot = await getDocs(query(songsRef, where('isActive', '==', true)));
+
+    const title = input.title.trim();
+    const artist = input.artist.trim() || '不確定';
+    let isDuplicate = false;
+    existingSnapshot.forEach((d) => {
+        const data = d.data();
+        if (data.title?.toLowerCase() === title.toLowerCase() &&
+            data.artist?.toLowerCase() === artist.toLowerCase()) {
+            isDuplicate = true;
+        }
+    });
+    if (isDuplicate) throw new Error(`「${title}」- ${artist} 已存在於歌單中`);
+
+    const payload: Record<string, unknown> = {
+        title, artist,
+        isActive: true,
+        createdAt: Timestamp.now(),
+    };
+    if (input.songKey) payload.songKey = input.songKey.slice(0, 10);
+    if (typeof input.capo === 'number') payload.capo = Math.max(0, Math.min(12, input.capo));
+    if (input.progression?.length) payload.progression = input.progression;
+    if (input.lyricBlocks?.length) payload.lyricBlocks = input.lyricBlocks;
+    if (input.kaiNote) payload.kaiNote = input.kaiNote.slice(0, 500);
+
+    const newDoc = await addDoc(songsRef, payload);
     return newDoc.id;
 }
 
