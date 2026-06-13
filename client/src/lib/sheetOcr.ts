@@ -71,8 +71,10 @@ export function visualWidth(s: string): number {
  *   • 和弦被認成小寫（cm → Cm；但 a/am/em 等真實英文字不動）
  *
  * 安全閘門：整行修完必須「變成和弦行」且和弦數不減少才採用 —
- * 英文歌詞行（I love you）修了也變不成和弦行，會原樣保留。
- * 含 CJK 的行（歌詞）與 [INTRO] 區段標頭整行跳過。
+ * 歌詞行（中文整行 / I love you）修了也變不成和弦行，會原樣保留。
+ * CJK token 永遠原樣（fixCore 對中文無效），所以「和弦行尾端被 OCR
+ * 併進譜邊中文註記（參考指法等）」的混合行也修得動。
+ * [INTRO] 區段標頭整行跳過。
  */
 
 /** 容易跟真實英文單字撞名的小寫核心 — 不做大寫修正（a → A 和弦太危險） */
@@ -121,7 +123,7 @@ function fixToken(tok: string): string {
 
 export function fixChordLineNoise(line: string): string {
     const trimmed = line.trim();
-    if (!trimmed || /^\[.+\]\*?$/.test(trimmed) || HAS_CJK_RE.test(line)) return line;
+    if (!trimmed || /^\[.+\]\*?$/.test(trimmed)) return line;
     const fixed = line
         .split(/(\s+)/)
         .map((tok) => (!tok || /^\s+$/.test(tok) ? tok : fixToken(tok)))
