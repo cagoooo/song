@@ -5,7 +5,7 @@
 // 解決的痛點：網路上的譜常不是原 Key（原曲 G 卻寫成 C），
 // 現場彈唱前把譜貼進來，按幾下就拿到目標調的譜，不用手動逐顆改。
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -45,12 +45,20 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
     const [ocrError, setOcrError] = useState<string | null>(null);
     /** 剛完成 OCR（顯示「可修正錯字」提示，使用者一動手編輯就收掉） */
     const [ocrDone, setOcrDone] = useState(false);
+    /** 上傳的原圖（object URL）— 顯示在輸入欄上方供對照辨識結果 */
+    const [srcImageUrl, setSrcImageUrl] = useState<string | null>(null);
+
+    // object URL 生命週期：換圖或關閉 modal 時釋放
+    useEffect(() => {
+        return () => { if (srcImageUrl) URL.revokeObjectURL(srcImageUrl); };
+    }, [srcImageUrl]);
     const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // 圖片 → OCR → 文字譜進左欄（91 譜這類只給圖檔的譜直接截圖丟進來）
     const handleImage = useCallback(async (file: File | Blob) => {
         setOcrError(null);
+        setSrcImageUrl(URL.createObjectURL(file));
         setOcrMsg('準備辨識引擎…');
         try {
             const { ocrImageToSheet } = await import('@/lib/sheetOcr');
@@ -263,6 +271,23 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                             )}
                             {ocrError && (
                                 <div className="ttm-ocr-error" role="alert">⚠ {ocrError}</div>
+                            )}
+                            {srcImageUrl && (
+                                <div className="ttm-img-ref">
+                                    <div className="ttm-img-ref-h">
+                                        <span>原圖參照 — 對照下方辨識結果抓錯字</span>
+                                        <button
+                                            className="sdp-trans-reset"
+                                            onClick={() => setSrcImageUrl(null)}
+                                            aria-label="收起原圖"
+                                        >
+                                            ✕ 收起
+                                        </button>
+                                    </div>
+                                    <div className="ttm-img-ref-body">
+                                        <img src={srcImageUrl} alt="上傳的譜圖原圖" />
+                                    </div>
+                                </div>
                             )}
                             <textarea
                                 className="ttm-input"

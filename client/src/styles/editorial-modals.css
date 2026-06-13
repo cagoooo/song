@@ -544,6 +544,37 @@
   color: #059669;
 }
 
+/* 原圖參照面板（OCR 後顯示在輸入欄上方，對照抓錯字） */
+.ttm-img-ref {
+  border: 1.5px solid var(--ed-ink-1);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.ttm-img-ref-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ed-line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ed-ink-3);
+  text-transform: none;
+}
+.ttm-img-ref-body {
+  max-height: 240px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.ttm-img-ref-body img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 @media (max-width: 768px) {
   .ttm-page { padding: 20px 16px 24px; }
   .ttm-title { font-size: 24px; }
