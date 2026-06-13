@@ -215,6 +215,33 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
         }
     };
 
+    /** 結果調性標籤（檔名 / 分享標題用） */
+    const resultLabel = showDegrees ? '級數' : (targetKey ? `${targetKey}調` : '原調');
+
+    // 下載成 .txt（檔名帶調性，現場存檔 / 傳團員）
+    const handleDownload = () => {
+        if (!output) return;
+        const blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `吉他譜_${resultLabel}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // 分享（手機可直接傳 LINE / 訊息）— 不支援 Web Share 的桌機改走複製
+    const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+    const handleShare = async () => {
+        if (!output) return;
+        try {
+            await navigator.share({ title: `吉他譜（${resultLabel}）`, text: output });
+        } catch {
+            // 使用者取消 / 不支援 → 靜默退回複製
+            void handleCopy();
+        }
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
             <DialogContent className="max-w-[1100px] w-[96vw] h-[90vh] p-0 overflow-hidden bg-white border-[rgba(17,17,17,0.18)] flex flex-col">
@@ -395,13 +422,33 @@ export function TransposeToolModal({ isOpen, onClose }: TransposeToolModalProps)
                                         ? <>數字級數{detected && <em className="ttm-pane-key"> 以 {detected.key} 調為 1</em>}</>
                                         : <>轉調結果{targetKey && steps !== 0 && <em className="ttm-pane-key"> → {targetKey} 調</em>}</>}
                                 </span>
-                                <button
-                                    className={'ttm-copy' + (copied ? ' done' : '')}
-                                    onClick={handleCopy}
-                                    disabled={!output}
-                                >
-                                    {copied ? '✓ 已複製' : '複製結果'}
-                                </button>
+                                <span className="ttm-out-actions">
+                                    <button
+                                        className="ttm-copy"
+                                        onClick={handleDownload}
+                                        disabled={!output}
+                                        title="下載成 .txt 檔（現場存檔 / 傳團員）"
+                                    >
+                                        ⬇ 下載
+                                    </button>
+                                    {canShare && (
+                                        <button
+                                            className="ttm-copy"
+                                            onClick={handleShare}
+                                            disabled={!output}
+                                            title="分享（手機可直接傳 LINE / 訊息）"
+                                        >
+                                            ↗ 分享
+                                        </button>
+                                    )}
+                                    <button
+                                        className={'ttm-copy' + (copied ? ' done' : '')}
+                                        onClick={handleCopy}
+                                        disabled={!output}
+                                    >
+                                        {copied ? '✓ 已複製' : '複製結果'}
+                                    </button>
+                                </span>
                             </div>
                             {nothingTransposed && (
                                 <div className="ttm-ocr-error" role="alert">
