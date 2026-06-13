@@ -512,6 +512,8 @@
 .ttm-copy:hover:not(:disabled) { background: var(--ed-accent); border-color: var(--ed-accent); color: #fff; }
 .ttm-copy:disabled { opacity: 0.35; cursor: not-allowed; }
 .ttm-copy.done { background: #10b981; border-color: #10b981; color: #fff; }
+/* 結果列操作按鈕組（下載 / 分享 / 複製）— RWD 自動換行 */
+.ttm-out-actions { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
 /* OCR 譜圖辨識（上傳 / 貼截圖 / 拖放） */
 .ttm-pane-actions { display: inline-flex; align-items: center; gap: 8px; }
