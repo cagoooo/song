@@ -1,8 +1,8 @@
 # 🚀 互動式吉他彈唱點播平台 — 開發進度 & 未來路線圖
 
-> **文件版本**：12.7
-> **更新日期**：2026-06-13（v4.11.1 — AI 辨識進度條 + 手機轉調結果 RWD 優化）
-> **當前版本**：**v4.11.1**（AI 辨識進度條防「以為當掉」+ 手機控制列瘦身、結果上移）
+> **文件版本**：12.8
+> **更新日期**：2026-06-13（v4.11.2 — 修復手機上傳圖後整個 modal 橫向溢出破版）
+> **當前版本**：**v4.11.2**（min-width:0 + minmax(0,1fr) 根治長譜撐破版面）
 > **GitHub**：[cagoooo/song](https://github.com/cagoooo/song)
 > **目的**：完整反映已完成項目、針對 editorial 雜誌風方向提供詳細未來優化與開發建議
 > **📐 詳細設計文件**：[docs/design/](docs/design/README.md) — D1-D6、T1-T4、C1、C3 共 12 份獨立設計文件
@@ -106,6 +106,15 @@
 ---
 
 ## ✅ 已完成里程碑
+
+### v4.11.2（2026-06-13）— 修復手機上傳圖後 modal 橫向溢出破版 🐛
+
+> **事件**：手機上傳長譜截圖後，整個轉調工具 modal 橫向溢出視窗 — 按鈕橫排被切、原圖過大、譜面跑出畫面外。
+
+- **根因**：CSS Grid/Flex 經典陷阱 — `.ttm-output` 是 `white-space: pre`（和弦譜要保持對齊不換行），長和弦行（`|Em7 |Cmaj7 |Am7 …`）的內容寬度把 grid 欄位的 `min-width: auto` 撐破 → 右欄 pre 撐爆 column → 連帶整個 modal（含左欄圖/按鈕）橫向溢出。先前 preview 用短譜測沒抓到。
+- **修法**（[editorial-modals.css](client/src/styles/editorial-modals.css)）：`.ttm-pane { min-width: 0 }` + `.ttm-panes { grid-template-columns: minmax(0,1fr)… }` — 讓欄位可縮到比內容窄，譜面靠自己 `overflow-x: auto` 橫捲，不撐破版面。
+- **驗證**：375px + 15 個和弦超長譜實測 — 整頁無水平溢出（docScrollW=viewportW）、modal 在視窗內、譜面自己橫捲（outScrollW 537 > clientW 328）。
+- 教訓：grid/flex 內含 `white-space:pre` 或可變寬內容的子項，**務必設 `min-width:0`**，否則內容會撐破軌道。
 
 ### v4.11.1（2026-06-13）— AI 辨識進度條 + 手機 RWD 優化 📱
 
