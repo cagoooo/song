@@ -450,7 +450,22 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
+    <div className={`min-h-screen bg-gradient-to-b from-background to-primary/5 has-floating-actions ${user?.isAdmin ? 'has-admin-floating-actions' : ''}`}>
+      <div className="editorial-floating-actions" aria-label="常用工具">
+        {canUseTransposeTool && (
+          <button
+            className="ttm-entry ttm-floating-action"
+            onClick={() => setTransposeToolOpen(true)}
+            aria-label="快速轉調工具"
+            title="管理員快速轉調工具"
+          >
+            <span aria-hidden="true">🎸</span>
+            <span className="hidden sm:inline">轉調工具</span>
+          </button>
+        )}
+        <ShareButton />
+      </div>
+
       {/* Admin: 登出 + 演出模式入口 */}
       {user?.isAdmin && (
         <motion.div
