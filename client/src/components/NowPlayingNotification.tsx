@@ -54,7 +54,7 @@ function StarRating({
                     onMouseEnter={() => setHoverValue(star)}
                     onMouseLeave={() => setHoverValue(0)}
                     onClick={() => onChange(star as 1 | 2 | 3 | 4 | 5)}
-                    whileHover={{ scale: 1.2 }}
+                    whileHover={{ scale: 1.08 }}
                     whileTap={{ scale: 0.9 }}
                 >
                     <Star
@@ -136,76 +136,57 @@ export function NowPlayingNotification() {
     return (
         <AnimatePresence>
             <motion.div
-                initial={{ opacity: 0, y: 100, scale: 0.9 }}
+                initial={{ opacity: 0, y: 18, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 100, scale: 0.9 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                exit={{ opacity: 0, y: 18, scale: 0.98 }}
+                transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
                 data-now-playing-notification="true"
-                className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[420px] z-50"
+                className="fixed bottom-4 left-3 right-3 sm:left-auto sm:right-4 sm:w-[440px] z-50"
             >
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 p-0.5 shadow-2xl shadow-orange-500/30">
-                    {/* 脈動動畫邊框 */}
-                    <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 opacity-75"
-                        animate={{
-                            opacity: [0.5, 0.8, 0.5],
-                        }}
-                        transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            ease: 'easeInOut',
-                        }}
-                    />
-
-                    <div className="relative bg-white/95 backdrop-blur-sm rounded-[14px] p-3 sm:p-4">
-                        {/* 關閉按鈕 */}
+                <div className="relative overflow-hidden rounded-[10px] border-2 border-[#111] bg-[#faf6ee] shadow-[0_18px_42px_-24px_rgba(17,17,17,0.6)]">
+                    <div className="flex items-center justify-between gap-3 bg-[#111] px-4 py-2 text-white">
+                        <div className="flex min-w-0 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.28em]">
+                            <span className="h-2 w-2 rounded-full bg-[#2f55ff]" />
+                            <span className="truncate">Now Playing · Side A</span>
+                        </div>
                         <button
                             onClick={handleDismiss}
-                            className="absolute top-2 right-2 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                            className="grid h-7 w-7 place-items-center rounded-full border border-white/25 text-white/70 transition-colors hover:bg-white hover:text-[#111]"
                             aria-label="關閉通知"
                         >
                             <X className="w-4 h-4" />
                         </button>
+                    </div>
 
-                        {/* 標題區域 */}
-                        <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                            <motion.div
-                                animate={{ rotate: [0, 10, -10, 0] }}
-                                transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 1 }}
-                                className="flex-shrink-0"
-                            >
-                                <span className="text-xl sm:text-2xl">🎸</span>
-                            </motion.div>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-sm sm:text-base text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-rose-600">
-                                        正在彈奏中
-                                    </span>
-                                    <motion.div
-                                        className="w-2 h-2 rounded-full bg-red-500"
-                                        animate={{ opacity: [1, 0.3, 1] }}
-                                        transition={{ duration: 1, repeat: Infinity }}
-                                    />
+                    <div className="relative px-4 py-3 sm:px-5 sm:py-4">
+                        <div className="pointer-events-none absolute inset-x-4 top-0 border-t border-dashed border-[#111]/20" />
+
+                        <div className="mb-3 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+                            <div className="relative h-11 w-11 rounded-full border-2 border-[#111] bg-[#111] shadow-inner">
+                                <span className="absolute inset-3 rounded-full border border-[#faf6ee]/60" />
+                                <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#faf6ee]" />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="mb-1 flex items-center gap-2">
+                                    <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#2f55ff]">Live take</span>
+                                    <span className="h-1.5 w-1.5 rounded-full bg-[#ff3b30]" />
+                                    <span className="text-xs font-medium text-[#6f6a60]">正在彈奏中</span>
                                 </div>
+                                <h3 className="truncate font-serif text-xl font-black italic leading-tight text-[#111] sm:text-2xl">
+                                    {song.title}
+                                </h3>
+                                <p className="truncate text-sm font-medium text-[#6f6a60]">
+                                    {song.artist}
+                                </p>
                             </div>
                         </div>
 
-                        {/* 歌曲資訊 */}
-                        <div className="mb-2 sm:mb-3">
-                            <h3 className="font-bold text-base sm:text-lg text-slate-800 truncate">
-                                {song.title}
-                            </h3>
-                            <p className="text-slate-500 text-sm truncate">
-                                {song.artist}
-                            </p>
-                        </div>
-
                         {/* 快捷按鈕 */}
-                        <div className="flex gap-2 mb-2 sm:mb-3">
+                        <div className="mb-3 grid grid-cols-2 gap-2">
                             <Button
                                 asChild
                                 size="sm"
-                                className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg shadow-orange-500/25"
+                                className="h-10 rounded-md border-2 border-[#111] bg-[#2f55ff] text-white shadow-none transition-transform hover:-translate-y-0.5 hover:bg-[#2446d8]"
                             >
                                 <a
                                     href={generateGuitarTabsUrl(song.title, song.artist)}
@@ -221,7 +202,7 @@ export function NowPlayingNotification() {
                             <Button
                                 asChild
                                 size="sm"
-                                className="flex-1 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white border-0 shadow-lg shadow-rose-500/25"
+                                className="h-10 rounded-md border-2 border-[#111] bg-white text-[#111] shadow-none transition-transform hover:-translate-y-0.5 hover:bg-[#fff3d0]"
                             >
                                 <a
                                     href={generateLyricsUrl(song.title, song.artist)}
@@ -237,30 +218,32 @@ export function NowPlayingNotification() {
                         </div>
 
                         {/* 互動區域：打賞 + 評分 */}
-                        <div className="relative py-2 sm:py-3 border-t border-slate-200">
-                            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 bg-white text-[10px] sm:text-xs text-slate-400 whitespace-nowrap">
-                                為彈奏者鼓掌
+                        <div className="rounded-md border border-[#111]/15 bg-white/70 p-2.5">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                                <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#6f6a60]">
+                                    Audience signal
+                                </span>
+                                <span className="h-px flex-1 bg-[#111]/10" />
                             </div>
 
-                            {/* 打賞按鈕 + 評分 - 同一行 */}
-                            <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center justify-between gap-2">
                                 {/* 打賞按鈕 */}
-                                <div className="flex gap-0 shrink-0">
+                                <div className="flex shrink-0 gap-1">
                                     {TIP_TYPES.map(({ type, label }) => (
                                         <motion.button
                                             key={type}
                                             type="button"
                                             disabled={isSending}
                                             onClick={() => onTip(type)}
-                                            className="relative p-0.5 sm:p-1 rounded-full hover:bg-slate-100 transition-colors disabled:opacity-50"
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
+                                            className="relative grid h-8 w-8 place-items-center rounded-full border border-[#111]/15 bg-[#faf6ee] text-sm transition-colors hover:border-[#2f55ff] hover:bg-white disabled:opacity-50"
+                                            whileHover={{ scale: 1.04 }}
+                                            whileTap={{ scale: 0.96 }}
                                             title={label}
                                         >
-                                            <span className="text-base sm:text-lg">{type}</span>
+                                            <span>{type}</span>
                                             {showTipSent === type && (
                                                 <motion.span
-                                                    className="absolute -top-0.5 -right-0.5 text-[10px] text-green-500"
+                                                    className="absolute -right-0.5 -top-0.5 grid h-3.5 w-3.5 place-items-center rounded-full bg-[#2f55ff] text-[9px] text-white"
                                                     initial={{ opacity: 0, y: 3 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     exit={{ opacity: 0 }}
@@ -273,7 +256,7 @@ export function NowPlayingNotification() {
                                 </div>
 
                                 {/* 評分區域 - 管理員和訪客顯示不同 */}
-                                <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+                                <div className="flex shrink-0 items-center gap-1">
                                     {isAdmin ? (
                                         /* 管理員：顯示平均星等 */
                                         <>
@@ -326,4 +309,3 @@ export function NowPlayingNotification() {
         </AnimatePresence>
     );
 }
-
