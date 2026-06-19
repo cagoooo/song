@@ -42,6 +42,19 @@ interface RankingBoardProps {
     user?: AppUser | null;
 }
 
+const RESET_OPERATION_TIMEOUT_MS = 15000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), ms);
+    });
+
+    return Promise.race([promise, timeout]).finally(() => {
+        if (timeoutId) clearTimeout(timeoutId);
+    });
+}
+
 // 使用 memo 避免不必要的重渲染
 export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoardProps) {
     // 使用全局 Hook 檢測是否應減少動畫
@@ -150,19 +163,26 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
 
     // 重置所有投票（點播次數歸零）
     const handleResetAllVotes = useCallback(async () => {
-        if (!user?.isAdmin) return;
+        if (!user?.isAdmin || isResettingVotes) return;
 
         setIsResettingVotes(true);
         try {
-            await resetAllVotes();
-            toast({ title: '成功', description: '所有點播次數已歸零' });
+            const deletedCount = await withTimeout(
+                resetAllVotes(),
+                RESET_OPERATION_TIMEOUT_MS,
+                '重置投票逾時，請確認網路後再試一次',
+            );
+            toast({
+                title: '已重置投票',
+                description: deletedCount > 0 ? `已清除 ${deletedCount} 筆投票紀錄` : '目前沒有需要清除的投票紀錄',
+            });
             setShowResetVotesDialog(false);
         } catch (error) {
             toast(getErrorToast(error, '重置失敗'));
         } finally {
             setIsResettingVotes(false);
         }
-    }, [user?.isAdmin, toast]);
+    }, [isResettingVotes, user?.isAdmin, toast]);
 
     // 載入中顯示骨架
     if (isLoading && propSongs.length === 0) {

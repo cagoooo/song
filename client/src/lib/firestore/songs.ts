@@ -1,6 +1,6 @@
 import {
     collection, doc, getDocs, addDoc, updateDoc, query, where,
-    onSnapshot, Timestamp, type Unsubscribe,
+    onSnapshot, Timestamp, writeBatch, type Unsubscribe,
 } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../firebase';
 import type { Song, LyricBlock } from './types';
@@ -222,13 +222,33 @@ export async function deleteSong(songId: string): Promise<void> {
     await updateDoc(songRef, { isActive: false });
 }
 
-export async function resetAllVotes(): Promise<void> {
-    const { deleteDoc } = await import('firebase/firestore');
+export async function resetAllVotes(): Promise<number> {
     const votesRef = collection(db, COLLECTIONS.votes);
     const votesSnapshot = await getDocs(votesRef);
-    const deletePromises: Promise<void>[] = [];
-    votesSnapshot.forEach((docSnapshot) => deletePromises.push(deleteDoc(docSnapshot.ref)));
-    await Promise.all(deletePromises);
+    if (votesSnapshot.empty) return 0;
+
+    const batchSize = 450;
+    let batch = writeBatch(db);
+    let pending = 0;
+    let deleted = 0;
+
+    for (const docSnapshot of votesSnapshot.docs) {
+        batch.delete(docSnapshot.ref);
+        pending += 1;
+        deleted += 1;
+
+        if (pending >= batchSize) {
+            await batch.commit();
+            batch = writeBatch(db);
+            pending = 0;
+        }
+    }
+
+    if (pending > 0) {
+        await batch.commit();
+    }
+
+    return deleted;
 }
 
 export async function batchImportSongs(
