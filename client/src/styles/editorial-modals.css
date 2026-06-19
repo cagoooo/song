@@ -588,6 +588,18 @@
   color: var(--ed-accent);
   font-weight: 700;
 }
+.ttm-fullscreen-trigger:not(.ttm-fullscreen-trigger-new) { display: none; }
+.ttm-fullscreen-trigger-new {
+  background: var(--ed-accent);
+  border-color: var(--ed-accent);
+  color: #fff;
+  min-height: 30px;
+}
+.ttm-fullscreen-trigger-new:hover:not(:disabled) {
+  background: #1d3bd8;
+  border-color: #1d3bd8;
+  color: #fff;
+}
 /* 結果列操作按鈕組（下載 / 分享 / 複製）— RWD 自動換行 */
 .ttm-out-actions { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 

@@ -698,9 +698,18 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                 </span>
                                 <span className="ttm-out-actions">
                                     <button
+                                        className="ttm-copy ttm-fullscreen-trigger ttm-fullscreen-trigger-new"
+                                        onClick={() => setIsFullScreenOpen(true)}
+                                        disabled={!output}
+                                        title="放大成全螢幕看譜"
+                                    >
+                                        ⛶ 放大全螢幕
+                                    </button>
+                                    <button
                                         className="ttm-copy ttm-fullscreen-trigger"
                                         onClick={() => setIsFullScreenOpen(true)}
                                         disabled={!output}
+                                        title="放大成全螢幕看譜"
                                     >
                                         全螢幕看譜
                                     </button>
