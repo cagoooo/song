@@ -17,7 +17,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 54px;
+  bottom: 22px;
   z-index: 45;
   height: 58px;
   background: var(--ed-paper);
@@ -453,16 +453,16 @@
 
 /* 抬升其他底部 fixed 元件，避讓 96px 高 sticky bar */
 body.has-up-next-bar [data-now-playing-notification] {
-  bottom: calc(58px + 54px + 12px) !important;
+  bottom: calc(58px + 22px + 12px) !important;
 }
 
 body.has-up-next-bar .home-login-fab {
-  bottom: calc(58px + 54px + 12px) !important;
+  bottom: calc(58px + 22px + 12px) !important;
 }
 
 /* 內容底部留白，避免被 bar 遮住 */
 body.has-up-next-bar > #root > div {
-  padding-bottom: 124px;
+  padding-bottom: 92px;
 }
 
 /* ---------- Mobile · 只留 NOW + 1 張 Up Next ---------- */
