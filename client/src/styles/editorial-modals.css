@@ -11,6 +11,103 @@
    ⚠️ 此檔最肥（1759 行），第二輪可考慮拆 editorial-modals/{songdetail,sharecard,thankyou}.css
    =========================================================================== */
 
+/* Suggestion form dialog */
+.suggestion-dialog-content {
+  display: flex !important;
+  flex-direction: column;
+  max-height: min(92dvh, 760px);
+  box-shadow: 0 24px 70px -28px rgba(0, 0, 0, 0.55);
+}
+.suggestion-dialog-content > button.absolute {
+  display: none;
+}
+.suggestion-dialog-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ed-ink-2);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 10px 26px -18px rgba(0, 0, 0, 0.5);
+}
+.suggestion-dialog-close:hover,
+.suggestion-dialog-close:focus-visible {
+  color: var(--ed-ink-1);
+  border-color: rgba(43, 77, 255, 0.32);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(43, 77, 255, 0.14);
+}
+.suggestion-form-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+.suggestion-form-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.suggestion-form-scroll::-webkit-scrollbar-track {
+  background: rgba(17, 17, 17, 0.04);
+}
+.suggestion-form-scroll::-webkit-scrollbar-thumb {
+  background: rgba(43, 77, 255, 0.34);
+  border-radius: 999px;
+}
+@media (max-width: 640px) {
+  .suggestion-dialog-content {
+    width: calc(100vw - 20px) !important;
+    max-height: calc(100dvh - max(24px, env(safe-area-inset-top)) - max(24px, env(safe-area-inset-bottom)));
+    border-radius: 0;
+    animation-duration: 90ms !important;
+  }
+  .suggestion-dialog-content[data-state="open"],
+  .suggestion-dialog-content[data-state="closed"] {
+    transform: translate(-50%, -50%) !important;
+  }
+  .suggestion-dialog-content[data-state="open"] {
+    animation-name: suggestion-mobile-enter !important;
+  }
+  .suggestion-dialog-content[data-state="closed"] {
+    animation-name: suggestion-mobile-exit !important;
+  }
+  .suggestion-form-scroll {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+@keyframes suggestion-mobile-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes suggestion-mobile-exit {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.985);
+  }
+}
+
 /* ==========================================================================
    Song Detail Modal (.sdp-*) — Editorial 雜誌規格
    ========================================================================== */
