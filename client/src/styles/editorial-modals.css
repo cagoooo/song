@@ -12,20 +12,27 @@
    =========================================================================== */
 
 /* Suggestion form dialog */
+.suggestion-dialog-overlay {
+  z-index: 120 !important;
+}
 .suggestion-dialog-content {
+  position: fixed !important;
   display: flex !important;
   flex-direction: column;
   left: 50% !important;
   top: 50% !important;
-  z-index: 100 !important;
+  z-index: 130 !important;
   width: min(520px, calc(100vw - 32px)) !important;
   max-height: min(92dvh, 760px);
   transform: translate(-50%, -50%) !important;
   opacity: 1 !important;
   visibility: visible !important;
+  border: 1px solid rgba(17, 17, 17, 0.18);
+  border-radius: 16px;
   box-shadow: 0 24px 70px -28px rgba(0, 0, 0, 0.55);
   animation: suggestion-dialog-enter 120ms ease-out both !important;
   pointer-events: auto;
+  outline: none;
 }
 .suggestion-dialog-content > button.absolute {
   display: none;
@@ -78,8 +85,10 @@
 @media (max-width: 640px) {
   .suggestion-dialog-content {
     width: calc(100vw - 20px) !important;
+    top: max(10px, env(safe-area-inset-top)) !important;
     max-height: calc(100dvh - max(24px, env(safe-area-inset-top)) - max(24px, env(safe-area-inset-bottom)));
-    border-radius: 0;
+    transform: translateX(-50%) !important;
+    border-radius: 14px;
     animation-duration: 90ms !important;
   }
   .suggestion-form-scroll {
@@ -89,11 +98,13 @@
 @keyframes suggestion-dialog-enter {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.985);
+    translate: 0 8px;
+    scale: 0.985;
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    translate: 0 0;
+    scale: 1;
   }
 }
 

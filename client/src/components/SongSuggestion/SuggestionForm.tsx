@@ -1,5 +1,6 @@
 // 建議新歌曲表單對話框 - 含重複檢測功能
 import { useState, useCallback, memo, useMemo, useEffect, useRef } from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { beginComposing } from '@/lib/composingGuard';
 import { loadDraft, saveDraft, clearDraft } from '@/lib/draftStorage';
@@ -14,8 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
     DialogClose,
-    DialogContent,
     DialogHeader,
+    DialogOverlay,
+    DialogPortal,
     DialogTitle,
     DialogDescription,
     DialogTrigger,
@@ -333,7 +335,9 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                     </Button>
                 </DialogTrigger>
 
-                <DialogContent className="suggestion-dialog-content relative w-[calc(100vw-2rem)] max-w-md gap-0 p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)]">
+                <DialogPortal>
+                    <DialogOverlay className="suggestion-dialog-overlay" />
+                    <DialogPrimitive.Content className="suggestion-dialog-content relative w-[calc(100vw-2rem)] max-w-md gap-0 p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)]">
                     {/* 雜誌頂條 */}
                     <div className="editorial-modal-flag">
                         <span>Nº 12</span>
@@ -624,7 +628,8 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </DialogContent>
+                    </DialogPrimitive.Content>
+                </DialogPortal>
             </Dialog>
 
             {/* 重複歌曲提示 — Editorial 米色卡 + 藍色 CTA */}
