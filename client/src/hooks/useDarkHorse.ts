@@ -11,26 +11,19 @@ export interface DarkHorseEvent {
     triggeredAt: number;
 }
 
-const JUMP_THRESHOLD = 3;        // 至少跳幾名才算黑馬
-const TARGET_TOP_N = 5;          // 跳完要進前 N 才算
-const REPEAT_COOLDOWN_MS = 30_000; // 同一首歌冷卻時間
-const DISPLAY_MS = 5000;         // overlay 顯示時間
-const SETTLE_MS = 1500;          // 啟動後等 N 毫秒才開始偵測 (避免初始 sortedSongs 跟 prev 比錯位置)
+const JUMP_THRESHOLD = 3;          // 至少跳升幾名才算黑馬
+const TARGET_TOP_N = 5;            // 必須進入前 N 名
+const REPEAT_COOLDOWN_MS = 30_000; // 同一首歌避免短時間重複觸發
+const DISPLAY_MS = 5000;           // overlay 顯示時間
+const SETTLE_MS = 1500;            // 初次載入等待，避免第一批資料誤觸發
 
 /**
- * 偵測黑馬時刻 — 排名跳升 ≥3 名且進前 5。
- * 只用本地推算，不打 Firestore。
- *
- * 使用方式：
- *   const event = useDarkHorse(songs);  // 任意元件呼叫
- *   <DarkHorseOverlay event={event} />
- *
- * 多個分頁/裝置會各自獨立偵測（每個訂閱拿到的 snapshot 一樣，
- * 但 prev 比對是 per-instance），所以演出模式 + 訪客端都會看到
- * 同一個黑馬事件。
+ * 偵測黑馬時刻：排名跳升達門檻、進入前段班，而且票數真的有增加。
+ * 管理員重置投票會讓排名重新洗牌，但票數會下降或歸零，不能被視為黑馬。
  */
 export function useDarkHorse(songs: Song[]) {
     const prevRanksRef = useRef<Map<string, number>>(new Map());
+    const prevVotesRef = useRef<Map<string, number>>(new Map());
     const lastTriggeredRef = useRef<Map<string, number>>(new Map());
     const startedAtRef = useRef<number>(Date.now());
     const [event, setEvent] = useState<DarkHorseEvent | null>(null);
@@ -38,29 +31,33 @@ export function useDarkHorse(songs: Song[]) {
     useEffect(() => {
         if (songs.length === 0) return;
 
-        const sorted = [...songs].sort((a, b) => b.voteCount - a.voteCount);
-        const newMap = new Map<string, number>();
-        const prev = prevRanksRef.current;
+        const sorted = [...songs].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
+        const newRanks = new Map<string, number>();
+        const newVotes = new Map<string, number>();
+        const prevRanks = prevRanksRef.current;
+        const prevVotes = prevVotesRef.current;
         const now = Date.now();
         const isInitialPeriod = now - startedAtRef.current < SETTLE_MS;
 
         let triggered: DarkHorseEvent | null = null;
 
         sorted.forEach((song, newRankZeroBased) => {
-            newMap.set(song.id, newRankZeroBased);
+            const voteCount = song.voteCount || 0;
+            newRanks.set(song.id, newRankZeroBased);
+            newVotes.set(song.id, voteCount);
             if (isInitialPeriod) return;
 
-            const prevRankZeroBased = prev.get(song.id);
-            if (prevRankZeroBased === undefined) return; // 新加入歌曲不算
+            const prevRankZeroBased = prevRanks.get(song.id);
+            if (prevRankZeroBased === undefined) return;
 
+            const voteDelta = voteCount - (prevVotes.get(song.id) ?? 0);
             const jumped = prevRankZeroBased - newRankZeroBased;
             const enteredTop = newRankZeroBased < TARGET_TOP_N;
 
-            if (jumped >= JUMP_THRESHOLD && enteredTop) {
+            if (voteDelta > 0 && voteCount > 0 && jumped >= JUMP_THRESHOLD && enteredTop) {
                 const lastAt = lastTriggeredRef.current.get(song.id) ?? 0;
                 if (now - lastAt < REPEAT_COOLDOWN_MS) return;
 
-                // 同一輪只取「跳最多名」的那個事件，避免一次 batch 多首觸發
                 if (!triggered || jumped > (triggered.fromRank - triggered.toRank)) {
                     triggered = {
                         songId: song.id,
@@ -68,14 +65,15 @@ export function useDarkHorse(songs: Song[]) {
                         songArtist: song.artist,
                         fromRank: prevRankZeroBased + 1,
                         toRank: newRankZeroBased + 1,
-                        voteCount: song.voteCount,
+                        voteCount,
                         triggeredAt: now,
                     };
                 }
             }
         });
 
-        prevRanksRef.current = newMap;
+        prevRanksRef.current = newRanks;
+        prevVotesRef.current = newVotes;
 
         if (triggered) {
             const t: DarkHorseEvent = triggered;
@@ -84,7 +82,6 @@ export function useDarkHorse(songs: Song[]) {
         }
     }, [songs]);
 
-    // 自動淡出
     useEffect(() => {
         if (!event) return;
         const timer = setTimeout(() => setEvent(null), DISPLAY_MS);

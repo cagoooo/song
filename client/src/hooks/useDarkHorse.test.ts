@@ -130,4 +130,25 @@ describe('useDarkHorse', () => {
         act(() => { vi.advanceTimersByTime(5500); });
         expect(result.current).toBeNull();
     });
+    it('管理員重置投票導致排名洗牌但票數歸零時，不觸發黑馬', () => {
+        const initial = [
+            makeSong('a', 24), makeSong('b', 23), makeSong('c', 22),
+            makeSong('d', 21), makeSong('e', 20), makeSong('f', 19),
+            makeSong('g', 18), makeSong('h', 17),
+        ];
+        const { result, rerender } = renderHook(({ songs }) => useDarkHorse(songs), {
+            initialProps: { songs: initial },
+        });
+        act(() => { vi.advanceTimersByTime(2000); });
+
+        rerender({
+            songs: [
+                makeSong('h', 0), makeSong('g', 0), makeSong('f', 0),
+                makeSong('e', 0), makeSong('d', 0), makeSong('c', 0),
+                makeSong('b', 0), makeSong('a', 0),
+            ],
+        });
+
+        expect(result.current).toBeNull();
+    });
 });
