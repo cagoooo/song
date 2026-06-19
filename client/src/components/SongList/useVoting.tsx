@@ -37,16 +37,17 @@ export function useVoting(): UseVotingReturn {
         const rect = buttonElement.getBoundingClientRect();
         const x = (rect.left + rect.width / 2) / window.innerWidth;
         const y = (rect.top + rect.height / 2) / window.innerHeight;
+        const isSmallScreen = window.innerWidth < 640;
 
         confetti({
-            particleCount: 30,
-            spread: 60,
+            particleCount: isSmallScreen ? 12 : 24,
+            spread: isSmallScreen ? 42 : 56,
             origin: { x, y },
-            colors: ['#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b'],
-            ticks: 100,
+            colors: ['#2f55ff', '#ff3b30', '#f5c518'],
+            ticks: isSmallScreen ? 54 : 76,
             gravity: 1.2,
-            scalar: 0.8,
-            shapes: ['circle', 'square'],
+            scalar: isSmallScreen ? 0.62 : 0.78,
+            shapes: ['circle'],
             zIndex: 9999,
         });
     }, []);
@@ -91,7 +92,7 @@ export function useVoting(): UseVotingReturn {
             toast({
                 title: '🎸 點播成功！',
                 description: `${song.title} - ${song.artist}`,
-                duration: 2000,
+                duration: 1200,
             });
 
             setTimeout(() => {
@@ -101,7 +102,7 @@ export function useVoting(): UseVotingReturn {
 
             setTimeout(() => {
                 setShowVoteOverlay(null);
-            }, 1500);
+            }, 1150);
 
             // 漸進式重置點擊計數
             const timeoutKey = `timeout_${songId}`;
