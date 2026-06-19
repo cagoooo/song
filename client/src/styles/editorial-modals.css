@@ -15,8 +15,17 @@
 .suggestion-dialog-content {
   display: flex !important;
   flex-direction: column;
+  left: 50% !important;
+  top: 50% !important;
+  z-index: 100 !important;
+  width: min(520px, calc(100vw - 32px)) !important;
   max-height: min(92dvh, 760px);
+  transform: translate(-50%, -50%) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
   box-shadow: 0 24px 70px -28px rgba(0, 0, 0, 0.55);
+  animation: suggestion-dialog-enter 120ms ease-out both !important;
+  pointer-events: auto;
 }
 .suggestion-dialog-content > button.absolute {
   display: none;
@@ -73,21 +82,11 @@
     border-radius: 0;
     animation-duration: 90ms !important;
   }
-  .suggestion-dialog-content[data-state="open"],
-  .suggestion-dialog-content[data-state="closed"] {
-    transform: translate(-50%, -50%) !important;
-  }
-  .suggestion-dialog-content[data-state="open"] {
-    animation-name: suggestion-mobile-enter !important;
-  }
-  .suggestion-dialog-content[data-state="closed"] {
-    animation-name: suggestion-mobile-exit !important;
-  }
   .suggestion-form-scroll {
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 }
-@keyframes suggestion-mobile-enter {
+@keyframes suggestion-dialog-enter {
   from {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.985);
@@ -95,16 +94,6 @@
   to {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
-  }
-}
-@keyframes suggestion-mobile-exit {
-  from {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.985);
   }
 }
 
