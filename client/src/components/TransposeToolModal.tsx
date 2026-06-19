@@ -347,8 +347,18 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     // ===== 多格式下載（純文字 / 圖片 / PDF）=====
     const [dlMenuOpen, setDlMenuOpen] = useState(false);
     const [dlBusy, setDlBusy] = useState<string | null>(null);
+    const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
     const dlRef = useRef<HTMLDivElement>(null);
     const outputRef = useRef<HTMLPreElement>(null);
+
+    useEffect(() => {
+        if (!isFullScreenOpen) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsFullScreenOpen(false);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [isFullScreenOpen]);
 
     // 點選單外面就關閉
     useEffect(() => {
@@ -687,6 +697,13 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                         : <>🎼 轉調結果{targetKey && steps !== 0 && <em className="ttm-pane-key"> → {targetKey} 調</em>}</>}
                                 </span>
                                 <span className="ttm-out-actions">
+                                    <button
+                                        className="ttm-copy ttm-fullscreen-trigger"
+                                        onClick={() => setIsFullScreenOpen(true)}
+                                        disabled={!output}
+                                    >
+                                        全螢幕看譜
+                                    </button>
                                     <span className="ttm-dl" ref={dlRef}>
                                         <button
                                             className="ttm-copy"
@@ -799,6 +816,40 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                     </div>
                 </div>
             </DialogContent>
+            {isFullScreenOpen && output && (
+                <div className="ttm-fullscreen" role="dialog" aria-modal="true" aria-label="全螢幕轉調結果">
+                    <div className="ttm-fullscreen-bar">
+                        <div className="ttm-fullscreen-title">
+                            <span>全螢幕看譜</span>
+                            <em>
+                                {showDegrees
+                                    ? `數字級數${detected ? ` · ${detected.key} 調` : ''}`
+                                    : targetKey
+                                        ? `${targetKey} 調`
+                                        : '轉調結果'}
+                            </em>
+                        </div>
+                        <div className="ttm-fullscreen-actions">
+                            <button
+                                className="ttm-fullscreen-btn"
+                                onClick={handleCopy}
+                            >
+                                {copied ? '已複製' : '複製'}
+                            </button>
+                            <button
+                                className="ttm-fullscreen-btn primary"
+                                onClick={() => setIsFullScreenOpen(false)}
+                                autoFocus
+                            >
+                                關閉
+                            </button>
+                        </div>
+                    </div>
+                    <pre className="ttm-output ttm-output-fullscreen" aria-label="全螢幕轉調結果">
+                        {renderOutputLines()}
+                    </pre>
+                </div>
+            )}
         </Dialog>
     );
 }
