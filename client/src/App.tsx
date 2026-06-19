@@ -18,11 +18,32 @@ function isStageMode(): boolean {
   return new URLSearchParams(window.location.search).get('mode') === 'stage';
 }
 
+function StageLoading() {
+  return (
+    <div className="min-h-screen bg-[#07070b] text-white flex items-center justify-center px-6">
+      <div className="w-full max-w-md">
+        <div className="font-mono text-[11px] tracking-[0.28em] uppercase text-blue-300 mb-4">
+          Stage Mode
+        </div>
+        <h1 className="font-serif italic text-4xl font-black tracking-[-0.03em] leading-none">
+          演出模式載入中
+        </h1>
+        <p className="mt-4 text-sm text-white/60 leading-6">
+          正在載入即時演奏內容與排行榜，請稍候。
+        </p>
+        <div className="mt-7 h-1.5 rounded-full bg-white/10 overflow-hidden">
+          <div className="h-full w-1/2 rounded-full bg-blue-500 animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   // ?mode=stage 進入演出模式 — 畫面全黑乾淨，無 Toaster / Banner / 管理 UI
   if (isStageMode()) {
     return (
-      <Suspense fallback={<div className="min-h-screen bg-stone-950" />}>
+      <Suspense fallback={<StageLoading />}>
         <StagePage />
       </Suspense>
     );

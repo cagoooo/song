@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Maximize2, Minimize2, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { subscribeSongs, type Song } from '@/lib/firestore';
+import { loadStageSongsCache, saveStageSongsCache } from '@/lib/stageCache';
 import { useNowPlaying } from '@/hooks/useNowPlaying';
 import { useDarkHorse } from '@/hooks/useDarkHorse';
 import { DarkHorseOverlay } from '@/components/DarkHorseOverlay';
@@ -95,7 +96,8 @@ function formatElapsed(start: Date | undefined) {
 }
 
 export default function StagePage() {
-    const [songs, setSongs] = useState<Song[]>([]);
+    const [songs, setSongs] = useState<Song[]>(() => loadStageSongsCache());
+    const [isSongsReady, setIsSongsReady] = useState(false);
     const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
     const showControls = useIdleHide(4000);
     const nowPlaying = useNowPlaying();
@@ -113,7 +115,11 @@ export default function StagePage() {
     );
 
     useEffect(() => {
-        const unsub = subscribeSongs(setSongs);
+        const unsub = subscribeSongs((nextSongs) => {
+            setSongs(nextSongs);
+            setIsSongsReady(true);
+            saveStageSongsCache(nextSongs);
+        });
         return unsub;
     }, []);
 
@@ -127,13 +133,20 @@ export default function StagePage() {
         return () => window.removeEventListener('keydown', onKey);
     }, []);
 
+    const cachedNowPlayingSong = useMemo(
+        () => songs.find((s) => s.isNowPlaying) ?? null,
+        [songs]
+    );
+    const current = nowPlaying?.song ?? cachedNowPlayingSong;
+    const currentSongId = nowPlaying?.songId ?? current?.id;
+
     const upNext = useMemo(
         () =>
             [...songs]
-                .filter((s) => s.id !== nowPlaying?.songId && !s.isPlayed)
+                .filter((s) => s.id !== currentSongId && !s.isPlayed)
                 .sort((a, b) => b.voteCount - a.voteCount)
                 .slice(0, TOP_N),
-        [songs, nowPlaying?.songId]
+        [songs, currentSongId]
     );
 
     const totalVotes = useMemo(
@@ -158,7 +171,6 @@ export default function StagePage() {
         }
     })();
 
-    const current = nowPlaying?.song;
     const currentRank = current
         ? [...songs].sort((a, b) => b.voteCount - a.voteCount).findIndex((s) => s.id === current.id)
         : -1;
@@ -166,6 +178,13 @@ export default function StagePage() {
 
     return (
         <div className="editorial-stage">
+            {!isSongsReady && (
+                <div className="stage-sync-banner" role="status" aria-live="polite">
+                    <span className="stage-sync-dot" aria-hidden="true" />
+                    {songs.length > 0 ? '正在同步最新演出資料...' : '正在連線即時歌單與排行榜...'}
+                </div>
+            )}
+
             {/* 控制列（閒置淡出） */}
             <AnimatePresence>
                 {showControls && (

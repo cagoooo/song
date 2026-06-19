@@ -68,6 +68,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShareButton } from "../components/ShareButton";
 import { AppLoading } from "@/components/AppLoading";
 import { subscribeSongs, type Song } from "@/lib/firestore";
+import { saveStageSongsCache } from "@/lib/stageCache";
 import { MobileTabView } from "../components/MobileTabView";
 import { ScrollToTop } from "../components/ScrollToTop";
 import { NowPlayingNotification } from "../components/NowPlayingNotification";
@@ -91,6 +92,10 @@ function SectionSkeleton() {
 }
 
 const PAGE_SIZE = 30;
+
+const preloadStagePage = () => {
+  void import("./StagePage");
+};
 
 export default function Home() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -218,6 +223,12 @@ export default function Home() {
     clearHistory: clearVoteHistory,
   } = useVoteHistory();
 
+  const openStageMode = useCallback(() => {
+    preloadStagePage();
+    saveStageSongsCache(songs);
+    window.open('?mode=stage', '_blank', 'noopener');
+  }, [songs]);
+
   useEffect(() => {
     if (!canUseTransposeTool && transposeToolOpen) {
       setTransposeToolOpen(false);
@@ -328,6 +339,7 @@ export default function Home() {
     const unsubscribe = subscribeSongs((updatedSongs) => {
       setSongs(updatedSongs);
       setIsLoading(false);
+      saveStageSongsCache(updatedSongs);
 
       if (!hasConnectedOnce) {
         setIsConnected(true);
@@ -505,7 +517,9 @@ export default function Home() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open('?mode=stage', '_blank', 'noopener')}
+            onPointerEnter={preloadStagePage}
+            onFocus={preloadStagePage}
+            onClick={openStageMode}
             aria-label="演出模式"
             className="bg-white/90 hover:bg-white border-2 border-amber-300 hover:border-amber-400 text-amber-700 hover:text-amber-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
             title="在新分頁開啟演出模式（適合外接螢幕 / 投影）"
@@ -1005,7 +1019,7 @@ export default function Home() {
             }}
             onOpenHistory={() => setHistoryOpen(true)}
             onOpenLeaderboard={() => setLeaderboardOpen(true)}
-            onOpenStage={() => window.open('?mode=stage', '_blank', 'noopener')}
+            onOpenStage={openStageMode}
             onShowShortcutsHelp={() => setShortcutsHelpOpen(true)}
             isAdmin={!!user?.isAdmin}
           />
