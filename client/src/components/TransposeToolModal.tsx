@@ -353,11 +353,44 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const outputRef = useRef<HTMLPreElement>(null);
     const pinchStartDistanceRef = useRef<number | null>(null);
     const pinchStartZoomRef = useRef(1);
+    const fullscreenScrollRef = useRef<HTMLDivElement>(null);
+    const singleTouchStartRef = useRef<{
+        x: number;
+        y: number;
+        scrollLeft: number;
+        scrollTop: number;
+    } | null>(null);
 
     const clampFullscreenZoom = useCallback((zoom: number) => Math.max(0.65, Math.min(2.8, zoom)), []);
     const changeFullscreenZoom = useCallback((delta: number) => {
         setFullscreenZoom((zoom) => clampFullscreenZoom(Number((zoom + delta).toFixed(2))));
     }, [clampFullscreenZoom]);
+    const resetFullscreenZoom = useCallback(() => {
+        setFullscreenZoom(1);
+    }, []);
+    const handleFullscreenZoomPointer = useCallback((
+        e: React.PointerEvent<HTMLButtonElement>,
+        action: 'in' | 'out' | 'reset',
+    ) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (action === 'reset') {
+            resetFullscreenZoom();
+            return;
+        }
+        changeFullscreenZoom(action === 'in' ? 0.1 : -0.1);
+    }, [changeFullscreenZoom, resetFullscreenZoom]);
+    const handleFullscreenZoomClick = useCallback((
+        e: React.MouseEvent<HTMLButtonElement>,
+        action: 'in' | 'out' | 'reset',
+    ) => {
+        if (e.detail !== 0) return;
+        if (action === 'reset') {
+            resetFullscreenZoom();
+            return;
+        }
+        changeFullscreenZoom(action === 'in' ? 0.1 : -0.1);
+    }, [changeFullscreenZoom, resetFullscreenZoom]);
 
     const handleFullscreenWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -372,13 +405,34 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     };
 
     const handleFullscreenTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+        if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            const scrollEl = fullscreenScrollRef.current;
+            singleTouchStartRef.current = {
+                x: touch.clientX,
+                y: touch.clientY,
+                scrollLeft: scrollEl?.scrollLeft ?? 0,
+                scrollTop: scrollEl?.scrollTop ?? 0,
+            };
+            pinchStartDistanceRef.current = null;
+            return;
+        }
         const distance = getTouchDistance(e.touches);
         if (!distance) return;
+        singleTouchStartRef.current = null;
         pinchStartDistanceRef.current = distance;
         pinchStartZoomRef.current = fullscreenZoom;
     }, [fullscreenZoom]);
 
     const handleFullscreenTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+        if (e.touches.length === 1 && singleTouchStartRef.current && fullscreenScrollRef.current) {
+            const touch = e.touches[0];
+            const start = singleTouchStartRef.current;
+            fullscreenScrollRef.current.scrollLeft = start.scrollLeft - (touch.clientX - start.x);
+            fullscreenScrollRef.current.scrollTop = start.scrollTop - (touch.clientY - start.y);
+            e.preventDefault();
+            return;
+        }
         const startDistance = pinchStartDistanceRef.current;
         const distance = getTouchDistance(e.touches);
         if (!startDistance || !distance) return;
@@ -388,6 +442,9 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     }, [clampFullscreenZoom]);
 
     const handleFullscreenTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+        if (e.touches.length === 0) {
+            singleTouchStartRef.current = null;
+        }
         if (e.touches.length < 2) {
             pinchStartDistanceRef.current = null;
             pinchStartZoomRef.current = fullscreenZoom;
@@ -885,23 +942,29 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                         <div className="ttm-fullscreen-actions">
                             <div className="ttm-fullscreen-zoom" aria-label="全螢幕看譜縮放控制">
                                 <button
+                                    type="button"
                                     className="ttm-fullscreen-btn compact"
-                                    onClick={() => changeFullscreenZoom(-0.1)}
+                                    onPointerDown={(e) => handleFullscreenZoomPointer(e, 'out')}
+                                    onClick={(e) => handleFullscreenZoomClick(e, 'out')}
                                     disabled={fullscreenZoom <= 0.65}
                                     aria-label="縮小看譜"
                                 >
                                     －
                                 </button>
                                 <button
+                                    type="button"
                                     className="ttm-fullscreen-btn compact"
-                                    onClick={() => setFullscreenZoom(1)}
+                                    onPointerDown={(e) => handleFullscreenZoomPointer(e, 'reset')}
+                                    onClick={(e) => handleFullscreenZoomClick(e, 'reset')}
                                     aria-label="重設看譜縮放"
                                 >
                                     {Math.round(fullscreenZoom * 100)}%
                                 </button>
                                 <button
+                                    type="button"
                                     className="ttm-fullscreen-btn compact"
-                                    onClick={() => changeFullscreenZoom(0.1)}
+                                    onPointerDown={(e) => handleFullscreenZoomPointer(e, 'in')}
+                                    onClick={(e) => handleFullscreenZoomClick(e, 'in')}
                                     disabled={fullscreenZoom >= 2.8}
                                     aria-label="放大看譜"
                                 >
@@ -909,12 +972,14 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                 </button>
                             </div>
                             <button
+                                type="button"
                                 className="ttm-fullscreen-btn"
                                 onClick={handleCopy}
                             >
                                 {copied ? '已複製' : '複製'}
                             </button>
                             <button
+                                type="button"
                                 className="ttm-fullscreen-btn primary"
                                 onClick={() => setIsFullScreenOpen(false)}
                                 autoFocus
@@ -924,6 +989,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                         </div>
                     </div>
                     <div
+                        ref={fullscreenScrollRef}
                         className="ttm-fullscreen-scroll"
                         onWheel={handleFullscreenWheel}
                         onTouchStart={handleFullscreenTouchStart}

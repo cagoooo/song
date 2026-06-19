@@ -741,6 +741,7 @@
   border: 1px solid rgba(17, 17, 17, 0.16);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.72);
+  touch-action: manipulation;
 }
 .ttm-fullscreen-btn {
   min-height: 40px;
@@ -753,6 +754,9 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .ttm-fullscreen-btn.compact {
   min-width: 44px;
@@ -784,7 +788,8 @@
   overflow: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y pinch-zoom;
+  touch-action: none;
+  user-select: none;
   scrollbar-gutter: stable both-edges;
   border: 2px solid rgba(17, 17, 17, 0.18);
   border-radius: 10px;
