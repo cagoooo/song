@@ -17,11 +17,12 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: 10px;
   z-index: 45;
-  height: 112px;
+  height: 82px;
   background: var(--ed-paper);
   border-top: 2px solid var(--ed-ink-1);
+  border-bottom: 1px solid var(--ed-line-strong);
   box-shadow: 0 -8px 24px -16px rgba(17, 17, 17, 0.18);
   animation: un-rise 480ms cubic-bezier(.2, .7, .2, 1) both;
 }
@@ -41,10 +42,10 @@
   max-width: 1320px;
   height: 100%;
   margin: 0 auto;
-  padding: 14px 28px 16px;
+  padding: 9px 28px 10px;
   display: grid;
   grid-template-columns: minmax(280px, 1fr) auto minmax(0, 1.4fr) auto;
-  gap: 28px;
+  gap: 22px;
   align-items: center;
   position: relative;
 }
@@ -52,14 +53,14 @@
 /* ---------- LEFT · NOW PLAYING ---------- */
 .un-now {
   display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 14px;
+  grid-template-columns: 48px 1fr;
+  gap: 12px;
   align-items: center;
   min-width: 0;
 }
 .un-vinyl {
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background:
     repeating-radial-gradient(circle at 50% 50%, #0a0a0a 0px, #0a0a0a 1.5px, #1c1c1c 1.5px, #1c1c1c 2.5px),
@@ -100,8 +101,8 @@
   align-items: center;
   gap: 8px;
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.24em;
+  font-size: 9px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--ed-accent);
   font-weight: 700;
@@ -127,7 +128,7 @@
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 800;
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.05;
   letter-spacing: -0.02em;
   color: var(--ed-ink-1);
@@ -153,7 +154,7 @@
   font-family: var(--font-mono);
   font-style: normal;
   font-weight: 500;
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--ed-ink-3);
@@ -165,7 +166,7 @@
   grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: center;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 .un-progress-track {
   position: relative;
@@ -251,8 +252,8 @@
   grid-template-columns: auto 1fr;
   gap: 10px;
   align-items: center;
-  min-height: 58px;
-  padding: 9px 12px;
+  min-height: 46px;
+  padding: 7px 10px;
   border: 1px solid var(--ed-line);
   background: #fff;
   min-width: 0;
@@ -271,7 +272,7 @@
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 900;
-  font-size: 30px;
+  font-size: 26px;
   line-height: 1;
   letter-spacing: -0.04em;
   color: var(--ed-ink-3);
@@ -282,7 +283,7 @@
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.15;
   letter-spacing: -0.01em;
   color: var(--ed-ink-1);
@@ -292,7 +293,7 @@
 }
 .un-card-artist {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 8px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ed-ink-3);
@@ -309,13 +310,13 @@
 .un-card.up-next::before {
   content: "次首";
   position: absolute;
-  top: -9px; left: 12px;
-  padding: 2px 8px;
+  top: -7px; left: 10px;
+  padding: 1px 7px;
   background: var(--ed-accent);
   color: #fff;
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.22em;
+  font-size: 8px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 700;
 }
@@ -373,7 +374,7 @@
 
 /* ---------- FAR RIGHT · +5 看全部 ---------- */
 .un-more {
-  width: 64px; height: 64px;
+  width: 54px; height: 54px;
   border-radius: 50%;
   border: 1.5px solid var(--ed-ink-1);
   background: transparent;
@@ -383,7 +384,7 @@
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 800;
-  font-size: 22px;
+  font-size: 19px;
   color: var(--ed-ink-1);
   letter-spacing: -0.02em;
   transition: all .15s ease;
@@ -396,12 +397,12 @@
 }
 .un-more .lab {
   position: absolute;
-  bottom: 9px; left: 50%;
+  bottom: 7px; left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-mono);
   font-style: normal;
-  font-size: 8px;
-  letter-spacing: 0.14em;
+  font-size: 7px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ed-ink-3);
   font-weight: 500;
@@ -452,23 +453,25 @@
 
 /* 抬升其他底部 fixed 元件，避讓 96px 高 sticky bar */
 body.has-up-next-bar [data-now-playing-notification] {
-  bottom: calc(112px + 16px) !important;
+  bottom: calc(82px + 10px + 16px) !important;
 }
 
 body.has-up-next-bar .home-login-fab {
-  bottom: calc(112px + 16px) !important;
+  bottom: calc(82px + 10px + 16px) !important;
 }
 
 /* 內容底部留白，避免被 bar 遮住 */
 body.has-up-next-bar > #root > div {
-  padding-bottom: 132px;
+  padding-bottom: 112px;
 }
 
 /* ---------- Mobile · 只留 NOW + 1 張 Up Next ---------- */
 @media (max-width: 780px) {
   .un-bar {
+    bottom: 0;
     height: 46px;
     border-top-width: 1.5px;
+    border-bottom: 0;
   }
   .un-bar.empty {
     display: none;
