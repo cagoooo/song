@@ -1008,6 +1008,22 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                         : '轉調結果'}
                             </em>
                         </div>
+                        {detected && !showDegrees && (
+                            <div className="ttm-fullscreen-transpose" role="group" aria-label="全螢幕目標調">
+                                <span>轉調</span>
+                                {KEY_OPTIONS.map((k) => (
+                                    <button
+                                        key={k}
+                                        type="button"
+                                        className={isActiveKey(k) ? 'active' : ''}
+                                        onClick={() => handlePickKey(k)}
+                                        aria-pressed={isActiveKey(k)}
+                                    >
+                                        {k}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                         <div className="ttm-fullscreen-actions">
                             <div className="ttm-fullscreen-zoom" aria-label="全螢幕看譜縮放控制">
                                 <button
