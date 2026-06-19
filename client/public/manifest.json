@@ -1,13 +1,13 @@
 {
-    "name": "吉他彈唱點歌系統",
-    "short_name": "吉他點歌",
-    "description": "即時點播、投票和社交音樂分享平台",
+    "name": "阿凱 Guitar Singalong｜吉他彈唱點歌系統",
+    "short_name": "阿凱點歌",
+    "description": "像一卷 90 分鐘卡帶。翻面、按下錄音鍵，把你想聽的歌寫進今晚的歌單。",
     "start_url": "/song/",
     "scope": "/song/",
     "display": "standalone",
     "orientation": "portrait-primary",
-    "background_color": "#fef3c7",
-    "theme_color": "#f59e0b",
+    "background_color": "#faf6ee",
+    "theme_color": "#2f55ff",
     "categories": [
         "music",
         "entertainment",
@@ -59,14 +59,14 @@
             "sizes": "540x720",
             "type": "image/png",
             "form_factor": "narrow",
-            "label": "排行榜首頁（行動裝置）"
+            "label": "手機版點歌與排行畫面"
         },
         {
             "src": "screenshot-wide.png",
             "sizes": "1280x720",
             "type": "image/png",
             "form_factor": "wide",
-            "label": "排行榜首頁（桌面）"
+            "label": "桌面版現場點歌系統畫面"
         }
     ]
 }

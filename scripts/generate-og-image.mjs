@@ -1,16 +1,10 @@
 #!/usr/bin/env node
 /**
- * 一次產生：
- *   - client/public/og-preview.png   1200×630  (FB / LINE / Twitter 分享卡片)
- *   - client/public/icon-512.png     512×512   (PWA, maskable)
- *   - client/public/icon-192.png     192×192   (PWA)
- *   - client/public/apple-touch-icon.png  180×180  (iOS 主畫面)
- *   - client/public/favicon-32.png   32×32    (現代瀏覽器)
- *   - client/public/favicon-16.png   16×16    (老瀏覽器)
- *   - client/public/favicon.ico      multi    (含 16 + 32)
- *
- * 字型用 @napi-rs/canvas + registerFromPath() 載入精簡版 Noto Sans TC，
- * 不依賴系統字型，跨平台 (Windows / Linux CI / macOS) 渲染一致。
+ * Generate social preview and app icons for GitHub Pages:
+ * - client/public/og-preview.png        1200x630 for LINE / Facebook / Twitter
+ * - client/public/favicon.ico, png favicons, apple-touch-icon
+ * - client/public/icon-192.png, icon-512.png, maskable icons
+ * - client/public/screenshot-narrow.png, screenshot-wide.png for PWA manifest
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -25,24 +19,28 @@ const PUBLIC = resolve(ROOT, 'client', 'public');
 const FONT_PATH = resolve(__dirname, 'fonts', 'NotoSansTC-Subset.ttf');
 
 if (!existsSync(FONT_PATH)) {
-    console.error('❌ 找不到精簡字型，請先執行：npm run subset-og-font');
+    console.error('找不到 OG 字型子集，請先執行 npm run subset-og-font');
     process.exit(1);
 }
+
 GlobalFonts.registerFromPath(FONT_PATH, 'NotoSansTC');
 mkdirSync(PUBLIC, { recursive: true });
 
-// ==================== 主題色 ====================
+const SITE_TITLE = '阿凱 Guitar Singalong';
+const SITE_NAME = '吉他彈唱點歌系統';
+const SITE_DESC = '翻面、按下錄音鍵，把想聽的歌寫進今晚歌單。';
+const SITE_URL = 'cagoooo.github.io/song';
+
 const THEME = {
-    primary: '#f59e0b',     // amber-500
-    primaryDark: '#b45309', // amber-700
-    accent: '#fbbf24',      // amber-400
-    bgFrom: '#fef3c7',      // amber-100
-    bgTo: '#fbbf24',        // amber-400
-    text: '#1c1917',        // stone-900
-    textMuted: '#57534e',   // stone-600
+    ink: '#111111',
+    paper: '#faf6ee',
+    paper2: '#f0e7d9',
+    blue: '#2f55ff',
+    red: '#ff3b30',
+    muted: '#6f6a60',
+    line: 'rgba(17,17,17,0.16)',
 };
 
-// ==================== Helpers ====================
 function roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -53,272 +51,297 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.closePath();
 }
 
-/** 在指定中心點畫吉他剪影（用 path 而非 emoji，免依賴 emoji 字型） */
-function drawGuitarIcon(ctx, cx, cy, scale, color) {
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(scale, scale);
+function fillRoundRect(ctx, x, y, w, h, r, color) {
     ctx.fillStyle = color;
-
-    // 琴身（葫蘆狀）
-    ctx.beginPath();
-    ctx.ellipse(0, 30, 38, 50, 0, 0, Math.PI * 2);
+    roundRect(ctx, x, y, w, h, r);
     ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(0, -25, 28, 36, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 音孔（深色圓）
-    ctx.fillStyle = THEME.text;
-    ctx.beginPath();
-    ctx.arc(0, 25, 12, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 琴頸
-    ctx.fillStyle = color;
-    ctx.fillRect(-7, -75, 14, 60);
-
-    // 琴頭
-    ctx.fillRect(-12, -90, 24, 18);
-
-    ctx.restore();
 }
 
-/** 畫單個音符 ♪（用 Unicode 字元，Noto Sans TC 有） */
-function drawNote(ctx, x, y, size, color, rotation = 0) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rotation);
-    ctx.fillStyle = color;
-    ctx.font = `900 ${size}px "NotoSansTC"`;
+function strokeRoundRect(ctx, x, y, w, h, r, color, lineWidth = 2) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    roundRect(ctx, x, y, w, h, r);
+    ctx.stroke();
+}
+
+function setFont(ctx, weight, size, family = 'NotoSansTC') {
+    ctx.font = `${weight} ${size}px "${family}"`;
+}
+
+function drawPaperTexture(ctx, w, h) {
+    ctx.fillStyle = THEME.paper;
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(17,17,17,0.035)';
+    for (let y = 18; y < h; y += 18) {
+        for (let x = 18; x < w; x += 18) {
+            ctx.fillRect(x, y, 1.2, 1.2);
+        }
+    }
+}
+
+function drawCassette(ctx, x, y, w, h, scale = 1) {
+    fillRoundRect(ctx, x, y, w, h, 18 * scale, THEME.ink);
+    strokeRoundRect(ctx, x + 4 * scale, y + 4 * scale, w - 8 * scale, h - 8 * scale, 14 * scale, 'rgba(255,255,255,0.16)', 1.5 * scale);
+
+    const labelX = x + 38 * scale;
+    const labelY = y + 34 * scale;
+    const labelW = w - 76 * scale;
+    const labelH = h * 0.33;
+    fillRoundRect(ctx, labelX, labelY, labelW, labelH, 8 * scale, THEME.blue);
+
+    ctx.fillStyle = '#ffffff';
+    setFont(ctx, 900, 18 * scale);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('SIDE A · 90 MIN', labelX + 26 * scale, labelY + labelH / 2);
+    setFont(ctx, 900, 44 * scale);
+    ctx.textAlign = 'right';
+    ctx.fillText('N°12', labelX + labelW - 24 * scale, labelY + labelH / 2 + 2 * scale);
+
+    const deckY = y + h * 0.55;
+    const deckH = h * 0.27;
+    fillRoundRect(ctx, labelX, deckY, labelW, deckH, 8 * scale, '#fff8ea');
+    ctx.fillStyle = THEME.ink;
+    setFont(ctx, 800, 16 * scale);
+    ctx.textAlign = 'center';
+    ctx.fillText('HIGH-BIAS', labelX + 78 * scale, deckY + 32 * scale);
+    ctx.fillText('type II', labelX + labelW / 2, deckY + 32 * scale);
+    ctx.fillText('DOLBY NR', labelX + labelW - 78 * scale, deckY + 32 * scale);
+
+    const reelR = 42 * scale;
+    const leftReel = labelX + 95 * scale;
+    const rightReel = labelX + labelW - 95 * scale;
+    const reelY = deckY + deckH * 0.62;
+    [leftReel, rightReel].forEach((cx) => {
+        ctx.fillStyle = '#f5ead8';
+        ctx.beginPath();
+        ctx.arc(cx, reelY, reelR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = THEME.ink;
+        ctx.lineWidth = 4 * scale;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, reelY, reelR * 0.34, 0, Math.PI * 2);
+        ctx.stroke();
+        for (let a = 0; a < Math.PI * 2; a += Math.PI / 3) {
+            ctx.beginPath();
+            ctx.moveTo(cx, reelY);
+            ctx.lineTo(cx + Math.cos(a) * reelR * 0.72, reelY + Math.sin(a) * reelR * 0.72);
+            ctx.stroke();
+        }
+    });
+
+    ctx.strokeStyle = THEME.ink;
+    ctx.lineWidth = 10 * scale;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(leftReel + 62 * scale, reelY);
+    ctx.lineTo(rightReel - 62 * scale, reelY);
+    ctx.stroke();
+    ctx.strokeStyle = THEME.blue;
+    ctx.lineWidth = 8 * scale;
+    ctx.beginPath();
+    ctx.moveTo(leftReel + 62 * scale, reelY);
+    ctx.lineTo(leftReel + 152 * scale, reelY);
+    ctx.stroke();
+}
+
+function drawIconMark(ctx, size, maskable = false) {
+    ctx.fillStyle = maskable ? THEME.blue : THEME.ink;
+    ctx.fillRect(0, 0, size, size);
+
+    const pad = maskable ? size * 0.22 : size * 0.13;
+    const x = pad;
+    const y = size * 0.24;
+    const w = size - pad * 2;
+    const h = size * 0.52;
+
+    fillRoundRect(ctx, x, y, w, h, size * 0.035, THEME.paper);
+    strokeRoundRect(ctx, x, y, w, h, size * 0.035, maskable ? '#ffffff' : THEME.blue, size * 0.018);
+    fillRoundRect(ctx, x + w * 0.11, y + h * 0.18, w * 0.78, h * 0.22, size * 0.018, THEME.blue);
+
+    ctx.fillStyle = THEME.ink;
+    const cy = y + h * 0.66;
+    [x + w * 0.3, x + w * 0.7].forEach((cx) => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, w * 0.13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = THEME.paper;
+        ctx.beginPath();
+        ctx.arc(cx, cy, w * 0.045, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = THEME.ink;
+    });
+
+    ctx.fillStyle = '#ffffff';
+    setFont(ctx, 900, size * 0.13);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('♪', 0, 0);
-    ctx.restore();
+    ctx.fillText('♫', x + w * 0.5, y + h * 0.29);
 }
 
-// ==================== OG 圖 1200×630 ====================
 function generateOgImage() {
-    const W = 1200, H = 630;
+    const W = 1200;
+    const H = 630;
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    // 背景：amber 漸層
-    const grad = ctx.createLinearGradient(0, 0, W, H);
-    grad.addColorStop(0, THEME.bgFrom);
-    grad.addColorStop(1, THEME.bgTo);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+    drawPaperTexture(ctx, W, H);
 
-    // 裝飾音符（背景）
-    drawNote(ctx, 100, 120, 80, 'rgba(180,83,9,0.15)', -0.3);
-    drawNote(ctx, 1080, 100, 70, 'rgba(180,83,9,0.18)', 0.2);
-    drawNote(ctx, 1130, 480, 90, 'rgba(180,83,9,0.12)', -0.15);
-    drawNote(ctx, 80, 500, 60, 'rgba(180,83,9,0.18)', 0.25);
-
-    // 左側吉他圖示
-    drawGuitarIcon(ctx, 220, 330, 1.6, THEME.primaryDark);
-
-    // 右側文字區塊
-    const textX = 420;
-
-    // 主標題
-    ctx.fillStyle = THEME.text;
-    ctx.font = '900 88px "NotoSansTC"';
-    ctx.textAlign = 'left';
+    ctx.fillStyle = THEME.ink;
+    ctx.fillRect(0, 0, W, 58);
+    ctx.fillRect(0, H - 58, W, 58);
+    ctx.fillStyle = '#ffffff';
+    setFont(ctx, 800, 20);
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('吉他彈唱', textX, 220);
-    ctx.fillText('點歌系統', textX, 320);
+    ctx.fillText('DARK HORSE  ·  LIVE SETLIST  ·  SIDE A  ·  GUITAR SINGALONG', W / 2, 29);
+    ctx.fillText('DARK HORSE  ·  LIVE SETLIST  ·  SIDE B  ·  AUDIENCE REQUEST', W / 2, H - 29);
 
-    // 副標題
-    ctx.fillStyle = THEME.textMuted;
-    ctx.font = '700 32px "NotoSansTC"';
-    ctx.fillText('即時點播・現場互動・社群分享', textX, 400);
-
-    // 網址膠囊
-    const urlText = 'cagoooo.github.io/song';
-    ctx.font = '800 26px "NotoSansTC"';
-    const urlMetrics = ctx.measureText(urlText);
-    const padX = 28, padY = 16;
-    const capW = urlMetrics.width + padX * 2 + 28; // 28 = 箭頭預留
-    const capH = 56;
-    const capX = textX, capY = 480;
-
-    ctx.fillStyle = THEME.primaryDark;
-    roundRect(ctx, capX, capY, capW, capH, capH / 2);
+    ctx.fillStyle = THEME.red;
+    ctx.beginPath();
+    ctx.arc(82, 116, 8, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = THEME.muted;
+    setFont(ctx, 700, 18);
+    ctx.textAlign = 'left';
+    ctx.fillText('ISSUE N°12 · SIDE A · 90 MIN', 104, 117);
 
-    ctx.fillStyle = '#fff';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(urlText, capX + padX, capY + capH / 2);
-    ctx.font = '900 22px "NotoSansTC"';
-    ctx.fillText('→', capX + capW - padX - 14, capY + capH / 2);
+    ctx.fillStyle = THEME.ink;
+    setFont(ctx, 900, 84);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('吉他彈唱', 72, 230);
+    ctx.fillStyle = THEME.blue;
+    ctx.fillText('點歌系統', 72, 318);
 
-    // 邊框細節
-    ctx.strokeStyle = 'rgba(180,83,9,0.3)';
-    ctx.lineWidth = 8;
-    ctx.strokeRect(0, 0, W, H);
+    ctx.fillStyle = THEME.ink;
+    setFont(ctx, 700, 28);
+    ctx.fillText('翻面、按下錄音鍵，', 76, 376);
+    ctx.fillText('把想聽的歌寫進今晚歌單。', 76, 414);
+    ctx.fillStyle = THEME.muted;
+    setFont(ctx, 700, 22);
+    ctx.fillText('現場投票 · 即時排行 · QR 分享', 76, 452);
+
+    const statY = 504;
+    const stats = [
+        ['377', 'SETLIST'],
+        ['LIVE', 'VOTING'],
+        ['QR', 'SHARE'],
+    ];
+    stats.forEach(([num, label], i) => {
+        const x = 82 + i * 170;
+        ctx.fillStyle = THEME.ink;
+        setFont(ctx, 900, i === 0 ? 44 : 34);
+        ctx.fillText(num, x, statY);
+        if (i < stats.length - 1) {
+            ctx.fillStyle = THEME.line;
+            ctx.fillRect(x + 120, statY - 38, 2, 44);
+        }
+    });
+
+    fillRoundRect(ctx, 76, 524, 306, 40, 20, THEME.ink);
+    ctx.fillStyle = '#ffffff';
+    setFont(ctx, 800, 19);
+    ctx.fillText(SITE_URL, 104, 550);
+
+    drawCassette(ctx, 670, 150, 430, 330, 0.82);
+
+    ctx.strokeStyle = THEME.line;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(42, 88, W - 84, H - 176);
 
     return canvas.toBuffer('image/png');
 }
 
-// ==================== Favicon (吉他 + 主題色) ====================
-/** 產生方形 icon source，後續 sharp resize 出多尺寸 */
 function generateFaviconSource(size) {
     const canvas = createCanvas(size, size);
     const ctx = canvas.getContext('2d');
-
-    // 圓角背景
-    const r = size * 0.22;
-    ctx.fillStyle = THEME.primary;
-    roundRect(ctx, 0, 0, size, size, r);
-    ctx.fill();
-
-    // 中央吉他剪影
-    drawGuitarIcon(ctx, size / 2, size / 2 + size * 0.04, size / 220, '#fff');
-
+    drawIconMark(ctx, size, false);
     return canvas.toBuffer('image/png');
 }
 
-// ==================== Maskable Icon (full-bleed + 60% safe zone) ====================
-/**
- * Maskable icon 規範：Android 會以圓 / squircle / teardrop 等形狀 mask icon，
- * 重要元素必須在中央 80% 圓形安全區內，邊緣 10% 隨時會被裁掉。
- * 做法：full-bleed 純色背景（無圓角，平台自己 mask 形狀）+ 吉他縮到 ~65%。
- */
 function generateMaskableIconSource(size) {
     const canvas = createCanvas(size, size);
     const ctx = canvas.getContext('2d');
-
-    // 全幅背景填色（不留圓角，Android 自己 mask）
-    ctx.fillStyle = THEME.primary;
-    ctx.fillRect(0, 0, size, size);
-
-    // 中央吉他 — 縮到 size/350 (約原本 65%)，內含於 80% 安全圓內
-    drawGuitarIcon(ctx, size / 2, size / 2 + size * 0.04, size / 350, '#fff');
-
+    drawIconMark(ctx, size, true);
     return canvas.toBuffer('image/png');
 }
 
-// ==================== Screenshot (PWA install dialog 用) ====================
-/**
- * 畫一張 mock 排行榜介面，讓 PWA install prompt 更專業。
- * Lighthouse PWA 100 不強制，但有 screenshots 的話 install dialog 較豐富。
- */
 function generateScreenshot(width, height, formFactor) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
+    drawPaperTexture(ctx, width, height);
 
-    // 背景漸層
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, THEME.bgFrom);
-    grad.addColorStop(1, '#ffffff');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
-
-    // 頂部 app bar
-    const barH = Math.round(height * 0.1);
-    ctx.fillStyle = THEME.primary;
-    ctx.fillRect(0, 0, width, barH);
+    ctx.fillStyle = THEME.ink;
+    ctx.fillRect(0, 0, width, Math.round(height * 0.08));
     ctx.fillStyle = '#ffffff';
-    ctx.font = `900 ${Math.round(barH * 0.4)}px "NotoSansTC"`;
+    setFont(ctx, 900, Math.max(20, Math.round(width * 0.035)));
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('吉他點歌系統', 32, barH / 2);
+    ctx.fillText('阿凱 · Guitar Singalong', 32, Math.round(height * 0.04));
 
-    // 區塊標題
-    ctx.fillStyle = THEME.text;
-    ctx.font = `900 ${Math.round(height * 0.038)}px "NotoSansTC"`;
-    ctx.textBaseline = 'top';
-    ctx.fillText('熱門排行榜', 32, barH + 24);
+    const heroY = Math.round(height * 0.13);
+    setFont(ctx, 900, Math.max(34, Math.round(width * 0.055)));
+    ctx.fillStyle = THEME.ink;
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('吉他彈唱', 32, heroY + 54);
+    ctx.fillStyle = THEME.blue;
+    ctx.fillText('點歌系統', 32, heroY + 112);
 
-    // 排行榜卡片
-    const cards = formFactor === 'wide' ? 5 : 4;
-    const startY = barH + 80;
-    const gap = 16;
+    setFont(ctx, 700, Math.max(16, Math.round(width * 0.018)));
+    ctx.fillStyle = THEME.muted;
+    ctx.fillText('翻面、按下錄音鍵，把想聽的歌寫進今晚的歌單。', 34, heroY + 160);
+
+    const cassetteW = Math.min(width - 64, formFactor === 'wide' ? 460 : width - 96);
+    const cassetteH = cassetteW * 0.55;
+    drawCassette(ctx, width - cassetteW - 32, heroY + 190, cassetteW, cassetteH, cassetteW / 520);
+
+    const listY = heroY + 210 + cassetteH;
     const cardW = width - 64;
-    const cardH = Math.round((height - startY - 32) / cards - gap);
-    const colors = ['#fbbf24', '#9ca3af', '#d97706', '#cbd5e1', '#cbd5e1'];
-    const votes = [42, 38, 33, 29, 21];
-
-    for (let i = 0; i < cards; i++) {
-        const y = startY + i * (cardH + gap);
-        // 卡片底
-        ctx.fillStyle = '#ffffff';
-        roundRect(ctx, 32, y, cardW, cardH, 18);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(180,83,9,0.15)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        // 排名徽章
-        const badgeR = cardH * 0.32;
-        const badgeX = 32 + 24 + badgeR;
-        const badgeY = y + cardH / 2;
-        ctx.fillStyle = colors[i] || '#cbd5e1';
-        ctx.beginPath();
-        ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `900 ${Math.round(badgeR * 0.9)}px "NotoSansTC"`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`${i + 1}`, badgeX, badgeY);
-        // 歌名 + 歌手 placeholder bars（用灰條避免誤導使用者像真歌單）
-        const textStartX = badgeX + badgeR + 24;
-        const textMaxW = width - textStartX - 32 - 140; // 預留右側給票數膠囊
-        ctx.fillStyle = 'rgba(28,25,23,0.85)';
-        roundRect(ctx, textStartX, y + cardH * 0.28, textMaxW * 0.7, cardH * 0.18, 4);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(87,83,78,0.4)';
-        roundRect(ctx, textStartX, y + cardH * 0.58, textMaxW * 0.5, cardH * 0.14, 4);
-        ctx.fill();
-        // 票數膠囊（純數字 + 主題色）
-        const voteText = `${votes[i] || 10}`;
-        ctx.font = `900 ${Math.round(cardH * 0.32)}px "NotoSansTC"`;
-        ctx.fillStyle = THEME.primary;
-        const tw = ctx.measureText(voteText).width;
-        const px = 22, ph = cardH * 0.55;
-        const pillX = width - 32 - tw - px * 2 - 16;
-        const pillY = y + (cardH - ph) / 2;
-        roundRect(ctx, pillX, pillY, tw + px * 2, ph, ph / 2);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(voteText, pillX + (tw + px * 2) / 2, y + cardH / 2);
-    }
+    const cardH = formFactor === 'wide' ? 76 : 86;
+    const songs = [
+        ['01', '想聽的歌還沒有？', '推薦一首，下一場可能就會排進歌單'],
+        ['02', '可選歌單', '搜尋、模糊查找、立即投票'],
+        ['03', '人氣點播排行榜', '即時更新今晚最想聽的歌'],
+    ];
+    songs.forEach(([no, title, sub], i) => {
+        const y = listY + i * (cardH + 14);
+        fillRoundRect(ctx, 32, y, cardW, cardH, 12, '#ffffff');
+        strokeRoundRect(ctx, 32, y, cardW, cardH, 12, THEME.line, 1);
+        ctx.fillStyle = THEME.blue;
+        setFont(ctx, 900, 18);
+        ctx.fillText(no, 56, y + 33);
+        ctx.fillStyle = THEME.ink;
+        setFont(ctx, 900, 22);
+        ctx.fillText(title, 108, y + 32);
+        ctx.fillStyle = THEME.muted;
+        setFont(ctx, 700, 15);
+        ctx.fillText(sub, 108, y + 58);
+    });
 
     return canvas.toBuffer('image/png');
 }
 
-// ==================== 主流程 ====================
 async function main() {
-    console.log('🎨 開始產生 OG 圖與 favicon...\n');
+    console.log('開始產生卡帶風 OG 圖與 favicon...\n');
 
-    // 1) OG 圖
     const ogBuffer = generateOgImage();
     writeFileSync(resolve(PUBLIC, 'og-preview.png'), ogBuffer);
     const ogHash = createHash('sha256').update(ogBuffer).digest('hex').slice(0, 12);
-    console.log(`✓ og-preview.png   1200×630   ${(ogBuffer.length / 1024).toFixed(1)} KB   hash=${ogHash}`);
+    console.log(`og-preview.png        1200x630   ${(ogBuffer.length / 1024).toFixed(1)} KB   hash=${ogHash}`);
 
-    // 把 index.html 中的 __OG_HASH__ 占位符換成 PNG 內容雜湊。
-    // 內容沒變 → 雜湊不變 → URL 不變；內容變 → URL 變 → 強制 FB/LINE 重抓。
     const htmlPath = resolve(ROOT, 'client', 'index.html');
     let html = readFileSync(htmlPath, 'utf8');
     const before = html;
-    // 同時處理新檔的 placeholder 與既有的舊 hash（?v=xxx）
-    html = html.replace(/og-preview\.png\?v=[a-zA-Z0-9_]+/g, `og-preview.png?v=${ogHash}`);
+    html = html.replace(/og-preview\.png\?v=[a-zA-Z0-9_-]+/g, `og-preview.png?v=${ogHash}`);
     if (html !== before) {
         writeFileSync(htmlPath, html);
-        console.log(`✓ index.html 的 og:image / twitter:image / linkedin:image 已更新為 ?v=${ogHash}`);
+        console.log(`index.html OG cache-bust updated to ${ogHash}`);
     } else {
-        console.log(`✓ index.html cache-bust hash 已是最新 (${ogHash})`);
+        console.log(`index.html OG cache-bust already ${ogHash}`);
     }
 
-    // 2) 用 sharp 從一張高解析 source resize 出各尺寸（更銳利）
-    const SOURCE_SIZE = 512;
-    const sourcePng = generateFaviconSource(SOURCE_SIZE);
-
+    const sourcePng = generateFaviconSource(512);
     const sizes = [
         { name: 'icon-512.png', size: 512 },
         { name: 'icon-192.png', size: 192 },
@@ -329,19 +352,14 @@ async function main() {
     for (const { name, size } of sizes) {
         const buf = await sharp(sourcePng).resize(size, size).png().toBuffer();
         writeFileSync(resolve(PUBLIC, name), buf);
-        console.log(`✓ ${name.padEnd(22)} ${size}×${size}    ${(buf.length / 1024).toFixed(1)} KB`);
+        console.log(`${name.padEnd(24)} ${size}x${size}   ${(buf.length / 1024).toFixed(1)} KB`);
     }
 
-    // 3) favicon.ico (含 16 + 32 雙尺寸)
-    //    sharp 不直接支援 ico，但現代瀏覽器其實接受 PNG 當 .ico
-    //    為了相容老瀏覽器，我們就把 32×32 PNG 命名成 .ico（瀏覽器認 magic byte）
-    //    若需要真正多尺寸 .ico，可以另外用 to-ico 套件，但實務上 32×32 已足夠
     const ico32 = await sharp(sourcePng).resize(32, 32).png().toBuffer();
     writeFileSync(resolve(PUBLIC, 'favicon.ico'), ico32);
-    console.log(`✓ favicon.ico        32×32     ${(ico32.length / 1024).toFixed(1)} KB  (PNG-as-ICO)`);
+    console.log(`favicon.ico             32x32    ${(ico32.length / 1024).toFixed(1)} KB`);
 
-    // 4) Maskable icons (Android PWA 適配各種形狀 mask)
-    const maskableSource = generateMaskableIconSource(SOURCE_SIZE);
+    const maskableSource = generateMaskableIconSource(512);
     const maskableSizes = [
         { name: 'icon-maskable-512.png', size: 512 },
         { name: 'icon-maskable-192.png', size: 192 },
@@ -349,21 +367,20 @@ async function main() {
     for (const { name, size } of maskableSizes) {
         const buf = await sharp(maskableSource).resize(size, size).png().toBuffer();
         writeFileSync(resolve(PUBLIC, name), buf);
-        console.log(`✓ ${name.padEnd(22)} ${size}×${size}    ${(buf.length / 1024).toFixed(1)} KB  (maskable)`);
+        console.log(`${name.padEnd(24)} ${size}x${size}   ${(buf.length / 1024).toFixed(1)} KB`);
     }
 
-    // 5) Screenshots (narrow + wide) — PWA install dialog 用
     const screenshots = [
         { name: 'screenshot-narrow.png', width: 540, height: 720, formFactor: 'narrow' },
-        { name: 'screenshot-wide.png',   width: 1280, height: 720, formFactor: 'wide' },
+        { name: 'screenshot-wide.png', width: 1280, height: 720, formFactor: 'wide' },
     ];
     for (const { name, width, height, formFactor } of screenshots) {
         const buf = generateScreenshot(width, height, formFactor);
         writeFileSync(resolve(PUBLIC, name), buf);
-        console.log(`✓ ${name.padEnd(22)} ${width}×${height}   ${(buf.length / 1024).toFixed(1)} KB  (${formFactor})`);
+        console.log(`${name.padEnd(24)} ${width}x${height}   ${(buf.length / 1024).toFixed(1)} KB`);
     }
 
-    console.log('\n✨ 完成！檔案輸出至 client/public/');
+    console.log('\n完成，檔案已輸出至 client/public/');
 }
 
 main().catch((err) => {
