@@ -166,11 +166,11 @@ export default function SongList({
         return `${baseUrl}/songs/${songId}`;
     }, []);
 
-    const handleEditSave = useCallback(async (title: string, artist: string, difficulty: 1 | 2 | 3 | null) => {
+    const handleEditSave = useCallback(async (title: string, artist: string) => {
         if (!editingSong) return;
 
         try {
-            await firestoreUpdateSong(editingSong.id, title, artist, { difficulty });
+            await firestoreUpdateSong(editingSong.id, title, artist);
             toast({
                 title: '成功',
                 description: '歌曲已更新',
