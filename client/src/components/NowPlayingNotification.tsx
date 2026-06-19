@@ -143,31 +143,31 @@ export function NowPlayingNotification() {
                 data-now-playing-notification="true"
                 className="fixed bottom-4 left-3 right-3 sm:left-auto sm:right-4 sm:w-[440px] z-50"
             >
-                <div className="relative overflow-hidden rounded-[10px] border-2 border-[#111] bg-[#faf6ee] shadow-[0_18px_42px_-24px_rgba(17,17,17,0.6)]">
-                    <div className="flex items-center justify-between gap-3 bg-[#111] px-4 py-2 text-white">
+                <div className="now-playing-card relative overflow-hidden rounded-[10px] border-2 border-[#111] bg-[#faf6ee] shadow-[0_18px_42px_-24px_rgba(17,17,17,0.6)]">
+                    <div className="now-playing-card-head flex items-center justify-between gap-3 bg-[#111] px-4 py-2 text-white">
                         <div className="flex min-w-0 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.28em]">
                             <span className="h-2 w-2 rounded-full bg-[#2f55ff]" />
                             <span className="truncate">Now Playing · Side A</span>
                         </div>
                         <button
                             onClick={handleDismiss}
-                            className="grid h-7 w-7 place-items-center rounded-full border border-white/25 text-white/70 transition-colors hover:bg-white hover:text-[#111]"
+                            className="now-playing-card-close grid h-7 w-7 place-items-center rounded-full border border-white/25 text-white/70 transition-colors hover:bg-white hover:text-[#111]"
                             aria-label="關閉通知"
                         >
                             <X className="w-4 h-4" />
                         </button>
                     </div>
 
-                    <div className="relative px-4 py-3 sm:px-5 sm:py-4">
+                    <div className="now-playing-card-body relative px-4 py-3 sm:px-5 sm:py-4">
                         <div className="pointer-events-none absolute inset-x-4 top-0 border-t border-dashed border-[#111]/20" />
 
-                        <div className="mb-3 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
-                            <div className="relative h-11 w-11 rounded-full border-2 border-[#111] bg-[#111] shadow-inner">
+                        <div className="now-playing-card-song mb-3 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+                            <div className="now-playing-card-vinyl relative h-11 w-11 rounded-full border-2 border-[#111] bg-[#111] shadow-inner">
                                 <span className="absolute inset-3 rounded-full border border-[#faf6ee]/60" />
                                 <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#faf6ee]" />
                             </div>
                             <div className="min-w-0">
-                                <div className="mb-1 flex items-center gap-2">
+                                <div className="now-playing-card-status mb-1 flex items-center gap-2">
                                     <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#2f55ff]">Live take</span>
                                     <span className="h-1.5 w-1.5 rounded-full bg-[#ff3b30]" />
                                     <span className="text-xs font-medium text-[#6f6a60]">正在彈奏中</span>
@@ -182,11 +182,11 @@ export function NowPlayingNotification() {
                         </div>
 
                         {/* 快捷按鈕 */}
-                        <div className="mb-3 grid grid-cols-2 gap-2">
+                        <div className="now-playing-card-actions mb-3 grid grid-cols-2 gap-2">
                             <Button
                                 asChild
                                 size="sm"
-                                className="h-10 rounded-md border-2 border-[#111] bg-[#2f55ff] text-white shadow-none transition-transform hover:-translate-y-0.5 hover:bg-[#2446d8]"
+                                className="now-playing-card-action h-10 rounded-md border-2 border-[#111] bg-[#2f55ff] text-white shadow-none transition-transform hover:-translate-y-0.5 hover:bg-[#2446d8]"
                             >
                                 <a
                                     href={generateGuitarTabsUrl(song.title, song.artist)}
@@ -202,7 +202,7 @@ export function NowPlayingNotification() {
                             <Button
                                 asChild
                                 size="sm"
-                                className="h-10 rounded-md border-2 border-[#111] bg-white text-[#111] shadow-none transition-transform hover:-translate-y-0.5 hover:bg-[#fff3d0]"
+                                className="now-playing-card-action h-10 rounded-md border-2 border-[#111] bg-white text-[#111] shadow-none transition-transform hover:-translate-y-0.5 hover:bg-[#fff3d0]"
                             >
                                 <a
                                     href={generateLyricsUrl(song.title, song.artist)}
@@ -218,7 +218,7 @@ export function NowPlayingNotification() {
                         </div>
 
                         {/* 互動區域：打賞 + 評分 */}
-                        <div className="rounded-md border border-[#111]/15 bg-white/70 p-2.5">
+                        <div className="now-playing-card-signal rounded-md border border-[#111]/15 bg-white/70 p-2.5">
                             <div className="mb-2 flex items-center justify-between gap-2">
                                 <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#6f6a60]">
                                     Audience signal

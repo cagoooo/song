@@ -473,8 +473,8 @@ body.has-up-next-bar > #root > div {
     display: none;
   }
   .un-inner {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 0.85fr);
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) minmax(86px, 96px);
+    gap: 6px;
     padding: 0 12px;
   }
   .un-bar.empty .un-inner {
@@ -490,8 +490,26 @@ body.has-up-next-bar > #root > div {
   .un-queue { grid-template-columns: 1fr; }
   .un-queue .un-card:nth-child(n+2) { display: none; }
   .un-more { display: none; }
-  .un-now-eyebrow { font-size: 9px; letter-spacing: 0.18em; }
-  .un-now-title { font-size: 17px; }
+  .un-now-eyebrow {
+    max-width: 100%;
+    gap: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 8px;
+    letter-spacing: 0.13em;
+    line-height: 1;
+  }
+  .un-live-dot {
+    width: 5px;
+    height: 5px;
+    flex: 0 0 auto;
+  }
+  .un-now-title {
+    max-width: 100%;
+    font-size: 18px;
+    line-height: 1;
+  }
   .un-now-title .artist { display: none; }
   .un-time { font-size: 9px; }
   .un-card {
@@ -519,7 +537,56 @@ body.has-up-next-bar > #root > div {
     letter-spacing: 0.12em;
   }
   body.has-up-next-bar [data-now-playing-notification] {
-    bottom: calc(46px + 10px) !important;
+    bottom: calc(46px + 8px) !important;
+  }
+  [data-now-playing-notification] {
+    left: 8px !important;
+    right: 8px !important;
+  }
+  [data-now-playing-notification] .now-playing-card-head {
+    padding: 6px 10px;
+  }
+  [data-now-playing-notification] .now-playing-card-close {
+    width: 26px;
+    height: 26px;
+  }
+  [data-now-playing-notification] .now-playing-card-body {
+    padding: 9px 12px 10px;
+  }
+  [data-now-playing-notification] .now-playing-card-song,
+  [data-now-playing-notification] .now-playing-card-actions {
+    margin-bottom: 8px;
+  }
+  [data-now-playing-notification] .now-playing-card-vinyl {
+    width: 36px;
+    height: 36px;
+  }
+  [data-now-playing-notification] .now-playing-card-vinyl > span:first-child {
+    inset: 10px;
+  }
+  [data-now-playing-notification] .now-playing-card-status {
+    margin-bottom: 2px;
+    gap: 6px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  [data-now-playing-notification] .now-playing-card-action {
+    height: 36px;
+  }
+  [data-now-playing-notification] .now-playing-card-signal {
+    padding: 8px;
+  }
+  [data-now-playing-notification] .now-playing-card-signal > div:first-child {
+    margin-bottom: 6px;
+  }
+  [data-now-playing-notification] .now-playing-card-signal > div:last-child > div:first-child button {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+  [data-now-playing-notification] .now-playing-card-signal svg {
+    width: 15px;
+    height: 15px;
   }
   body.has-up-next-bar .home-login-fab {
     right: 12px !important;
