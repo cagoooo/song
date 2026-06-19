@@ -249,6 +249,102 @@
   margin-top: 4px;
 }
 
+.combo-compact-toast {
+  position: fixed;
+  left: 12px;
+  bottom: max(92px, calc(env(safe-area-inset-bottom) + 82px));
+  z-index: 80;
+  width: min(340px, calc(100vw - 96px));
+  max-width: calc(100vw - 24px);
+  pointer-events: none;
+  border: 1px solid rgba(43, 77, 255, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 36px -20px rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+.combo-compact-toast::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(43, 77, 255, 0.12), transparent 42%);
+  pointer-events: none;
+}
+.combo-compact-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 4px 10px;
+  border-radius: 0 0 10px 0;
+  background: var(--ed-accent);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.combo-compact-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 12px;
+}
+.combo-compact-count {
+  display: grid;
+  place-items: center;
+  min-width: 54px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(43, 77, 255, 0.1);
+  color: var(--ed-accent);
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-style: italic;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.combo-compact-copy {
+  min-width: 0;
+}
+.combo-compact-title {
+  color: var(--ed-ink-1);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.combo-compact-sub {
+  margin-top: 2px;
+  color: var(--ed-ink-3);
+  font-family: var(--font-body);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (min-width: 640px) {
+  .combo-compact-toast {
+    left: auto;
+    right: 18px;
+    top: max(18px, calc(env(safe-area-inset-top) + 12px));
+    bottom: auto;
+    width: min(360px, calc(100vw - 36px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .combo-compact-toast {
+    transition: none;
+  }
+}
+
 /* Magazine modal flag header（VoteHistoryModal） */
 .editorial-modal-flag {
   display: grid;
@@ -864,4 +960,3 @@
 }
 .editorial-login-submit:hover:not(:disabled) { filter: brightness(1.1); }
 .editorial-login-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-
