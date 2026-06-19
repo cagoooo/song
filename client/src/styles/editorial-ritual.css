@@ -510,9 +510,10 @@ body.has-up-next-bar > #root > div {
     flex: 0 0 auto;
   }
   .un-now-title {
-    max-width: 100%;
+    max-width: calc(100% + 8px);
     font-size: 18px;
-    line-height: 1;
+    line-height: 1.12;
+    padding-right: 8px;
   }
   .un-now-title .artist { display: none; }
   .un-time { font-size: 9px; }
