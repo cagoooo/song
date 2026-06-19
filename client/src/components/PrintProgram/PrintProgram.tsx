@@ -11,6 +11,7 @@
 // 列印預覽 / 列印當下才整版顯示。
 import type { Song } from '@/lib/firestore';
 import type { VoterStat } from '@/hooks/useVoterLeaderboard';
+import { createPortal } from 'react-dom';
 
 interface PrintProgramProps {
     songs: Song[];
@@ -59,7 +60,7 @@ export function PrintProgram({
     const issueNo = `Nº ${issueNumber}`;
     const setlistCount = songs.length;
 
-    return (
+    const program = (
         <div className="print-program" aria-hidden="true" data-testid="print-program">
             {/* 頂條：期數 / Side / 日期 */}
             <header className="pp-flag">
@@ -175,6 +176,8 @@ export function PrintProgram({
             </footer>
         </div>
     );
+
+    return createPortal(program, document.body);
 }
 
 export default PrintProgram;

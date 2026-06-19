@@ -48,6 +48,18 @@ describe('PrintProgram', () => {
             );
             expect(screen.getByTestId('print-program')).toHaveAttribute('aria-hidden', 'true');
         });
+
+        it('portal 到 document.body，避免 print-mode 隱藏 App 外層造成空白', () => {
+            render(
+                <PrintProgram
+                    songs={[]}
+                    totalVotes={0}
+                    totalVoters={0}
+                    topVoters={[]}
+                />,
+            );
+            expect(screen.getByTestId('print-program').parentElement).toBe(document.body);
+        });
     });
 
     describe('期刊資訊', () => {

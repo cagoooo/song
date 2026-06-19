@@ -114,6 +114,7 @@ export default function Home() {
   const [printMode, setPrintMode] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
   const curtainCheckedRef = useRef(false);
+  const printCleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 全站任一文字輸入框聚焦時自動進入「專注輸入」模式（涵蓋搜尋、登入、編輯、匯入等所有輸入框）
   useComposingWhileTyping();
   // 專注輸入等級：'hard'（表單）暫停覆蓋層、'soft'（搜尋）淡化、null 正常顯示
@@ -235,36 +236,64 @@ export default function Home() {
   }, []);
 
   // 觸發 A4 直式節目單列印（用瀏覽器原生 window.print + @media print）
-  // 📐 設計文件：docs/design/D3-pdf-print.md
+  const cleanupPrintMode = useCallback(() => {
+    if (printCleanupTimerRef.current) {
+      clearTimeout(printCleanupTimerRef.current);
+      printCleanupTimerRef.current = null;
+    }
+    document.body.classList.remove('print-mode');
+    setPrintMode(false);
+  }, []);
+  // Print A4 program. Mobile browsers do not always fire afterprint, so keep fallback cleanup.
   const handlePrintProgram = useCallback(async () => {
-    // 1. 先 preload lazy chunk，避免列印對話框打開時 PrintProgram 還沒 mount
     await import("../components/PrintProgram");
-    // 2. mount 元件
+    if (printCleanupTimerRef.current) {
+      clearTimeout(printCleanupTimerRef.current);
+      printCleanupTimerRef.current = null;
+    }
+
     setPrintMode(true);
     document.body.classList.add('print-mode');
-    // 3. 等 React render + 字型載入完成
+
     if (document.fonts?.ready) {
       await document.fonts.ready;
     }
-    // 4. 兩個 RAF 等 commit phase 完成
+
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        window.print();
+        try {
+          window.print();
+        } finally {
+          printCleanupTimerRef.current = setTimeout(cleanupPrintMode, 2500);
+        }
       });
     });
-  }, []);
+  }, [cleanupPrintMode]);
 
-  // 'afterprint' 事件：列印完成 / 取消 後自動清掉 print-mode
   useEffect(() => {
-    const onAfter = () => {
-      document.body.classList.remove('print-mode');
-      setPrintMode(false);
+    const scheduleCleanup = (delay = 0) => {
+      if (!document.body.classList.contains('print-mode')) return;
+      if (printCleanupTimerRef.current) clearTimeout(printCleanupTimerRef.current);
+      printCleanupTimerRef.current = setTimeout(cleanupPrintMode, delay);
     };
-    window.addEventListener('afterprint', onAfter);
-    return () => window.removeEventListener('afterprint', onAfter);
-  }, []);
 
-  // 每次進入頁面時產生隨機 seed（只在首次渲染時產生）
+    const onAfter = () => cleanupPrintMode();
+    const onFocus = () => scheduleCleanup(500);
+    const onVisibilityChange = () => {
+      if (!document.hidden) scheduleCleanup(500);
+    };
+
+    window.addEventListener('afterprint', onAfter);
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('afterprint', onAfter);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      cleanupPrintMode();
+    };
+  }, [cleanupPrintMode]);
+  // Stable shuffle seed for this page load.
   const [shuffleSeed] = useState(() => Math.floor(Math.random() * 1000000));
 
   // 追蹤上次的 isAdmin 狀態，用於偵測登入
