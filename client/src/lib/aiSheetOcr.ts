@@ -1,14 +1,6 @@
-// AI 譜圖辨識（Gemini Vision）— 打 Supabase Edge Function 代理，前端不碰金鑰
-//
-// 📐 設計文件：docs/design/G3-sheet-ocr.md（G3b-2 AI Vision）
-//
-// 與 Tesseract（sheetOcr.ts）互補：Tesseract 免費即時當預設，辨識不滿意時
-// 按「✨ AI 辨識」走這條 — Gemini 看圖直接出文字譜，連反白段落標籤、手機
-// 拍照歪斜的譜都讀得懂，品質接近人工抄譜。
-//
-// 金鑰：存在後端 RLS 鎖死的 guitar_config 表，edge function 用 service_role
-// 讀；前端只帶公開的 anon key（設計上可公開，資料靠 RLS 保護）。
-
+// AI sheet image recognition (Gemini Vision) through Supabase Edge Function.
+// This is now the only image recognition path used by the transpose tool.
+// The legacy browser-side OCR flow was removed because AI recognition is materially more accurate for chord sheets and screenshots.
 const ENDPOINT = 'https://xcnmmaayrtiklntvhdhc.supabase.co/functions/v1/guitar-ai-sheet';
 const ANON_KEY = 'sb_publishable_nDPdupsm5wZI20iddtf12w_iV82XILn';
 

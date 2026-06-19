@@ -17,7 +17,6 @@ import {
 import { getRememberedSteps, rememberSteps, sheetMemoryKey } from '@/lib/transposeMemory';
 import { buildChartFromSheet } from '@/lib/songChart';
 import { addSongWithChart } from '@/lib/firestore';
-import type { OcrProgress } from '@/lib/sheetOcr';
 
 const HAS_CJK_RE = /[一-鿿぀-ヿ가-힯]/;
 
@@ -82,7 +81,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const fileInputRef = useRef<HTMLInputElement>(null);
     /** 控制列（半音/目標調/結果）— 辨識完成後自動捲到這，控制列+結果同框可見 */
     const controlsRef = useRef<HTMLDivElement>(null);
-    /** 保留原始圖檔給「✨ AI 辨識」用（srcImageUrl 是 object URL，AI 要原始資料） */
+    /** 保留原始圖檔給 AI Vision 用（srcImageUrl 是 object URL，AI 要原始資料） */
     const srcFileRef = useRef<File | Blob | null>(null);
 
     // 辨識完成後自動捲到控制列（控制列 + 轉調結果同框）— 等 React 渲染出結果再捲
@@ -100,61 +99,49 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     // 卸載時清掉進度計時器
     useEffect(() => () => { if (aiTimerRef.current) clearInterval(aiTimerRef.current); }, []);
 
-    // 圖片 → OCR → 文字譜進左欄（91 譜這類只給圖檔的譜直接截圖丟進來）
+    // Image upload / paste / drop now uses AI Vision directly. Legacy OCR is disabled.
     const handleImage = useCallback(async (file: File | Blob) => {
+        if (aiBusy) return;
+
         setOcrError(null);
         srcFileRef.current = file;
         setSrcImageUrl(URL.createObjectURL(file));
-        setOcrMsg('準備辨識引擎…');
-        try {
-            const { ocrImageToSheet } = await import('@/lib/sheetOcr');
-            const sheet = await ocrImageToSheet(file, (p: OcrProgress) => setOcrMsg(p.message));
-            if (!sheet.trim()) {
-                setOcrError('辨識不到文字 — 試試解析度更高的截圖（文字越清晰效果越好）');
-            } else {
-                setInput(sheet);
-                setSteps(0);
-                setOcrDone(true);
-                setShowOcrText(false); // 回到原圖模式 — 辨識文字不用再看，結果在右欄
-                scrollToResult();
-            }
-        } catch {
-            setOcrError('辨識引擎載入失敗 — 請檢查網路後重試（首次使用需下載中文語言檔）');
-        } finally {
-            setOcrMsg(null);
-        }
-    }, [scrollToResult]);
-
-    // ✨ AI 辨識（Gemini Vision）— 比 Tesseract 準，連反白標籤 / 手機拍照都讀得懂
-    const handleAiRecognize = useCallback(async () => {
-        if (!srcFileRef.current || aiBusy) return;
+        setInput('');
+        setSteps(0);
+        setOcrDone(false);
+        setShowOcrText(false);
+        setOcrMsg(null);
         setAiBusy(true);
-        setOcrError(null);
         setAiProgress(6);
-        // 緩升進度：越接近越慢，停在 92%（留給真正完成跳 100%）
+
         if (aiTimerRef.current) clearInterval(aiTimerRef.current);
         aiTimerRef.current = setInterval(() => {
             setAiProgress((p) => (p >= 92 ? p : Math.min(92, p + (p < 50 ? 4 : p < 75 ? 2 : 1))));
         }, 350);
+
         try {
             const { aiRecognizeSheet } = await import('@/lib/aiSheetOcr');
-            const sheet = await aiRecognizeSheet(srcFileRef.current);
+            const sheet = await aiRecognizeSheet(file);
+
             if (sheet.trim()) {
                 setAiProgress(100);
                 setInput(sheet);
-                setSteps(0);
                 setOcrDone(true);
                 setShowOcrText(false);
                 scrollToResult();
             } else {
-                setOcrError('AI 沒辨識出內容，請換更清楚的圖');
+                setOcrError('AI 沒辨識出內容，請換更清楚的圖片或裁切掉多餘背景後再試。');
             }
         } catch (e) {
-            setOcrError(e instanceof Error ? e.message : 'AI 辨識失敗，請稍後再試');
+            setOcrError(e instanceof Error ? e.message : 'AI 辨識失敗，請稍後再試。');
         } finally {
-            if (aiTimerRef.current) { clearInterval(aiTimerRef.current); aiTimerRef.current = null; }
+            if (aiTimerRef.current) {
+                clearInterval(aiTimerRef.current);
+                aiTimerRef.current = null;
+            }
             setAiBusy(false);
-            setTimeout(() => setAiProgress(0), 600); // 100% 顯示一下再收
+            setOcrMsg(null);
+            setTimeout(() => setAiProgress(0), 600);
         }
     }, [aiBusy, scrollToResult]);
 
@@ -776,14 +763,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                     </button>
                                     {srcImageUrl && (
                                         <>
-                                            <button
-                                                className="ttm-pane-btn ai"
-                                                onClick={handleAiRecognize}
-                                                disabled={aiBusy || !!ocrMsg}
-                                                title="用 AI 重新辨識（更準，連反白標籤 / 手機拍照都讀得懂）"
-                                            >
-                                                {aiBusy ? '✨ AI 辨識中…' : '✨ AI 辨識'}
-                                            </button>
+                                            
                                             <button
                                                 className="ttm-pane-btn"
                                                 onClick={() => setShowOcrText((v) => !v)}
@@ -847,14 +827,14 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                     onChange={(e) => { setInput(e.target.value); setOcrDone(false); }}
                                     onDrop={handleDrop}
                                     onDragOver={(e) => e.preventDefault()}
-                                    placeholder={'三種餵譜方式：\n\n1. 文字 — 把譜整段貼進來\n2. 截圖 — 直接 Ctrl+V 貼上（91 譜等圖檔譜適用）\n3. 圖檔 — 點「📷 上傳譜圖」或拖放到這裡\n\n辨識結果落在這裡，可直接修正錯字'}
+                                    placeholder={'三種餵譜方式：\n\n1. 文字 — 把譜整段貼進來\n2. 截圖 — 直接 Ctrl+V 貼上，會自動啟動 AI 辨識\n3. 圖檔 — 點「📷 上傳譜圖」或拖放到這裡，會自動啟動 AI 辨識\n\nAI 辨識結果會落在這裡，可直接修正錯字'}
                                     spellCheck={false}
                                     aria-label="原譜輸入區"
                                 />
                             )}
                             {ocrDone && (
                                 <div className="ttm-ocr-tip">
-                                    ✓ 辨識完成 — 右欄<b>黃色字</b>可直接點它就地修正；辨識不理想時按 <b>✨ AI 辨識</b> 用 AI 重辨（更準）。
+                                    ✓ AI 辨識完成 — 右欄<b>黃色字</b>可直接點它就地修正。
                                 </div>
                             )}
                         </div>
