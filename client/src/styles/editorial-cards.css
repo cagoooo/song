@@ -367,6 +367,126 @@
 }
 
 /* Stage page (演出模式) */
+@media (max-width: 640px) {
+  .vh-modal {
+    width: min(100vw - 16px, 560px) !important;
+    max-height: calc(100dvh - max(16px, env(safe-area-inset-top)) - max(20px, env(safe-area-inset-bottom))) !important;
+  }
+
+  .vh-modal .editorial-modal-flag {
+    grid-template-columns: 1fr;
+    gap: 3px;
+    padding: 8px 14px;
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+  }
+
+  .vh-modal .editorial-modal-flag .center,
+  .vh-modal .editorial-modal-flag .text-right {
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+  }
+
+  .vh-intro {
+    padding: 18px 20px 16px !important;
+  }
+
+  .vh-intro h2 {
+    font-size: 30px !important;
+    line-height: 1.04 !important;
+  }
+
+  .vh-intro p {
+    font-size: 15px !important;
+    line-height: 1.58 !important;
+  }
+
+  .vh-history-head {
+    display: none !important;
+  }
+
+  .vh-history-row {
+    grid-template-columns: 44px minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "no title action"
+      "no artist time";
+    gap: 4px 12px !important;
+    padding: 14px 18px !important;
+    min-height: 84px;
+  }
+
+  .vh-history-no {
+    grid-area: no;
+    align-self: center;
+    font-size: 18px !important;
+  }
+
+  .vh-history-title {
+    grid-area: title;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere;
+    font-size: 18px !important;
+    line-height: 1.18 !important;
+  }
+
+  .vh-history-artist {
+    grid-area: artist;
+    align-self: start;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1.25 !important;
+  }
+
+  .vh-history-time {
+    grid-area: time;
+    align-self: start;
+    justify-self: end;
+    font-size: 12px !important;
+  }
+
+  .vh-history-action {
+    grid-area: action;
+    align-self: center;
+    justify-self: end;
+    height: 34px !important;
+    padding: 0 12px !important;
+    border: 1px solid rgba(17, 17, 17, 0.14) !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.65) !important;
+    white-space: nowrap;
+    font-size: 12px !important;
+  }
+
+  .vh-history-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+    padding: 12px 18px max(14px, env(safe-area-inset-bottom)) !important;
+    background: #faf7f0;
+  }
+
+  .vh-history-footer > span {
+    line-height: 1.45 !important;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .vh-history-footer button {
+    width: 100%;
+    height: 38px !important;
+    justify-content: center;
+  }
+}
+
 .editorial-stage {
   min-height: 100vh;
   background: #07070b;

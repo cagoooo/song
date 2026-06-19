@@ -36,7 +36,7 @@ export function VoteHistoryModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)]">
+            <DialogContent className="vh-modal max-w-2xl p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)]">
                 {/* a11y: 給螢幕閱讀器看的標題與描述 — 視覺上由下方雜誌頂條 + 自訂 h2 呈現 */}
                 <DialogTitle className="sr-only">點播日記 — 今晚你點過什麼歌</DialogTitle>
                 <DialogDescription className="sr-only">
@@ -51,7 +51,7 @@ export function VoteHistoryModal({
                 </div>
 
                 {/* 章節眉標 + 義式標題 */}
-                <div className="px-6 sm:px-8 pt-6 pb-4">
+                <div className="vh-intro px-6 sm:px-8 pt-6 pb-4">
                     <div
                         style={{
                             fontFamily: 'var(--font-mono)',
@@ -106,7 +106,7 @@ export function VoteHistoryModal({
                     <>
                         {/* 表格抬頭 */}
                         <div
-                            className="grid items-center px-6 sm:px-8 py-2 border-y border-[rgba(17,17,17,0.12)]"
+                            className="vh-history-head grid items-center px-6 sm:px-8 py-2 border-y border-[rgba(17,17,17,0.12)]"
                             style={{
                                 gridTemplateColumns: '36px 1fr 90px 72px 70px',
                                 gap: 14,
@@ -129,13 +129,14 @@ export function VoteHistoryModal({
                                 {sortedHistory.map((entry, i) => (
                                     <li
                                         key={`${entry.songId}_${entry.timestamp}`}
-                                        className="grid items-center px-6 sm:px-8 py-3"
+                                        className="vh-history-row grid items-center px-6 sm:px-8 py-3"
                                         style={{
                                             gridTemplateColumns: '36px 1fr 90px 72px 70px',
                                             gap: 14,
                                         }}
                                     >
                                         <span
+                                            className="vh-history-no"
                                             style={{
                                                 fontFamily: 'var(--font-display)',
                                                 fontStyle: 'italic',
@@ -148,7 +149,7 @@ export function VoteHistoryModal({
                                             {String(sortedHistory.length - i).padStart(2, '0')}
                                         </span>
                                         <span
-                                            className="truncate"
+                                            className="vh-history-title truncate"
                                             style={{
                                                 fontFamily: 'var(--font-display)',
                                                 fontWeight: 700,
@@ -160,7 +161,7 @@ export function VoteHistoryModal({
                                             {entry.title}
                                         </span>
                                         <span
-                                            className="truncate"
+                                            className="vh-history-artist truncate"
                                             style={{
                                                 fontFamily: 'var(--font-mono)',
                                                 fontSize: 10,
@@ -172,6 +173,7 @@ export function VoteHistoryModal({
                                             {entry.artist}
                                         </span>
                                         <span
+                                            className="vh-history-time"
                                             style={{
                                                 fontFamily: 'var(--font-mono)',
                                                 fontSize: 12,
@@ -186,7 +188,7 @@ export function VoteHistoryModal({
                                             variant="ghost"
                                             onClick={() => onReVote(entry)}
                                             aria-label={`再點一次 ${entry.title}`}
-                                            className="h-7 px-2 text-xs hover:bg-[rgba(43,77,255,0.08)] hover:text-[#2b4dff]"
+                                            className="vh-history-action h-7 px-2 text-xs hover:bg-[rgba(43,77,255,0.08)] hover:text-[#2b4dff]"
                                         >
                                             再點一次
                                         </Button>
@@ -197,7 +199,7 @@ export function VoteHistoryModal({
 
                         {/* 底部摘要 + 清除按鈕 */}
                         <div
-                            className="flex items-center justify-between px-6 sm:px-8 py-3 border-t border-[rgba(17,17,17,0.12)]"
+                            className="vh-history-footer flex items-center justify-between px-6 sm:px-8 py-3 border-t border-[rgba(17,17,17,0.12)]"
                         >
                             <span
                                 style={{
