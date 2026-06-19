@@ -35,8 +35,9 @@ if (typeof window !== 'undefined') {
   const registerSW = () => {
     if ('serviceWorker' in navigator && import.meta.env.PROD) {
       navigator.serviceWorker
-        .register('/song/sw.js', { scope: '/song/' })
+        .register('/song/sw.js', { scope: '/song/', updateViaCache: 'none' })
         .then((registration) => {
+          registration.update().catch(() => {});
           console.log('[PWA] Service Worker 註冊成功:', registration.scope);
         })
         .catch((error) => {

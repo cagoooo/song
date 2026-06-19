@@ -23,7 +23,6 @@ import { useGlobalHype, HYPE_META } from "@/hooks/useGlobalHype";
 import { useVoterLeaderboard } from "@/hooks/useVoterLeaderboard";
 import { GlobalHypeOverlay } from "../components/GlobalHypeOverlay";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { UpdatePrompt } from "../components/UpdatePrompt";
 import { BarChart3 } from "lucide-react";
 
 const VoterLeaderboardModal = lazy(() =>
@@ -992,8 +991,6 @@ export default function Home() {
       <LiveRecap />
 
       {/* SW 新版本通知 banner (右下角) */}
-      <UpdatePrompt />
-
       {/* 點播歷史 Modal — lazy load，未開啟時不影響首屏 */}
       {historyOpen && (
         <Suspense fallback={null}>
