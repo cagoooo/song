@@ -33,7 +33,7 @@ export function MobileTabView({
 
     const activeTab = controlledActiveTab ?? internalActiveTab;
     const setActiveTab = useCallback((tab: TabType) => {
-        if (onTabChange && (tab === 'songs' || tab === 'ranking')) {
+        if (onTabChange) {
             onTabChange(tab);
         } else {
             setInternalActiveTab(tab);
@@ -114,6 +114,7 @@ export function MobileTabView({
                                 <TabsTrigger
                                     key={t}
                                     value={t}
+                                    onClick={() => handleTabChange(t)}
                                     className="relative flex flex-col items-start py-2 px-3 gap-0.5 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none focus-visible:outline-none focus-visible:ring-0"
                                     style={{ textAlign: 'left' }}
                                 >

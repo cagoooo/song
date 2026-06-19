@@ -1,10 +1,10 @@
-// MobileTabView 元件單元測試
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MobileTabView } from './MobileTabView';
 
-// 簡單的 mock 元件來測試基本渲染邏輯
-// 由於 MobileTabView 依賴複雜的 UI 元件 (Tabs, framer-motion, react-swipeable)
-// 我們測試關鍵邏輯而非完整的元件渲染
+vi.mock('./VoterBoard', () => ({
+    VoterBoard: () => <div data-testid="voter-board">催歌王內容</div>,
+}));
 
 describe('MobileTabView 邏輯測試', () => {
     beforeEach(() => {
@@ -12,11 +12,12 @@ describe('MobileTabView 邏輯測試', () => {
     });
 
     describe('Tab 類型定義', () => {
-        it('應該有 songs 和 ranking 兩種 Tab 類型', () => {
-            const TABS = ['songs', 'ranking'];
-            expect(TABS).toContain('songs');
-            expect(TABS).toContain('ranking');
-            expect(TABS).toHaveLength(2);
+        it('應該有 songs、ranking、voters 三種 Tab 類型', () => {
+            const tabs = ['songs', 'ranking', 'voters'];
+            expect(tabs).toContain('songs');
+            expect(tabs).toContain('ranking');
+            expect(tabs).toContain('voters');
+            expect(tabs).toHaveLength(3);
         });
     });
 
@@ -36,65 +37,39 @@ describe('MobileTabView 邏輯測試', () => {
 
     describe('Tab 切換邏輯', () => {
         it('從 songs 向左滑動應該切換到 ranking', () => {
-            const tabs = ['songs', 'ranking'];
+            const tabs = ['songs', 'ranking', 'voters'];
             let currentTab = 'songs';
 
-            // 模擬向左滑動（前進到下一個 Tab）
-            const swipeLeft = () => {
-                const idx = tabs.indexOf(currentTab);
-                if (idx < tabs.length - 1) {
-                    currentTab = tabs[idx + 1];
-                }
-            };
+            const idx = tabs.indexOf(currentTab);
+            if (idx < tabs.length - 1) {
+                currentTab = tabs[idx + 1];
+            }
 
-            swipeLeft();
             expect(currentTab).toBe('ranking');
         });
 
-        it('從 ranking 向右滑動應該切換到 songs', () => {
-            const tabs = ['songs', 'ranking'];
+        it('從 ranking 向左滑動應該切換到 voters', () => {
+            const tabs = ['songs', 'ranking', 'voters'];
             let currentTab = 'ranking';
 
-            // 模擬向右滑動（回到上一個 Tab）
-            const swipeRight = () => {
-                const idx = tabs.indexOf(currentTab);
-                if (idx > 0) {
-                    currentTab = tabs[idx - 1];
-                }
-            };
+            const idx = tabs.indexOf(currentTab);
+            if (idx < tabs.length - 1) {
+                currentTab = tabs[idx + 1];
+            }
 
-            swipeRight();
-            expect(currentTab).toBe('songs');
+            expect(currentTab).toBe('voters');
         });
 
-        it('在第一個 Tab 向右滑動不應改變 Tab', () => {
-            const tabs = ['songs', 'ranking'];
-            let currentTab = 'songs';
+        it('從 voters 向右滑動應該切換到 ranking', () => {
+            const tabs = ['songs', 'ranking', 'voters'];
+            let currentTab = 'voters';
 
-            const swipeRight = () => {
-                const idx = tabs.indexOf(currentTab);
-                if (idx > 0) {
-                    currentTab = tabs[idx - 1];
-                }
-            };
+            const idx = tabs.indexOf(currentTab);
+            if (idx > 0) {
+                currentTab = tabs[idx - 1];
+            }
 
-            swipeRight();
-            expect(currentTab).toBe('songs'); // 維持不變
-        });
-
-        it('在最後一個 Tab 向左滑動不應改變 Tab', () => {
-            const tabs = ['songs', 'ranking'];
-            let currentTab = 'ranking';
-
-            const swipeLeft = () => {
-                const idx = tabs.indexOf(currentTab);
-                if (idx < tabs.length - 1) {
-                    currentTab = tabs[idx + 1];
-                }
-            };
-
-            swipeLeft();
-            expect(currentTab).toBe('ranking'); // 維持不變
+            expect(currentTab).toBe('ranking');
         });
     });
 
@@ -103,7 +78,6 @@ describe('MobileTabView 邏輯測試', () => {
             const controlledActiveTab = 'ranking';
             const internalTab = 'songs';
 
-            // 受控模式：以外部值為準
             const actualTab = controlledActiveTab ?? internalTab;
             expect(actualTab).toBe('ranking');
         });
@@ -112,31 +86,45 @@ describe('MobileTabView 邏輯測試', () => {
             const controlledActiveTab = undefined;
             const internalTab = 'songs';
 
-            // 非受控模式：以內部值為準
             const actualTab = controlledActiveTab ?? internalTab;
             expect(actualTab).toBe('songs');
         });
     });
 
     describe('滑動方向判斷', () => {
-        it('向左滑動應該返回 left 方向', () => {
-            const getDirection = (fromTab: string, toTab: string, tabs: string[]) => {
-                const fromIdx = tabs.indexOf(fromTab);
-                const toIdx = tabs.indexOf(toTab);
-                return toIdx > fromIdx ? 'left' : 'right';
-            };
+        it('向右側 tab 前進時應該返回 left 方向', () => {
+            const tabs = ['songs', 'ranking', 'voters'];
+            const fromIdx = tabs.indexOf('songs');
+            const toIdx = tabs.indexOf('voters');
 
-            expect(getDirection('songs', 'ranking', ['songs', 'ranking'])).toBe('left');
+            expect(toIdx > fromIdx ? 'left' : 'right').toBe('left');
         });
 
-        it('向右滑動應該返回 right 方向', () => {
-            const getDirection = (fromTab: string, toTab: string, tabs: string[]) => {
-                const fromIdx = tabs.indexOf(fromTab);
-                const toIdx = tabs.indexOf(toTab);
-                return toIdx > fromIdx ? 'left' : 'right';
-            };
+        it('向左側 tab 返回時應該返回 right 方向', () => {
+            const tabs = ['songs', 'ranking', 'voters'];
+            const fromIdx = tabs.indexOf('voters');
+            const toIdx = tabs.indexOf('ranking');
 
-            expect(getDirection('ranking', 'songs', ['songs', 'ranking'])).toBe('right');
+            expect(toIdx > fromIdx ? 'left' : 'right').toBe('right');
         });
+    });
+});
+
+describe('MobileTabView 受控模式實際點擊', () => {
+    it('點第三個催歌王 tab 時，會通知父層切到 voters', () => {
+        const onTabChange = vi.fn();
+
+        render(
+            <MobileTabView
+                songListContent={<div>歌單內容</div>}
+                rankingContent={<div>排行內容</div>}
+                activeTab="songs"
+                onTabChange={onTabChange}
+            />
+        );
+
+        fireEvent.click(screen.getAllByRole('tab')[2]);
+
+        expect(onTabChange).toHaveBeenCalledWith('voters');
     });
 });
