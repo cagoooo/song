@@ -623,7 +623,23 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const [saveNote, setSaveNote] = useState('');
     const [saving, setSaving] = useState(false);
     const [saveResult, setSaveResult] = useState<{ ok: boolean; msg: string } | null>(null);
+    const saveSectionRef = useRef<HTMLDivElement>(null);
+    const saveTitleInputRef = useRef<HTMLInputElement>(null);
     const songKeyForSave = targetKey ?? detected?.key ?? null;
+
+    const openSaveForm = useCallback(() => {
+        setSaveOpen(true);
+        setSaveResult(null);
+    }, []);
+
+    useEffect(() => {
+        if (!saveOpen) return;
+        const timer = window.setTimeout(() => {
+            saveSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            saveTitleInputRef.current?.focus({ preventScroll: true });
+        }, 80);
+        return () => window.clearTimeout(timer);
+    }, [saveOpen]);
 
     const handleSaveToLibrary = async () => {
         if (!saveTitle.trim() || saving) return;
@@ -919,9 +935,9 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
 
                             {/* 存進歌庫（admin）— 把轉好的譜沉澱成歌庫資產 */}
                             {isAdmin && output && (
-                                <div className="ttm-save">
+                                <div className="ttm-save" ref={saveSectionRef}>
                                     {!saveOpen ? (
-                                        <button className="ttm-save-toggle" onClick={() => { setSaveOpen(true); setSaveResult(null); }}>
+                                        <button className="ttm-save-toggle" onClick={openSaveForm}>
                                             💾 存進歌庫
                                         </button>
                                     ) : (
@@ -931,6 +947,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                                 <em>{songKeyForSave ? `${songKeyForSave} 調` : ''}</em>
                                             </div>
                                             <input
+                                                ref={saveTitleInputRef}
                                                 className="ttm-save-input"
                                                 placeholder="歌名（必填）"
                                                 value={saveTitle}
