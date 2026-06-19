@@ -366,11 +366,49 @@
   letter-spacing: 0.3em;
 }
 
+.vh-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 40px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ed-ink-1);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 12px 28px -18px rgba(0, 0, 0, 0.55);
+}
+
+.vh-close:hover,
+.vh-close:focus-visible {
+  outline: none;
+  border-color: rgba(43, 77, 255, 0.42);
+  color: var(--ed-accent);
+  box-shadow: 0 0 0 3px rgba(43, 77, 255, 0.16), 0 12px 28px -18px rgba(0, 0, 0, 0.55);
+}
+
 /* Stage page (演出模式) */
 @media (max-width: 640px) {
   .vh-modal {
     width: min(100vw - 16px, 560px) !important;
     max-height: calc(100dvh - max(16px, env(safe-area-inset-top)) - max(20px, env(safe-area-inset-bottom))) !important;
+  }
+
+  .vh-close {
+    top: max(8px, env(safe-area-inset-top));
+    right: 10px;
+    min-height: 44px;
+    padding: 0 12px;
+    background: rgba(255, 255, 255, 0.96);
   }
 
   .vh-modal .editorial-modal-flag {

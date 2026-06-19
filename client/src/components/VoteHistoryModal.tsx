@@ -4,7 +4,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ResponsiveScrollList } from '@/components/ui/ResponsiveScrollList';
-import { Music, Trash2 } from 'lucide-react';
+import { Music, Trash2, X } from 'lucide-react';
 import type { VoteHistoryEntry } from '@/hooks/useVoteHistory';
 
 interface VoteHistoryModalProps {
@@ -37,6 +37,15 @@ export function VoteHistoryModal({
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="vh-modal max-w-2xl p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)]">
+                <button
+                    type="button"
+                    className="vh-close"
+                    onClick={onClose}
+                    aria-label="關閉點播日記"
+                >
+                    <X className="h-4 w-4" aria-hidden="true" />
+                    <span>關閉</span>
+                </button>
                 {/* a11y: 給螢幕閱讀器看的標題與描述 — 視覺上由下方雜誌頂條 + 自訂 h2 呈現 */}
                 <DialogTitle className="sr-only">點播日記 — 今晚你點過什麼歌</DialogTitle>
                 <DialogDescription className="sr-only">

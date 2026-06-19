@@ -1,7 +1,7 @@
 // Service Worker - 吉他點歌系統 PWA
 // 版本號於 build 時由 scripts/stamp-sw-version.mjs 自動取代
 // (從 package.json 讀 version + git short hash + 時間戳)
-const CACHE_VERSION = '4.2.0-849d296-jc25';
+const CACHE_VERSION = '4.2.0-af857d8-o6vg';
 const CACHE_NAME = `guitar-song-${CACHE_VERSION}`;
 
 // 需要預緩存的核心資源
