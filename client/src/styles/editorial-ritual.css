@@ -19,7 +19,7 @@
   right: 0;
   bottom: 0;
   z-index: 45;
-  height: 96px;
+  height: 112px;
   background: var(--ed-paper);
   border-top: 2px solid var(--ed-ink-1);
   box-shadow: 0 -8px 24px -16px rgba(17, 17, 17, 0.18);
@@ -41,7 +41,7 @@
   max-width: 1320px;
   height: 100%;
   margin: 0 auto;
-  padding: 0 28px;
+  padding: 14px 28px 16px;
   display: grid;
   grid-template-columns: minmax(280px, 1fr) auto minmax(0, 1.4fr) auto;
   gap: 28px;
@@ -251,7 +251,8 @@
   grid-template-columns: auto 1fr;
   gap: 10px;
   align-items: center;
-  padding: 10px 12px;
+  min-height: 58px;
+  padding: 9px 12px;
   border: 1px solid var(--ed-line);
   background: #fff;
   min-width: 0;
@@ -395,12 +396,12 @@
 }
 .un-more .lab {
   position: absolute;
-  bottom: -16px; left: 50%;
+  bottom: 9px; left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-mono);
   font-style: normal;
-  font-size: 9px;
-  letter-spacing: 0.22em;
+  font-size: 8px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ed-ink-3);
   font-weight: 500;
@@ -451,16 +452,16 @@
 
 /* 抬升其他底部 fixed 元件，避讓 96px 高 sticky bar */
 body.has-up-next-bar [data-now-playing-notification] {
-  bottom: calc(96px + 16px) !important;
+  bottom: calc(112px + 16px) !important;
 }
 
 body.has-up-next-bar .home-login-fab {
-  bottom: calc(96px + 16px) !important;
+  bottom: calc(112px + 16px) !important;
 }
 
 /* 內容底部留白，避免被 bar 遮住 */
 body.has-up-next-bar > #root > div {
-  padding-bottom: 116px;
+  padding-bottom: 132px;
 }
 
 /* ---------- Mobile · 只留 NOW + 1 張 Up Next ---------- */
