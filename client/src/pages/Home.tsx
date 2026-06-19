@@ -5,7 +5,6 @@ import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, Trophy, Tv, Share2, Award, Printer } from "lucide-react";
 import SongList from "../components/SongList";
-import SongImport from "../components/SongImport";
 import { useVoteHistory, type VoteHistoryEntry } from "@/hooks/useVoteHistory";
 import { VoteHistoryButton } from "../components/VoteHistoryButton";
 import { SortSelector } from "../components/SortSelector";
@@ -60,10 +59,14 @@ const TransposeToolModal = lazy(() =>
 const VoteHistoryModal = lazy(() =>
   import("../components/VoteHistoryModal").then((m) => ({ default: m.VoteHistoryModal }))
 );
-import LoginForm from "../components/LoginForm";
+const SongImport = lazy(() => import("../components/SongImport"));
+const LoginForm = lazy(() => import("../components/LoginForm"));
+const SongDetailModal = lazy(() =>
+  import("../components/SongDetail").then((m) => ({ default: m.SongDetailModal }))
+);
 import { motion, AnimatePresence } from "framer-motion";
 import { ShareButton } from "../components/ShareButton";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AppLoading } from "@/components/AppLoading";
 import { subscribeSongs, type Song } from "@/lib/firestore";
 import { MobileTabView } from "../components/MobileTabView";
 import { ScrollToTop } from "../components/ScrollToTop";
@@ -72,7 +75,6 @@ import { UpNextBar } from "../components/UpNextBar";
 import { PWAInstallPrompt } from "../components/PWAInstallPrompt";
 import InteractionOverlay from "../components/InteractionOverlay";
 import { useSuggestionNotification } from "@/hooks/useSuggestionNotification";
-import { SongDetailModal } from "../components/SongDetail";
 import { SuggestionNotificationOverlay } from "../components/SuggestionNotificationOverlay";
 
 // 延遲載入大型元件以減少初始 bundle 大小
@@ -82,10 +84,8 @@ const SongSuggestion = lazy(() => import("../components/SongSuggestion"));
 // 載入中的骨架屏
 function SectionSkeleton() {
   return (
-    <div className="p-4 space-y-3">
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-32 w-full" />
-      <Skeleton className="h-8 w-3/4" />
+    <div className="p-4">
+      <AppLoading kind="section" compact />
     </div>
   );
 }
@@ -403,76 +403,7 @@ export default function Home() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-primary/5">
-        <div className="container mx-auto py-3 sm:py-6 md:py-8 px-2 sm:px-4">
-          <div className="flex flex-col items-center justify-center mb-6 sm:mb-8 md:mb-10 lg:mb-12 px-3 sm:px-4 md:px-6 lg:px-8 w-full">
-            <Skeleton className="h-16 sm:h-20 md:h-24 w-full max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-3xl rounded-lg" />
-            <Skeleton className="mt-4 h-10 w-32 rounded-md" />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            <Card className="lg:col-span-3 shadow-lg bg-gradient-to-br from-amber-50/50 via-white to-amber-50/50">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Skeleton className="w-6 h-6 rounded-full" />
-                  <Skeleton className="h-6 w-40" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-2/3" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <Card className="shadow-lg h-full">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="w-6 h-6 rounded-full" />
-                    <Skeleton className="h-6 w-24" />
-                  </div>
-                </CardHeader>
-                <CardContent className="p-3 sm:p-6 space-y-3">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center justify-between py-2">
-                      <div className="flex-1">
-                        <Skeleton className="h-5 w-3/4 mb-1" />
-                        <Skeleton className="h-4 w-1/2" />
-                      </div>
-                      <Skeleton className="h-9 w-20 rounded-md" />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-lg h-full">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="w-6 h-6 rounded-full" />
-                    <Skeleton className="h-6 w-32" />
-                  </div>
-                </CardHeader>
-                <CardContent className="p-3 sm:p-6 space-y-3">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-3 py-2">
-                      <Skeleton className="h-8 w-8 rounded-full" />
-                      <div className="flex-1">
-                        <Skeleton className="h-5 w-3/4 mb-1" />
-                        <Skeleton className="h-4 w-1/3" />
-                      </div>
-                      <Skeleton className="h-6 w-12 rounded-md" />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <AppLoading kind="data" />;
   }
 
   return (
@@ -775,7 +706,11 @@ export default function Home() {
                     </div>
                   <Card className="shadow-lg editorial-paper">
                     <CardContent className="p-3 pt-3">
-                      {user?.isAdmin && <SongImport />}
+                      {user?.isAdmin && (
+                        <Suspense fallback={<SectionSkeleton />}>
+                          <SongImport />
+                        </Suspense>
+                      )}
                       <div className="h-3" />
                       <SongList
                         songs={displayedSongs}
@@ -847,7 +782,11 @@ export default function Home() {
                   </div>
                   <Card className="shadow-lg editorial-paper">
                     <CardContent className="p-3 sm:p-6 pt-3 sm:pt-6">
-                      {user?.isAdmin && <SongImport />}
+                      {user?.isAdmin && (
+                        <Suspense fallback={<SectionSkeleton />}>
+                          <SongImport />
+                        </Suspense>
+                      )}
                       <div className="h-3 sm:h-4" />
                       <SongList
                         songs={displayedSongs}
@@ -957,7 +896,9 @@ export default function Home() {
 
       {/* Login form modal */}
       {showLoginForm && (
-        <LoginForm onClose={() => setShowLoginForm(false)} />
+        <Suspense fallback={<AppLoading kind="section" compact />}>
+          <LoginForm onClose={() => setShowLoginForm(false)} />
+        </Suspense>
       )}
 
       {/* 歌曲建議通知覆蓋層 - 管理員專用 */}
@@ -1060,12 +1001,16 @@ export default function Home() {
       )}
 
       {/* 歌曲詳情頁（Editorial 雜誌風全螢幕 modal） */}
-      <SongDetailModal
-        song={detailSong}
-        allSongs={songs}
-        onClose={() => setDetailSong(null)}
-        onSelectSimilar={(s) => setDetailSong(s)}
-      />
+      {detailSong && (
+        <Suspense fallback={<AppLoading kind="section" compact />}>
+          <SongDetailModal
+            song={detailSong}
+            allSongs={songs}
+            onClose={() => setDetailSong(null)}
+            onSelectSimilar={(s) => setDetailSong(s)}
+          />
+        </Suspense>
+      )}
 
       {/* 節目單分享卡 (管理員) — lazy load */}
       {shareCardOpen && (

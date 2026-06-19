@@ -2,15 +2,15 @@ import { lazy, Suspense } from "react";
 import { Switch, Route, Router } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
-import Home from "@/pages/Home";
-import { Toaster } from "@/components/ui/toaster";
 import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
+import { AppLoading } from "@/components/AppLoading";
 
 // GitHub Pages base path
 const base = import.meta.env.BASE_URL || "/";
 
 // 演出模式 lazy load — 不影響首頁 bundle
+const Home = lazy(() => import("@/pages/Home"));
 const StagePage = lazy(() => import("@/pages/StagePage"));
 
 function isStageMode(): boolean {
@@ -32,14 +32,15 @@ function App() {
     <Router base={base.endsWith('/') ? base.slice(0, -1) : base}>
       {/* <main> landmark — Lighthouse a11y landmark-one-main 要求 */}
       <main>
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route component={NotFound} />
-        </Switch>
+        <Suspense fallback={<AppLoading kind="app" />}>
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route component={NotFound} />
+          </Switch>
+        </Suspense>
       </main>
       <NetworkStatusBanner />
       <UpdatePrompt />
-      <Toaster />
     </Router>
   );
 }
