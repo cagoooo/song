@@ -296,11 +296,6 @@ export default function Home() {
       if (!hasConnectedOnce) {
         setIsConnected(true);
         hasConnectedOnce = true;
-        toast({
-          title: "連線成功",
-          description: "即時更新已啟用",
-          className: "bg-green-50 border-green-200 text-green-800",
-        });
       }
     });
 

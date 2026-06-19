@@ -11,14 +11,15 @@ export interface DarkHorseEvent {
     triggeredAt: number;
 }
 
+const MIN_VOTE_DELTA = 3;          // 單票點播不打斷畫面，至少連續增加 3 票才全螢幕慶祝
 const JUMP_THRESHOLD = 3;          // 至少跳升幾名才算黑馬
 const TARGET_TOP_N = 5;            // 必須進入前 N 名
 const REPEAT_COOLDOWN_MS = 30_000; // 同一首歌避免短時間重複觸發
 const DISPLAY_MS = 5000;           // overlay 顯示時間
-const SETTLE_MS = 1500;            // 初次載入等待，避免第一批資料誤觸發
+const SETTLE_MS = 1500;            // 初始載入穩定時間，避免把第一次排序當成黑馬
 
 /**
- * 偵測黑馬時刻：排名跳升達門檻、進入前段班，而且票數真的有增加。
+ * 偵測黑馬時刻：排名跳升達門檻、進入前段班，而且票數真的有明顯增加。
  * 管理員重置投票會讓排名重新洗牌，但票數會下降或歸零，不能被視為黑馬。
  */
 export function useDarkHorse(songs: Song[]) {
@@ -54,7 +55,7 @@ export function useDarkHorse(songs: Song[]) {
             const jumped = prevRankZeroBased - newRankZeroBased;
             const enteredTop = newRankZeroBased < TARGET_TOP_N;
 
-            if (voteDelta > 0 && voteCount > 0 && jumped >= JUMP_THRESHOLD && enteredTop) {
+            if (voteDelta >= MIN_VOTE_DELTA && voteCount >= MIN_VOTE_DELTA && jumped >= JUMP_THRESHOLD && enteredTop) {
                 const lastAt = lastTriggeredRef.current.get(song.id) ?? 0;
                 if (now - lastAt < REPEAT_COOLDOWN_MS) return;
 

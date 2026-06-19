@@ -151,4 +151,18 @@ describe('useDarkHorse', () => {
 
         expect(result.current).toBeNull();
     });
+
+    it('只有增加 1 票時，即使排名跳很多也不觸發全螢幕黑馬', () => {
+        const initial = Array.from({ length: 8 }, (_, i) => makeSong(`s${i + 1}`, 0));
+        const { result, rerender } = renderHook(({ songs }) => useDarkHorse(songs), {
+            initialProps: { songs: initial },
+        });
+        act(() => { vi.advanceTimersByTime(2000); });
+
+        rerender({
+            songs: [makeSong('s8', 1), ...initial.slice(0, 7)],
+        });
+
+        expect(result.current).toBeNull();
+    });
 });
