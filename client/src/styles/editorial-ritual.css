@@ -461,13 +461,20 @@ body.has-up-next-bar > #root > div {
 
 /* ---------- Mobile · 只留 NOW + 1 張 Up Next ---------- */
 @media (max-width: 780px) {
+  .un-bar {
+    height: 58px;
+    border-top-width: 1.5px;
+  }
   .un-inner {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 0.85fr);
-    gap: 14px;
-    padding: 0 14px;
+    gap: 8px;
+    padding: 0 10px;
   }
+  .un-now { grid-template-columns: 1fr; gap: 0; }
+  .un-vinyl,
+  .un-progress,
+  .un-div { display: none; }
   .un-div-label { display: none; }
-  .un-div { padding: 0; }
   .un-div::before, .un-div::after { display: none; }
   .un-queue { grid-template-columns: 1fr; }
   .un-queue .un-card:nth-child(n+2) { display: none; }
@@ -476,14 +483,31 @@ body.has-up-next-bar > #root > div {
   .un-now-title { font-size: 17px; }
   .un-now-title .artist { display: none; }
   .un-time { font-size: 9px; }
+  .un-card {
+    min-height: 40px;
+    padding: 6px 8px;
+  }
   .un-card.up-next::before { font-size: 8px; padding: 1px 6px; }
-  .un-card-no { font-size: 22px; }
+  .un-card-no { font-size: 18px; }
   .un-card-title { font-size: 13px; }
   .un-card-artist { font-size: 8px; }
-  body.has-up-next-bar [data-now-playing-notification] {
-    bottom: calc(96px + 12px) !important;
+  .un-empty {
+    gap: 8px;
+    white-space: nowrap;
+    overflow: hidden;
   }
-  body.has-up-next-bar > #root > div { padding-bottom: 108px; }
+  .un-empty-h { font-size: 17px; }
+  .un-empty-sub {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+  body.has-up-next-bar [data-now-playing-notification] {
+    bottom: calc(58px + 10px) !important;
+  }
+  body.has-up-next-bar > #root > div { padding-bottom: 66px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
