@@ -209,12 +209,19 @@ export default function Home() {
     });
   }, [hypeEvent, composingLevel]);
   const { user, logout } = useUser();
+  const canUseTransposeTool = !!user?.isAdmin;
   const {
     history: voteHistory,
     todayCount: voteTodayCount,
     todayUniqueCount: voteTodayUnique,
     clearHistory: clearVoteHistory,
   } = useVoteHistory();
+
+  useEffect(() => {
+    if (!canUseTransposeTool && transposeToolOpen) {
+      setTransposeToolOpen(false);
+    }
+  }, [canUseTransposeTool, transposeToolOpen]);
 
   // 從歷史按「再點」：切到歌單 Tab → 派發搜尋事件，讓 SongList 顯示該首歌
   const handleReVoteFromHistory = useCallback((entry: VoteHistoryEntry) => {
@@ -500,15 +507,17 @@ export default function Home() {
             <span className="editorial-topbar-issue">ISSUE №12 · {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()}</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              className="ttm-entry"
-              onClick={() => setTransposeToolOpen(true)}
-              aria-label="開啟快速轉調工具"
-              title="貼上任何吉他譜 → 自動偵測調性 → 即時轉調（給吉他手的工具）"
-            >
-              <span aria-hidden="true">🎸</span>
-              <span className="hidden sm:inline">轉調工具</span>
-            </button>
+            {canUseTransposeTool && (
+              <button
+                className="ttm-entry"
+                onClick={() => setTransposeToolOpen(true)}
+                aria-label="開啟快速轉調工具"
+                title="貼上任何吉他譜 → 自動偵測調性 → 即時轉調（管理員專用）"
+              >
+                <span aria-hidden="true">🎸</span>
+                <span className="hidden sm:inline">轉調工具</span>
+              </button>
+            )}
             <span className="hidden sm:flex items-center gap-1.5">
               <ShareButton />
             </span>
@@ -985,7 +994,7 @@ export default function Home() {
       )}
 
       {/* 🎸 快速轉調工具（貼譜 → 自動偵測調性 → 即時轉調） — lazy load */}
-      {transposeToolOpen && (
+      {canUseTransposeTool && transposeToolOpen && (
         <Suspense fallback={null}>
           <TransposeToolModal
             isOpen={transposeToolOpen}
