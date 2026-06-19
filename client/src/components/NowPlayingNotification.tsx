@@ -1,5 +1,6 @@
 // 正在彈奏中通知元件 - 訪客即時收到通知並可跳轉查看歌曲資訊
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Music2, FileText, X, ExternalLink, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -133,7 +134,7 @@ export function NowPlayingNotification() {
 
     const { song } = nowPlaying;
 
-    return (
+    const notification = (
         <AnimatePresence>
             <motion.div
                 initial={{ opacity: 0, y: 18, scale: 0.98 }}
@@ -308,4 +309,6 @@ export function NowPlayingNotification() {
             </motion.div>
         </AnimatePresence>
     );
+
+    return createPortal(notification, document.body);
 }

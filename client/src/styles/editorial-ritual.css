@@ -14,10 +14,10 @@
    對應原型 Downloads/up-next-bar.html，un- 前綴對齊原型 source
    ========================================================================== */
 .un-bar {
-  position: fixed;
+  position: fixed !important;
   left: 0;
   right: 0;
-  bottom: 8px;
+  bottom: max(8px, env(safe-area-inset-bottom));
   z-index: 45;
   height: 58px;
   background: var(--ed-paper);
@@ -410,6 +410,140 @@
 }
 .un-more:hover .lab { color: var(--ed-ink-1); }
 
+.un-queue-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: end center;
+  padding: 18px 18px calc(58px + 20px);
+  background: rgba(17, 17, 17, 0.18);
+}
+
+.un-queue-modal {
+  width: min(720px, calc(100vw - 36px));
+  max-height: min(62vh, 560px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 2px solid var(--ed-ink-1);
+  border-radius: 10px;
+  background: var(--ed-paper);
+  box-shadow: 0 18px 48px rgba(17, 17, 17, 0.22);
+}
+
+.un-queue-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.un-queue-modal-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: var(--ed-blue);
+}
+
+.un-queue-modal-head h2 {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-style: italic;
+  line-height: 1;
+  color: var(--ed-ink-1);
+}
+
+.un-queue-modal-close {
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--ed-ink-1);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ed-ink-1);
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.un-queue-modal-close:hover {
+  background: var(--ed-ink-1);
+  color: #fff;
+}
+
+.un-queue-modal-list {
+  overflow: auto;
+  padding: 8px;
+}
+
+.un-queue-modal-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ed-ink-1);
+  cursor: pointer;
+  text-align: left;
+}
+
+.un-queue-modal-row:hover,
+.un-queue-modal-row:focus-visible {
+  border-color: var(--ed-blue);
+  background: rgba(48, 82, 255, 0.07);
+  outline: none;
+}
+
+.un-queue-modal-rank {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-style: italic;
+  font-weight: 800;
+  color: var(--ed-blue);
+}
+
+.un-queue-modal-song {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.un-queue-modal-song strong {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-style: italic;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.un-queue-modal-song small,
+.un-queue-modal-votes {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--ed-ink-3);
+}
+
+.un-queue-modal-votes {
+  white-space: nowrap;
+}
+
+.un-queue-modal-empty {
+  padding: 28px 18px;
+  font-family: var(--font-sans);
+  color: var(--ed-ink-3);
+  text-align: center;
+}
+
 /* ---------- Empty state · 待開場 ---------- */
 .un-bar.empty .un-inner {
   grid-template-columns: 1fr;
@@ -453,11 +587,12 @@
 
 /* 抬升其他底部 fixed 元件，避讓 96px 高 sticky bar */
 body.has-up-next-bar [data-now-playing-notification] {
-  bottom: calc(58px + 8px + 12px) !important;
+  position: fixed !important;
+  bottom: calc(58px + max(8px, env(safe-area-inset-bottom)) + 12px) !important;
 }
 
 body.has-up-next-bar .home-login-fab {
-  bottom: calc(58px + 8px + 12px) !important;
+  bottom: calc(58px + max(8px, env(safe-area-inset-bottom)) + 12px) !important;
 }
 
 /* 內容底部留白，避免被 bar 遮住 */
@@ -468,7 +603,7 @@ body.has-up-next-bar > #root > div {
 /* ---------- Mobile · 只留 NOW + 1 張 Up Next ---------- */
 @media (max-width: 780px) {
   .un-bar {
-    bottom: 0;
+    bottom: env(safe-area-inset-bottom);
     height: 46px;
     border-top-width: 1.5px;
     border-bottom: 0;
@@ -542,9 +677,10 @@ body.has-up-next-bar > #root > div {
     letter-spacing: 0.12em;
   }
   body.has-up-next-bar [data-now-playing-notification] {
-    bottom: calc(46px + 8px) !important;
+    bottom: calc(46px + max(8px, env(safe-area-inset-bottom))) !important;
   }
   [data-now-playing-notification] {
+    position: fixed !important;
     left: 8px !important;
     right: 8px !important;
   }
@@ -592,6 +728,21 @@ body.has-up-next-bar > #root > div {
   [data-now-playing-notification] .now-playing-card-signal svg {
     width: 15px;
     height: 15px;
+  }
+  .un-queue-modal-backdrop {
+    place-items: end stretch;
+    padding: 12px 10px calc(46px + max(12px, env(safe-area-inset-bottom)));
+  }
+  .un-queue-modal {
+    width: 100%;
+    max-height: 68vh;
+  }
+  .un-queue-modal-row {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    padding: 10px 8px;
+  }
+  .un-queue-modal-song strong {
+    font-size: 18px;
   }
   body.has-up-next-bar .home-login-fab {
     right: 12px !important;
