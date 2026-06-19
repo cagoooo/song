@@ -689,10 +689,27 @@
 /* 結果列操作按鈕組（下載 / 分享 / 複製）— RWD 自動換行 */
 .ttm-out-actions { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
+.ttm-dialog-fullscreen-shell {
+  left: 0 !important;
+  top: 0 !important;
+  z-index: 90 !important;
+  width: 100dvw !important;
+  max-width: none !important;
+  height: 100dvh !important;
+  max-height: none !important;
+  transform: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  pointer-events: auto !important;
+}
+.ttm-dialog-fullscreen-shell > button.absolute {
+  display: none;
+}
 .ttm-fullscreen {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 80;
+  z-index: 1;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: clamp(10px, 2vw, 18px);

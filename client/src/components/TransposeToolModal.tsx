@@ -354,6 +354,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const pinchStartDistanceRef = useRef<number | null>(null);
     const pinchStartZoomRef = useRef(1);
     const fullscreenScrollRef = useRef<HTMLDivElement>(null);
+    const zoomPointerHandledRef = useRef(false);
     const singleTouchStartRef = useRef<{
         x: number;
         y: number;
@@ -374,6 +375,10 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     ) => {
         e.preventDefault();
         e.stopPropagation();
+        zoomPointerHandledRef.current = true;
+        window.setTimeout(() => {
+            zoomPointerHandledRef.current = false;
+        }, 350);
         if (action === 'reset') {
             resetFullscreenZoom();
             return;
@@ -384,7 +389,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
         e: React.MouseEvent<HTMLButtonElement>,
         action: 'in' | 'out' | 'reset',
     ) => {
-        if (e.detail !== 0) return;
+        if (zoomPointerHandledRef.current && e.detail !== 0) return;
         if (action === 'reset') {
             resetFullscreenZoom();
             return;
@@ -601,7 +606,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-            <DialogContent className="max-w-[1100px] w-[96vw] h-[90vh] p-0 overflow-hidden bg-white border-[rgba(17,17,17,0.18)] flex flex-col">
+            <DialogContent className={`max-w-[1100px] w-[96vw] h-[90vh] p-0 overflow-hidden bg-white border-[rgba(17,17,17,0.18)] flex flex-col${isFullScreenOpen && output ? ' ttm-dialog-fullscreen-shell' : ''}`}>
                 <DialogTitle className="sr-only">快速轉調工具</DialogTitle>
                 <DialogDescription className="sr-only">
                     貼上吉他譜文字，自動偵測調性並即時轉調，完成後可一鍵複製。
@@ -925,7 +930,6 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                         </div>
                     </div>
                 </div>
-            </DialogContent>
             {isFullScreenOpen && output && (
                 <div className="ttm-fullscreen" role="dialog" aria-modal="true" aria-label="全螢幕轉調結果">
                     <div className="ttm-fullscreen-bar">
@@ -1006,6 +1010,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                     </div>
                 </div>
             )}
+            </DialogContent>
         </Dialog>
     );
 }
