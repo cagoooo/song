@@ -518,7 +518,7 @@ export default function Home() {
                 <span className="hidden sm:inline">轉調工具</span>
               </button>
             )}
-            <span className="hidden sm:flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5">
               <ShareButton />
             </span>
           </div>

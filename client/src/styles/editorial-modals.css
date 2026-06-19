@@ -2245,6 +2245,14 @@
 }
 
 @media (max-width: 520px) {
+  .share-cassette-trigger {
+    min-height: 36px;
+    padding: 0 8px;
+    gap: 6px;
+  }
+  .share-cassette-trigger-badge {
+    padding: 3px 7px;
+  }
   .song-edit-cassette-header,
   .share-cassette-header {
     padding: 22px 20px 8px;
