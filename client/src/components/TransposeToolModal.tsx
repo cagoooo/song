@@ -5,7 +5,7 @@
 // 解決的痛點：網路上的譜常不是原 Key（原曲 G 卻寫成 C），
 // 現場彈唱前把譜貼進來，按幾下就拿到目標調的譜，不用手動逐顆改。
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
     Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -349,11 +349,13 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const [dlBusy, setDlBusy] = useState<string | null>(null);
     const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
     const [fullscreenZoom, setFullscreenZoom] = useState(1);
+    const [fullscreenContentSize, setFullscreenContentSize] = useState({ width: 0, height: 0 });
     const dlRef = useRef<HTMLDivElement>(null);
     const outputRef = useRef<HTMLPreElement>(null);
     const pinchStartDistanceRef = useRef<number | null>(null);
     const pinchStartZoomRef = useRef(1);
     const fullscreenScrollRef = useRef<HTMLDivElement>(null);
+    const fullscreenOutputRef = useRef<HTMLPreElement>(null);
     const zoomPointerHandledRef = useRef(false);
     const singleTouchStartRef = useRef<{
         x: number;
@@ -455,6 +457,52 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
             pinchStartZoomRef.current = fullscreenZoom;
         }
     }, [fullscreenZoom]);
+
+    const measureFullscreenOutput = useCallback(() => {
+        const el = fullscreenOutputRef.current;
+        if (!el) return;
+        const width = Math.ceil(Math.max(el.scrollWidth, el.offsetWidth));
+        const height = Math.ceil(Math.max(el.scrollHeight, el.offsetHeight));
+        setFullscreenContentSize((current) => (
+            current.width === width && current.height === height ? current : { width, height }
+        ));
+    }, []);
+
+    useLayoutEffect(() => {
+        if (!isFullScreenOpen || !output) {
+            setFullscreenContentSize({ width: 0, height: 0 });
+            return undefined;
+        }
+
+        measureFullscreenOutput();
+        const el = fullscreenOutputRef.current;
+        const timer = window.setTimeout(measureFullscreenOutput, 0);
+        window.addEventListener('resize', measureFullscreenOutput);
+
+        const ResizeObserverCtor = window.ResizeObserver;
+        const observer = el && ResizeObserverCtor ? new ResizeObserverCtor(measureFullscreenOutput) : null;
+        if (el && observer) observer.observe(el);
+
+        return () => {
+            window.clearTimeout(timer);
+            window.removeEventListener('resize', measureFullscreenOutput);
+            observer?.disconnect();
+        };
+    }, [isFullScreenOpen, measureFullscreenOutput, output]);
+
+    const fullscreenCanvasStyle = useMemo(() => {
+        const width = fullscreenContentSize.width
+            ? `${Math.ceil(fullscreenContentSize.width * fullscreenZoom)}px`
+            : undefined;
+        const height = fullscreenContentSize.height
+            ? `${Math.ceil(fullscreenContentSize.height * fullscreenZoom)}px`
+            : undefined;
+        return {
+            '--ttm-fullscreen-zoom': fullscreenZoom,
+            width,
+            height,
+        } as React.CSSProperties;
+    }, [fullscreenContentSize.height, fullscreenContentSize.width, fullscreenZoom]);
 
     useEffect(() => {
         if (!isFullScreenOpen) return;
@@ -1000,13 +1048,15 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                         onTouchMove={handleFullscreenTouchMove}
                         onTouchEnd={handleFullscreenTouchEnd}
                     >
-                        <pre
-                            className="ttm-output ttm-output-fullscreen"
-                            aria-label="全螢幕轉調結果，可上下左右滑移，桌機可用滑鼠滾輪縮放，手機平板可用兩指縮放"
-                            style={{ ['--ttm-fullscreen-zoom' as string]: fullscreenZoom }}
-                        >
-                            {renderOutputLines()}
-                        </pre>
+                        <div className="ttm-fullscreen-canvas" style={fullscreenCanvasStyle}>
+                            <pre
+                                ref={fullscreenOutputRef}
+                                className="ttm-output ttm-output-fullscreen"
+                                aria-label="全螢幕轉調結果，可上下左右滑移，桌機可用滑鼠滾輪縮放，手機平板可用兩指縮放"
+                            >
+                                {renderOutputLines()}
+                            </pre>
+                        </div>
                     </div>
                 </div>
             )}

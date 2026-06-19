@@ -857,19 +857,31 @@
   border-radius: 999px;
   border: 3px solid #fff;
 }
-.ttm-output-fullscreen {
-  --ttm-fullscreen-base-size: clamp(18px, 2.4vw, 30px);
-  width: max-content;
+.ttm-fullscreen-canvas {
+  position: relative;
+  width: max(100%, 1px);
   min-width: 100%;
   min-height: 100%;
+}
+.ttm-output-fullscreen {
+  --ttm-fullscreen-base-size: clamp(18px, 2.4vw, 30px);
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: max-content;
+  min-width: max-content;
+  min-height: auto;
   margin: 0;
   padding: clamp(16px, 2.8vw, 34px);
   border: 0;
   border-radius: 0;
-  font-size: calc(var(--ttm-fullscreen-base-size) * var(--ttm-fullscreen-zoom, 1));
+  font-size: var(--ttm-fullscreen-base-size);
   line-height: 1.75;
   box-shadow: none;
   overflow: visible;
+  transform: scale(var(--ttm-fullscreen-zoom, 1));
+  transform-origin: top left;
+  will-change: transform;
+  pointer-events: auto;
 }
 
 /* 下載格式選單（純文字 / 圖片 / PDF） */
