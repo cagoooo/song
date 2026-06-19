@@ -413,10 +413,10 @@ export default function Home() {
       {/* Admin: 登出 + 演出模式入口 */}
       {user?.isAdmin && (
         <motion.div
-          className="fixed top-2 right-2 sm:top-4 sm:right-4 z-50 flex items-center gap-1.5 sm:gap-2"
-          initial={{ opacity: 0, y: -20 }}
+          className="editorial-admin-toolbar"
+          initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.35 }}
         >
           <Button
             variant="outline"

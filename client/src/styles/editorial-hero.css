@@ -297,6 +297,20 @@
 /* ==========================================================================
    Topbar — 雜誌風頂部品牌列
    ========================================================================== */
+.editorial-admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  width: min(100%, calc(100vw - 16px));
+  max-width: 100%;
+  margin: 8px auto 12px;
+  padding: 0 4px;
+  position: relative;
+  z-index: 5;
+}
+
 .editorial-topbar {
   display: flex;
   align-items: center;
@@ -367,6 +381,22 @@
 
 @media (max-width: 640px) {
   .editorial-topbar-issue { display: none; }
+  .editorial-admin-toolbar {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 4px 0 10px;
+    padding: 2px 2px 6px;
+  }
+  .editorial-admin-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+  .editorial-admin-toolbar > * {
+    flex: 0 0 auto;
+  }
   .editorial-topbar { padding-bottom: 12px; margin-bottom: 14px; }
   .ttm-entry { padding: 0 10px; }
 }
@@ -533,4 +563,3 @@
 @media (prefers-reduced-motion: reduce) {
   .editorial-vinyl-disc { animation: none; }
 }
-
