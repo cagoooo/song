@@ -2619,3 +2619,26 @@
   background: var(--ed-line-strong);
   display: block;
 }
+
+@media (max-width: 780px) {
+  .editorial-footer {
+    margin-top: 14px;
+    padding: 8px 10px 6px;
+    min-height: 32px;
+    border-top-width: 1px;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+  }
+  .editorial-footer > div:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .editorial-footer .editorial-flag-rule {
+    display: none;
+  }
+}
