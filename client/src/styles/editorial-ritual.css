@@ -469,6 +469,9 @@ body.has-up-next-bar > #root > div {
     height: 46px;
     border-top-width: 1.5px;
   }
+  .un-bar.empty {
+    display: none;
+  }
   .un-inner {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 0.85fr);
     gap: 8px;
@@ -522,7 +525,27 @@ body.has-up-next-bar > #root > div {
     right: 12px !important;
     bottom: calc(46px + max(10px, env(safe-area-inset-bottom))) !important;
   }
+  body.has-up-next-bar .home-login-fab > button {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    padding: 0;
+    border-radius: 999px;
+    font-size: 0;
+    box-shadow: 0 10px 28px -18px rgba(17, 17, 17, 0.6);
+  }
+  body.has-up-next-bar .home-login-fab svg {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+  }
   body.has-up-next-bar > #root > div { padding-bottom: 54px; }
+  body.has-up-next-bar.has-empty-up-next-bar .home-login-fab {
+    bottom: max(12px, env(safe-area-inset-bottom)) !important;
+  }
+  body.has-up-next-bar.has-empty-up-next-bar > #root > div {
+    padding-bottom: 12px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

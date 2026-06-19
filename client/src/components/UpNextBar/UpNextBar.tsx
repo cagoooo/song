@@ -17,6 +17,7 @@ interface UpNextBarProps {
 const ASSUMED_SONG_SECONDS = 210;
 
 const BODY_CLASS = 'has-up-next-bar';
+const BODY_EMPTY_CLASS = 'has-empty-up-next-bar';
 
 function fmt(s: number) {
     const m = Math.max(0, Math.floor(s / 60)).toString().padStart(2, '0');
@@ -76,6 +77,11 @@ export function UpNextBar({ songs, onOpenDetail, onShowFullQueue }: UpNextBarPro
         document.body.classList.add(BODY_CLASS);
         return () => { document.body.classList.remove(BODY_CLASS); };
     }, []);
+
+    useEffect(() => {
+        document.body.classList.toggle(BODY_EMPTY_CLASS, !nowPlaying?.song);
+        return () => { document.body.classList.remove(BODY_EMPTY_CLASS); };
+    }, [nowPlaying?.song]);
 
     // 「你點的還排第 N」— 找出使用者投過、目前還在隊列裡排最前的歌
     const userTopPick = useMemo(() => {
