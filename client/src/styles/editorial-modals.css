@@ -583,8 +583,104 @@
 .ttm-copy:hover:not(:disabled) { background: var(--ed-accent); border-color: var(--ed-accent); color: #fff; }
 .ttm-copy:disabled { opacity: 0.35; cursor: not-allowed; }
 .ttm-copy.done { background: #10b981; border-color: #10b981; color: #fff; }
+.ttm-fullscreen-trigger {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+  font-weight: 700;
+}
+.ttm-fullscreen-trigger:not(.ttm-fullscreen-trigger-new) { display: none; }
+.ttm-fullscreen-trigger-new {
+  background: var(--ed-accent);
+  border-color: var(--ed-accent);
+  color: #fff;
+  min-height: 30px;
+}
+.ttm-fullscreen-trigger-new:hover:not(:disabled) {
+  background: #1d3bd8;
+  border-color: #1d3bd8;
+  color: #fff;
+}
 /* 結果列操作按鈕組（下載 / 分享 / 複製）— RWD 自動換行 */
 .ttm-out-actions { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+.ttm-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: clamp(10px, 2vw, 18px);
+  padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  background: #fffaf0;
+  color: var(--ed-ink-1);
+}
+.ttm-fullscreen-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: min(1440px, 100%);
+  margin: 0 auto;
+}
+.ttm-fullscreen-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 34px);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.ttm-fullscreen-title em {
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 1.7vw, 14px);
+  font-style: normal;
+  font-weight: 600;
+  color: var(--ed-accent);
+}
+.ttm-fullscreen-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ttm-fullscreen-btn {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1.5px solid var(--ed-ink-1);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ed-ink-1);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ttm-fullscreen-btn:hover {
+  background: var(--ed-ink-1);
+  color: #fff;
+}
+.ttm-fullscreen-btn.primary {
+  border-color: var(--ed-accent);
+  background: var(--ed-accent);
+  color: #fff;
+}
+.ttm-output-fullscreen {
+  width: min(1440px, 100%);
+  min-height: 0;
+  height: 100%;
+  margin: 0 auto;
+  padding: clamp(16px, 2.8vw, 34px);
+  border-width: 2px;
+  border-radius: 10px;
+  font-size: clamp(18px, 2.4vw, 30px);
+  line-height: 1.75;
+  box-shadow: 0 18px 50px rgba(17, 17, 17, 0.12);
+  -webkit-overflow-scrolling: touch;
+}
 
 /* 下載格式選單（純文字 / 圖片 / PDF） */
 .ttm-dl { position: relative; display: inline-flex; }
@@ -800,7 +896,35 @@
   .ttm-pane-title { font-size: 16px; }
   .ttm-pane-actions { justify-content: flex-start; }
   .ttm-out-actions { justify-content: flex-start; }
-  .ttm-pane-btn { flex: 1 1 auto; justify-content: center; min-height: 36px; }
+  .ttm-pane-btn,
+  .ttm-out-actions > .ttm-copy,
+  .ttm-out-actions .ttm-copy { flex: 1 1 auto; justify-content: center; min-height: 36px; }
+  .ttm-fullscreen {
+    gap: 10px;
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  }
+  .ttm-fullscreen-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .ttm-fullscreen-title {
+    font-size: 21px;
+  }
+  .ttm-fullscreen-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .ttm-fullscreen-btn {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+  .ttm-output-fullscreen {
+    padding: 14px;
+    border-radius: 8px;
+    font-size: clamp(17px, 5.2vw, 23px);
+    line-height: 1.85;
+  }
 }
 
 /* KEY meta cell 的「原調」小標 */
@@ -2337,4 +2461,3 @@
   background: var(--ed-line-strong);
   display: block;
 }
-

@@ -5,6 +5,7 @@ import { AlertCircle } from "lucide-react";
 import Home from "@/pages/Home";
 import { Toaster } from "@/components/ui/toaster";
 import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
+import { UpdatePrompt } from "@/components/UpdatePrompt";
 
 // GitHub Pages base path
 const base = import.meta.env.BASE_URL || "/";
@@ -37,6 +38,7 @@ function App() {
         </Switch>
       </main>
       <NetworkStatusBanner />
+      <UpdatePrompt />
       <Toaster />
     </Router>
   );

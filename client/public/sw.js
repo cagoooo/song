@@ -1,7 +1,7 @@
 // Service Worker - 吉他點歌系統 PWA
 // 版本號於 build 時由 scripts/stamp-sw-version.mjs 自動取代
 // (從 package.json 讀 version + git short hash + 時間戳)
-const CACHE_VERSION = '4.2.0-ed7e051-cy30';
+const CACHE_VERSION = '4.2.0-aa7afe6-kjom';
 const CACHE_NAME = `guitar-song-${CACHE_VERSION}`;
 
 // 需要預緩存的核心資源
@@ -81,6 +81,13 @@ self.addEventListener('activate', (event) => {
             .then(() => {
                 console.log('[SW] 啟動完成');
                 return self.clients.claim();
+            })
+            .then(() => {
+                return self.clients.matchAll({ includeUncontrolled: true }).then((clients) => {
+                    clients.forEach((client) => {
+                        client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_VERSION });
+                    });
+                });
             })
     );
 });
