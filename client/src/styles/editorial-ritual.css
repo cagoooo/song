@@ -454,6 +454,10 @@ body.has-up-next-bar [data-now-playing-notification] {
   bottom: calc(96px + 16px) !important;
 }
 
+body.has-up-next-bar .home-login-fab {
+  bottom: calc(96px + 16px) !important;
+}
+
 /* 內容底部留白，避免被 bar 遮住 */
 body.has-up-next-bar > #root > div {
   padding-bottom: 116px;
@@ -462,13 +466,17 @@ body.has-up-next-bar > #root > div {
 /* ---------- Mobile · 只留 NOW + 1 張 Up Next ---------- */
 @media (max-width: 780px) {
   .un-bar {
-    height: 58px;
+    height: 46px;
     border-top-width: 1.5px;
   }
   .un-inner {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 0.85fr);
     gap: 8px;
-    padding: 0 10px;
+    padding: 0 12px;
+  }
+  .un-bar.empty .un-inner {
+    align-items: center;
+    justify-content: flex-start;
   }
   .un-now { grid-template-columns: 1fr; gap: 0; }
   .un-vinyl,
@@ -493,11 +501,14 @@ body.has-up-next-bar > #root > div {
   .un-card-artist { font-size: 8px; }
   .un-empty {
     gap: 8px;
+    justify-content: flex-start;
     white-space: nowrap;
     overflow: hidden;
   }
-  .un-empty-h { font-size: 17px; }
+  .un-empty-dot { width: 6px; height: 6px; }
+  .un-empty-h { font-size: 15px; }
   .un-empty-sub {
+    display: none;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -505,9 +516,13 @@ body.has-up-next-bar > #root > div {
     letter-spacing: 0.12em;
   }
   body.has-up-next-bar [data-now-playing-notification] {
-    bottom: calc(58px + 10px) !important;
+    bottom: calc(46px + 10px) !important;
   }
-  body.has-up-next-bar > #root > div { padding-bottom: 66px; }
+  body.has-up-next-bar .home-login-fab {
+    right: 12px !important;
+    bottom: calc(46px + max(10px, env(safe-area-inset-bottom))) !important;
+  }
+  body.has-up-next-bar > #root > div { padding-bottom: 54px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

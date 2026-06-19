@@ -85,13 +85,18 @@
 @media (max-width: 640px) {
   .suggestion-dialog-content {
     width: calc(100vw - 20px) !important;
-    top: max(10px, env(safe-area-inset-top)) !important;
-    max-height: calc(100dvh - max(24px, env(safe-area-inset-top)) - max(24px, env(safe-area-inset-bottom)));
+    top: max(8px, env(safe-area-inset-top)) !important;
+    max-height: calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
     transform: translateX(-50%) !important;
     border-radius: 14px;
     animation-duration: 90ms !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   .suggestion-form-scroll {
+    overflow: visible;
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 }
