@@ -99,6 +99,11 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     // 卸載時清掉進度計時器
     useEffect(() => () => { if (aiTimerRef.current) clearInterval(aiTimerRef.current); }, []);
 
+    useEffect(() => {
+        document.body.classList.toggle('transpose-dialog-open', isOpen);
+        return () => document.body.classList.remove('transpose-dialog-open');
+    }, [isOpen]);
+
     // Image upload / paste / drop now uses AI Vision directly. Legacy OCR is disabled.
     const handleImage = useCallback(async (file: File | Blob) => {
         if (aiBusy) return;
@@ -662,6 +667,16 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                 <DialogDescription className="sr-only">
                     貼上吉他譜文字，自動偵測調性並即時轉調，完成後可一鍵複製。
                 </DialogDescription>
+
+                <button
+                    type="button"
+                    className="ttm-modal-close"
+                    onClick={onClose}
+                    aria-label="關閉快速轉調工具"
+                >
+                    ×
+                    <span>關閉</span>
+                </button>
 
                 <div className="ttm-page flex-1 overflow-y-auto" onPaste={handlePaste}>
                     {/* 標題列 */}

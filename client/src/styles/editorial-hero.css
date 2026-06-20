@@ -340,7 +340,8 @@
   background: #fff;
 }
 
-body.share-dialog-open .editorial-floating-actions {
+body.share-dialog-open .editorial-floating-actions,
+body.transpose-dialog-open .editorial-floating-actions {
   opacity: 0;
   pointer-events: none;
   transform: translateY(-8px);

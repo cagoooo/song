@@ -457,6 +457,33 @@
 
 /* ---------- 快速轉調工具（TransposeToolModal） ---------- */
 .ttm-page { padding: 28px 32px 32px; }
+.ttm-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1.5px solid rgba(17, 17, 17, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ed-ink-1);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  box-shadow: 0 12px 28px rgba(17, 17, 17, 0.16);
+}
+.ttm-modal-close:hover,
+.ttm-modal-close:focus-visible {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(43, 77, 255, 0.14);
+}
 .ttm-head { border-bottom: 1px solid var(--ed-line); padding-bottom: 18px; margin-bottom: 18px; }
 .ttm-eyebrow {
   font-family: var(--font-mono);
@@ -1117,6 +1144,12 @@
 
 @media (max-width: 768px) {
   .ttm-page { padding: 16px 14px 22px; }
+  .ttm-modal-close {
+    top: 8px;
+    right: 8px;
+    min-height: 36px;
+    padding: 0 10px;
+  }
   .ttm-head { padding-bottom: 12px; margin-bottom: 12px; }
   .ttm-title { font-size: 22px; }
   .ttm-sub { font-size: 12px; }
