@@ -295,7 +295,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                 ${song.isNowPlaying
                                     ? 'bg-[#2b4dff]/[0.08] border-2 border-[#2b4dff] shadow-md ring-2 ring-[#2b4dff]/20'
                                     : song.isPlayed
-                                        ? 'bg-slate-50 border border-slate-200'
+                                        ? 'bg-slate-100/80 border border-slate-300 border-l-4 border-l-slate-500'
                                         : ''}
                                 ${!song.isNowPlaying && !song.isPlayed && (index === 0
                                     ? 'bg-[#faf7f0] border-l-4 border-l-[#b8902a] border border-[rgba(17,17,17,0.14)] shadow-sm'
@@ -342,7 +342,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     transition={{ duration: 0.3 }}
                                 >
                                     <h3
-                                        className="text-lg sm:text-base leading-tight whitespace-normal break-words text-slate-900"
+                                        className={`text-lg sm:text-base leading-tight whitespace-normal break-words ${song.isPlayed && !song.isNowPlaying ? 'text-slate-400 line-through decoration-slate-400/60' : 'text-slate-900'}`}
                                         style={{
                                             fontFamily: 'var(--font-display)',
                                             fontWeight: 800,
@@ -377,7 +377,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     {/* 已彈奏標籤 */}
                                     {song.isPlayed && !song.isNowPlaying && (
                                         <span
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0 border border-slate-300"
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-700 text-white shrink-0 shadow-sm"
                                             style={{
                                                 fontFamily: 'var(--font-mono)',
                                                 fontSize: 10,
@@ -457,12 +457,12 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                                     size="icon"
                                                     onClick={() => handleTogglePlayed(song)}
                                                     className={`w-10 h-10 sm:w-9 sm:h-9 rounded-md border transition-colors ${song.isPlayed
-                                                        ? 'bg-slate-100 hover:bg-slate-200 border-slate-300'
+                                                        ? 'bg-slate-700 hover:bg-slate-800 border-slate-700'
                                                         : 'hover:bg-slate-100 border-transparent hover:border-slate-200'
                                                         }`}
                                                     aria-label={song.isPlayed ? '取消標記已彈奏' : '標記為已彈奏'}
                                                 >
-                                                    <Check className={`w-5 h-5 sm:w-4 sm:h-4 ${song.isPlayed ? 'text-slate-700' : 'text-slate-400'}`} />
+                                                    <Check className={`w-5 h-5 sm:w-4 sm:h-4 ${song.isPlayed ? 'text-white' : 'text-slate-400'}`} />
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent side="top" className="bg-slate-800 text-white border-0 text-xs z-[100]">
