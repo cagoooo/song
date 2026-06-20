@@ -1,8 +1,8 @@
 // PrintProgram 單元測試 — A4 列印節目單
 // 📐 設計文件：docs/design/D3-pdf-print.md
 
-import { render, screen, cleanup } from '@testing-library/react';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PrintProgram } from './PrintProgram';
 import { makeSong } from '@/test/fixtures';
 import type { VoterStat } from '@/hooks/useVoterLeaderboard';
@@ -227,6 +227,38 @@ describe('PrintProgram', () => {
                 />,
             );
             expect(screen.getByText(/今晚的觀眾很投入/)).toBeInTheDocument();
+        });
+    });
+
+    describe('關閉預覽按鈕', () => {
+        it('沒傳 onClose → 不渲染關閉按鈕', () => {
+            render(
+                <PrintProgram
+                    songs={[]}
+                    totalVotes={0}
+                    totalVoters={0}
+                    topVoters={[]}
+                />,
+            );
+            expect(screen.queryByTestId('print-close')).not.toBeInTheDocument();
+        });
+
+        it('傳 onClose → 渲染關閉按鈕，點擊呼叫 onClose', () => {
+            const onClose = vi.fn();
+            render(
+                <PrintProgram
+                    songs={[]}
+                    totalVotes={0}
+                    totalVoters={0}
+                    topVoters={[]}
+                    onClose={onClose}
+                />,
+            );
+            const closeBtn = screen.getByTestId('print-close');
+            expect(closeBtn).toBeInTheDocument();
+            expect(closeBtn).toHaveAttribute('aria-label', '關閉列印預覽');
+            fireEvent.click(closeBtn);
+            expect(onClose).toHaveBeenCalledTimes(1);
         });
     });
 

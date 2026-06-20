@@ -315,13 +315,22 @@ export default function Home() {
       }
     };
 
+    // 鍵盤 Esc 關閉螢幕列印預覽
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && document.body.classList.contains('print-mode')) {
+        cleanupPrintMode();
+      }
+    };
+
     window.addEventListener('afterprint', onAfterPrint);
     mql?.addEventListener?.('change', onMqlChange);
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('keydown', onKeyDown);
     return () => {
       window.removeEventListener('afterprint', onAfterPrint);
       mql?.removeEventListener?.('change', onMqlChange);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('keydown', onKeyDown);
       cleanupPrintMode();
     };
   }, [cleanupPrintMode]);
@@ -1152,6 +1161,7 @@ export default function Home() {
             totalVotes={voterLeaderboard.totalVotes}
             totalVoters={voterLeaderboard.totalVoters}
             topVoters={voterLeaderboard.topVoters}
+            onClose={cleanupPrintMode}
           />
         </Suspense>
       )}

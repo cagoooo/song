@@ -33,6 +33,51 @@ body.print-mode > #root > *:not(.print-program) {
   display: none !important;
 }
 
+/* ----- 螢幕列印預覽「關閉」按鈕 -----
+   只在 body.print-mode 螢幕預覽時顯示；@media print 與一般狀態皆隱藏。
+   讓使用者不必真的列印 / 不必等 fallback timer 也能退出全螢幕預覽。 */
+.pp-close {
+  display: none;
+}
+body.print-mode .pp-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 100000;
+  padding: 10px 16px 10px 13px;
+  border: none;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+body.print-mode .pp-close:hover {
+  background: #000;
+  transform: translateY(-1px);
+}
+body.print-mode .pp-close:active {
+  transform: translateY(0) scale(0.97);
+}
+body.print-mode .pp-close:focus-visible {
+  outline: 2px solid #2b4dff;
+  outline-offset: 2px;
+}
+.pp-close svg {
+  width: 17px;
+  height: 17px;
+}
+
 /* ============================================================================
    PrintProgram 內部樣式
    ============================================================================ */
@@ -308,8 +353,8 @@ body.print-mode > #root > *:not(.print-program) {
     background: #fff !important;
   }
 
-  /* 隱藏 button / nav / 任何 .no-print */
-  button, nav, .no-print {
+  /* 隱藏 button / nav / 任何 .no-print（含螢幕預覽的關閉按鈕） */
+  button, nav, .no-print, .pp-close {
     display: none !important;
   }
 
