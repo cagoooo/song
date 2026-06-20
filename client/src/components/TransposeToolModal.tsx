@@ -33,6 +33,55 @@ function replaceNonSpaceToken(line: string, idx: number, newTok: string): string
     return parts.join('');
 }
 
+function cleanMusicSearchText(text: string): string {
+    return text
+        .replace(/https?:\/\/\S+/gi, ' ')
+        .replace(/\b(?:www\.)?\w+\.(?:com|tw|net|org)\b/gi, ' ')
+        .replace(/\[[^\]]+\]/g, ' ')
+        .replace(/[｜|]+/g, ' ')
+        .replace(/\b[A-G](?:#|b)?(?:maj|min|m|dim|aug|sus|add)?\d*(?:\/[A-G](?:#|b)?)?\b/gi, ' ')
+        .replace(/[^\w\s\u3000\u3400-\u9fff，。！？、-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function extractMusicSearchQueryFromAiText(text: string): string {
+    const lines = text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+    const readField = (patterns: RegExp[]) => {
+        for (const line of lines) {
+            for (const pattern of patterns) {
+                const match = line.match(pattern);
+                const value = cleanMusicSearchText(match?.[1] ?? '');
+                if (value && value.length <= 60) return value;
+            }
+        }
+        return '';
+    };
+    const title = readField([
+        /(?:歌名|歌曲名稱|曲名|title)\s*[：:]\s*(.+)$/i,
+        /(?:^|\s)(?:歌名|曲名)\s+(.+)$/i,
+    ]);
+    const artist = readField([
+        /(?:歌手|演唱|原唱|artist|singer)\s*[：:]\s*(.+)$/i,
+        /(?:^|\s)(?:歌手|演唱|原唱)\s+(.+)$/i,
+    ]);
+    if (title || artist) return [title, artist].filter(Boolean).join(' ');
+
+    const fallback = lines
+        .map(cleanMusicSearchText)
+        .find((line) => (
+            line.length >= 4
+            && line.length <= 42
+            && !/^(intro|verse|chorus|bridge|outro|前奏|主歌|副歌|間奏|尾奏)$/i.test(line)
+            && !/^[A-G](?:#|b)?(?:\s+[A-G](?:#|b)?)*$/i.test(line)
+        ));
+
+    return fallback ? fallback.slice(0, 42) : '';
+}
+
 interface TransposeToolModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -66,6 +115,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const [ocrDone, setOcrDone] = useState(false);
     /** 上傳的原圖（object URL）— OCR 後左欄直接顯示原圖（取代辨識文字） */
     const [srcImageUrl, setSrcImageUrl] = useState<string | null>(null);
+    const [aiRecognizedText, setAiRecognizedText] = useState('');
     /** 圖片模式下切回文字編輯（修正辨識錯字用） */
     const [showOcrText, setShowOcrText] = useState(false);
     /** 顯示模式：false = 和弦、true = 數字級數（Nashville） */
@@ -111,6 +161,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
         setOcrError(null);
         srcFileRef.current = file;
         setSrcImageUrl(URL.createObjectURL(file));
+        setAiRecognizedText('');
         setInput('');
         setSteps(0);
         setOcrDone(false);
@@ -130,6 +181,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
 
             if (sheet.trim()) {
                 setAiProgress(100);
+                setAiRecognizedText(sheet);
                 setInput(sheet);
                 setOcrDone(true);
                 setShowOcrText(false);
@@ -636,8 +688,14 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
         return candidate ? candidate.slice(0, 36) : '';
     }, [input, output, saveArtist, saveTitle]);
 
+    const musicSearchQueryFromAi = useMemo(() => {
+        const explicit = [saveTitle.trim(), saveArtist.trim()].filter(Boolean).join(' ');
+        if (explicit) return explicit;
+        return extractMusicSearchQueryFromAiText(aiRecognizedText || input);
+    }, [aiRecognizedText, input, saveArtist, saveTitle]);
+
     const renderMusicSearchButtons = (variant: 'result' | 'fullscreen') => {
-        const query = musicSearchQuery.trim();
+        const query = musicSearchQueryFromAi.trim() || musicSearchQuery.trim();
         if (!query) return null;
         const encoded = encodeURIComponent(query);
         const label = variant === 'fullscreen' ? '搜尋音樂' : '快速找音樂';
@@ -841,7 +899,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                         </>
                                     )}
                                     {!srcImageUrl && !input && !ocrMsg && (
-                                        <button className="ttm-pane-btn ghost" onClick={() => setInput(EXAMPLE_SHEET)}>
+                                        <button className="ttm-pane-btn ghost" onClick={() => { setAiRecognizedText(''); setInput(EXAMPLE_SHEET); }}>
                                             ＋ 載入範例
                                         </button>
                                     )}
@@ -885,7 +943,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                 <textarea
                                     className="ttm-input"
                                     value={input}
-                                    onChange={(e) => { setInput(e.target.value); setOcrDone(false); }}
+                                    onChange={(e) => { setAiRecognizedText(''); setInput(e.target.value); setOcrDone(false); }}
                                     onDrop={handleDrop}
                                     onDragOver={(e) => e.preventDefault()}
                                     placeholder={'三種餵譜方式：\n\n1. 文字 — 把譜整段貼進來\n2. 截圖 — 直接 Ctrl+V 貼上，會自動啟動 AI 辨識\n3. 圖檔 — 點「📷 上傳譜圖」或拖放到這裡，會自動啟動 AI 辨識\n\nAI 辨識結果會落在這裡，可直接修正錯字'}
