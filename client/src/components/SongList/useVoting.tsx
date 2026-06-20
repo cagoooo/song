@@ -36,7 +36,7 @@ export function useVoting(): UseVotingReturn {
         const canvas = document.createElement('canvas');
         canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
         document.body.appendChild(canvas);
-        confettiRef.current = confetti.create(canvas, { resize: true, useWorker: false });
+        confettiRef.current = confetti.create(canvas, { resize: true, useWorker: true });
         return () => {
             document.body.removeChild(canvas);
             confettiRef.current = null;
