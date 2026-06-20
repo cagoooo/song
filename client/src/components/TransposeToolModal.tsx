@@ -618,6 +618,52 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const saveSectionRef = useRef<HTMLDivElement>(null);
     const saveTitleInputRef = useRef<HTMLInputElement>(null);
     const songKeyForSave = targetKey ?? detected?.key ?? null;
+    const musicSearchQuery = useMemo(() => {
+        const explicit = [saveTitle.trim(), saveArtist.trim()].filter(Boolean).join(' ');
+        if (explicit) return explicit;
+
+        const source = output || input;
+        const candidate = source
+            .split('\n')
+            .map((line) => line
+                .replace(/\[[^\]]+\]/g, ' ')
+                .replace(/\|?[A-G](?:#|b)?(?:maj|min|m|dim|aug|sus|add)?\d*(?:\/[A-G](?:#|b)?)?\|?/gi, ' ')
+                .replace(/[^\w\s\u3000\u3400-\u9fff，。！？、]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim())
+            .find((line) => line.length >= 4);
+
+        return candidate ? candidate.slice(0, 36) : '';
+    }, [input, output, saveArtist, saveTitle]);
+
+    const renderMusicSearchButtons = (variant: 'result' | 'fullscreen') => {
+        const query = musicSearchQuery.trim();
+        if (!query) return null;
+        const encoded = encodeURIComponent(query);
+        const label = variant === 'fullscreen' ? '搜尋音樂' : '快速找音樂';
+
+        return (
+            <div className={`ttm-music-search ttm-music-search-${variant}`} aria-label={`${label}：${query}`}>
+                <span>{label}</span>
+                <a
+                    href={`https://open.spotify.com/search/${encoded}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ttm-music-link spotify"
+                >
+                    Spotify
+                </a>
+                <a
+                    href={`https://music.youtube.com/search?q=${encoded}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ttm-music-link youtube"
+                >
+                    YouTube Music
+                </a>
+            </div>
+        );
+    };
 
     const openSaveForm = useCallback(() => {
         setSaveOpen(true);
@@ -927,6 +973,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                     ? renderOutputLines()
                                     : <div className="ttm-empty">轉調後的譜會即時出現在這裡</div>}
                             </pre>
+                            {output && renderMusicSearchButtons('result')}
 
                             {/* 存進歌庫（admin）— 把轉好的譜沉澱成歌庫資產 */}
                             {isAdmin && output && (
@@ -1020,6 +1067,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                             </div>
                         )}
                         <div className="ttm-fullscreen-actions">
+                            {renderMusicSearchButtons('fullscreen')}
                             <div className="ttm-fullscreen-zoom" aria-label="全螢幕看譜縮放控制">
                                 <button
                                     type="button"

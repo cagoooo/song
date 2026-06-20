@@ -740,6 +740,59 @@
 /* 結果列操作按鈕組（下載 / 分享 / 複製）— RWD 自動換行 */
 .ttm-out-actions { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
+.ttm-music-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ed-ink-3);
+}
+.ttm-music-search-result {
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.ttm-music-search-fullscreen {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+}
+.ttm-music-search span {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ttm-music-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1.5px solid var(--ed-ink-1);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ed-ink-1);
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+.ttm-music-link.spotify {
+  border-color: #1db954;
+  color: #0f7a38;
+}
+.ttm-music-link.youtube {
+  border-color: #ff0033;
+  color: #c40026;
+}
+.ttm-music-link:hover {
+  background: var(--ed-ink-1);
+  border-color: var(--ed-ink-1);
+  color: #fff;
+}
+
 .ttm-dialog-fullscreen-shell {
   left: 0 !important;
   top: 0 !important;
@@ -1174,6 +1227,16 @@
   .ttm-pane-btn,
   .ttm-out-actions > .ttm-copy,
   .ttm-out-actions .ttm-copy { flex: 1 1 auto; justify-content: center; min-height: 36px; }
+  .ttm-music-search-result {
+    justify-content: stretch;
+  }
+  .ttm-music-search-result span {
+    flex: 1 0 100%;
+  }
+  .ttm-music-search-result .ttm-music-link {
+    flex: 1 1 calc(50% - 6px);
+    min-height: 38px;
+  }
   .ttm-fullscreen {
     gap: 10px;
     padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
@@ -1196,6 +1259,15 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     width: 100%;
+  }
+  .ttm-music-search-fullscreen {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .ttm-music-search-fullscreen span {
+    grid-column: 1 / -1;
   }
   .ttm-fullscreen-zoom {
     grid-column: 1 / -1;
