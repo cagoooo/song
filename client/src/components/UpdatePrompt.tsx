@@ -1,10 +1,16 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { RefreshCw, Sparkles, X } from 'lucide-react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useServiceWorkerUpdate } from '@/hooks/useServiceWorkerUpdate';
 
 export function UpdatePrompt() {
     const { updateAvailable, currentVersion, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
+
+    useEffect(() => {
+        document.body.classList.toggle('sw-update-prompt-visible', updateAvailable);
+        return () => document.body.classList.remove('sw-update-prompt-visible');
+    }, [updateAvailable]);
 
     return (
         <>
@@ -15,7 +21,7 @@ export function UpdatePrompt() {
                         animate={{ y: 0, opacity: 1, scale: 1 }}
                         exit={{ y: 100, opacity: 0, scale: 0.96 }}
                         transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-                        className="fixed inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[90] mx-auto max-w-md sm:left-auto sm:right-4 sm:mx-0"
+                        className="pointer-events-auto fixed inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[10000] mx-auto max-w-md sm:left-auto sm:right-4 sm:mx-0"
                         role="alert"
                         aria-live="polite"
                     >

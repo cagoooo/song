@@ -347,6 +347,10 @@ body.transpose-dialog-open .editorial-floating-actions {
   transform: translateY(-8px);
 }
 
+body.sw-update-prompt-visible {
+  pointer-events: auto !important;
+}
+
 .has-admin-floating-actions .editorial-admin-toolbar {
   padding-right: min(320px, 38vw);
 }
