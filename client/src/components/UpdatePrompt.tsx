@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { RefreshCw, Sparkles, X } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { useServiceWorkerUpdate } from '@/hooks/useServiceWorkerUpdate';
 
 export function UpdatePrompt() {
@@ -25,38 +24,52 @@ export function UpdatePrompt() {
                         role="alert"
                         aria-live="polite"
                     >
-                        <div className="rounded-xl border-2 border-amber-300 bg-white shadow-2xl shadow-amber-500/20 p-4">
-                            <div className="flex items-start gap-3">
-                                <div className="shrink-0">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg">
-                                        <Sparkles className="h-5 w-5 text-white" />
-                                    </div>
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <div className="text-sm font-bold text-stone-950">
-                                        有新版本可以更新
-                                    </div>
-                                    <div className="mt-1 text-xs leading-relaxed text-stone-600">
-                                        已偵測到最新功能與修正，點一下即可重新載入並套用新版。
-                                    </div>
-                                </div>
+                        {/* 卡帶風更新提示 — 黑色外殼 + 雙轉軸 + 磁帶 + accent 藍動作鍵 */}
+                        <div className="swu-cassette">
+                            <span className="swu-screw tl" aria-hidden="true" />
+                            <span className="swu-screw tr" aria-hidden="true" />
+                            <span className="swu-screw bl" aria-hidden="true" />
+                            <span className="swu-screw br" aria-hidden="true" />
+
+                            {/* 卡帶上標籤 */}
+                            <div className="swu-toplabel">
+                                <span className="swu-side">
+                                    <span className="swu-live-dot" aria-hidden="true" />
+                                    SIDE A · NEW VERSION
+                                </span>
                                 <button
                                     type="button"
                                     onClick={dismissUpdate}
                                     aria-label="暫時關閉更新提醒"
-                                    className="shrink-0 rounded-md p-1 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
+                                    className="swu-close"
                                 >
-                                    <X className="h-4 w-4" />
+                                    <X className="h-3.5 w-3.5" />
                                 </button>
                             </div>
-                            <Button
-                                type="button"
-                                onClick={applyUpdate}
-                                className="mt-3 w-full gap-2 bg-gradient-to-r from-amber-500 to-orange-600 font-bold text-white shadow-md transition-all hover:from-amber-600 hover:to-orange-700 hover:shadow-lg"
-                            >
-                                <RefreshCw className="h-4 w-4" />
+
+                            {/* 雙轉軸 + 磁帶（呼應 Hero 卡帶） */}
+                            <div className="swu-inner" aria-hidden="true">
+                                <div className="swu-reels">
+                                    <span className="swu-reel" />
+                                    <span className="swu-tape"><i /></span>
+                                    <span className="swu-reel" />
+                                </div>
+                                {currentVersion && <span className="swu-ver">v{currentVersion}</span>}
+                            </div>
+
+                            {/* 文案 */}
+                            <div className="swu-body">
+                                <div className="swu-title">有新版本可以更新</div>
+                                <div className="swu-sub">
+                                    已偵測到最新功能與修正，點一下即可重新載入並套用新版。
+                                </div>
+                            </div>
+
+                            {/* 立即更新 */}
+                            <button type="button" onClick={applyUpdate} className="swu-action">
+                                <RefreshCw aria-hidden="true" />
                                 立即更新
-                            </Button>
+                            </button>
                         </div>
                     </motion.div>
                 )}
