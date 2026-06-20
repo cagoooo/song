@@ -29,7 +29,7 @@ describe('SongCard', () => {
         index: 0,
         user: null,
         votingId: null,
-        clickCount: {},
+        count: 0,
         buttonRefs: { current: {} },
         reduceMotion: false,
         onVote: vi.fn(),
@@ -132,32 +132,12 @@ describe('SongCard', () => {
     });
 
     describe('動畫設定', () => {
-        it('reduceMotion 為 false 時應該有動畫延遲', () => {
+        it('卡片不應有入場動畫（避免 re-render 時抖動）', () => {
             const { container } = render(<SongCard {...defaultProps} index={5} reduceMotion={false} />);
             const card = container.firstChild as HTMLElement;
 
-            expect(card.style.animationDelay).toBe('100ms');
-        });
-
-        it('reduceMotion 為 true 時動畫延遲應為 0ms', () => {
-            const { container } = render(<SongCard {...defaultProps} index={5} reduceMotion={true} />);
-            const card = container.firstChild as HTMLElement;
-
-            expect(card.style.animationDelay).toBe('0ms');
-        });
-
-        it('reduceMotion 為 true 時動畫時長應減少', () => {
-            const { container } = render(<SongCard {...defaultProps} reduceMotion={true} />);
-            const card = container.firstChild as HTMLElement;
-
-            expect(card.style.animationDuration).toBe('100ms');
-        });
-
-        it('動畫延遲不應超過 300ms', () => {
-            const { container } = render(<SongCard {...defaultProps} index={100} reduceMotion={false} />);
-            const card = container.firstChild as HTMLElement;
-
-            expect(card.style.animationDelay).toBe('300ms');
+            expect(card.className).not.toContain('animate-in');
+            expect(card.className).not.toContain('slide-in');
         });
     });
 
@@ -171,7 +151,7 @@ describe('SongCard', () => {
         });
 
         it('有點擊計數時按鈕應該有 ring 樣式', () => {
-            render(<SongCard {...defaultProps} clickCount={{ 'song-1': 3 }} />);
+            render(<SongCard {...defaultProps} count={3} />);
 
             // 使用 aria-label 查找投票按鈕
             const button = screen.getByRole('button', { name: /投票/i });
