@@ -1,5 +1,5 @@
 // 投票邏輯 Hook
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { voteSong, getSessionId, type Song } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useVoteHistory } from '@/hooks/useVoteHistory';
@@ -30,15 +30,28 @@ export function useVoting(): UseVotingReturn {
     const lastVoteTimeRef = useRef<Record<string, number>>({});
     const resetTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
+    // 預先建立固定 canvas，避免每次投票動態插入 DOM 造成 layout reflow
+    const confettiRef = useRef<ReturnType<typeof confetti.create> | null>(null);
+    useEffect(() => {
+        const canvas = document.createElement('canvas');
+        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
+        document.body.appendChild(canvas);
+        confettiRef.current = confetti.create(canvas, { resize: true, useWorker: false });
+        return () => {
+            document.body.removeChild(canvas);
+            confettiRef.current = null;
+        };
+    }, []);
+
     const triggerVoteConfetti = useCallback((buttonElement: HTMLButtonElement | null) => {
-        if (!buttonElement) return;
+        if (!buttonElement || !confettiRef.current) return;
 
         const rect = buttonElement.getBoundingClientRect();
         const x = (rect.left + rect.width / 2) / window.innerWidth;
         const y = (rect.top + rect.height / 2) / window.innerHeight;
         const isSmallScreen = window.innerWidth < 640;
 
-        confetti({
+        confettiRef.current({
             particleCount: isSmallScreen ? 12 : 24,
             spread: isSmallScreen ? 42 : 56,
             origin: { x, y },
@@ -47,7 +60,6 @@ export function useVoting(): UseVotingReturn {
             gravity: 1.2,
             scalar: isSmallScreen ? 0.62 : 0.78,
             shapes: ['circle'],
-            zIndex: 9999,
         });
     }, []);
 
