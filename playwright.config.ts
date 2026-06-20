@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 
 /**
  * Playwright 視覺回歸 + RWD 版面測試
@@ -25,26 +25,37 @@ export default defineConfig({
         /* 不等 Firebase 實際登入，只測版面 */
         javaScriptEnabled: true,
     },
+    /* 全部用 Chromium 行動模擬（CI 只需安裝 chromium，比裝 webkit 快又穩）。
+       不 spread devices['iPhone …']，因為其 defaultBrowserType 是 webkit。 */
     projects: [
         {
             name: 'mobile-375',
             use: {
-                ...devices['iPhone SE'],
+                browserName: 'chromium',
                 viewport: { width: 375, height: 667 },
+                isMobile: true,
+                hasTouch: true,
+                deviceScaleFactor: 2,
             },
         },
         {
             name: 'mobile-430',
             use: {
-                ...devices['iPhone 15 Pro'],
+                browserName: 'chromium',
                 viewport: { width: 430, height: 932 },
+                isMobile: true,
+                hasTouch: true,
+                deviceScaleFactor: 3,
             },
         },
         {
             name: 'tablet-768',
             use: {
-                ...devices['iPad Mini'],
+                browserName: 'chromium',
                 viewport: { width: 768, height: 1024 },
+                isMobile: true,
+                hasTouch: true,
+                deviceScaleFactor: 2,
             },
         },
     ],
