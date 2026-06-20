@@ -116,6 +116,7 @@ export default function Home() {
   const [passportOpen, setPassportOpen] = useState(false);
   const [curtainOpen, setCurtainOpen] = useState(false);
   const [transposeToolOpen, setTransposeToolOpen] = useState(false);
+  const [transposeToolLoaded, setTransposeToolLoaded] = useState(false);
   const [printMode, setPrintMode] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
   const curtainCheckedRef = useRef(false);
@@ -233,7 +234,15 @@ export default function Home() {
     if (!canUseTransposeTool && transposeToolOpen) {
       setTransposeToolOpen(false);
     }
-  }, [canUseTransposeTool, transposeToolOpen]);
+    if (!canUseTransposeTool && transposeToolLoaded) {
+      setTransposeToolLoaded(false);
+    }
+  }, [canUseTransposeTool, transposeToolLoaded, transposeToolOpen]);
+
+  const openTransposeTool = useCallback(() => {
+    setTransposeToolLoaded(true);
+    setTransposeToolOpen(true);
+  }, []);
 
   // 從歷史按「再點」：切到歌單 Tab → 派發搜尋事件，讓 SongList 顯示該首歌
   const handleReVoteFromHistory = useCallback((entry: VoteHistoryEntry) => {
@@ -455,7 +464,7 @@ export default function Home() {
         {canUseTransposeTool && (
           <button
             className="ttm-entry ttm-floating-action"
-            onClick={() => setTransposeToolOpen(true)}
+            onClick={openTransposeTool}
             aria-label="快速轉調工具"
             title="管理員快速轉調工具"
           >
@@ -1036,7 +1045,7 @@ export default function Home() {
       )}
 
       {/* 🎸 快速轉調工具（貼譜 → 自動偵測調性 → 即時轉調） — lazy load */}
-      {canUseTransposeTool && transposeToolOpen && (
+      {canUseTransposeTool && transposeToolLoaded && (
         <Suspense fallback={null}>
           <TransposeToolModal
             isOpen={transposeToolOpen}
