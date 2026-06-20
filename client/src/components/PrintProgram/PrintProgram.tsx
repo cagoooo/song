@@ -12,6 +12,7 @@
 import type { Song } from '@/lib/firestore';
 import type { VoterStat } from '@/hooks/useVoterLeaderboard';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 
 interface PrintProgramProps {
     songs: Song[];
@@ -31,6 +32,8 @@ interface PrintProgramProps {
     topN?: number;
     /** 阿凱主理人寄語 */
     kaiNote?: string;
+    /** 關閉螢幕列印預覽（不影響實際列印；@media print 時自動隱藏按鈕） */
+    onClose?: () => void;
 }
 
 function formatTodayZh(d: Date): string {
@@ -51,6 +54,7 @@ export function PrintProgram({
     sideLabel = 'A',
     topN = 20,
     kaiNote = DEFAULT_KAI_NOTE,
+    onClose,
 }: PrintProgramProps) {
     const today = formatTodayZh(new Date());
     const ranked = [...songs]
@@ -61,6 +65,19 @@ export function PrintProgram({
     const setlistCount = songs.length;
 
     const program = (
+      <>
+        {onClose && (
+            <button
+                type="button"
+                className="pp-close no-print"
+                onClick={onClose}
+                aria-label="關閉列印預覽"
+                data-testid="print-close"
+            >
+                <X aria-hidden="true" />
+                <span>關閉預覽</span>
+            </button>
+        )}
         <div className="print-program" aria-hidden="true" data-testid="print-program">
             {/* 頂條：期數 / Side / 日期 */}
             <header className="pp-flag">
@@ -175,6 +192,7 @@ export function PrintProgram({
                 <div className="pp-foot-r">{today} 印</div>
             </footer>
         </div>
+      </>
     );
 
     return createPortal(program, document.body);
