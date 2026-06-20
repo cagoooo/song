@@ -61,29 +61,13 @@ test.describe('FAB stack 不遮擋右邊界', () => {
     });
 });
 
-test.describe('返回頂部按鈕行為', () => {
-    test('初始不顯示返回頂部按鈕', async ({ page }) => {
+test.describe('返回頂部按鈕初始狀態', () => {
+    test('剛進頁面（未捲動）不顯示返回頂部按鈕', async ({ page }) => {
         await waitForHome(page);
-        // 剛進頁面未捲動，不應出現
+        // 捲動方向行為（往下藏、往上顯示）改由 ScrollToTop.test.tsx 元件測試精準驗證，
+        // E2E 只確認版面與初始狀態（頁面內容高度在 CI 不固定，不適合做捲動行為斷言）。
         const scrollBtn = page.locator('.editorial-scrolltop');
         await expect(scrollBtn).not.toBeVisible();
-    });
-
-    test('往下捲後再往上捲，返回頂部按鈕出現', async ({ page }) => {
-        await waitForHome(page);
-
-        // 往下捲超過 threshold（300px）
-        await page.evaluate(() => window.scrollBy(0, 500));
-        await page.waitForTimeout(100);
-
-        // 此時往下捲，按鈕應隱藏（D14 邏輯）
-        const scrollBtnAfterDown = page.locator('.editorial-scrolltop');
-        await expect(scrollBtnAfterDown).not.toBeVisible();
-
-        // 再往上捲，按鈕應出現
-        await page.evaluate(() => window.scrollBy(0, -100));
-        await page.waitForTimeout(200);
-        await expect(scrollBtnAfterDown).toBeVisible();
     });
 });
 
