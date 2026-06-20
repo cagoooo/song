@@ -282,35 +282,46 @@ export default function Home() {
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        try {
-          window.print();
-        } finally {
-          printCleanupTimerRef.current = setTimeout(cleanupPrintMode, 2500);
-        }
+        window.print();
+        // 安全網：萬一 afterprint / matchMedia / visibilitychange 全都沒觸發
+        // （極少數瀏覽器），60 秒後強制還原，避免永遠卡在列印預覽覆蓋層。
+        // 不可設太短，否則使用者還在看預覽就被踢回主頁（此為先前的 bug）。
+        printCleanupTimerRef.current = setTimeout(cleanupPrintMode, 60000);
       });
     });
   }, [cleanupPrintMode]);
 
   useEffect(() => {
-    const scheduleCleanup = (delay = 0) => {
-      if (!document.body.classList.contains('print-mode')) return;
-      if (printCleanupTimerRef.current) clearTimeout(printCleanupTimerRef.current);
-      printCleanupTimerRef.current = setTimeout(cleanupPrintMode, delay);
+    const onAfterPrint = () => cleanupPrintMode();
+
+    // matchMedia('print') 變化是「列印結束」最可靠的跨瀏覽器訊號：
+    // 開始列印時 matches=true，結束時 matches=false。
+    const mql = typeof window.matchMedia === 'function' ? window.matchMedia('print') : null;
+    const onMqlChange = (e: MediaQueryListEvent) => {
+      if (!e.matches) cleanupPrintMode();
     };
 
-    const onAfter = () => cleanupPrintMode();
-    const onFocus = () => scheduleCleanup(500);
-    const onVisibilityChange = () => {
-      if (!document.hidden) scheduleCleanup(500);
+    // 行動裝置 fallback：部分手機瀏覽器不觸發 afterprint。
+    // 它們會在叫出列印 / 分享面板時把頁面切到隱藏，回來時再顯示。
+    // 只有「曾隱藏過後再顯示」才清除，確保桌機同分頁的列印預覽
+    // 開著時絕不會被誤清（這正是先前會自動跳回主頁的原因）。
+    let wasHidden = false;
+    const onVisibility = () => {
+      if (document.hidden) {
+        wasHidden = true;
+      } else if (wasHidden) {
+        wasHidden = false;
+        cleanupPrintMode();
+      }
     };
 
-    window.addEventListener('afterprint', onAfter);
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('afterprint', onAfterPrint);
+    mql?.addEventListener?.('change', onMqlChange);
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      window.removeEventListener('afterprint', onAfter);
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('afterprint', onAfterPrint);
+      mql?.removeEventListener?.('change', onMqlChange);
+      document.removeEventListener('visibilitychange', onVisibility);
       cleanupPrintMode();
     };
   }, [cleanupPrintMode]);
