@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from './ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from './ui/dialog';
 import { QRCodeSVG } from 'qrcode.react';
-import { Share2, QrCode } from 'lucide-react';
+import { Share2, QrCode, X } from 'lucide-react';
 import {
   FacebookShareButton,
   TwitterShareButton,
@@ -14,11 +15,17 @@ import {
 } from 'react-share';
 
 export function ShareButton() {
+  const [open, setOpen] = useState(false);
   const currentUrl = window.location.href;
   const shareTitle = '來參加阿凱彈唱之夜點歌！';
 
+  useEffect(() => {
+    document.body.classList.toggle('share-dialog-open', open);
+    return () => document.body.classList.remove('share-dialog-open');
+  }, [open]);
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
@@ -36,6 +43,13 @@ export function ShareButton() {
         className="share-cassette-dialog"
         aria-describedby="share-dialog-description"
       >
+        <DialogClose asChild>
+          <button className="share-cassette-close" type="button" aria-label="關閉分享點歌系統">
+            <X className="h-4 w-4" />
+            <span>關閉</span>
+          </button>
+        </DialogClose>
+
         <div className="share-cassette-top" aria-hidden="true">
           <span>SIDE A</span>
           <span>SHARE MODE</span>

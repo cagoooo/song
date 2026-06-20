@@ -340,6 +340,12 @@
   background: #fff;
 }
 
+body.share-dialog-open .editorial-floating-actions {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+}
+
 .has-admin-floating-actions .editorial-admin-toolbar {
   padding-right: min(320px, 38vw);
 }
