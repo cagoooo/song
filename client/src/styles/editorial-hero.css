@@ -629,3 +629,10 @@ body.sw-update-prompt-visible {
 @media (prefers-reduced-motion: reduce) {
   .editorial-vinyl-disc { animation: none; }
 }
+
+@keyframes countFloat {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(0)     scale(0.5); }
+  20%  { opacity: 1; transform: translateX(-50%) translateY(-15px)  scale(1.2); }
+  80%  { opacity: 1; transform: translateX(-50%) translateY(-25px)  scale(1.2); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-35px)  scale(1);   }
+}
