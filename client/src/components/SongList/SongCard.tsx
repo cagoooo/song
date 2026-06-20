@@ -171,12 +171,13 @@ function SongCardInner({
                         <span className="whitespace-nowrap">點播</span>
                     </Button>
 
-                    {/* 點擊計數 - 純 CSS 動畫 */}
+                    {/* 點擊計數 - 疊在按鈕上方，不溢出邊界 */}
                     {showCount && (
                         <span
-                            className="absolute -top-2 left-1/2 -translate-x-1/2 font-bold text-primary text-lg pointer-events-none"
+                            className="absolute inset-0 flex items-center justify-center font-bold text-white text-sm pointer-events-none rounded"
                             style={{
-                                animation: 'countFloat 0.6s ease-out forwards'
+                                animation: 'countFade 0.6s ease-out forwards',
+                                backgroundColor: 'rgb(43 77 255 / 0.92)',
                             }}
                         >
                             +{count}

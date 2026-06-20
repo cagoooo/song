@@ -630,9 +630,9 @@ body.sw-update-prompt-visible {
   .editorial-vinyl-disc { animation: none; }
 }
 
-@keyframes countFloat {
-  0%   { opacity: 0; transform: translateX(-50%) translateY(0)     scale(0.5); }
-  20%  { opacity: 1; transform: translateX(-50%) translateY(-15px)  scale(1.2); }
-  80%  { opacity: 1; transform: translateX(-50%) translateY(-25px)  scale(1.2); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-35px)  scale(1);   }
+@keyframes countFade {
+  0%   { opacity: 0; transform: scale(0.6); }
+  20%  { opacity: 1; transform: scale(1.1); }
+  65%  { opacity: 1; transform: scale(1);   }
+  100% { opacity: 0; transform: scale(0.9); }
 }
