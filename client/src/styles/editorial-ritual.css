@@ -1891,3 +1891,211 @@ body.has-up-next-bar .editorial-scrolltop.is-stacked {
   .oc-title-underline { width: 100%; }
   .oc-overlay .oc-live-dot { animation: none !important; }
 }
+
+/* ==========================================================================
+   UpdatePrompt — 卡帶風「有新版本可以更新」提示（swu- = service worker update）
+   黑色卡帶外殼 + 四角螺絲 + 上標籤 + 雙轉軸/磁帶 + accent 藍動作鍵
+   ========================================================================== */
+.swu-cassette {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  padding: 14px 8px 16px;
+  background: linear-gradient(180deg, #1a1a1d 0%, #0a0a0c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -34px 56px -34px rgba(0, 0, 0, 0.65),
+    0 26px 60px -20px rgba(0, 0, 0, 0.6);
+}
+/* 卡帶外殼霧面點陣 */
+.swu-cassette::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 6px 6px;
+  pointer-events: none;
+}
+
+/* 四角螺絲 */
+.swu-screw {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #4a4a4a, #0a0a0a);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+  z-index: 2;
+}
+.swu-screw.tl { top: 9px; left: 9px; }
+.swu-screw.tr { top: 9px; right: 9px; }
+.swu-screw.bl { bottom: 9px; left: 9px; }
+.swu-screw.br { bottom: 9px; right: 9px; }
+
+/* 上標籤條 */
+.swu-toplabel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 12px 12px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #fffaf0, #f0e8d8);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.swu-side {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #5a4837;
+}
+.swu-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ed-accent);
+  box-shadow: 0 0 0 3px rgba(43, 77, 255, 0.18);
+  animation: swu-pulse 1.6s ease-in-out infinite;
+}
+@keyframes swu-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.swu-close {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  color: #5a4837;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.swu-close:hover { background: rgba(40, 28, 18, 0.12); color: #221911; }
+
+/* 雙轉軸 + 磁帶面板 */
+.swu-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 12px 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #2a2620, #1c1812);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), inset 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.swu-reels {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.swu-reel {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #221911 0 12%, #5a4837 12% 14%, transparent 14% 38%, #5a4837 38% 40%, transparent 40% 60%, #5a4837 60% 62%, #f0e8d8 62%);
+  border: 2px solid #221911;
+  animation: editorial-spin 4s linear infinite;
+}
+.swu-tape {
+  position: relative;
+  flex: 1;
+  min-width: 24px;
+  height: 6px;
+  background: #221911;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.swu-tape > i {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 0;
+  width: 32%;
+  background: var(--ed-accent);
+  border-radius: 3px;
+  animation: swu-tape-move 2.4s ease-in-out infinite;
+}
+@keyframes swu-tape-move {
+  0%   { left: 2%;  width: 30%; }
+  50%  { left: 50%; width: 46%; }
+  100% { left: 2%;  width: 30%; }
+}
+.swu-ver {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: #8a7a64;
+}
+
+/* 文案 */
+.swu-body {
+  position: relative;
+  z-index: 1;
+  margin: 0 12px;
+}
+.swu-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: #fffaf0;
+}
+.swu-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(240, 232, 216, 0.7);
+}
+
+/* 立即更新動作鍵 */
+.swu-action {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: calc(100% - 24px);
+  margin: 13px 12px 0;
+  padding: 11px 14px;
+  border-radius: 8px;
+  background: var(--ed-accent);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 20px -8px rgba(43, 77, 255, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.swu-action:hover {
+  background: #2440e6;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px -8px rgba(43, 77, 255, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.swu-action:active { transform: translateY(0) scale(0.99); }
+.swu-action:focus-visible { outline: 2px solid #fffaf0; outline-offset: 2px; }
+.swu-action svg { width: 16px; height: 16px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .swu-reel,
+  .swu-tape > i,
+  .swu-live-dot { animation: none; }
+}
