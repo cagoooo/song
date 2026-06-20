@@ -17,6 +17,8 @@
     "subset-og-font": "node scripts/subset-og-font.mjs",
     "gen:og": "node scripts/generate-og-image.mjs",
     "changelog": "node scripts/gen-changelog.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots",
     "prepare": "husky || true"
   },
   "lint-staged": {
@@ -104,6 +106,7 @@
     "tailwindcss": "^3.4.14",
     "typescript": "5.6.3",
     "vite": "^5.4.9",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.17",
+    "@playwright/test": "^1.56.1"
   }
 }

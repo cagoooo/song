@@ -4,9 +4,11 @@ import { useEffect } from 'react';
 import { useServiceWorkerUpdate } from '@/hooks/useServiceWorkerUpdate';
 import { CassetteScrews } from './CassetteShell';
 import { Z } from '@/lib/z';
+import { getLatestChangelog } from '@/lib/changelog';
 
 export function UpdatePrompt() {
     const { updateAvailable, currentVersion, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
+    const changelog = getLatestChangelog();
 
     useEffect(() => {
         document.body.classList.toggle('sw-update-prompt-visible', updateAvailable);
@@ -60,9 +62,17 @@ export function UpdatePrompt() {
                             {/* 文案 */}
                             <div className="swu-body">
                                 <div className="swu-title">有新版本可以更新</div>
-                                <div className="swu-sub">
-                                    已偵測到最新功能與修正，點一下即可重新載入並套用新版。
-                                </div>
+                                {changelog && changelog.items.length > 0 ? (
+                                    <ul className="swu-changelog">
+                                        {changelog.items.map((item) => (
+                                            <li key={item}>{item}</li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <div className="swu-sub">
+                                        已偵測到最新功能與修正，點一下即可重新載入並套用新版。
+                                    </div>
+                                )}
                             </div>
 
                             {/* 立即更新 */}
