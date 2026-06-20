@@ -25,8 +25,11 @@ vi.mock('@/hooks/useComboCounter', () => ({
     broadcastVote: vi.fn(),
 }));
 
+const mockConfettiInstance = vi.fn();
 vi.mock('canvas-confetti', () => ({
-    default: vi.fn(),
+    default: Object.assign(vi.fn(), {
+        create: vi.fn(() => mockConfettiInstance),
+    }),
 }));
 
 // Import after mocking
