@@ -38,6 +38,37 @@
   --ed-gold: #b8902a;
   --ed-silver: #7a7a7a;
   --ed-bronze: #a25a32;
+
+  /* ── z-index 層級合約 ─────────────────────────────────────────────────────
+     定義全站浮層的有效層級；所有元件必須從此取值，不得在外自行定義。
+     TypeScript 鏡像：client/src/lib/z.ts
+     ─────────────────────────────────────────────────────────────────────── */
+  --z-bottombar:       45;   /* un-bar 底部 sticky 隊列條 */
+  --z-fab:             50;   /* 右下 FAB stack、NowPlaying、PWA 安裝提示 */
+  --z-watermark:       55;   /* 左下版本浮水印 */
+  --z-vote-feedback:   70;   /* VoteOverlay 投票回饋 */
+  --z-queue-modal:     80;   /* 隊列 modal、全螢幕看譜 */
+  --z-toast:          100;   /* shadcn toast、Tooltip、NetworkStatus banner */
+  --z-modal-overlay:  120;   /* modal 遮罩 */
+  --z-modal-content:  130;   /* modal 內容 */
+  --z-overlay-anim:  9997;   /* 慶祝動畫基礎（GlobalHype +0, DarkHorse +1, Credits +2）*/
+  --z-update-prompt: 10000;  /* PWA 更新提示卡帶（必須蓋過所有動畫）*/
+  --z-print:         99999;  /* 列印模式遮層 */
+
+  /* ── 卡帶設計 tokens ──────────────────────────────────────────────────────
+     ScrollToTop、UpdatePrompt、Hero cassette 共用的視覺基底。
+     ─────────────────────────────────────────────────────────────────────── */
+  --cassette-shell-1:   #1a1a1d;
+  --cassette-shell-2:   #0a0a0c;
+  --cassette-label:     #f5f0e8;
+  --cassette-label-alt: #ece8de;
+  --cassette-tape-1:    #3a2c1e;
+  --cassette-tape-2:    #5a4837;
+  --cassette-border:    rgba(255, 255, 255, 0.08);
+  --cassette-shell-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -14px 26px -16px rgba(0, 0, 0, 0.7),
+    0 16px 32px -16px rgba(0, 0, 0, 0.55);
 }
 
 /* ==========================================================================
