@@ -15,7 +15,6 @@ interface VoteOverlayInfo {
 interface UseVotingReturn {
     votingId: string | null;
     clickCount: Record<string, number>;
-    voteSuccess: Record<string, boolean>;
     showVoteOverlay: VoteOverlayInfo | null;
     buttonRefs: React.MutableRefObject<Record<string, HTMLButtonElement | null>>;
     handleVoteStart: (songId: string, song: Song) => Promise<void>;
@@ -26,10 +25,10 @@ export function useVoting(): UseVotingReturn {
     const { addVote } = useVoteHistory();
     const [votingId, setVotingId] = useState<string | null>(null);
     const [clickCount, setClickCount] = useState<Record<string, number>>({});
-    const [lastVoteTime, setLastVoteTime] = useState<Record<string, number>>({});
-    const [voteSuccess, setVoteSuccess] = useState<Record<string, boolean>>({});
     const [showVoteOverlay, setShowVoteOverlay] = useState<VoteOverlayInfo | null>(null);
     const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+    const lastVoteTimeRef = useRef<Record<string, number>>({});
+    const resetTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
     const triggerVoteConfetti = useCallback((buttonElement: HTMLButtonElement | null) => {
         if (!buttonElement) return;
@@ -54,39 +53,24 @@ export function useVoting(): UseVotingReturn {
 
     const handleVoteStart = useCallback(async (songId: string, song: Song) => {
         const now = Date.now();
-        const lastTime = lastVoteTime[songId] || 0;
-        const timeDiff = now - lastTime;
+        const lastTime = lastVoteTimeRef.current[songId] || 0;
 
-        if (timeDiff < 300) {
+        if (now - lastTime < 300) {
             return;
         }
+        lastVoteTimeRef.current[songId] = now;
 
         try {
             setVotingId(songId);
 
-            // 使用 Firestore 投票
             await voteSong(songId, getSessionId());
 
-            // 寫進本機點播歷史（不影響投票成功訊息）
             addVote({ songId, title: song.title, artist: song.artist });
-
-            // 廣播 combo 事件給 ComboOverlay 計數
             broadcastVote(songId, song.title, song.artist);
 
-            setClickCount(prev => ({
-                ...prev,
-                [songId]: (prev[songId] || 0) + 1
-            }));
-
-            setLastVoteTime(prev => ({
-                ...prev,
-                [songId]: now
-            }));
-
-            setVoteSuccess(prev => ({ ...prev, [songId]: true }));
+            setClickCount(prev => ({ ...prev, [songId]: (prev[songId] || 0) + 1 }));
 
             triggerVoteConfetti(buttonRefs.current[songId]);
-
             setShowVoteOverlay({ songId, title: song.title, artist: song.artist });
 
             toast({
@@ -95,42 +79,17 @@ export function useVoting(): UseVotingReturn {
                 duration: 1200,
             });
 
-            setTimeout(() => {
-                setVotingId(null);
-                setVoteSuccess(prev => ({ ...prev, [songId]: false }));
-            }, 800);
+            setTimeout(() => setVotingId(null), 600);
 
-            setTimeout(() => {
-                setShowVoteOverlay(null);
-            }, 1150);
+            setTimeout(() => setShowVoteOverlay(null), 1150);
 
-            // 漸進式重置點擊計數
-            const timeoutKey = `timeout_${songId}`;
-            const globalWindow = window as unknown as Record<string, ReturnType<typeof setTimeout>>;
-
-            if (globalWindow[timeoutKey]) {
-                clearTimeout(globalWindow[timeoutKey]);
-                clearInterval(globalWindow[`interval_${songId}`]);
+            // 單次重置 — 取代 10 步 setInterval，減少不必要的 re-render
+            if (resetTimers.current[songId]) {
+                clearTimeout(resetTimers.current[songId]);
             }
-
-            globalWindow[timeoutKey] = setTimeout(() => {
-                const currentCount = clickCount[songId] || 0;
-                const steps = 10;
-                const decrementPerStep = Math.ceil(currentCount / steps);
-
-                globalWindow[`interval_${songId}`] = setInterval(() => {
-                    setClickCount(prev => {
-                        const newCount = Math.max((prev[songId] || 0) - decrementPerStep, 0);
-                        if (newCount === 0) {
-                            clearInterval(globalWindow[`interval_${songId}`]);
-                        }
-                        return {
-                            ...prev,
-                            [songId]: newCount
-                        };
-                    });
-                }, 100);
-            }, 2000);
+            resetTimers.current[songId] = setTimeout(() => {
+                setClickCount(prev => ({ ...prev, [songId]: 0 }));
+            }, 700);
         } catch (error) {
             setVotingId(null);
             toast({
@@ -139,14 +98,14 @@ export function useVoting(): UseVotingReturn {
                 variant: 'destructive'
             });
         }
-    }, [clickCount, lastVoteTime, toast, triggerVoteConfetti, addVote]);
+    }, [toast, triggerVoteConfetti, addVote]);
 
     return {
         votingId,
         clickCount,
-        voteSuccess,
         showVoteOverlay,
         buttonRefs,
         handleVoteStart,
     };
 }
+
