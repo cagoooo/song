@@ -605,7 +605,7 @@ body.has-up-next-bar > #root > div {
 @media (max-width: 780px) {
   .un-bar {
     bottom: env(safe-area-inset-bottom);
-    height: 46px;
+    height: 50px;
     border-top-width: 1.5px;
     border-bottom: 0;
   }
@@ -613,8 +613,8 @@ body.has-up-next-bar > #root > div {
     display: none;
   }
   .un-inner {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 96px);
-    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 150px);
+    gap: 10px;
     padding: 0 12px;
     overflow: hidden;
   }
@@ -655,15 +655,31 @@ body.has-up-next-bar > #root > div {
   .un-now-title .artist { display: none; }
   .un-time { font-size: 9px; }
   .un-card {
-    min-height: 40px;
+    grid-template-columns: 1fr;
+    gap: 0;
+    min-height: 0;
     min-width: 0;
-    padding: 6px 8px;
+    padding: 4px 10px;
+    align-content: center;
+    border-radius: 4px;
     overflow: hidden;
   }
-  .un-card.up-next::before { font-size: 8px; padding: 1px 6px; }
-  .un-card-no { font-size: 18px; flex-shrink: 0; }
-  .un-card-title { font-size: 13px; }
-  .un-card-artist { font-size: 8px; }
+  /* 「次首」標籤改內嵌 — 原本浮在卡片上緣（top:-6px），會被 bar 的 overflow 裁掉 */
+  .un-card.up-next::before {
+    position: static;
+    top: auto;
+    left: auto;
+    justify-self: start;
+    width: max-content;
+    max-width: 100%;
+    margin-bottom: 2px;
+    font-size: 7px;
+    padding: 1px 6px;
+  }
+  /* 隊列序號（大字 02）手機隱藏 — 與左側「TRACK 02 OF 378」重複，省空間給完整歌名 */
+  .un-card-no { display: none; }
+  .un-card-title { font-size: 12.5px; line-height: 1.18; }
+  .un-card-artist { font-size: 8px; margin-top: 1px; }
   .un-empty {
     gap: 8px;
     justify-content: flex-start;
@@ -681,7 +697,7 @@ body.has-up-next-bar > #root > div {
     letter-spacing: 0.12em;
   }
   body.has-up-next-bar [data-now-playing-notification] {
-    bottom: calc(46px + max(8px, env(safe-area-inset-bottom))) !important;
+    bottom: calc(50px + max(8px, env(safe-area-inset-bottom))) !important;
   }
   [data-now-playing-notification] {
     position: fixed !important;
@@ -735,7 +751,7 @@ body.has-up-next-bar > #root > div {
   }
   .un-queue-modal-backdrop {
     place-items: end stretch;
-    padding: 12px 10px calc(46px + max(12px, env(safe-area-inset-bottom)));
+    padding: 12px 10px calc(50px + max(12px, env(safe-area-inset-bottom)));
   }
   .un-queue-modal {
     width: 100%;
@@ -750,7 +766,7 @@ body.has-up-next-bar > #root > div {
   }
   body.has-up-next-bar .home-login-fab {
     right: 12px !important;
-    bottom: calc(46px + max(10px, env(safe-area-inset-bottom))) !important;
+    bottom: calc(50px + max(10px, env(safe-area-inset-bottom))) !important;
   }
   body.has-up-next-bar .home-login-fab > button {
     width: 46px;
@@ -766,7 +782,7 @@ body.has-up-next-bar > #root > div {
     height: 20px;
     margin: 0;
   }
-  body.has-up-next-bar > #root > div { padding-bottom: 54px; }
+  body.has-up-next-bar > #root > div { padding-bottom: 58px; }
   body.has-up-next-bar.has-empty-up-next-bar .home-login-fab {
     bottom: max(12px, env(safe-area-inset-bottom)) !important;
   }
