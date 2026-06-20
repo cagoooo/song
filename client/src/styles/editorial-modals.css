@@ -795,17 +795,20 @@
 
 .ttm-dialog-fullscreen-shell {
   left: 0 !important;
+  right: 0 !important;
   top: 0 !important;
+  bottom: 0 !important;
   z-index: 90 !important;
-  width: 100dvw !important;
+  width: 100% !important;
   max-width: none !important;
-  height: 100dvh !important;
+  height: 100% !important;
   max-height: none !important;
   transform: none !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
   pointer-events: auto !important;
+  overflow: hidden !important;
 }
 .ttm-dialog-fullscreen-shell > button.absolute {
   display: none;
@@ -820,6 +823,7 @@
   padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   background: #fffaf0;
   color: var(--ed-ink-1);
+  overflow-x: hidden;
 }
 .ttm-fullscreen-bar {
   display: grid;
@@ -1225,8 +1229,8 @@
 @media (max-width: 768px) {
   .ttm-page { padding: 16px 14px 22px; }
   .ttm-modal-close {
-    top: 8px;
-    right: 8px;
+    top: max(8px, env(safe-area-inset-top));
+    right: max(8px, env(safe-area-inset-right));
     min-height: 36px;
     padding: 0 10px;
   }
@@ -1265,36 +1269,56 @@
     min-height: 38px;
   }
   .ttm-fullscreen {
-    gap: 10px;
-    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    gap: 8px;
+    padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   }
   .ttm-fullscreen-bar {
     align-items: stretch;
     flex-direction: column;
+    width: 100%;
+    box-sizing: border-box;
   }
   .ttm-fullscreen-title {
-    font-size: 21px;
+    font-size: 19px;
+    padding-right: 52px;
   }
   .ttm-fullscreen-transpose {
     max-width: 100%;
     width: 100%;
+    min-width: 0;
   }
   .ttm-fullscreen-transpose button {
     min-height: 36px;
+    min-width: 30px;
+    padding: 0 7px;
   }
   .ttm-fullscreen-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
     width: 100%;
+    min-width: 0;
   }
   .ttm-music-search-fullscreen {
     grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
     width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ttm-music-search-fullscreen::-webkit-scrollbar {
+    display: none;
   }
   .ttm-music-search-fullscreen span {
-    grid-column: 1 / -1;
+    flex: 0 0 auto;
+  }
+  .ttm-music-search-fullscreen .ttm-music-link {
+    flex: 0 0 auto;
   }
   .ttm-fullscreen-zoom {
     grid-column: 1 / -1;
@@ -1305,8 +1329,8 @@
     flex: 1 1 0;
   }
   .ttm-fullscreen-btn {
-    min-height: 44px;
-    padding: 0 12px;
+    min-height: 42px;
+    padding: 0 10px;
   }
   .ttm-fullscreen-scroll {
     width: 100%;
