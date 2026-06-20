@@ -442,15 +442,17 @@ body.sw-update-prompt-visible {
   .editorial-floating-actions {
     top: max(8px, env(safe-area-inset-top));
     right: max(8px, env(safe-area-inset-right));
-    gap: 6px;
+    max-width: calc(100vw - 16px - max(8px, env(safe-area-inset-left)));
+    gap: 5px;
     padding: 3px;
     border-radius: 9px;
+    overflow: hidden;
   }
   .editorial-floating-actions .share-cassette-trigger,
   .editorial-floating-actions .ttm-floating-action {
-    height: 36px;
-    min-height: 36px;
-    padding: 0 9px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 8px;
   }
   .editorial-floating-actions .share-cassette-trigger-badge {
     padding: 2px 6px;

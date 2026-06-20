@@ -25,6 +25,7 @@
   border-bottom: 1px solid var(--ed-line-strong);
   box-shadow: 0 -8px 24px -16px rgba(17, 17, 17, 0.18);
   animation: un-rise 480ms cubic-bezier(.2, .7, .2, 1) both;
+  overflow: hidden;
 }
 @keyframes un-rise {
   0%   { transform: translateY(100%); }
@@ -612,21 +613,22 @@ body.has-up-next-bar > #root > div {
     display: none;
   }
   .un-inner {
-    grid-template-columns: minmax(0, 1fr) minmax(86px, 96px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 96px);
     gap: 6px;
     padding: 0 12px;
+    overflow: hidden;
   }
   .un-bar.empty .un-inner {
     align-items: center;
     justify-content: flex-start;
   }
-  .un-now { grid-template-columns: 1fr; gap: 0; }
+  .un-now { grid-template-columns: 1fr; gap: 0; min-width: 0; }
   .un-vinyl,
   .un-progress,
   .un-div { display: none; }
   .un-div-label { display: none; }
   .un-div::before, .un-div::after { display: none; }
-  .un-queue { grid-template-columns: 1fr; }
+  .un-queue { grid-template-columns: 1fr; min-width: 0; }
   .un-queue .un-card:nth-child(n+2) { display: none; }
   .un-more { display: none; }
   .un-now-eyebrow {
@@ -654,10 +656,12 @@ body.has-up-next-bar > #root > div {
   .un-time { font-size: 9px; }
   .un-card {
     min-height: 40px;
+    min-width: 0;
     padding: 6px 8px;
+    overflow: hidden;
   }
   .un-card.up-next::before { font-size: 8px; padding: 1px 6px; }
-  .un-card-no { font-size: 18px; }
+  .un-card-no { font-size: 18px; flex-shrink: 0; }
   .un-card-title { font-size: 13px; }
   .un-card-artist { font-size: 8px; }
   .un-empty {
