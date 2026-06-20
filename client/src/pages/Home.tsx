@@ -926,8 +926,8 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* 返回頂部按鈕 */}
-      <ScrollToTop threshold={400} bottom={80} />
+      {/* 返回頂部按鈕 — 卡帶風；訪客時堆疊於「管理員登入」FAB 上方避免重疊 */}
+      <ScrollToTop threshold={400} stacked={!user} />
 
       {/* 正在彈奏中通知（訪客即時接收） */}
       <NowPlayingNotification />
