@@ -1,4 +1,20 @@
-﻿# 2026-06-19 進度更新：卡帶風 UX、管理員工具、社群預覽與 PWA 圖示
+﻿# 2026-06-20 進度更新：浮動按鈕卡帶化、更新提示卡帶化、Web 工作階段自動化
+
+> 本段承接 6/19 的卡帶風一致性工作，聚焦在「右下角浮動元件」與「PWA 更新體驗」的視覺收斂，並補上 Claude Code on the web 的開發環境自動化。所有變更已合併進 `main`（PR #53、#54）。
+
+## 已完成項目（6/20）
+
+| 類別 | 完成內容 | 主要範圍 / commit | 驗證狀態 |
+|---|---|---|---|
+| 浮動按鈕重疊修正 | 修正手機端「管理員登入」FAB 與「返回頂部」按鈕在右下角重疊的問題；訪客瀏覽時返回頂部按鈕自動堆疊於登入鈕上方（`stacked` 變體 + `is-stacked` CSS 偏移）。 | `Home.tsx`、`ScrollToTop.tsx`、`editorial-ritual.css`（`31820e1`、PR #53） | 已合併上線 |
+| 返回頂部卡帶化 | 把原本單調的琥珀色圓鈕重新設計為迷你卡帶：四角螺絲、雙轉軸 + 磁帶（複用 `editorial-spin`）、「▲ TOP」標籤；位置改用 CSS 計算，配合 `has-up-next-bar` 與安全區自動避讓。 | `ScrollToTop.tsx`、`editorial-ritual.css`（`31820e1`、PR #53） | 已合併上線 |
+| 更新提示卡帶化 | 將「有新版本可以更新」的琥珀色卡片重新設計為卡帶：黑色外殼 + 點狀紋理、`SIDE A · NEW VERSION` 米白標籤、脈動 live dot、雙轉軸 + 來回掃動的磁帶頭、accent 藍「立即更新」動作鍵；版本號以 mono 字呈現為目錄編號。 | `UpdatePrompt.tsx`、`editorial-ritual.css`（`1e3098f`、PR #54） | tsc ✅ / vite build ✅，已合併上線 |
+| 減少動態尊重 | 返回頂部、更新提示的轉軸 / 磁帶 / 脈動動畫全部遵守 `prefers-reduced-motion`，開啟減少動態時改為靜態。 | `editorial-ritual.css` | 已合併上線 |
+| Web 工作階段自動化 | 新增 SessionStart hook（`.claude/hooks/session-start.sh` + `.claude/settings.json`），在 Claude Code on the web 新工作階段啟動時非同步執行 `npm install`，確保 vitest / vite 等開發相依可用；僅在 `CLAUDE_CODE_REMOTE=true` 時觸發。 | `.claude/hooks/session-start.sh`、`.claude/settings.json`（`9eb1ac3`） | 已合併上線 |
+
+---
+
+# 2026-06-19 進度更新：卡帶風 UX、管理員工具、社群預覽與 PWA 圖示
 
 > 本段整理近期實測後已完成的修正與下一階段可開發方向，放在進度表最上方，方便快速掌握目前狀態。
 
