@@ -564,22 +564,6 @@ export default function Home() {
             <span>阿凱 · Guitar Singalong</span>
             <span className="editorial-topbar-issue">ISSUE №12 · {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()}</span>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {canUseTransposeTool && (
-              <button
-                className="ttm-entry"
-                onClick={() => setTransposeToolOpen(true)}
-                aria-label="開啟快速轉調工具"
-                title="貼上任何吉他譜 → 自動偵測調性 → 即時轉調（管理員專用）"
-              >
-                <span aria-hidden="true">🎸</span>
-                <span className="hidden sm:inline">轉調工具</span>
-              </button>
-            )}
-            <span className="flex items-center gap-1.5">
-              <ShareButton />
-            </span>
-          </div>
         </div>
 
         {/* Editorial Masthead — 雜誌風大標：眉標 + 義式襯線大字 + 統計帶 + 90 MIN 卡帶 */}

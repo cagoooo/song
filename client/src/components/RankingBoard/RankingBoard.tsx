@@ -342,7 +342,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     transition={{ duration: 0.3 }}
                                 >
                                     <h3
-                                        className="text-lg sm:text-base leading-tight truncate text-slate-900"
+                                        className="text-lg sm:text-base leading-tight whitespace-normal break-words text-slate-900"
                                         style={{
                                             fontFamily: 'var(--font-display)',
                                             fontWeight: 800,
@@ -417,7 +417,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                             </div>
 
                             {/* 操作按鈕區 */}
-                            <div className="flex items-center gap-1 w-full sm:w-auto justify-end mt-1 sm:mt-0">
+                            <div className="flex items-center gap-1 w-full xl:w-auto justify-end mt-1 xl:mt-0">
                                 {/* 管理員「正在彈奏」按鈕 */}
                                 {user?.isAdmin && (
                                     <TooltipProvider>
