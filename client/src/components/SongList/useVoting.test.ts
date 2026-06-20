@@ -14,6 +14,17 @@ vi.mock('@/hooks/use-toast', () => ({
     }),
 }));
 
+vi.mock('@/hooks/useVoteHistory', () => ({
+    useVoteHistory: () => ({
+        history: [],
+        addVote: vi.fn(),
+    }),
+}));
+
+vi.mock('@/hooks/useComboCounter', () => ({
+    broadcastVote: vi.fn(),
+}));
+
 vi.mock('canvas-confetti', () => ({
     default: vi.fn(),
 }));
@@ -38,7 +49,6 @@ describe('useVoting', () => {
 
             expect(result.current.votingId).toBeNull();
             expect(result.current.clickCount).toEqual({});
-            expect(result.current.voteSuccess).toEqual({});
             expect(result.current.showVoteOverlay).toBeNull();
         });
 
@@ -87,23 +97,6 @@ describe('useVoting', () => {
                 title: '告白氣球',
                 artist: '周杰倫',
             });
-        });
-
-        it('投票後應該設置 voteSuccess', async () => {
-            const { result } = renderHook(() => useVoting());
-            const mockSong = {
-                id: 'song-1',
-                title: '測試歌曲',
-                artist: '測試歌手',
-                voteCount: 10,
-                createdAt: new Date(),
-            };
-
-            await act(async () => {
-                await result.current.handleVoteStart('song-1', mockSong);
-            });
-
-            expect(result.current.voteSuccess['song-1']).toBe(true);
         });
 
         it('連續投票應該累加 clickCount', async () => {
@@ -221,7 +214,7 @@ describe('useVoting', () => {
     });
 
     describe('狀態清理', () => {
-        it('voteSuccess 應該在 800ms 後重置', async () => {
+        it('votingId 應該在 600ms 後重置', async () => {
             const { result } = renderHook(() => useVoting());
             const mockSong = {
                 id: 'song-1',
@@ -235,14 +228,13 @@ describe('useVoting', () => {
                 await result.current.handleVoteStart('song-1', mockSong);
             });
 
-            expect(result.current.voteSuccess['song-1']).toBe(true);
+            expect(result.current.votingId).toBe('song-1');
 
-            // 快進 900ms
             act(() => {
-                vi.advanceTimersByTime(900);
+                vi.advanceTimersByTime(700);
             });
 
-            expect(result.current.voteSuccess['song-1']).toBe(false);
+            expect(result.current.votingId).toBeNull();
         });
 
         it('showVoteOverlay 應該在 1500ms 後清除', async () => {

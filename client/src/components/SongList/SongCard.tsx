@@ -10,7 +10,7 @@ interface SongCardProps {
     index: number;
     user: AppUser | null;
     votingId: string | null;
-    clickCount: Record<string, number>;
+    count: number;
     buttonRefs: React.MutableRefObject<Record<string, HTMLButtonElement | null>>;
     reduceMotion: boolean;
     onVote: (songId: string, song: Song) => void;
@@ -28,7 +28,7 @@ export const SongCard = memo(function SongCard({
     index,
     user,
     votingId,
-    clickCount,
+    count,
     buttonRefs,
     reduceMotion,
     onVote,
@@ -38,7 +38,6 @@ export const SongCard = memo(function SongCard({
     onOpenDetail,
 }: SongCardProps) {
     const songId = String(song.id);
-    const count = clickCount[songId] || 0;
     const isVoting = votingId === songId;
     const voteCount = song.voteCount || 0;
     const barPct = maxVotes && maxVotes > 0
@@ -60,16 +59,10 @@ export const SongCard = memo(function SongCard({
     return (
         <div
             id={`song-${songId}`}
-            className={`editorial-song-card flex items-center gap-3 p-3 sm:p-4 rounded-lg
+            className="editorial-song-card flex items-center gap-3 p-3 sm:p-4 rounded-lg
                 bg-white border border-slate-200/80
                 hover:border-slate-300 hover:shadow-sm
-                transition-all duration-150
-                animate-in fade-in slide-in-from-bottom-1`}
-            style={{
-                animationDelay: reduceMotion ? '0ms' : `${Math.min(index * 20, 300)}ms`,
-                animationDuration: reduceMotion ? '100ms' : '200ms',
-                animationFillMode: 'backwards'
-            }}
+                transition-[border-color,box-shadow] duration-150"
         >
             {/* 雜誌風排序編號 — 卡片夠寬才顯示（容器查詢） */}
             <div

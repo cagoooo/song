@@ -109,6 +109,7 @@ export default function SongList({
         handleVoteStart,
     } = useVoting();
 
+
     const isSearching = false; // 本地搜尋不需要 loading 狀態
 
     // 載入更多的哨兵元素 ref
@@ -236,7 +237,7 @@ export default function SongList({
                                 index={index}
                                 user={user}
                                 votingId={votingId}
-                                clickCount={clickCount}
+                                count={clickCount[song.id] || 0}
                                 buttonRefs={buttonRefs}
                                 reduceMotion={reduceMotion}
                                 onVote={handleVoteStart}
