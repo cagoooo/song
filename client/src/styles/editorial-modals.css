@@ -822,9 +822,9 @@
   color: var(--ed-ink-1);
 }
 .ttm-fullscreen-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(180px, auto) minmax(240px, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   width: min(1440px, 100%);
   margin: 0 auto;
@@ -841,6 +841,9 @@
   font-weight: 800;
   letter-spacing: -0.01em;
 }
+.ttm-fullscreen-title span {
+  white-space: nowrap;
+}
 .ttm-fullscreen-title em {
   font-family: var(--font-mono);
   font-size: clamp(11px, 1.7vw, 14px);
@@ -851,6 +854,8 @@
 .ttm-fullscreen-actions {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   flex-shrink: 0;
 }
@@ -1002,6 +1007,28 @@
   transform-origin: top left;
   will-change: transform;
   pointer-events: auto;
+}
+
+@media (max-width: 1180px) {
+  .ttm-fullscreen-bar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .ttm-fullscreen-title {
+    padding-right: 64px;
+  }
+  .ttm-fullscreen-transpose {
+    width: 100%;
+    max-width: 100%;
+  }
+  .ttm-fullscreen-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .ttm-music-search-fullscreen {
+    justify-content: flex-start;
+  }
 }
 
 /* 下載格式選單（純文字 / 圖片 / PDF） */
