@@ -71,6 +71,7 @@ import { subscribeSongs, type Song } from "@/lib/firestore";
 import { saveStageSongsCache } from "@/lib/stageCache";
 import { MobileTabView } from "../components/MobileTabView";
 import { ScrollToTop } from "../components/ScrollToTop";
+import { FloatingStack } from "../components/FloatingStack";
 import { NowPlayingNotification } from "../components/NowPlayingNotification";
 import { UpNextBar } from "../components/UpNextBar";
 import { PWAInstallPrompt } from "../components/PWAInstallPrompt";
@@ -906,28 +907,28 @@ export default function Home() {
         </footer>
       </div>
 
-      {/* Login button for non-admin users */}
-      {!user && (
-        <motion.div
-          className="home-login-fab fixed bottom-4 right-4 z-50"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowLoginForm(true)}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40 transition-all duration-300"
+      {/* 右下角 FAB Stack — 登入鈕（下）＋ 返回頂部（上）自動堆疊，免手算 bottom 偏移 */}
+      <FloatingStack>
+        {!user && (
+          <motion.div
+            className="home-login-fab"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <LogIn className="w-4 h-4 mr-2" />
-            管理員登入
-          </Button>
-        </motion.div>
-      )}
-
-      {/* 返回頂部按鈕 — 卡帶風；訪客時堆疊於「管理員登入」FAB 上方避免重疊 */}
-      <ScrollToTop threshold={400} stacked={!user} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowLoginForm(true)}
+              className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40 transition-all duration-300"
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              管理員登入
+            </Button>
+          </motion.div>
+        )}
+        <ScrollToTop threshold={400} />
+      </FloatingStack>
 
       {/* 正在彈奏中通知（訪客即時接收） */}
       <NowPlayingNotification />

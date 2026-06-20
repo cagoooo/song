@@ -2,6 +2,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { RefreshCw, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { useServiceWorkerUpdate } from '@/hooks/useServiceWorkerUpdate';
+import { CassetteScrews } from './CassetteShell';
+import { Z } from '@/lib/z';
 
 export function UpdatePrompt() {
     const { updateAvailable, currentVersion, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
@@ -20,16 +22,14 @@ export function UpdatePrompt() {
                         animate={{ y: 0, opacity: 1, scale: 1 }}
                         exit={{ y: 100, opacity: 0, scale: 0.96 }}
                         transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-                        className="pointer-events-auto fixed inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[10000] mx-auto max-w-md sm:left-auto sm:right-4 sm:mx-0"
+                        className="pointer-events-auto fixed inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] mx-auto max-w-md sm:left-auto sm:right-4 sm:mx-0"
+                        style={{ zIndex: Z.updatePrompt }}
                         role="alert"
                         aria-live="polite"
                     >
                         {/* 卡帶風更新提示 — 黑色外殼 + 雙轉軸 + 磁帶 + accent 藍動作鍵 */}
                         <div className="swu-cassette">
-                            <span className="swu-screw tl" aria-hidden="true" />
-                            <span className="swu-screw tr" aria-hidden="true" />
-                            <span className="swu-screw bl" aria-hidden="true" />
-                            <span className="swu-screw br" aria-hidden="true" />
+                            <CassetteScrews />
 
                             {/* 卡帶上標籤 */}
                             <div className="swu-toplabel">
@@ -76,7 +76,10 @@ export function UpdatePrompt() {
             </AnimatePresence>
 
             {currentVersion && (
-                <div className="pointer-events-none fixed bottom-1 left-1 z-[55] select-none font-mono text-[9px] tracking-tight text-stone-400/50 transition-colors hover:text-stone-500/80">
+                <div
+                    className="pointer-events-none fixed bottom-1 left-1 select-none font-mono text-[9px] tracking-tight text-stone-400/50 transition-colors hover:text-stone-500/80"
+                    style={{ zIndex: Z.watermark }}
+                >
                     v{currentVersion}
                 </div>
             )}
