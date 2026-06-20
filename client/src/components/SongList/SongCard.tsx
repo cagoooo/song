@@ -23,7 +23,7 @@ interface SongCardProps {
     onOpenDetail?: (song: Song) => void;
 }
 
-export const SongCard = memo(function SongCard({
+function SongCardInner({
     song,
     index,
     user,
@@ -207,27 +207,20 @@ export const SongCard = memo(function SongCard({
                 )}
             </div>
 
-            {/* CSS 動畫定義 */}
-            <style>{`
-                @keyframes countFloat {
-                    0% {
-                        opacity: 0;
-                        transform: translateX(-50%) translateY(0) scale(0.5);
-                    }
-                    20% {
-                        opacity: 1;
-                        transform: translateX(-50%) translateY(-15px) scale(1.2);
-                    }
-                    80% {
-                        opacity: 1;
-                        transform: translateX(-50%) translateY(-25px) scale(1.2);
-                    }
-                    100% {
-                        opacity: 0;
-                        transform: translateX(-50%) translateY(-35px) scale(1);
-                    }
-                }
-            `}</style>
         </div>
     );
-});
+}
+
+export const SongCard = memo(SongCardInner, (prev, next) =>
+    prev.song.voteCount === next.song.voteCount &&
+    prev.song.isPlayed === next.song.isPlayed &&
+    prev.song.isNowPlaying === next.song.isNowPlaying &&
+    prev.song.title === next.song.title &&
+    prev.song.artist === next.song.artist &&
+    prev.song.difficulty === next.song.difficulty &&
+    prev.votingId === next.votingId &&
+    prev.count === next.count &&
+    prev.maxVotes === next.maxVotes &&
+    prev.reduceMotion === next.reduceMotion &&
+    (prev.user?.isAdmin ?? false) === (next.user?.isAdmin ?? false)
+);
