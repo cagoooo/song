@@ -156,6 +156,12 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
         }
     }, [aiBusy, scrollToResult]);
 
+    // 辨識失敗 → 用同一張原圖再辨識一次（免重新上傳，提升 UX）
+    const retryRecognition = useCallback(() => {
+        const file = srcFileRef.current;
+        if (file && !aiBusy) void handleImage(file);
+    }, [aiBusy, handleImage]);
+
     const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) void handleImage(file);
@@ -874,7 +880,19 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                 </div>
                             )}
                             {ocrError && (
-                                <div className="ttm-ocr-error" role="alert">⚠ {ocrError}</div>
+                                <div className="ttm-ocr-error" role="alert">
+                                    <span className="ttm-ocr-error-msg">⚠ {ocrError}</span>
+                                    {srcFileRef.current && (
+                                        <button
+                                            type="button"
+                                            className="ttm-ocr-retry"
+                                            onClick={retryRecognition}
+                                            disabled={aiBusy}
+                                        >
+                                            🔄 重新辨識一次
+                                        </button>
+                                    )}
+                                </div>
                             )}
                             {srcImageUrl && !showOcrText ? (
                                 /* 圖片模式：原圖完整呈現（辨識文字不用再看，轉調結果在右欄） */
