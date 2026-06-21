@@ -83,7 +83,12 @@ function StarRating({
     );
 }
 
-export function NowPlayingNotification() {
+interface NowPlayingNotificationProps {
+    /** 管理員專用：按「吉他譜」時同時打開轉調工具（訪客不傳，故無此行為） */
+    onOpenTransposeTool?: () => void;
+}
+
+export function NowPlayingNotification({ onOpenTransposeTool }: NowPlayingNotificationProps = {}) {
     const nowPlaying = useNowPlaying();
     const { user } = useUser();
     const { toast } = useToast();
@@ -231,6 +236,7 @@ export function NowPlayingNotification() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center justify-center gap-1.5"
+                                    onClick={() => onOpenTransposeTool?.()}
                                 >
                                     <Music2 className="w-4 h-4" />
                                     <span>吉他譜</span>
