@@ -107,6 +107,34 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
         containerRef,
     });
 
+    // 「第一次正在彈奏」自動捲到該歌位置（訪客 + 管理員都適用）。
+    // 只在 now-playing 換成新歌時捲一次；首次載入只記錄不捲，避免一進來就被拉走。
+    const lastNowPlayingRef = useRef<string | null | undefined>(undefined);
+    useEffect(() => {
+        const npId = propSongs.find((s) => s.isNowPlaying)?.id ?? null;
+
+        // undefined = 尚未初始化（頁面載入）→ 只記錄不捲
+        if (lastNowPlayingRef.current === undefined) {
+            lastNowPlayingRef.current = npId;
+            return;
+        }
+        if (npId === lastNowPlayingRef.current) return;
+        lastNowPlayingRef.current = npId;
+        if (!npId) return;
+
+        // 若該歌在收合清單（前 10）外，先展開讓它渲染出來才捲得到
+        const inView = sortedSongs.some((s) => s.id === npId);
+        if (!inView) setIsExpanded(true);
+
+        const timer = window.setTimeout(() => {
+            document.getElementById(`ranking-song-${npId}`)?.scrollIntoView({
+                behavior: reduceMotion ? 'auto' : 'smooth',
+                block: 'center',
+            });
+        }, inView ? 80 : 280);
+        return () => window.clearTimeout(timer);
+    }, [propSongs, sortedSongs, reduceMotion]);
+
     // 處理彈奏標記切換（標記已彈奏時自動清除正在彈奏狀態）
     const handleTogglePlayed = useCallback(async (song: Song) => {
         if (!user?.id) return;
@@ -137,8 +165,8 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                 await clearNowPlaying();
                 toast({ title: '已停止', description: `「${song.title}」` });
             } else {
+                // 不再跳「正在彈奏」toast — 卡帶 NowPlaying 彈窗已呈現，避免重複
                 await setNowPlaying(song.id, user.id);
-                toast({ title: '🎸 正在彈奏', description: `「${song.title}」` });
             }
         } catch (error) {
             toast(getErrorToast(error));
@@ -268,6 +296,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                         return (
                         <motion.li
                             key={song.id}
+                            id={`ranking-song-${song.id}`}
                             layout="position"
                             aria-label={`第 ${index + 1} 名：${song.title} - ${song.artist}，${song.voteCount || 0} 票${surgeLevel > 0 ? `（${SURGE_META[surgeLevel as 1 | 2 | 3].label}）` : ''}`}
                             initial={{ opacity: 0, y: -10 }}
