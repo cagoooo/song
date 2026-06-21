@@ -1295,36 +1295,50 @@
     flex: 1 1 calc(50% - 6px);
     min-height: 38px;
   }
+  /* 手機端：壓縮全螢幕看譜工具列，把垂直高度讓給下方譜面 */
   .ttm-fullscreen {
-    gap: 8px;
-    padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    gap: 6px;
+    padding: max(7px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(9px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   }
   .ttm-fullscreen-bar {
     align-items: stretch;
     flex-direction: column;
+    gap: 6px;
     width: 100%;
     box-sizing: border-box;
   }
   .ttm-fullscreen-title {
-    font-size: 19px;
-    padding-right: 52px;
+    font-size: 17px;
+    padding-right: 0;
+    gap: 2px 8px;
+  }
+  .ttm-fullscreen-title em {
+    font-size: 11px;
   }
   .ttm-fullscreen-transpose {
     max-width: 100%;
     width: 100%;
     min-width: 0;
+    gap: 4px;
+    padding: 3px;
+  }
+  .ttm-fullscreen-transpose span {
+    padding: 0 4px;
+    font-size: 10px;
   }
   .ttm-fullscreen-transpose button {
-    min-height: 36px;
+    min-height: 32px;
     min-width: 30px;
     padding: 0 7px;
   }
   .ttm-fullscreen-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 6px;
     width: 100%;
     min-width: 0;
   }
+  /* 搜尋音樂：標籤與兩顆按鈕擠在同一列，超出時可水平捲動，省下一整列高度 */
   .ttm-music-search-fullscreen {
     grid-column: 1 / -1;
     display: flex;
@@ -1343,21 +1357,32 @@
   }
   .ttm-music-search-fullscreen span {
     flex: 0 0 auto;
+    font-size: 10px;
+    letter-spacing: 0.04em;
   }
   .ttm-music-search-fullscreen .ttm-music-link {
     flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 8px;
+    font-size: 11px;
   }
   .ttm-fullscreen-zoom {
     grid-column: 1 / -1;
     justify-content: center;
     width: 100%;
+    gap: 4px;
+    padding: 2px;
   }
   .ttm-fullscreen-zoom .ttm-fullscreen-btn {
     flex: 1 1 0;
   }
   .ttm-fullscreen-btn {
-    min-height: 42px;
+    min-height: 36px;
     padding: 0 10px;
+    font-size: 12px;
+  }
+  .ttm-fullscreen-btn.compact {
+    min-width: 0;
   }
   .ttm-fullscreen-scroll {
     width: 100%;
