@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CassetteScrews } from './CassetteShell';
@@ -9,15 +9,25 @@ interface ScrollToTopProps {
 
 export function ScrollToTop({ threshold = 300 }: ScrollToTopProps) {
     const [isVisible, setIsVisible] = useState(false);
+    const lastScrollY = useRef(0);
 
     useEffect(() => {
         const handleScroll = () => {
             const scrollY = window.scrollY || document.documentElement.scrollTop;
-            setIsVisible(scrollY > threshold);
+            const scrollingUp = scrollY < lastScrollY.current;
+            lastScrollY.current = scrollY;
+
+            if (scrollY <= threshold) {
+                setIsVisible(false);
+            } else if (scrollingUp) {
+                setIsVisible(true);
+            } else {
+                setIsVisible(false);
+            }
         };
 
+        lastScrollY.current = window.scrollY || document.documentElement.scrollTop;
         window.addEventListener('scroll', handleScroll, { passive: true });
-        handleScroll();
 
         return () => window.removeEventListener('scroll', handleScroll);
     }, [threshold]);

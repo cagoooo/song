@@ -17,6 +17,7 @@ import {
 import { getRememberedSteps, rememberSteps, sheetMemoryKey } from '@/lib/transposeMemory';
 import { buildChartFromSheet } from '@/lib/songChart';
 import { addSongWithChart } from '@/lib/firestore';
+import { extractMusicSearchQueryFromAiText, pickLyricSearchPhrase } from '@/lib/musicSearch';
 
 const HAS_CJK_RE = /[一-鿿぀-ヿ가-힯]/;
 
@@ -33,54 +34,7 @@ function replaceNonSpaceToken(line: string, idx: number, newTok: string): string
     return parts.join('');
 }
 
-function cleanMusicSearchText(text: string): string {
-    return text
-        .replace(/https?:\/\/\S+/gi, ' ')
-        .replace(/\b(?:www\.)?\w+\.(?:com|tw|net|org)\b/gi, ' ')
-        .replace(/\[[^\]]+\]/g, ' ')
-        .replace(/[｜|]+/g, ' ')
-        .replace(/\b[A-G](?:#|b)?(?:maj|min|m|dim|aug|sus|add)?\d*(?:\/[A-G](?:#|b)?)?\b/gi, ' ')
-        .replace(/[^\w\s\u3000\u3400-\u9fff，。！？、-]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
-function extractMusicSearchQueryFromAiText(text: string): string {
-    const lines = text
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean);
-    const readField = (patterns: RegExp[]) => {
-        for (const line of lines) {
-            for (const pattern of patterns) {
-                const match = line.match(pattern);
-                const value = cleanMusicSearchText(match?.[1] ?? '');
-                if (value && value.length <= 60) return value;
-            }
-        }
-        return '';
-    };
-    const title = readField([
-        /(?:歌名|歌曲名稱|曲名|title)\s*[：:]\s*(.+)$/i,
-        /(?:^|\s)(?:歌名|曲名)\s+(.+)$/i,
-    ]);
-    const artist = readField([
-        /(?:歌手|演唱|原唱|artist|singer)\s*[：:]\s*(.+)$/i,
-        /(?:^|\s)(?:歌手|演唱|原唱)\s+(.+)$/i,
-    ]);
-    if (title || artist) return [title, artist].filter(Boolean).join(' ');
-
-    const fallback = lines
-        .map(cleanMusicSearchText)
-        .find((line) => (
-            line.length >= 4
-            && line.length <= 42
-            && !/^(intro|verse|chorus|bridge|outro|前奏|主歌|副歌|間奏|尾奏)$/i.test(line)
-            && !/^[A-G](?:#|b)?(?:\s+[A-G](?:#|b)?)*$/i.test(line)
-        ));
-
-    return fallback ? fallback.slice(0, 42) : '';
-}
+// extractMusicSearchQueryFromAiText / cleanMusicSearchText 已抽到 @/lib/musicSearch
 
 interface TransposeToolModalProps {
     isOpen: boolean;
@@ -673,19 +627,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const musicSearchQuery = useMemo(() => {
         const explicit = [saveTitle.trim(), saveArtist.trim()].filter(Boolean).join(' ');
         if (explicit) return explicit;
-
-        const source = output || input;
-        const candidate = source
-            .split('\n')
-            .map((line) => line
-                .replace(/\[[^\]]+\]/g, ' ')
-                .replace(/\|?[A-G](?:#|b)?(?:maj|min|m|dim|aug|sus|add)?\d*(?:\/[A-G](?:#|b)?)?\|?/gi, ' ')
-                .replace(/[^\w\s\u3000\u3400-\u9fff，。！？、]/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim())
-            .find((line) => line.length >= 4);
-
-        return candidate ? candidate.slice(0, 36) : '';
+        return pickLyricSearchPhrase(output || input);
     }, [input, output, saveArtist, saveTitle]);
 
     const musicSearchQueryFromAi = useMemo(() => {
