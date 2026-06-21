@@ -381,7 +381,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
         scrollTop: number;
     } | null>(null);
 
-    const clampFullscreenZoom = useCallback((zoom: number) => Math.max(0.65, Math.min(2.8, zoom)), []);
+    const clampFullscreenZoom = useCallback((zoom: number) => Math.max(0.4, Math.min(2.8, zoom)), []);
     const changeFullscreenZoom = useCallback((delta: number) => {
         setFullscreenZoom((zoom) => clampFullscreenZoom(Number((zoom + delta).toFixed(2))));
     }, [clampFullscreenZoom]);
@@ -1105,7 +1105,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                     className="ttm-fullscreen-btn compact"
                                     onPointerDown={(e) => handleFullscreenZoomPointer(e, 'out')}
                                     onClick={(e) => handleFullscreenZoomClick(e, 'out')}
-                                    disabled={fullscreenZoom <= 0.65}
+                                    disabled={fullscreenZoom <= 0.4}
                                     aria-label="縮小看譜"
                                 >
                                     －
