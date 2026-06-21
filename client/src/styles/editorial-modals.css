@@ -832,6 +832,65 @@
   gap: 12px;
   width: min(1440px, 100%);
   margin: 0 auto;
+  transition: transform 0.28s ease, opacity 0.28s ease;
+}
+/* 沉浸看譜：工具列上滑收起，scroll 取得整個畫面 */
+.ttm-fullscreen.is-immersive {
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
+}
+.ttm-fullscreen.is-immersive .ttm-fullscreen-bar {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+  right: max(14px, env(safe-area-inset-right));
+  width: auto;
+  transform: translateY(-130%);
+  opacity: 0;
+  pointer-events: none;
+}
+/* 收起時的半透明小握把，輕點喚回工具列（手機點譜面也可喚回） */
+.ttm-fullscreen-grip {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 4;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 16px;
+  border: 1px solid rgba(17, 17, 17, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.82);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--ed-ink-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(17, 17, 17, 0.16);
+  opacity: 0;
+  transform: translateX(-50%) translateY(-6px);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+  touch-action: manipulation;
+}
+.ttm-fullscreen.is-immersive .ttm-fullscreen-grip {
+  display: inline-flex;
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.ttm-fullscreen-grip:hover {
+  color: var(--ed-ink-1);
+  border-color: var(--ed-accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ttm-fullscreen-bar,
+  .ttm-fullscreen-grip {
+    transition: none;
+  }
 }
 .ttm-fullscreen-title {
   display: flex;
@@ -911,7 +970,8 @@
   background: var(--ed-accent);
   color: #fff;
 }
-.ttm-fullscreen-zoom {
+.ttm-fullscreen-zoom,
+.ttm-fullscreen-font {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1003,7 +1063,7 @@
   padding: clamp(16px, 2.8vw, 34px);
   border: 0;
   border-radius: 0;
-  font-size: var(--ttm-fullscreen-base-size);
+  font-size: calc(var(--ttm-fullscreen-base-size) * var(--ttm-fullscreen-font-scale, 1));
   line-height: 1.75;
   box-shadow: none;
   overflow: visible;
@@ -1366,13 +1426,16 @@
     padding: 0 8px;
     font-size: 11px;
   }
+  /* 字級與縮放各佔半列、並排一行，不額外增加工具列高度 */
+  .ttm-fullscreen-font,
   .ttm-fullscreen-zoom {
-    grid-column: 1 / -1;
+    grid-column: span 1;
     justify-content: center;
     width: 100%;
     gap: 4px;
     padding: 2px;
   }
+  .ttm-fullscreen-font .ttm-fullscreen-btn,
   .ttm-fullscreen-zoom .ttm-fullscreen-btn {
     flex: 1 1 0;
   }

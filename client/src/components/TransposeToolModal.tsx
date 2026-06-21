@@ -366,6 +366,10 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const [dlBusy, setDlBusy] = useState<string | null>(null);
     const [isFullScreenOpen, setIsFullScreenOpen] = useState(false);
     const [fullscreenZoom, setFullscreenZoom] = useState(1);
+    // 字級與縮放解耦：字級調整實際 font-size（清晰不糊），zoom 走 transform 供整體俯瞰
+    const [fullscreenFontScale, setFullscreenFontScale] = useState(1);
+    // 沉浸看譜：無操作時自動收起工具列，輕點譜面再喚回，讓譜面接近滿版
+    const [toolbarHidden, setToolbarHidden] = useState(false);
     const [fullscreenContentSize, setFullscreenContentSize] = useState({ width: 0, height: 0 });
     const dlRef = useRef<HTMLDivElement>(null);
     const outputRef = useRef<HTMLPreElement>(null);
@@ -374,6 +378,8 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const fullscreenScrollRef = useRef<HTMLDivElement>(null);
     const fullscreenOutputRef = useRef<HTMLPreElement>(null);
     const zoomPointerHandledRef = useRef(false);
+    const hideToolbarTimerRef = useRef<number | null>(null);
+    const sheetTapRef = useRef<{ x: number; y: number; t: number; moved: boolean } | null>(null);
     const singleTouchStartRef = useRef<{
         x: number;
         y: number;
@@ -388,6 +394,29 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const resetFullscreenZoom = useCallback(() => {
         setFullscreenZoom(1);
     }, []);
+
+    // ===== 字級控制（與 zoom 解耦）=====
+    const clampFontScale = useCallback((s: number) => Math.max(0.7, Math.min(2.4, s)), []);
+    const changeFontScale = useCallback((delta: number) => {
+        setFullscreenFontScale((s) => clampFontScale(Number((s + delta).toFixed(2))));
+    }, [clampFontScale]);
+    const resetFontScale = useCallback(() => setFullscreenFontScale(1), []);
+
+    // ===== 工具列自動隱藏 / 喚回 =====
+    const clearHideToolbarTimer = useCallback(() => {
+        if (hideToolbarTimerRef.current != null) {
+            window.clearTimeout(hideToolbarTimerRef.current);
+            hideToolbarTimerRef.current = null;
+        }
+    }, []);
+    const scheduleHideToolbar = useCallback(() => {
+        clearHideToolbarTimer();
+        hideToolbarTimerRef.current = window.setTimeout(() => setToolbarHidden(true), 4000);
+    }, [clearHideToolbarTimer]);
+    const revealToolbar = useCallback(() => {
+        setToolbarHidden(false);
+        scheduleHideToolbar();
+    }, [scheduleHideToolbar]);
     const handleFullscreenZoomPointer = useCallback((
         e: React.PointerEvent<HTMLButtonElement>,
         action: 'in' | 'out' | 'reset',
@@ -475,6 +504,31 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
         }
     }, [fullscreenZoom]);
 
+    // 輕點譜面（非拖曳、非縮放）= 切換工具列顯示；拖曳捲動 / 雙指縮放不觸發
+    const handleSheetPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+        sheetTapRef.current = { x: e.clientX, y: e.clientY, t: Date.now(), moved: false };
+    }, []);
+    const handleSheetPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+        const start = sheetTapRef.current;
+        if (!start) return;
+        if (Math.abs(e.clientX - start.x) > 10 || Math.abs(e.clientY - start.y) > 10) {
+            start.moved = true;
+        }
+    }, []);
+    const handleSheetPointerUp = useCallback(() => {
+        const start = sheetTapRef.current;
+        sheetTapRef.current = null;
+        if (!start || start.moved || Date.now() - start.t > 400) return;
+        setToolbarHidden((hidden) => {
+            if (hidden) {
+                scheduleHideToolbar();
+                return false;
+            }
+            clearHideToolbarTimer();
+            return true;
+        });
+    }, [scheduleHideToolbar, clearHideToolbarTimer]);
+
     const measureFullscreenOutput = useCallback(() => {
         const el = fullscreenOutputRef.current;
         if (!el) return;
@@ -516,19 +570,61 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
             : undefined;
         return {
             '--ttm-fullscreen-zoom': fullscreenZoom,
+            '--ttm-fullscreen-font-scale': fullscreenFontScale,
             width,
             height,
         } as React.CSSProperties;
-    }, [fullscreenContentSize.height, fullscreenContentSize.width, fullscreenZoom]);
+    }, [fullscreenContentSize.height, fullscreenContentSize.width, fullscreenZoom, fullscreenFontScale]);
 
     useEffect(() => {
         if (!isFullScreenOpen) return;
         setFullscreenZoom(1);
+        setFullscreenFontScale(1);
+        setToolbarHidden(false);
+        scheduleHideToolbar();
         const onKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setIsFullScreenOpen(false);
         };
         document.addEventListener('keydown', onKeyDown);
-        return () => document.removeEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('keydown', onKeyDown);
+            clearHideToolbarTimer();
+        };
+    }, [isFullScreenOpen, scheduleHideToolbar, clearHideToolbarTimer]);
+
+    // 全螢幕看譜時請求螢幕常亮（Wake Lock），避免彈唱中手機自動鎖屏；不支援則靜默降級
+    useEffect(() => {
+        if (!isFullScreenOpen) return undefined;
+        const nav = navigator as Navigator & {
+            wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> };
+        };
+        if (!nav.wakeLock?.request) return undefined;
+        let sentinel: { release: () => Promise<void> } | null = null;
+        let cancelled = false;
+        const acquire = async () => {
+            try {
+                const lock = await nav.wakeLock!.request('screen');
+                if (cancelled) {
+                    void lock.release();
+                } else {
+                    sentinel = lock;
+                }
+            } catch {
+                /* 不支援或被拒，靜默降級 */
+            }
+        };
+        // 切到背景再回前景時 Wake Lock 會自動釋放，需重新請求
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible' && !cancelled) void acquire();
+        };
+        void acquire();
+        document.addEventListener('visibilitychange', onVisibility);
+        return () => {
+            cancelled = true;
+            document.removeEventListener('visibilitychange', onVisibility);
+            try { void sentinel?.release(); } catch { /* noop */ }
+            sentinel = null;
+        };
     }, [isFullScreenOpen]);
 
     // 點選單外面就關閉
@@ -1069,8 +1165,24 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                     </div>
                 </div>
             {isFullScreenOpen && output && (
-                <div className="ttm-fullscreen" role="dialog" aria-modal="true" aria-label="全螢幕轉調結果">
-                    <div className="ttm-fullscreen-bar">
+                <div
+                    className={`ttm-fullscreen${toolbarHidden ? ' is-immersive' : ''}`}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="全螢幕轉調結果"
+                >
+                    <button
+                        type="button"
+                        className="ttm-fullscreen-grip"
+                        onClick={revealToolbar}
+                        aria-label="顯示工具列"
+                    >
+                        ⋯ 工具列
+                    </button>
+                    <div
+                        className="ttm-fullscreen-bar"
+                        onPointerDown={revealToolbar}
+                    >
                         <div className="ttm-fullscreen-title">
                             <span>全螢幕看譜</span>
                             <em>
@@ -1099,6 +1211,34 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                         )}
                         <div className="ttm-fullscreen-actions">
                             {renderMusicSearchButtons('fullscreen')}
+                            <div className="ttm-fullscreen-font" aria-label="全螢幕看譜字級控制">
+                                <button
+                                    type="button"
+                                    className="ttm-fullscreen-btn compact"
+                                    onClick={() => changeFontScale(-0.1)}
+                                    disabled={fullscreenFontScale <= 0.7}
+                                    aria-label="縮小字級"
+                                >
+                                    A－
+                                </button>
+                                <button
+                                    type="button"
+                                    className="ttm-fullscreen-btn compact"
+                                    onClick={resetFontScale}
+                                    aria-label="重設字級"
+                                >
+                                    A
+                                </button>
+                                <button
+                                    type="button"
+                                    className="ttm-fullscreen-btn compact"
+                                    onClick={() => changeFontScale(0.1)}
+                                    disabled={fullscreenFontScale >= 2.4}
+                                    aria-label="放大字級"
+                                >
+                                    A＋
+                                </button>
+                            </div>
                             <div className="ttm-fullscreen-zoom" aria-label="全螢幕看譜縮放控制">
                                 <button
                                     type="button"
@@ -1154,6 +1294,9 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                         onTouchStart={handleFullscreenTouchStart}
                         onTouchMove={handleFullscreenTouchMove}
                         onTouchEnd={handleFullscreenTouchEnd}
+                        onPointerDown={handleSheetPointerDown}
+                        onPointerMove={handleSheetPointerMove}
+                        onPointerUp={handleSheetPointerUp}
                     >
                         <div className="ttm-fullscreen-canvas" style={fullscreenCanvasStyle}>
                             <pre
