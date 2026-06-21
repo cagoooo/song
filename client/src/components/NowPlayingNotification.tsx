@@ -2,11 +2,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music2, FileText, X, ExternalLink, Star } from 'lucide-react';
+import { Music2, FileText, X, ExternalLink, Star, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNowPlaying } from '@/hooks/useNowPlaying';
 import { useInteractions } from '@/hooks/useInteractions';
 import { useUser } from '@/hooks/use-user';
+import { useToast } from '@/hooks/use-toast';
+import { markSongAsPlayed, clearNowPlaying } from '@/lib/firestore';
+import { getErrorToast } from '@/lib/error-handler';
 import type { TipType } from '@/lib/firestore';
 
 // 打賞類型列表
@@ -83,7 +86,9 @@ function StarRating({
 export function NowPlayingNotification() {
     const nowPlaying = useNowPlaying();
     const { user } = useUser();
+    const { toast } = useToast();
     const [isDismissed, setIsDismissed] = useState(false);
+    const [markingPlayed, setMarkingPlayed] = useState(false);
     const [lastSongId, setLastSongId] = useState<string | null>(null);
     const [showTipSent, setShowTipSent] = useState<TipType | null>(null);
     const [showRatingSent, setShowRatingSent] = useState(false);
@@ -112,6 +117,23 @@ export function NowPlayingNotification() {
     const handleDismiss = useCallback(() => {
         setIsDismissed(true);
     }, []);
+
+    // 管理員一鍵「標記已彈奏」：清除正在彈奏 + 標記已彈奏 + 自動關閉彈窗
+    // 省去管理員回排行榜茫茫歌海中找這首歌切換的麻煩
+    const handleMarkPlayed = useCallback(async () => {
+        if (!user?.id || !songId || markingPlayed) return;
+        setMarkingPlayed(true);
+        try {
+            await clearNowPlaying();
+            await markSongAsPlayed(songId, user.id);
+            toast({ title: '✓ 已彈奏', description: `「${nowPlaying?.song?.title ?? ''}」` });
+            setIsDismissed(true);
+        } catch (error) {
+            toast(getErrorToast(error));
+        } finally {
+            setMarkingPlayed(false);
+        }
+    }, [user?.id, songId, markingPlayed, nowPlaying?.song?.title, toast]);
 
     // 發送打賞
     const onTip = useCallback(async (tipType: TipType) => {
@@ -217,6 +239,20 @@ export function NowPlayingNotification() {
                                 </a>
                             </Button>
                         </div>
+
+                        {/* 管理員一鍵標記已彈奏（按下即標記 + 自動關閉，免回排行榜找歌） */}
+                        {isAdmin && (
+                            <button
+                                type="button"
+                                onClick={handleMarkPlayed}
+                                disabled={markingPlayed}
+                                className="now-playing-card-played mb-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-md border-2 border-[#111] bg-emerald-600 text-sm font-bold text-white shadow-none transition-[transform,background] hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                aria-label="標記為已彈奏並關閉"
+                            >
+                                <Check className="w-4 h-4" />
+                                <span>{markingPlayed ? '標記中…' : '標記已彈奏'}</span>
+                            </button>
+                        )}
 
                         {/* 互動區域：打賞 + 評分 */}
                         <div className="now-playing-card-signal rounded-md border border-[#111]/15 bg-white/70 p-2.5">
