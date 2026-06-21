@@ -172,13 +172,28 @@ export function NowPlayingNotification() {
                             <span className="h-2 w-2 rounded-full bg-[#2f55ff]" />
                             <span className="truncate">Now Playing · Side A</span>
                         </div>
-                        <button
-                            onClick={handleDismiss}
-                            className="now-playing-card-close grid h-7 w-7 place-items-center rounded-full border border-white/25 text-white/70 transition-colors hover:bg-white hover:text-[#111]"
-                            aria-label="關閉通知"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
+                        <div className="flex shrink-0 items-center gap-2">
+                            {/* 管理員一鍵標記已彈奏（精簡膠囊，放標題列右上不佔垂直版面） */}
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={handleMarkPlayed}
+                                    disabled={markingPlayed}
+                                    className="now-playing-card-played flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                    aria-label="標記為已彈奏並關閉"
+                                >
+                                    <Check className="h-3 w-3" />
+                                    <span>{markingPlayed ? '標記中' : '已彈奏'}</span>
+                                </button>
+                            )}
+                            <button
+                                onClick={handleDismiss}
+                                className="now-playing-card-close grid h-7 w-7 place-items-center rounded-full border border-white/25 text-white/70 transition-colors hover:bg-white hover:text-[#111]"
+                                aria-label="關閉通知"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="now-playing-card-body relative px-4 py-3 sm:px-5 sm:py-4">
@@ -239,20 +254,6 @@ export function NowPlayingNotification() {
                                 </a>
                             </Button>
                         </div>
-
-                        {/* 管理員一鍵標記已彈奏（按下即標記 + 自動關閉，免回排行榜找歌） */}
-                        {isAdmin && (
-                            <button
-                                type="button"
-                                onClick={handleMarkPlayed}
-                                disabled={markingPlayed}
-                                className="now-playing-card-played mb-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-md border-2 border-[#111] bg-emerald-600 text-sm font-bold text-white shadow-none transition-[transform,background] hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                aria-label="標記為已彈奏並關閉"
-                            >
-                                <Check className="w-4 h-4" />
-                                <span>{markingPlayed ? '標記中…' : '標記已彈奏'}</span>
-                            </button>
-                        )}
 
                         {/* 互動區域：打賞 + 評分 */}
                         <div className="now-playing-card-signal rounded-md border border-[#111]/15 bg-white/70 p-2.5">
