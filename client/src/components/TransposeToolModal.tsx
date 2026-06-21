@@ -162,6 +162,19 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
         if (file && !aiBusy) void handleImage(file);
     }, [aiBusy, handleImage]);
 
+    // 「清除」→ 完整歸零：圖片、辨識文字、輸入框、轉調位移、狀態提示全清空
+    const clearAll = useCallback(() => {
+        setSrcImageUrl(null);
+        srcFileRef.current = null;
+        setShowOcrText(false);
+        setInput('');
+        setAiRecognizedText('');
+        setSteps(0);
+        setOcrError(null);
+        setOcrDone(false);
+        setOcrMsg(null);
+    }, []);
+
     const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) void handleImage(file);
@@ -839,8 +852,8 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                             </button>
                                             <button
                                                 className="ttm-pane-btn danger"
-                                                onClick={() => { setSrcImageUrl(null); srcFileRef.current = null; setShowOcrText(false); }}
-                                                aria-label="清除圖片，回到文字輸入"
+                                                onClick={clearAll}
+                                                aria-label="清除全部，清空輸入框與圖片"
                                             >
                                                 ✕ 清除
                                             </button>
