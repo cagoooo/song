@@ -295,7 +295,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                 ${song.isNowPlaying
                                     ? 'bg-[#2b4dff]/[0.08] border-2 border-[#2b4dff] shadow-md ring-2 ring-[#2b4dff]/20'
                                     : song.isPlayed
-                                        ? 'bg-slate-100/80 border border-slate-300 border-l-4 border-l-slate-500'
+                                        ? 'bg-emerald-50/80 border border-emerald-200 border-l-4 border-l-emerald-500'
                                         : ''}
                                 ${!song.isNowPlaying && !song.isPlayed && (index === 0
                                     ? 'bg-[#faf7f0] border-l-4 border-l-[#b8902a] border border-[rgba(17,17,17,0.14)] shadow-sm'
@@ -306,7 +306,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                             : 'bg-white border border-slate-200/80 hover:border-slate-300 hover:shadow-sm')}
                                 ${showRankChange[song.id] === 'up' ? 'ring-2 ring-[#2b4dff]/30' :
                                     showRankChange[song.id] === 'down' ? 'ring-2 ring-slate-300' : ''}
-                                ${index < 3 && !song.isNowPlaying ? 'hover:shadow-md' : !song.isNowPlaying ? 'hover:bg-slate-50/50' : ''}
+                                ${index < 3 && !song.isNowPlaying ? 'hover:shadow-md' : !song.isNowPlaying && !song.isPlayed ? 'hover:bg-slate-50/50' : ''}
                                 ${surgeRing}
                             `}
                         >
@@ -377,7 +377,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     {/* 已彈奏標籤 */}
                                     {song.isPlayed && !song.isNowPlaying && (
                                         <span
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-700 text-white shrink-0 shadow-sm"
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600 text-white shrink-0 shadow-sm"
                                             style={{
                                                 fontFamily: 'var(--font-mono)',
                                                 fontSize: 10,
