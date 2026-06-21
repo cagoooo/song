@@ -813,6 +813,9 @@
 .ttm-dialog-fullscreen-shell > button.absolute {
   display: none;
 }
+.ttm-dialog-fullscreen-shell .ttm-modal-close {
+  display: none;
+}
 .ttm-fullscreen {
   position: absolute;
   inset: 0;
@@ -881,6 +884,16 @@
   display: inline-flex;
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+@media (max-width: 768px) {
+  .ttm-fullscreen-grip {
+    left: auto;
+    right: max(14px, env(safe-area-inset-right));
+    transform: translateY(-6px);
+  }
+  .ttm-fullscreen.is-immersive .ttm-fullscreen-grip {
+    transform: translateY(0);
+  }
 }
 .ttm-fullscreen-grip:hover {
   color: var(--ed-ink-1);
@@ -1063,7 +1076,7 @@
   padding: clamp(16px, 2.8vw, 34px);
   border: 0;
   border-radius: 0;
-  font-size: calc(var(--ttm-fullscreen-base-size) * var(--ttm-fullscreen-font-scale, 1));
+  font-size: calc(var(--ttm-fullscreen-base-size) * var(--ttm-fullscreen-font-scale, 1)) !important;
   line-height: 1.75;
   box-shadow: none;
   overflow: visible;
@@ -1453,7 +1466,7 @@
   }
   .ttm-output-fullscreen {
     --ttm-fullscreen-base-size: clamp(17px, 5.2vw, 23px);
-    padding: 14px;
+    padding: 24px 14px 14px;
     line-height: 1.85;
   }
 }
