@@ -950,8 +950,8 @@ export default function Home() {
         <ScrollToTop threshold={400} />
       </FloatingStack>
 
-      {/* 正在彈奏中通知（訪客即時接收） */}
-      <NowPlayingNotification />
+      {/* 正在彈奏中通知（訪客即時接收）。管理員按「吉他譜」時自動同時開轉調工具（訪客不傳此 callback） */}
+      <NowPlayingNotification onOpenTransposeTool={canUseTransposeTool ? openTransposeTool : undefined} />
 
       {/* Up Next 底部 sticky 隊列條 — 演出中 / 觀眾剛投票 / 待開場三種狀態 */}
       <UpNextBar
