@@ -188,17 +188,28 @@ interface ChordToken {
 /** 把 token 拆成 裝飾前綴 + 和弦本體 + 裝飾後綴；不是和弦 token → null */
 function parseChordToken(token: string): ChordToken | null {
     if (BRACKETED_TOKEN_RE.test(token)) return null; // [A] 段落記號
-    const m = token.match(DECOR_TOKEN_RE);
+    
+    let outerPrefix = '';
+    let restToken = token;
+    
+    // 偵測並分離前置的 [段落] 記號，例如 [前奏]|G 拆出 [前奏]
+    const bracketMatch = token.match(/^(\[[^\]]+\])(.*)$/);
+    if (bracketMatch) {
+        outerPrefix = bracketMatch[1];
+        restToken = bracketMatch[2];
+    }
+    
+    const m = restToken.match(DECOR_TOKEN_RE);
     if (!m) return null;
     const [, prefix, core, suffix] = m;
     if (!core) return null;
-    if (isChordSymbol(core)) return { prefix, parts: [core], suffix };
+    if (isChordSymbol(core)) return { prefix: outerPrefix + prefix, parts: [core], suffix };
     // 連寫和弦 Em7-Dm7 / C-G — 先整顆試過才拆，避免誤拆 Cm7-5
     if (core.includes('-')) {
         const segs = core.split(/(-)/);
         const chords = segs.filter((_, i) => i % 2 === 0);
         if (chords.length > 1 && chords.every((c) => c && isChordSymbol(c))) {
-            return { prefix, parts: segs, suffix };
+            return { prefix: outerPrefix + prefix, parts: segs, suffix };
         }
     }
     return null;

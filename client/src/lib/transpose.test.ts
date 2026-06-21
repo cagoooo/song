@@ -184,6 +184,11 @@ describe('91 譜黏寫格式 — |Cmaj7 / (C) / Em7-Dm7 / [A]', () => {
         expect(transposeChordLine('Cm7-5', 2)).toBe('Dm7-5');
     });
 
+    it('支援前置段落標記與和弦黏寫（例如 [前奏]|G 轉調）', () => {
+        expect(transposeChordLine('[前奏]|G |Dm7/C |', 2)).toBe('[前奏]|A |Em7/D |');
+        expect(transposeChordLine('[間奏]G', 2)).toBe('[間奏]A');
+    });
+
     it('黏寫格式的行被判定為和弦行 + 調性偵測有效', () => {
         expect(isChordLine('[A] |Cmaj7 |Bm7 |Am7 C/D |Gmaj7 |')).toBe(true);
         expect(extractChords('|Cmaj7 |Bm7 |Am7 C/D |Gmaj7 |')).toEqual(['Cmaj7', 'Bm7', 'Am7', 'C/D', 'Gmaj7']);
@@ -212,6 +217,8 @@ describe('isChordLine — 和弦行偵測', () => {
     it('混合行：黏寫和弦＝鐵證（OCR 把譜邊中文註記併進和弦行）', () => {
         expect(isChordLine('|Cmaj7 |Bm7 |Am7 C/D |Gmaj7 | 參考 指法')).toBe(true);
         expect(isChordLine('|Am7 Ip |')).toBe(true); // 比例僅 50%，但 |Am7 黏寫是鐵證
+        expect(isChordLine('[前奏]|G |Dm7/C |')).toBe(true);
+        expect(isChordLine('[間奏]G')).toBe(true);
         expect(transposeChordLine('|Am7 D | 參考 指法', 2, { preferFlat: false }))
             .toBe('|Bm7 E | 參考 指法');
     });
