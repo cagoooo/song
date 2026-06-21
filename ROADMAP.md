@@ -10,6 +10,7 @@
 | 防溢位結構合併 | 推送時與另一條分支（`claude/mobile-layout-overflow`，已先合併 main）撞 6 處 CSS 衝突；採「保留遠端較穩健的水平捲動防溢位結構（`min-width:0` + `box-sizing` + 搜尋音樂列 flex `nowrap` + `overflow-x:auto`），套上本次更緊湊的尺寸值」逐處手動解衝突，最終以 `further compact` commit 收斂兩邊。 | [editorial-modals.css](client/src/styles/editorial-modals.css) | 已合併上線 |
 | RWD 與按鈕可用性 | 維持 RWD：轉調 12 鍵、Spotify / YouTube Music、縮放 −/%/＋、複製、關閉所有按鈕點擊行為不變，僅調樣式；搜尋音樂列改為超出可水平捲動，長字（YouTube Music）不再擠壓換行。 | [editorial-modals.css](client/src/styles/editorial-modals.css) | 已合併上線 |
 | SW 自動部署確認 | 確認本專案 Service Worker 版本**無需手動 bump**：`prebuild` 跑 [stamp-sw-version.mjs](scripts/stamp-sw-version.mjs) 自動把 `CACHE_VERSION` 印成「版本號-git短hash-build時間戳」三段式，每次 push 必變；`deploy.yml`（push main 觸發）build 後自動部署 GitHub Pages，本次部署 1m6s success，使用者下次開站即收到更新提示。 | [stamp-sw-version.mjs](scripts/stamp-sw-version.mjs)、[deploy.yml](.github/workflows/deploy.yml) | Actions success ✅ |
+| 沉浸看譜三連發（P0 #1/#2/#3）| **#1 工具列自動隱藏 + 點一下喚回**：無操作 4 秒上滑收起、輕點譜面切換、收起時留半透明握把；`is-immersive` 改單列 grid + bar 轉 absolute 滑出，scroll 撐滿畫面。**#2 螢幕常亮 Wake Lock**：進全螢幕請求、離開釋放、回前景自動重請求、不支援靜默降級。**#3 字級與縮放解耦**：新增 A－/A/A＋ 獨立字級（實際 font-size 不糊），zoom 維持 transform 俯瞰；手機端字級/縮放並排不增高。 | [TransposeToolModal.tsx](client/src/components/TransposeToolModal.tsx)、[editorial-modals.css](client/src/styles/editorial-modals.css)（`a7920e8`）| tsc ✅ / build ✅ 無 warning，已合併上線；Wake Lock 與真機手勢待裝置實測 |
 
 ## 未來優化改良與可開發功能建議（依「全螢幕看譜 / 手機閱讀體驗」方向）
 
@@ -17,9 +18,9 @@
 
 ### P0：榨出更多譜面空間（延續本次方向，最低成本最高感受）
 
-1. **工具列自動隱藏 + 點一下喚回**🟡：看譜進入「沉浸模式」後，3–5 秒無操作自動把整條工具列上滑收起（保留一個半透明小握把或浮動的縮放 / 關閉迷你鈕），輕點譜面任一處再滑回。這是讓譜面接近 100% 全螢幕的最大單一槓桿，遠勝逐項縮 px。
-2. **螢幕常亮（Wake Lock API）**🟢：看譜彈唱時手機常會自動鎖屏。進入全螢幕看譜時請求 `navigator.wakeLock`，離開時釋放；不支援時靜默降級。對現場演出體感極大、成本極低。
-3. **字級與縮放解耦**🟢：目前縮放是 `transform: scale()`，放大會略糊且連同 padding 一起放大。新增獨立「字級 A− / A＋」控制（直接調 `--ttm-fullscreen-base-size`），讓使用者把字放大而不放大空白、不犧牲清晰度；`scale` 保留給整體俯瞰。
+1. ~~**工具列自動隱藏 + 點一下喚回**🟡~~ ✅ **已完成（6/21, `a7920e8`）**：無操作 4 秒上滑收起、輕點譜面切換、收起時保留半透明握把。這是讓譜面接近 100% 全螢幕的最大單一槓桿。
+2. ~~**螢幕常亮（Wake Lock API）**🟢~~ ✅ **已完成（6/21, `a7920e8`）**：進全螢幕請求 `navigator.wakeLock`、離開釋放、回前景自動重請求、不支援靜默降級。
+3. ~~**字級與縮放解耦**🟢~~ ✅ **已完成（6/21, `a7920e8`）**：新增 A－/A/A＋ 獨立字級（實際 `font-size` 不糊），`scale` 保留俯瞰。
 4. **記住每首譜的縮放與捲動位置**🟢：用內容 hash 或 song id 把上次的 `fullscreenZoom`（及捲動位置）存 localStorage，重開同一份譜自動套用——沿用既有 [transposeMemory.ts](client/src/lib/transposeMemory.ts) 的記憶模式。
 5. **工具列高度上限防回歸測試**🟡：補一條斷言「390px / 430px 下工具列高度不得超過視窗的 40%」，避免日後新增按鈕又把譜面擠小（呼應既有 ROADMAP 的視覺回歸測試訴求）。
 
