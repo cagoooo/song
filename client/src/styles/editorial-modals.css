@@ -2389,6 +2389,29 @@
   width: min(420px, calc(100vw - 28px));
   padding: 0;
 }
+/* 隱藏 DialogContent 內建的關閉鈕（已有自訂的 .share-cassette-close，避免重疊） */
+.share-cassette-dialog > button.absolute {
+  display: none;
+}
+/* RWD：限制卡片高度並讓內容可內部捲動，避免短螢幕（手機）下 QR 以下的
+   社群按鈕／說明文字被裁切而捲不到（頂條與標題固定，body 區捲動）。 */
+.share-cassette-dialog {
+  display: flex !important;
+  flex-direction: column;
+  gap: 0 !important;
+  max-height: min(92dvh, calc(100dvh - max(8px, env(safe-area-inset-top)))) !important;
+}
+.share-cassette-top,
+.share-cassette-header {
+  flex: 0 0 auto;
+}
+.share-cassette-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .song-edit-cassette-top,
 .share-cassette-top {
   display: flex;
