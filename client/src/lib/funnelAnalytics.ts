@@ -67,6 +67,12 @@ export function trackEvent(name: FunnelEvent): void {
     } catch {
         /* 埋點永不影響主流程 */
     }
+    // 跨裝置彙整：核心轉換事件 best-effort 上傳 Firestore（動態載入避免耦合 firebase）
+    try {
+        void import('./firestore/funnelEvents').then((m) => m.sinkFunnelEvent(name)).catch(() => {});
+    } catch {
+        /* 忽略 */
+    }
 }
 
 /** 取得本機累積漏斗摘要（含轉換率），供 console / 後台檢視。 */
