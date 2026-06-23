@@ -62,6 +62,20 @@ self.addEventListener('message', (event) => {
     }
 });
 
+// Background Sync（bonus；僅支援的瀏覽器，如 Chromium）：
+// 連線恢復時喚醒 SW，通知開著的前端去補送離線推薦佇列。
+// ⚠️ 僅作「喚醒 + 通知前端」之用，實際寫入仍由前端 Firestore SDK 處理（不在 SW 內寫 Firestore），
+//    避免在 SW 內處理憑證 / App Check / 資料編碼的複雜與風險。
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'flush-suggestions') {
+        event.waitUntil(
+            self.clients
+                .matchAll({ includeUncontrolled: true, type: 'window' })
+                .then((clients) => clients.forEach((c) => c.postMessage({ type: 'FLUSH_SUGGESTIONS' }))),
+        );
+    }
+});
+
 // 啟動事件 - 清理舊版本緩存
 self.addEventListener('activate', (event) => {
     console.log('[SW] 啟動中...');
