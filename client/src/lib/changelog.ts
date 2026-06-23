@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.16.0',
+        date: '2026-06-23',
+        items: [
+            '推薦表單會記住你的稱呼，下次自動帶回，免每次重打',
+            '相似歌名只柔性提示、不再硬擋送出（只有完全相同才會跳確認）',
+        ],
+    },
+    {
         version: '4.15.0',
         date: '2026-06-23',
         items: [

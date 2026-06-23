@@ -46,6 +46,13 @@ interface SuggestionFormProps {
 
 // 表單草稿：打到一半誤關 / 切走 / 重新整理也不消失
 const DRAFT_KEY = 'song-suggestion-draft-v1';
+// 記住「你的稱呼」：送出成功後保留，下次開表單自動帶回（常客免每次重打）
+const NAME_KEY = 'song-suggestion-name-v1';
+// 重複偵測門檻（集中管理，方便依現場誤判率調整）：
+//   - LIVE_HINT_THRESHOLD：打字時的「柔性提示」門檻，較寬鬆，只提示不擋送出
+//   - 送出時「硬擋」只在標準化完全相同（matchType === 'exact'）才跳確認框，
+//     避免相似歌名（如「再見的時候」vs「再見」）擋住使用者點不同的歌
+const LIVE_HINT_THRESHOLD = 0.6;
 interface SuggestionDraft {
     title: string;
     artist: string;
@@ -88,7 +95,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
     const initialDraft = useMemo(() => loadDraft<SuggestionDraft>(DRAFT_KEY), []);
     const [title, setTitle] = useState(initialDraft?.title ?? '');
     const [artist, setArtist] = useState(initialDraft?.artist ?? '');
-    const [suggestedBy, setSuggestedBy] = useState(initialDraft?.suggestedBy ?? '');
+    const [suggestedBy, setSuggestedBy] = useState(initialDraft?.suggestedBy ?? loadDraft<string>(NAME_KEY) ?? '');
     const [notes, setNotes] = useState(initialDraft?.notes ?? '');
     // 是否有回填草稿 → 顯示「已回填上次草稿」提示，可一鍵清除
     const [draftRestored, setDraftRestored] = useState(
@@ -106,6 +113,12 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
         if (!isOpen) return;
         const release = beginComposing();
         return release;
+    }, [isOpen]);
+
+    // 開表單時若「稱呼」是空的，自動帶回上次記住的名字（表單一直掛載，送出後會被清空）
+    useEffect(() => {
+        if (!isOpen) return;
+        setSuggestedBy((prev) => prev || loadDraft<string>(NAME_KEY) || '');
     }, [isOpen]);
 
     // 漏斗埋點：本次開啟的 session 狀態（是否打過字 / 是否已送出）
@@ -182,7 +195,8 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
             return;
         }
         const timer = setTimeout(() => {
-            const match = checkDuplicate(title, artist);
+            // 柔性提示：用較寬鬆門檻，抓到相似就提示（但不擋送出）
+            const match = findDuplicateSong(title, artist, songs, LIVE_HINT_THRESHOLD);
             setLiveMatch(match);
             // 漏斗埋點：本次 session 第一次出現重複提示記一次
             if (match && !hintShownThisSessionRef.current) {
@@ -191,7 +205,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
             }
         }, 400);
         return () => clearTimeout(timer);
-    }, [title, artist, checkDuplicate]);
+    }, [title, artist, songs]);
 
     const addSuggestionMutation = useMutation({
         mutationFn: async () => {
@@ -200,6 +214,10 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
         onSuccess: ({ id: newId, queued }) => {
             submittedThisSessionRef.current = true;
             trackEvent('suggestion_submit_success');
+            // 記住「你的稱呼」供下次自動帶回（空白則清除記憶）
+            const nm = suggestedBy.trim();
+            if (nm) saveDraft(NAME_KEY, nm);
+            else clearDraft(NAME_KEY);
             // 「我的推薦」本機追蹤：記下這筆 doc id，之後可比對狀態（待審核/已採納…）
             if (newId) {
                 addMySuggestion({
@@ -250,15 +268,15 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
     const handleSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
 
-        // 先檢測是否有重複歌曲
+        // 只有「標準化後完全相同」才硬擋跳確認框；相似（partial）僅靠即時提示，不阻擋送出
         const duplicate = checkDuplicate(title, artist);
-        if (duplicate) {
+        if (duplicate && duplicate.matchType === 'exact') {
             setMatchedSong(duplicate);
             setShowDuplicateDialog(true);
             return;
         }
 
-        // 沒有重複，直接提交
+        // 沒有完全重複，直接提交
         addSuggestionMutation.mutate();
     }, [title, artist, checkDuplicate, addSuggestionMutation]);
 
