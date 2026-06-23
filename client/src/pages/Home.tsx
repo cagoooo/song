@@ -22,7 +22,7 @@ import { useGlobalHype, HYPE_META } from "@/hooks/useGlobalHype";
 import { useVoterLeaderboard } from "@/hooks/useVoterLeaderboard";
 import { GlobalHypeOverlay } from "../components/GlobalHypeOverlay";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Filter } from "lucide-react";
 
 const VoterLeaderboardModal = lazy(() =>
   import("../components/VoterLeaderboardModal").then((m) => ({ default: m.VoterLeaderboardModal }))
@@ -35,6 +35,9 @@ const ShortcutsHelpModal = lazy(() =>
 );
 const StatsDashboard = lazy(() =>
   import("../components/StatsDashboard").then((m) => ({ default: m.StatsDashboard }))
+);
+const FunnelDashboard = lazy(() =>
+  import("../components/FunnelDashboard").then((m) => ({ default: m.FunnelDashboard }))
 );
 const ShareCardModal = lazy(() =>
   import("../components/ShareCardModal").then((m) => ({ default: m.ShareCardModal }))
@@ -112,6 +115,7 @@ export default function Home() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [funnelOpen, setFunnelOpen] = useState(false);
   const [shareCardOpen, setShareCardOpen] = useState(false);
   const [thankYouOpen, setThankYouOpen] = useState(false);
   const [passportOpen, setPassportOpen] = useState(false);
@@ -514,6 +518,17 @@ export default function Home() {
           >
             <BarChart3 className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">統計</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFunnelOpen(true)}
+            aria-label="點歌建議漏斗"
+            className="bg-white/90 hover:bg-white border-2 border-blue-300 hover:border-blue-400 text-blue-700 hover:text-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
+            title="點歌建議漏斗（開啟→打字→送出轉換率、重複提示成效）"
+          >
+            <Filter className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">漏斗</span>
           </Button>
           <Button
             variant="outline"
@@ -1149,6 +1164,15 @@ export default function Home() {
             isOpen={statsOpen}
             onClose={() => setStatsOpen(false)}
             songs={songs}
+          />
+        </Suspense>
+      )}
+
+      {funnelOpen && (
+        <Suspense fallback={null}>
+          <FunnelDashboard
+            isOpen={funnelOpen}
+            onClose={() => setFunnelOpen(false)}
           />
         </Suspense>
       )}
