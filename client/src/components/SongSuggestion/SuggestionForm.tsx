@@ -318,7 +318,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
 
                 <DialogPortal>
                     <DialogOverlay className="suggestion-dialog-overlay" />
-                    <DialogPrimitive.Content className="suggestion-dialog-content relative w-[calc(100vw-2rem)] max-w-md gap-0 p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)]">
+                    <DialogPrimitive.Content className="suggestion-dialog-content ed-sheet ed-sheet--bottom relative w-[calc(100vw-2rem)] max-w-md gap-0 p-0 overflow-hidden bg-[#faf7f0] border-[rgba(17,17,17,0.18)]">
                     {/* 雜誌頂條 */}
                     <div className="editorial-modal-flag">
                         <span>Nº 12</span>
@@ -380,7 +380,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="suggestion-form-scroll space-y-4 px-6 pb-0">
+                    <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="suggestion-form-scroll ed-sheet-body space-y-4 px-6 pb-0">
                         {/* 草稿回填提示 — 上次未送出的內容已自動帶回，可一鍵清除重填 */}
                         {draftRestored && (
                             <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-[#2b4dff]/[0.06] border border-[#2b4dff]/20 animate-in fade-in slide-in-from-top-1 duration-200">
