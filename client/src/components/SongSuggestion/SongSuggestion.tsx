@@ -14,6 +14,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ResponsiveScrollList } from '@/components/ui/ResponsiveScrollList';
 import { useToast } from '@/hooks/use-toast';
+import { usePendingSuggestionFlush } from '@/hooks/usePendingSuggestionFlush';
 import { approveSuggestion, rejectSuggestion, removeSuggestion, useSuggestions } from '@/hooks/use-suggestions';
 import type { Song } from '@/lib/firestore';
 import { MySuggestions } from './MySuggestions';
@@ -45,6 +46,8 @@ export default function SongSuggestion({
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const { suggestions } = useSuggestions();
     const { toast } = useToast();
+    // 恢復連線 / 啟動時，自動補送離線暫存的點歌建議
+    usePendingSuggestionFlush();
 
     const counts = useMemo(() => countByStatus(suggestions), [suggestions]);
 
