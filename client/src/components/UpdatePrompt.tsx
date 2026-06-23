@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { RefreshCw, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useServiceWorkerUpdate } from '@/hooks/useServiceWorkerUpdate';
 import { CassetteScrews } from './CassetteShell';
 import { Z } from '@/lib/z';
@@ -9,6 +9,14 @@ import { getLatestChangelog } from '@/lib/changelog';
 export function UpdatePrompt() {
     const { updateAvailable, currentVersion, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
     const changelog = getLatestChangelog();
+    // 按下「立即更新」後進入更新中狀態：圖示旋轉、按鈕鎖定，直到新版啟用後自動 reload
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const handleUpdate = () => {
+        if (isUpdating) return;
+        setIsUpdating(true);
+        applyUpdate();
+    };
 
     useEffect(() => {
         document.body.classList.toggle('sw-update-prompt-visible', updateAvailable);
@@ -76,9 +84,15 @@ export function UpdatePrompt() {
                             </div>
 
                             {/* 立即更新 */}
-                            <button type="button" onClick={applyUpdate} className="swu-action">
-                                <RefreshCw aria-hidden="true" />
-                                立即更新
+                            <button
+                                type="button"
+                                onClick={handleUpdate}
+                                disabled={isUpdating}
+                                aria-busy={isUpdating}
+                                className="swu-action"
+                            >
+                                <RefreshCw aria-hidden="true" className={isUpdating ? 'swu-spin' : undefined} />
+                                {isUpdating ? '更新中…' : '立即更新'}
                             </button>
                         </div>
                     </motion.div>

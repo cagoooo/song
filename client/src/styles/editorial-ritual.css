@@ -2106,11 +2106,16 @@ body.has-up-next-bar > #root > div {
 .swu-action:active { transform: translateY(0) scale(0.99); }
 .swu-action:focus-visible { outline: 2px solid #fffaf0; outline-offset: 2px; }
 .swu-action svg { width: 16px; height: 16px; }
+/* 按下「立即更新」後：圖示旋轉 + 按鈕鎖定，明確傳達「更新進行中」 */
+.swu-action:disabled { cursor: default; opacity: 0.92; transform: none; }
+.swu-action .swu-spin { animation: swu-spin 0.8s linear infinite; transform-origin: center; }
+@keyframes swu-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
   .swu-reel,
   .swu-tape > i,
-  .swu-live-dot { animation: none; }
+  .swu-live-dot,
+  .swu-action .swu-spin { animation: none; }
 }
 
 /* ==========================================================================
