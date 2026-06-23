@@ -1,5 +1,5 @@
 // 單一建議卡片元件 - 效能優化版
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -123,6 +123,8 @@ interface SuggestionCardProps {
     batchMode?: boolean;
     selected?: boolean;
     onToggleSelect?: (id: string) => void;
+    /** 剛送出的推薦：捲到此卡並高亮「+1 我也想聽」引導揪人附議 */
+    highlight?: boolean;
 }
 
 export const SuggestionCard = memo(function SuggestionCard({
@@ -132,7 +134,17 @@ export const SuggestionCard = memo(function SuggestionCard({
     batchMode = false,
     selected = false,
     onToggleSelect,
+    highlight = false,
 }: SuggestionCardProps) {
+    // 剛送出 → 捲進視野（等版面/展開動畫安定後再捲）
+    const cardRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!highlight) return;
+        const t = setTimeout(() => {
+            cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 180);
+        return () => clearTimeout(t);
+    }, [highlight]);
     const { toast } = useToast();
     const color = colorSchemes[suggestion.status as keyof typeof colorSchemes] || colorSchemes.pending;
     const status = statusConfig[suggestion.status as keyof typeof statusConfig] || statusConfig.pending;
@@ -186,13 +198,15 @@ export const SuggestionCard = memo(function SuggestionCard({
 
     return (
         <div
+            ref={cardRef}
             onClick={batchMode ? () => onToggleSelect?.(suggestion.id) : undefined}
             role={batchMode ? 'checkbox' : undefined}
             aria-checked={batchMode ? selected : undefined}
             className={`relative overflow-hidden rounded-xl border transition-all duration-200 group animate-in fade-in slide-in-from-bottom-2
                 ${batchMode
                     ? `cursor-pointer ${selected ? 'ring-2 ring-[#2b4dff] ring-offset-1' : 'hover:ring-1 hover:ring-[#2b4dff]/40'}`
-                    : 'hover:-translate-y-0.5 hover:shadow-md'}`}
+                    : 'hover:-translate-y-0.5 hover:shadow-md'}
+                ${highlight ? 'ring-2 ring-[#2b4dff] ring-offset-2 animate-pulse' : ''}`}
             style={{
                 background: color.cardBg,
                 borderColor: color.cardBorder,
@@ -322,7 +336,8 @@ export const SuggestionCard = memo(function SuggestionCard({
                         className={`w-full flex items-center justify-center gap-2 mb-3 rounded-md py-2 text-sm font-semibold transition-all
                             ${alreadyUpvoted
                                 ? 'bg-[#2b4dff]/10 text-[#2b4dff] cursor-default'
-                                : 'bg-[#2b4dff] text-white hover:bg-[#1d3bd8] active:scale-[0.98]'}`}
+                                : 'bg-[#2b4dff] text-white hover:bg-[#1d3bd8] active:scale-[0.98]'}
+                            ${highlight && !alreadyUpvoted ? 'ring-2 ring-[#2b4dff] ring-offset-2' : ''}`}
                     >
                         <ThumbsUp className="w-4 h-4" />
                         <span>{alreadyUpvoted ? '已 +1 我也想聽' : '+1 我也想聽'}</span>

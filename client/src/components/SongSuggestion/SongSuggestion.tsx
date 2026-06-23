@@ -41,6 +41,8 @@ export default function SongSuggestion({
 }: SongSuggestionProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isListExpanded, setIsListExpanded] = useState(false);
+    // 剛送出的推薦 id：展開清單 + 捲到該卡 + 高亮「+1 揪人」，數秒後自動解除
+    const [highlightId, setHighlightId] = useState<string | null>(null);
     const [batchMode, setBatchMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -48,6 +50,14 @@ export default function SongSuggestion({
     const { toast } = useToast();
     // 恢復連線 / 啟動時，自動補送離線暫存的點歌建議
     usePendingSuggestionFlush();
+
+    // 送出成功後：展開清單並高亮剛送出的卡片，引導去「+1 揪人」；4.5s 後解除高亮
+    const handleSubmitted = useCallback((id: string) => {
+        setIsListExpanded(true);
+        setHighlightId(id);
+        const t = setTimeout(() => setHighlightId((cur) => (cur === id ? null : cur)), 4500);
+        return () => clearTimeout(t);
+    }, []);
 
     const counts = useMemo(() => countByStatus(suggestions), [suggestions]);
 
@@ -126,6 +136,7 @@ export default function SongSuggestion({
                 onOpenChange={setIsOpen}
                 songs={songs}
                 onNavigateToSong={onNavigateToSong}
+                onSubmitted={handleSubmitted}
             />
 
             <MySuggestions suggestions={suggestions} />
@@ -281,6 +292,7 @@ export default function SongSuggestion({
                                     batchMode={batchMode}
                                     selected={selectedIds.has(suggestion.id)}
                                     onToggleSelect={toggleSelect}
+                                    highlight={suggestion.id === highlightId}
                                 />
                             ))}
                         </ResponsiveScrollList>
