@@ -528,7 +528,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                         </div>
 
                         {/* 送出按鈕 — sticky 貼在對話框底部，長內容 / 手機鍵盤彈出時仍隨手可按 */}
-                        <div className="sticky bottom-0 z-10 -mx-6 mt-2 px-6 pt-3 pb-1 bg-[#faf7f0] border-t border-[rgba(17,17,17,0.08)]">
+                        <div className="sticky bottom-0 z-10 -mx-6 mt-2 px-6 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] bg-[#faf7f0] border-t border-[rgba(17,17,17,0.08)]">
                             <Button
                                 type="submit"
                                 disabled={addSuggestionMutation.isPending}

@@ -90,20 +90,20 @@
     top: auto !important;
     width: 100vw !important;
     max-width: none !important;
-    max-height: min(86svh, calc(100dvh - max(10px, env(safe-area-inset-top))));
+    /* 高度貼齊動態可視高度並扣掉上方安全區，確保整張卡（含底部送出鈕）落在可視範圍內 */
+    max-height: min(92dvh, calc(100dvh - max(8px, env(safe-area-inset-top)))) !important;
     transform: none !important;
     border-radius: 16px 16px 0 0;
     animation: suggestion-sheet-enter 120ms ease-out both !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    /* 維持 flex 直欄：標題固定、表單區內部捲動、送出鈕釘在底部 ——
+       整張卡本身不捲動，底部「送出建議」按鈕才永遠看得到（修正手機端捲不到底的問題） */
+    overflow: hidden !important;
     box-shadow: 0 -18px 60px -32px rgba(0, 0, 0, 0.65);
     border-bottom: 0;
   }
+  /* 表單區沿用基底的內部捲動（overflow-y:auto），手機端不需要側邊捲軸留白 */
   .suggestion-form-scroll {
-    overflow: visible;
-    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    scrollbar-gutter: auto;
   }
 }
 @keyframes suggestion-sheet-enter {
