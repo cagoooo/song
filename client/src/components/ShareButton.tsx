@@ -30,6 +30,7 @@ export function ShareButton() {
         <Button
           variant="outline"
           className="share-cassette-trigger group"
+          aria-label="分享點歌系統"
         >
           <Share2 className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
           <span className="hidden sm:inline">分享點歌系統</span>
@@ -40,7 +41,7 @@ export function ShareButton() {
         </Button>
       </DialogTrigger>
       <DialogContent
-        className="share-cassette-dialog"
+        className="share-cassette-dialog ed-sheet"
         aria-describedby="share-dialog-description"
       >
         <DialogClose asChild>
@@ -65,7 +66,7 @@ export function ShareButton() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="share-cassette-body">
+        <div className="share-cassette-body ed-sheet-body">
           <div className="share-cassette-qr">
             <QRCodeSVG
               value={currentUrl}

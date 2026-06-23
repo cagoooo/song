@@ -11,6 +11,48 @@
    ⚠️ 此檔最肥（1759 行），第二輪可考慮拆 editorial-modals/{songdetail,sharecard,thankyou}.css
    =========================================================================== */
 
+/* ==========================================================================
+   共用：行動端「可捲動 sheet」版面 (.ed-sheet / .ed-sheet-body)
+   --------------------------------------------------------------------------
+   解決反覆出現的 modal RWD 跑版（建議表單 / 分享卡 / 歌曲編輯都犯過同一種錯）：
+   內容比視窗高時被裁切又捲不到底、底部 CTA 被瀏覽器列/home indicator 遮住。
+
+   用法（新 modal 直接套用，免再各寫一套）：
+     <DialogContent class="... ed-sheet">   ← 卡片：flex 直欄 + dvh 限高 + clip
+       <header/>                            ← 固定不捲
+       <div class="ed-sheet-body"> … </div> ← 內容：撐滿剩餘高度、內部捲動
+       <footer/>                            ← 固定（如 sticky 送出鈕）
+   配色 / 圓角 / 陰影 / 進出場動畫由各 modal 自己的 class 疊加。
+   ========================================================================== */
+.ed-sheet {
+  display: flex !important;
+  flex-direction: column;
+  gap: 0 !important;
+  /* 高度貼齊動態可視高度並扣掉上方安全區，整張卡（含底部 CTA）落在可視範圍內 */
+  max-height: min(92dvh, calc(100dvh - max(8px, env(safe-area-inset-top)))) !important;
+  overflow: hidden !important;
+}
+.ed-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* 修飾子：手機端化為「貼齊底部的 bottom sheet」（建議表單用） */
+@media (max-width: 640px) {
+  .ed-sheet--bottom {
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100vw !important;
+    max-width: none !important;
+    transform: none !important;
+    border-radius: 16px 16px 0 0;
+  }
+}
+
 /* Suggestion form dialog */
 .suggestion-dialog-overlay {
   z-index: 120 !important;
@@ -65,11 +107,7 @@
   box-shadow: 0 0 0 3px rgba(43, 77, 255, 0.14);
 }
 .suggestion-form-scroll {
-  min-height: 0;
-  flex: 1 1 auto;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  /* flex 撐高與內部捲動行為由共用 .ed-sheet-body 提供；此處僅保留捲軸留白 */
   scrollbar-gutter: stable;
 }
 .suggestion-form-scroll::-webkit-scrollbar {
@@ -83,25 +121,14 @@
   border-radius: 999px;
 }
 @media (max-width: 640px) {
+  /* bottom-sheet 定位 / 限高 / 內捲由共用 .ed-sheet + .ed-sheet--bottom 提供；
+     這裡只保留建議表單專屬的進場動畫與上掀陰影。 */
   .suggestion-dialog-content {
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    top: auto !important;
-    width: 100vw !important;
-    max-width: none !important;
-    /* 高度貼齊動態可視高度並扣掉上方安全區，確保整張卡（含底部送出鈕）落在可視範圍內 */
-    max-height: min(92dvh, calc(100dvh - max(8px, env(safe-area-inset-top)))) !important;
-    transform: none !important;
-    border-radius: 16px 16px 0 0;
     animation: suggestion-sheet-enter 120ms ease-out both !important;
-    /* 維持 flex 直欄：標題固定、表單區內部捲動、送出鈕釘在底部 ——
-       整張卡本身不捲動，底部「送出建議」按鈕才永遠看得到（修正手機端捲不到底的問題） */
-    overflow: hidden !important;
     box-shadow: 0 -18px 60px -32px rgba(0, 0, 0, 0.65);
     border-bottom: 0;
   }
-  /* 表單區沿用基底的內部捲動（overflow-y:auto），手機端不需要側邊捲軸留白 */
+  /* 手機端不需要側邊捲軸留白 */
   .suggestion-form-scroll {
     scrollbar-gutter: auto;
   }
@@ -2393,24 +2420,11 @@
 .share-cassette-dialog > button.absolute {
   display: none;
 }
-/* RWD：限制卡片高度並讓內容可內部捲動，避免短螢幕（手機）下 QR 以下的
-   社群按鈕／說明文字被裁切而捲不到（頂條與標題固定，body 區捲動）。 */
-.share-cassette-dialog {
-  display: flex !important;
-  flex-direction: column;
-  gap: 0 !important;
-  max-height: min(92dvh, calc(100dvh - max(8px, env(safe-area-inset-top)))) !important;
-}
+/* RWD：限高 + body 內捲改用共用 .ed-sheet / .ed-sheet-body（見檔首），
+   這裡只保留分享卡專屬：頂條與標題固定不捲。 */
 .share-cassette-top,
 .share-cassette-header {
   flex: 0 0 auto;
-}
-.share-cassette-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
 }
 .song-edit-cassette-top,
 .share-cassette-top {
