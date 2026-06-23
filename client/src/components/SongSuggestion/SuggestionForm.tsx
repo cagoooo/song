@@ -197,17 +197,25 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
         mutationFn: async () => {
             return submitSuggestion(title, artist, suggestedBy, notes);
         },
-        onSuccess: (newId) => {
+        onSuccess: ({ id: newId, queued }) => {
             submittedThisSessionRef.current = true;
             trackEvent('suggestion_submit_success');
             // 「我的推薦」本機追蹤：記下這筆 doc id，之後可比對狀態（待審核/已採納…）
-            if (typeof newId === 'string' && newId) {
+            if (newId) {
                 addMySuggestion({
                     id: newId,
                     title: title.trim(),
                     artist: artist.trim(),
                     ts: Date.now(),
                     seenStatus: 'pending',
+                });
+            }
+            // 離線送出：誠實告知已暫存，恢復連線會自動補送（仍照常播投遞儀式）
+            if (queued) {
+                toast({
+                    title: '已暫存你的推薦',
+                    description: '目前網路不穩，恢復連線後會自動補送，免重填。',
+                    variant: 'default',
                 });
             }
             queryClient.invalidateQueries({ queryKey: ['/api/suggestions'] });

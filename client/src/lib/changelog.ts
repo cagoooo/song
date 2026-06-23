@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.15.0',
+        date: '2026-06-23',
+        items: [
+            '網路不穩時送出的推薦會自動暫存，恢復連線後自動補送，免重填',
+            '送出當下若離線，會明確提示「已暫存」，不再讓人以為沒送出',
+        ],
+    },
+    {
         version: '4.14.0',
         date: '2026-06-23',
         items: [
