@@ -10,6 +10,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.13.0',
+        date: '2026-06-23',
+        items: [
+            '「建議新歌」送出更穩定，網路不佳也不再卡住',
+            '修正相似歌名誤判（例：「再見的時候」不再被當成「再見」）',
+            '手機端建議表單可正常捲動，送出鈕固定在底部看得見',
+            '關閉建議表單更靈敏，手機點一下即關',
+        ],
+    },
+    {
         version: '4.12.0',
         date: '2026-06-20',
         items: [
