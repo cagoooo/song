@@ -22,7 +22,7 @@
 
 ### P0：把已修好的「送出」做到滴水不漏（低成本、直接接現有碼）
 
-1. **送出失敗的「重試 / 已暫存」回饋**🟢：樂觀寫入後，背景 `setDoc` 若最終失敗（rules 拒絕/長時間離線），目前只 `console.error`。可在背景失敗時補一個輕量 toast「尚未送達，已暫存，恢復連線會自動補送」，並把 pending 寫入存 localStorage 佇列，連線恢復重送——把離線體驗講清楚，避免使用者以為成功其實沒上。
+1. ~~**送出失敗的「重試 / 已暫存」回饋**🟢~~ ✅ **已完成（6/23, PR #76）**：新增 [pendingSuggestions.ts](client/src/lib/pendingSuggestions.ts) localStorage 佇列，離線/寫入失敗即 enqueue（沿用同 doc id 冪等重送），啟動 + `online` 事件自動補送並 toast；送出當下離線提示「已暫存」。後續 🔴 可再接 Service Worker Background Sync 做到關閉分頁也能背景補送。
 2. **送出節流 / 防連點重複建議**🟢：同一裝置短時間（如 30s）內擋掉相同 title 的重複送出，配合既有 `mySuggestions` 本地紀錄比對，減少重覆審核負擔。
 3. **重複偵測門檻可調 + 灰階提示**🟢：`duplicateSong` 已支援 `threshold` 參數。可加「中相似度（0.6–0.8）」的**柔性提示**（不擋送出，只在標題下方小字「歌單裡有點像的：X」），高相似才跳確認框；現場再依誤判率微調門檻。
 4. **建議表單欄位記憶「稱呼」**🟢：`suggestedBy`（你的稱呼）用 localStorage 記住，回訪自動帶入，省去每次重打——沿用既有 `draftStorage` 模式。
@@ -30,7 +30,7 @@
 
 ### P1：點歌建議漏斗的可視化與營運（已有埋點，缺儀表板）
 
-6. **漏斗儀表板（admin）**🟡：`funnelAnalytics` 已在本機累積 `suggestion_form_open → typing_start → submit_success`、重複提示點擊等事件，但只能在 console 看。做一個 admin 專屬小面板（開啟→打字→送出轉換率、放棄率、重複提示命中率），用來判斷文案/門檻優化是否有效。
+6. ~~**漏斗儀表板（admin）**🟡~~ ✅ **已完成（6/23, PR #77）**：新增 [FunnelDashboard.tsx](client/src/components/FunnelDashboard.tsx)，admin 工具列「漏斗」鈕開啟，顯示主漏斗比例條、打字/送出/放棄轉換率、重複提示成效、近期事件流與清除本機數據。
 7. **跨裝置漏斗彙整**🟡：目前是單機 localStorage。可在 `trackEvent` 加一個輕量 server sink（Firestore 計數 doc 或既有 interactions 集合），把多位訪客的漏斗聚合，才看得到真實現場數據。
 8. **建議狀態通知強化**🟢：`useSuggestionNotification` 已能追「待審核→已採納」。補上「你推薦的《X》今晚被彈了！」的回饋（接 `playedSongs`），形成「推薦→被採納→被演出」的完整正向迴圈。
 9. **admin 批次審核效率**🟡：`batchSuggestions` 已有批次採納/拒絕/刪除。可補「相似建議自動分組」（複用 `duplicateSong` 相似度），把同一首的多筆推薦聚合成一張卡一次處理 + 合併票數。
@@ -51,14 +51,14 @@
 
 ### P2：行動端 RWD 與無障礙系統化（這次修了三個 modal，該收斂成通用解）
 
-18. **共用「行動端底部表單 sheet」元件**🟡：建議表單、分享、歌曲編輯三個 modal 都各自寫一套「dvh 高度 + body 內捲 + 安全區」的 RWD CSS。抽成一個共用 `.ed-sheet` 模式或 React 包裝，避免下一個新 modal 又跑版。
-19. **modal 視覺回歸測試**🟡：Playwright RWD 已在 CI。補幾條「390/430px 下，各 modal 的主要 CTA（送出/分享/關閉）必須在視窗內可見且可點」的斷言，把這次手動發現的問題變成自動防線。
+18. ~~**共用「行動端底部表單 sheet」元件**🟡~~ ✅ **已完成（6/23, PR #78）**：抽出共用 `.ed-sheet` / `.ed-sheet-body`（+ `.ed-sheet--bottom`）於 [editorial-modals.css](client/src/styles/editorial-modals.css)，分享卡與建議表單已遷移去重；新 modal 直接套用即可。（歌曲編輯 modal 後續可一併遷移。）
+19. ~~**modal 視覺回歸測試**🟡~~ ✅ **已完成（6/23, PR #78）**：新增 [modal-rwd.spec.ts](tests/visual/modal-rwd.spec.ts)，斷言開啟後主要 CTA 落在 viewport 內可見可點、無橫向溢出；CI 無 Firestore 進不了主畫面時優雅 skip（待 Firestore mock 後可於 CI 生效）。
 20. **z-index 契約稽核**🟢：`z.ts` 已有分層約定，但 AlertDialog 之前漏接。補一份「modal/overlay 必須使用 `Z.*` 或既定區間」的檢查（或 lint 註記），避免再出現 z-50 被 z-130 蓋住這類事故。
 21. **無障礙補強**🟡：表單/對話框的 focus trap、`aria-label`、進度條 `aria-live` 播報、社群分享按鈕的可辨識名稱，並確保系統字級放大時不破版。
 
 ### P2：品質與發版自動化（讓「每次都長一樣」不再發生）
 
-22. **Changelog 與版本連動**🟡：`UpdatePrompt` 顯示的是手動維護的 `changelog.ts`，而 `currentVersion` 來自 build stamp，兩者脫鉤。可在 `prebuild` 校驗「`package.json` version 是否有對應 changelog 條目」，沒有就警告/擋下，從流程上保證每次發版都有更新內容。
+22. ~~**Changelog 與版本連動**🟡~~ ✅ **已完成（6/23, PR #75）**：新增 [check-changelog.mjs](scripts/check-changelog.mjs) 於 `prebuild` 校驗 `package.json` version === `changelog.ts` 最新條目 version（不一致/重複即擋下 build），並對齊版本到 4.14.0（後續隨發版遞增）。
 23. **「本次更新」精準化**🟢：目前永遠顯示 `CHANGELOG[0]`。可記住使用者上次看過的版本，只顯示「從你上次到現在」之間的條目，避免重看舊內容。
 24. **PR/commit → changelog 半自動**🟡：用 PR 標題或 commit 慣例（feat/fix）自動彙整草稿條目，發版時人工潤飾，降低「忘了更新 changelog」的機率。
 
