@@ -1,4 +1,76 @@
-﻿# 2026-06-21 進度更新：手機端全螢幕看譜工具列瘦身、SW 自動部署確認
+﻿# 2026-06-23 進度更新：點歌建議全鏈路修復、分享／更新／載入卡帶化收尾
+
+> 本段源自一連串**現場實測回饋**，聚焦「推薦新歌 → 送出 → 重複偵測 → 分享 → 更新 → 首次載入」這條訪客主線的卡關與跑版問題，逐一修復並把視覺體驗收斂到全站卡帶／editorial 風格。所有變更已合併進 `main`（PR #67～#73 + 載入畫面卡帶化 `81e1444` / v4.14.0）。本次採「改完即自動 commit → push → 開 PR → CI 綠 → squash 自動合併」流程。
+
+## 已完成項目（6/23）
+
+| 類別 | 完成內容 | 主要範圍 / PR | 驗證狀態 |
+|---|---|---|---|
+| 送出建議防卡死 | `addSuggestion` 由 `await addDoc` 改為**樂觀寫入**（本地產生 doc id + `setDoc`，與 2s timeout 競速）。Firebase 寫入 Promise 只在伺服器確認後 resolve，現場網路差時會一直 pending → 按鈕卡在「送出中…」。改後 UI 不再被網路阻塞，離線寫入連線恢復後自動同步。 | [suggestions.ts](client/src/lib/firestore/suggestions.ts)（PR #67） | tsc ✅ / 測試 ✅，已合併 |
+| 重複確認框被蓋住 | 共用 `AlertDialog` 的 overlay/content z-index `z-50 → z-[140]`（高於 modal 內容層 130）。原本重複確認框被建議表單（z-130）整個蓋住，手機按送出「沒反應」。 | [alert-dialog.tsx](client/src/components/ui/alert-dialog.tsx)（PR #68） | tsc ✅，已合併 |
+| 重複歌曲誤判 | 抽出 [duplicateSong.ts](client/src/lib/duplicateSong.ts)：改「標準化（去空白/標點/括號內容、轉小寫）相等 + 字元 bigram **Dice 相似度 ≥ 0.8**」判斷，修正子字串包含造成的誤判（「再見的時候」被「再見」擋下）。附 11 條單元測試。 | [duplicateSong.ts](client/src/lib/duplicateSong.ts) + test（PR #69） | tsc ✅ / 27 測試 ✅，已合併 |
+| 手機關閉鈕靈敏度 | 建議表單關閉鈕改在 `pointerdown` 立即關閉（保留 `onClick` 供鍵盤），避免鍵盤開著時首次點擊被 input 失焦/鍵盤收合吃掉而「卡一下/像點兩次」。 | [SuggestionForm.tsx](client/src/components/SongSuggestion/SuggestionForm.tsx)（PR #69） | tsc ✅，已合併 |
+| 建議卡片手機 RWD | 卡片改回 flex 直欄 + `dvh` 高度上限（扣安全區），標題固定、欄位內部捲動、送出鈕 sticky 釘底並補 `env(safe-area-inset-bottom)`。修正手機捲不到底、看不到藍色送出鈕。 | [editorial-modals.css](client/src/styles/editorial-modals.css)、[SuggestionForm.tsx](client/src/components/SongSuggestion/SuggestionForm.tsx)（PR #70） | tsc ✅ / Playwright ✅，已合併 |
+| Changelog 維護 | 補 4.13.0 條目，修正更新提示卡「每次更新內容都一樣」（`UpdatePrompt` 只顯示 `CHANGELOG[0]`，但該檔自 4.12.0 後沒更新）。 | [changelog.ts](client/src/lib/changelog.ts)（PR #71） | tsc ✅，已合併 |
+| 立即更新進行狀態 | 按「立即更新」後圖示旋轉、文案變「更新中…」、按鈕鎖定（`disabled` + `aria-busy`），新版 SW 啟用後自動 reload 結束；尊重 `prefers-reduced-motion`。 | [UpdatePrompt.tsx](client/src/components/UpdatePrompt.tsx)、[editorial-ritual.css](client/src/styles/editorial-ritual.css)（PR #72） | tsc ✅，已合併 |
+| 分享點歌卡片 RWD | `.share-cassette-dialog` 加 `max-height`（dvh）+ body 內部捲動、頂條/標題固定，並隱藏 `DialogContent` 內建重複關閉鈕。修正手機 QR 以下社群按鈕/說明被裁切捲不到。 | [editorial-modals.css](client/src/styles/editorial-modals.css)（PR #73） | tsc ✅ / Playwright ✅，已合併 |
+| 載入畫面卡帶化（v4.14.0）| 「吉他點歌系統載入中」改為 SVG 擬物化卡帶：齒輪持續旋轉、左右磁帶卷半徑隨 `progress` 動態捲動、老式 LED 三位數計數器、骨架預覽、全面 RWD。 | [AppLoading.tsx](client/src/components/AppLoading.tsx)（`81e1444`，使用者主導）| 已合併上線 |
+
+## 未來優化改良與可開發功能建議（依「點歌建議漏斗 / 分享成長 / 首次體驗」方向）
+
+> 依「現場實用度 × 實作成本」分層：P0 低成本高感受、可立即著手；P1/P2 逐步加深；F 為較大型功能。難度標註 🟢易 / 🟡中 / 🔴大。多數可直接接既有模組（`funnelAnalytics`、`mySuggestions`、`useSuggestionNotification`、`duplicateSong`、Firestore 即時層）。
+
+### P0：把已修好的「送出」做到滴水不漏（低成本、直接接現有碼）
+
+1. **送出失敗的「重試 / 已暫存」回饋**🟢：樂觀寫入後，背景 `setDoc` 若最終失敗（rules 拒絕/長時間離線），目前只 `console.error`。可在背景失敗時補一個輕量 toast「尚未送達，已暫存，恢復連線會自動補送」，並把 pending 寫入存 localStorage 佇列，連線恢復重送——把離線體驗講清楚，避免使用者以為成功其實沒上。
+2. **送出節流 / 防連點重複建議**🟢：同一裝置短時間（如 30s）內擋掉相同 title 的重複送出，配合既有 `mySuggestions` 本地紀錄比對，減少重覆審核負擔。
+3. **重複偵測門檻可調 + 灰階提示**🟢：`duplicateSong` 已支援 `threshold` 參數。可加「中相似度（0.6–0.8）」的**柔性提示**（不擋送出，只在標題下方小字「歌單裡有點像的：X」），高相似才跳確認框；現場再依誤判率微調門檻。
+4. **建議表單欄位記憶「稱呼」**🟢：`suggestedBy`（你的稱呼）用 localStorage 記住，回訪自動帶入，省去每次重打——沿用既有 `draftStorage` 模式。
+5. **送出成功後的「+1 我也想聽」即時引導**🟢：投遞成功儀式結束後，直接把剛送出的建議卡片捲到視野並高亮「揪人 +1」，銜接既有 `suggestionUpvotes`，把單次推薦變成擴散。
+
+### P1：點歌建議漏斗的可視化與營運（已有埋點，缺儀表板）
+
+6. **漏斗儀表板（admin）**🟡：`funnelAnalytics` 已在本機累積 `suggestion_form_open → typing_start → submit_success`、重複提示點擊等事件，但只能在 console 看。做一個 admin 專屬小面板（開啟→打字→送出轉換率、放棄率、重複提示命中率），用來判斷文案/門檻優化是否有效。
+7. **跨裝置漏斗彙整**🟡：目前是單機 localStorage。可在 `trackEvent` 加一個輕量 server sink（Firestore 計數 doc 或既有 interactions 集合），把多位訪客的漏斗聚合，才看得到真實現場數據。
+8. **建議狀態通知強化**🟢：`useSuggestionNotification` 已能追「待審核→已採納」。補上「你推薦的《X》今晚被彈了！」的回饋（接 `playedSongs`），形成「推薦→被採納→被演出」的完整正向迴圈。
+9. **admin 批次審核效率**🟡：`batchSuggestions` 已有批次採納/拒絕/刪除。可補「相似建議自動分組」（複用 `duplicateSong` 相似度），把同一首的多筆推薦聚合成一張卡一次處理 + 合併票數。
+
+### P1：分享與成長（分享卡片已修好，下一步是「值得被分享」）
+
+10. **分享帶上情境參數**🟢：分享連結加 `?from=share`／活動代號，落地頁顯示「你朋友邀請你一起點歌」，並餵進漏斗看分享回流。
+11. **動態分享圖（OG image）**🟡：目前分享是純連結 + QR。可生成含「今晚 Top 3 點播 / 期數 Nº」的動態預覽圖（已有 ShareCard 思路），社群上更吸睛。
+12. **「翻面 B 面」分享微儀式**🟢：呼應卡帶語言，分享成功後播一個小翻面動畫 + 「已寄出這捲卡帶」，提升完成感（複用既有 confetti/卡帶元件）。
+13. **原生分享 API 優先**🟢：手機端優先用 `navigator.share`（系統分享面板），社群按鈕作為桌機/降級方案，行動端少一步。
+
+### P1：首次載入與 PWA 體驗（載入畫面已卡帶化，續推感知效能）
+
+14. **真實進度取代模擬進度**🟡：目前 `AppLoading` 是時間模擬遞增。可把實際里程碑（字體就緒 / Firestore 首批快照 / 首屏資料）對應到進度段，讓「快好了」名副其實，並在卡住時誠實顯示。
+15. **骨架對齊真實版面**🟢：載入骨架的兩欄結構盡量比照真正首屏（卡帶 Hero + 排行榜列），減少載入完成時的版面跳動（CLS）。
+16. **離線/連線中斷的明確態**🟢：偵測到 `navigator.onLine === false` 或首批快照逾時，載入畫面顯示「等待連線中…」而非無限轉動，呼應第 1 點的離線敘事。
+17. **更新流程閉環**🟢：`UpdatePrompt` 已有「更新中」狀態；可在新版啟用後（`controllerchange` reload）顯示一個一次性「已更新到 vX.Y」小確認，讓使用者知道剛剛更新成功（接 `SW_ACTIVATED` 訊息與 changelog）。
+
+### P2：行動端 RWD 與無障礙系統化（這次修了三個 modal，該收斂成通用解）
+
+18. **共用「行動端底部表單 sheet」元件**🟡：建議表單、分享、歌曲編輯三個 modal 都各自寫一套「dvh 高度 + body 內捲 + 安全區」的 RWD CSS。抽成一個共用 `.ed-sheet` 模式或 React 包裝，避免下一個新 modal 又跑版。
+19. **modal 視覺回歸測試**🟡：Playwright RWD 已在 CI。補幾條「390/430px 下，各 modal 的主要 CTA（送出/分享/關閉）必須在視窗內可見且可點」的斷言，把這次手動發現的問題變成自動防線。
+20. **z-index 契約稽核**🟢：`z.ts` 已有分層約定，但 AlertDialog 之前漏接。補一份「modal/overlay 必須使用 `Z.*` 或既定區間」的檢查（或 lint 註記），避免再出現 z-50 被 z-130 蓋住這類事故。
+21. **無障礙補強**🟡：表單/對話框的 focus trap、`aria-label`、進度條 `aria-live` 播報、社群分享按鈕的可辨識名稱，並確保系統字級放大時不破版。
+
+### P2：品質與發版自動化（讓「每次都長一樣」不再發生）
+
+22. **Changelog 與版本連動**🟡：`UpdatePrompt` 顯示的是手動維護的 `changelog.ts`，而 `currentVersion` 來自 build stamp，兩者脫鉤。可在 `prebuild` 校驗「`package.json` version 是否有對應 changelog 條目」，沒有就警告/擋下，從流程上保證每次發版都有更新內容。
+23. **「本次更新」精準化**🟢：目前永遠顯示 `CHANGELOG[0]`。可記住使用者上次看過的版本，只顯示「從你上次到現在」之間的條目，避免重看舊內容。
+24. **PR/commit → changelog 半自動**🟡：用 PR 標題或 commit 慣例（feat/fix）自動彙整草稿條目，發版時人工潤飾，降低「忘了更新 changelog」的機率。
+
+### F：較大型可開發功能（願景）
+
+25. **點歌建議「願望牆」**🔴：把待審核建議做成一面公開可瀏覽、可 +1、可留言的願望牆（接 `suggestionUpvotes`），讓現場觀眾彼此看到、互相加碼，形成社群感與即時熱度。
+26. **建議 → 自動補歌曲資料**🔴：送出建議時用既有搜尋/AI 能力預抓歌手、年代、曲風、YouTube 連結，admin 審核時一鍵帶入歌庫，縮短「推薦→可點播」的生產線（銜接 v4.10.0 轉調工具→歌庫線與 AI 譜圖辨識）。
+27. **離線送出佇列（PWA 強化）**🔴：用 Background Sync / IndexedDB 佇列，讓訪客在完全離線時送出的建議，於恢復連線後可靠補送並回報結果，把「現場網路差」這個根本痛點徹底解掉。
+
+---
+
+
 
 > 本段承接近期「轉調工具 / 全螢幕看譜」一條線（音樂搜尋連結、轉調工具狀態保存、縮放下限放寬到 40%），聚焦在**手機端全螢幕看譜時，把過高的頂部工具列收斂，讓下方譜面區塊取得更大顯示空間**。源自現場實測回饋：手機開啟全螢幕看譜，工具列佔掉近半個畫面，真正要看的譜反而被擠到很小。所有變更已合併進 `main`（commit `16f3d40`）。
 
