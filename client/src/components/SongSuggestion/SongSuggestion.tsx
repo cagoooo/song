@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Check, ChevronDown, Lightbulb, ListChecks, Music, Sparkles, Trash2, X } from 'lucide-react';
+import { Check, ChevronDown, Layers, Lightbulb, ListChecks, Music, Sparkles, Trash2, X } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -22,6 +22,7 @@ import { MySuggestions } from './MySuggestions';
 import { SuggestionCard } from './SuggestionCard';
 import { SuggestionForm } from './SuggestionForm';
 import { resolveBatchTargets, type BatchAction } from './batchSuggestions';
+import { groupSimilarSuggestions } from './groupSuggestions';
 
 interface SongSuggestionProps {
     isAdmin?: boolean;
@@ -78,6 +79,17 @@ export default function SongSuggestion({
         () => suggestions.filter((s) => s.status === 'pending').map((s) => s.id),
         [suggestions],
     );
+
+    // 相似建議分組（admin）：同一首多人推薦自動聚成一組，方便一次選取處理
+    const similarGroups = useMemo(
+        () => (isAdmin ? groupSimilarSuggestions(suggestions.filter((s) => s.status === 'pending')) : []),
+        [isAdmin, suggestions],
+    );
+
+    const selectGroup = useCallback((ids: string[]) => {
+        setBatchMode(true);
+        setSelectedIds(new Set(ids));
+    }, []);
 
     const selectedPendingCount = useMemo(
         () => Array.from(selectedIds).filter((id) => statusById.get(id) === 'pending').length,
@@ -282,6 +294,33 @@ export default function SongSuggestion({
                                         </div>
                                     </>
                                 )}
+                            </div>
+                        )}
+
+                        {isAdmin && similarGroups.length > 0 && (
+                            <div className="mt-3 rounded-lg border border-[#2b4dff]/20 bg-[#2b4dff]/[0.04] px-3 py-2.5">
+                                <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-[#2b4dff]">
+                                    <Layers className="h-3.5 w-3.5" />
+                                    偵測到 {similarGroups.length} 組相似推薦（同一首多人推薦），可一鍵選取一次處理
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    {similarGroups.map((g) => (
+                                        <div key={g.key} className="flex items-center justify-between gap-2 rounded-md bg-white px-2.5 py-1.5">
+                                            <span className="min-w-0 flex-1 truncate text-sm text-slate-700">
+                                                「{g.title}」<span className="text-slate-400">×{g.items.length}</span>
+                                                {g.totalUpvotes > 0 && <span className="ml-1 text-xs text-amber-600">🔥 {g.totalUpvotes}</span>}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => selectGroup(g.items.map((x) => x.id))}
+                                                disabled={batchMutation.isPending}
+                                                className="shrink-0 rounded-full bg-[#2b4dff] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#1d3bd8] disabled:opacity-40"
+                                            >
+                                                選取此組
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
 
