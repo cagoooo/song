@@ -31,6 +31,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // 跨裝置漏斗事件集合 - 僅管理員可讀（彙整用），所有人可新增（嚴格驗證），不可改/刪
+    match /funnelEvents/{eventId} {
+      allow read: if isAdmin();
+      allow create: if isValidFunnelEvent();
+      allow update, delete: if isAdmin();
+    }
+
     // 標籤集合 - 所有人可讀，僅管理員 + App Check 可寫
     match /tags/{tagId} {
       allow read: if true;
@@ -198,6 +205,16 @@ service cloud.firestore {
         && data.sessionId.size() <= 100;
     }
     
+    // 驗證跨裝置漏斗事件：只允許三個核心轉換事件 + sessionId + createdAt，無其他欄位
+    function isValidFunnelEvent() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['event', 'sessionId', 'createdAt'])
+        && data.event in ['suggestion_form_open', 'suggestion_typing_start', 'suggestion_submit_success']
+        && data.sessionId is string
+        && data.sessionId.size() > 0
+        && data.sessionId.size() <= 100;
+    }
+
     // 驗證歌曲建議資料有效性
     function isValidSuggestion() {
       let data = request.resource.data;

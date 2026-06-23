@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { RotateCcw, RefreshCw, Trash2 } from 'lucide-react';
+import { RotateCcw, RefreshCw, Trash2, Globe } from 'lucide-react';
 import { getFunnelSummary, resetFunnel } from '@/lib/funnelAnalytics';
+import { getFunnelServerSummary, type FunnelServerSummary } from '@/lib/firestore/funnelEvents';
 
 interface FunnelDashboardProps {
     isOpen: boolean;
@@ -50,8 +51,17 @@ function FunnelStep({ label, count, pct, tone = 'accent' }: { label: string; cou
 
 export function FunnelDashboard({ isOpen, onClose }: FunnelDashboardProps) {
     const [summary, setSummary] = useState<Summary | null>(null);
+    // 全場（跨裝置）彙整：admin 開啟時讀 Firestore 一次
+    const [server, setServer] = useState<FunnelServerSummary | null>(null);
+    const [serverError, setServerError] = useState(false);
 
-    const refresh = useCallback(() => setSummary(getFunnelSummary()), []);
+    const refresh = useCallback(() => {
+        setSummary(getFunnelSummary());
+        setServerError(false);
+        getFunnelServerSummary()
+            .then(setServer)
+            .catch(() => setServerError(true));
+    }, []);
 
     useEffect(() => {
         if (isOpen) refresh();
@@ -127,6 +137,38 @@ export function FunnelDashboard({ isOpen, onClose }: FunnelDashboardProps) {
                             <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
                                 <span className="text-amber-800">重複提示出現 <b>{summary?.重複提示.顯示 ?? 0}</b> 次</span>
                                 <span className="text-amber-700">點「前往點播」 <b>{summary?.重複提示.點擊前往點播 ?? 0}</b> 次</span>
+                            </div>
+
+                            {/* 全場（跨裝置）彙整 */}
+                            <div className="rounded-lg border border-[#2b4dff]/20 bg-[#2b4dff]/[0.04] px-4 py-3">
+                                <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-[#2b4dff]">
+                                    <Globe className="h-3.5 w-3.5" />
+                                    全場（跨裝置）
+                                </div>
+                                {serverError ? (
+                                    <p className="text-xs text-slate-400">讀取失敗（需管理員權限 / 網路）。</p>
+                                ) : server ? (
+                                    <div className="grid grid-cols-4 gap-2 text-center">
+                                        {[
+                                            { k: '觸及人數', v: server.sessions },
+                                            { k: '開啟', v: server.opens },
+                                            { k: '打字', v: server.typed },
+                                            { k: '送出', v: server.submits },
+                                        ].map((m) => (
+                                            <div key={m.k}>
+                                                <div style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 900, fontSize: 22, color: 'var(--ed-ink-1)' }}>
+                                                    {m.v}
+                                                </div>
+                                                <div className="text-[10px] text-slate-500">{m.k}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-slate-400">讀取中…</p>
+                                )}
+                                <p className="mt-2 text-[10px] text-slate-400">
+                                    僅核心 3 事件、所有裝置合計；本機區塊則只含此裝置。
+                                </p>
                             </div>
 
                             {/* 近期事件 */}
