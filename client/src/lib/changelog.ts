@@ -10,6 +10,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.14.0',
+        date: '2026-06-23',
+        items: [
+            '系統載入畫面全新改版為擬物化復古卡帶 (Cassette Tape) 風格',
+            '載入中齒輪會持續運轉，且磁帶卷大小會隨載入進度動態捲動',
+            '系統進度條整合老式 LED 三位數計數器，並完美符合 RWD 響應式排版',
+        ],
+    },
+    {
         version: '4.13.0',
         date: '2026-06-23',
         items: [

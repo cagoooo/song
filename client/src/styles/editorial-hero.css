@@ -643,3 +643,17 @@ body.sw-update-prompt-visible {
   82%  { opacity: 1; transform: translateY(0)     scale(1);    }
   100% { opacity: 0; transform: translateY(6px)   scale(0.99); }
 }
+
+/* AppLoading 卡帶動畫與 LED 效果 */
+.app-loading-spool-left {
+  transform-origin: 90px 60px;
+  animation: editorial-spin 4s linear infinite;
+}
+.app-loading-spool-right {
+  transform-origin: 210px 60px;
+  animation: editorial-spin 4s linear infinite;
+}
+.app-loading-led-counter {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  text-shadow: 0 0 6px rgba(245, 158, 11, 0.75), 0 0 12px rgba(245, 158, 11, 0.4);
+}
