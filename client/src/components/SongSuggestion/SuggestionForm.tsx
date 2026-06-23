@@ -14,7 +14,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
-    DialogClose,
     DialogHeader,
     DialogOverlay,
     DialogPortal,
@@ -35,6 +34,7 @@ import {
 import { Lightbulb, Plus, Music2, FileText, PlusCircle, Sparkles, CheckCircle, ThumbsUp, RotateCcw, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { submitSuggestion } from '@/hooks/use-suggestions';
+import { findDuplicateSong, type MatchedSong } from '@/lib/duplicateSong';
 import type { Song } from '@/lib/firestore';
 
 interface SuggestionFormProps {
@@ -42,11 +42,6 @@ interface SuggestionFormProps {
     onOpenChange: (open: boolean) => void;
     songs?: Song[];
     onNavigateToSong?: (songId: string) => void;
-}
-
-interface MatchedSong {
-    song: Song;
-    matchType: 'exact' | 'partial';
 }
 
 // 表單草稿：打到一半誤關 / 切走 / 重新整理也不消失
@@ -172,34 +167,12 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
         clearDraft(DRAFT_KEY);
     }, []);
 
-    // 檢測歌曲是否已存在
-    const checkDuplicate = useCallback((inputTitle: string, inputArtist: string): MatchedSong | null => {
-        if (!inputTitle.trim() || songs.length === 0) return null;
-
-        const normalizedTitle = inputTitle.trim().toLowerCase();
-        const normalizedArtist = inputArtist.trim().toLowerCase();
-
-        for (const song of songs) {
-            const songTitle = song.title.toLowerCase();
-            const songArtist = (song.artist || '').toLowerCase();
-
-            // 完全匹配標題
-            if (songTitle === normalizedTitle) {
-                return { song, matchType: 'exact' };
-            }
-
-            // 部分匹配（包含關係）
-            if (songTitle.includes(normalizedTitle) || normalizedTitle.includes(songTitle)) {
-                // 如果歌手也相符，視為高度匹配
-                if (normalizedArtist && songArtist.includes(normalizedArtist)) {
-                    return { song, matchType: 'exact' };
-                }
-                return { song, matchType: 'partial' };
-            }
-        }
-
-        return null;
-    }, [songs]);
+    // 檢測歌曲是否已存在（標準化相等或高度相似才算，避免「再見的時候」被「再見」誤判）
+    const checkDuplicate = useCallback(
+        (inputTitle: string, inputArtist: string): MatchedSong | null =>
+            findDuplicateSong(inputTitle, inputArtist, songs),
+        [songs],
+    );
 
     // 即時重複偵測 — 打字時（debounce 400ms）就比對歌單，標題 ≥2 字才提示以免噪音
     const [liveMatch, setLiveMatch] = useState<MatchedSong | null>(null);
@@ -345,10 +318,18 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                         <span className="text-right">Side A</span>
                     </div>
 
-                    <DialogClose className="suggestion-dialog-close" aria-label="關閉推薦新歌表單">
+                    {/* 手機端：鍵盤開著時，等到 click 才關會被 input 失焦/鍵盤收合吃掉第一次點擊
+                        （感覺卡住或要點兩次）。改在 pointerdown 立即關閉；onClick 保留給鍵盤操作。 */}
+                    <button
+                        type="button"
+                        className="suggestion-dialog-close"
+                        aria-label="關閉推薦新歌表單"
+                        onPointerDown={(e) => { e.preventDefault(); onOpenChange(false); }}
+                        onClick={() => onOpenChange(false)}
+                    >
                         <X className="h-4 w-4" />
                         <span>關閉</span>
-                    </DialogClose>
+                    </button>
 
                     <DialogHeader className="shrink-0 px-6 pt-5 pb-3 space-y-1">
                         <div
