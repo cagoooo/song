@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.18.0',
+        date: '2026-06-23',
+        items: [
+            '你推薦的歌在現場被彈出來時，會跳出慶祝提醒，謝謝你的好品味！',
+        ],
+    },
+    {
         version: '4.17.0',
         date: '2026-06-23',
         items: [

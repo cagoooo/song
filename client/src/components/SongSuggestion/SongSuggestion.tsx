@@ -15,6 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ResponsiveScrollList } from '@/components/ui/ResponsiveScrollList';
 import { useToast } from '@/hooks/use-toast';
 import { usePendingSuggestionFlush } from '@/hooks/usePendingSuggestionFlush';
+import { usePlayedSuggestionCelebration } from '@/hooks/usePlayedSuggestionCelebration';
 import { approveSuggestion, rejectSuggestion, removeSuggestion, useSuggestions } from '@/hooks/use-suggestions';
 import type { Song } from '@/lib/firestore';
 import { MySuggestions } from './MySuggestions';
@@ -50,6 +51,8 @@ export default function SongSuggestion({
     const { toast } = useToast();
     // 恢復連線 / 啟動時，自動補送離線暫存的點歌建議
     usePendingSuggestionFlush();
+    // 你推薦的歌被現場彈出來時，跳慶祝 toast（推薦→採納→演出 正向迴圈）
+    usePlayedSuggestionCelebration(songs);
 
     // 送出成功後：展開清單並高亮剛送出的卡片，引導去「+1 揪人」；4.5s 後解除高亮
     const handleSubmitted = useCallback((id: string) => {
