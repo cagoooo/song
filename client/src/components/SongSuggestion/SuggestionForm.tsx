@@ -42,6 +42,8 @@ interface SuggestionFormProps {
     onOpenChange: (open: boolean) => void;
     songs?: Song[];
     onNavigateToSong?: (songId: string) => void;
+    /** 送出成功且關閉表單後通知父層（帶新 doc id）：展開清單、捲到該卡引導「+1 揪人」 */
+    onSubmitted?: (suggestionId: string) => void;
 }
 
 // 表單草稿：打到一半誤關 / 切走 / 重新整理也不消失
@@ -90,7 +92,7 @@ const ArtistOption = memo(function ArtistOption({
     );
 });
 
-export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToSong }: SuggestionFormProps) {
+export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToSong, onSubmitted }: SuggestionFormProps) {
     // 初始值從 localStorage 草稿回填（lazy initializer，只在 mount 時讀一次）
     const initialDraft = useMemo(() => loadDraft<SuggestionDraft>(DRAFT_KEY), []);
     const [title, setTitle] = useState(initialDraft?.title ?? '');
@@ -254,6 +256,8 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                 setSubmitted(false);
                 resetForm();
                 onOpenChange(false);
+                // 關閉後引導去清單「+1 揪人」（展開 + 捲到該卡 + 高亮）
+                if (newId) onSubmitted?.(newId);
             }, 1700);
         },
         onError: (error: Error) => {

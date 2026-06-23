@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.17.0',
+        date: '2026-06-23',
+        items: [
+            '推薦送出後自動展開清單並高亮你的歌，一鍵「+1 揪人」找大家一起點',
+        ],
+    },
+    {
         version: '4.16.0',
         date: '2026-06-23',
         items: [
