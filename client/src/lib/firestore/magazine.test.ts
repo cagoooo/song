@@ -34,7 +34,7 @@ describe('magazine module exports', () => {
 describe('MAGAZINE_DEFAULTS', () => {
     it('預設值對應既有 5 件套 hardcode', () => {
         expect(MAGAZINE_DEFAULTS.currentIssueNumber).toBe(12);
-        expect(MAGAZINE_DEFAULTS.currentIssueTitle).toBe('阿凱彈唱之夜');
+        expect(MAGAZINE_DEFAULTS.currentIssueTitle).toBe('吉他彈唱之夜');
         expect(MAGAZINE_DEFAULTS.currentSideLabel).toBe('A');
         expect(MAGAZINE_DEFAULTS.currentTheme).toBe('blue');
     });

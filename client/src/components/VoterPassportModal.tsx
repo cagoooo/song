@@ -164,7 +164,7 @@ export function VoterPassportModal({ isOpen, onClose, history, onShare }: VoterP
                     {/* 雜誌頂條 */}
                     <div className="vb-flag">
                         <span>Nº 12 · VOTER PASSPORT</span>
-                        <span className="vb-flag-c">阿凱彈唱之夜</span>
+                        <span className="vb-flag-c">吉他彈唱之夜</span>
                         <span className="vb-flag-r">{startDateLabel}</span>
                     </div>
 
@@ -173,7 +173,7 @@ export function VoterPassportModal({ isOpen, onClose, history, onShare }: VoterP
                         <section className="vb-cover">
                             <span className="vb-cover-tl">Voter Passport</span>
                             <span className="vb-cover-tr">Nº 12 · Side A</span>
-                            <span className="vb-cover-bl">桃園 SMES · 阿凱彈唱之夜</span>
+                            <span className="vb-cover-bl">桃園 SMES · 吉他彈唱之夜</span>
                             <span className="vb-cover-br">issued {startMonthLabel}</span>
 
                             <div className="vb-cover-stamp" aria-hidden="true">

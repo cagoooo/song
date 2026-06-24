@@ -326,7 +326,7 @@ export const SuggestionCard = memo(function SuggestionCard({
                     </TooltipProvider>
                 </div>
 
-                {/* A2「+1 我也想聽」附議 — 待審核才可附議，群眾訊號供阿凱排歌 */}
+                {/* A2「+1 我也想聽」附議 — 待審核才可附議，群眾訊號供主持人排歌 */}
                 {suggestion.status === 'pending' && (
                     <button
                         type="button"

@@ -178,7 +178,7 @@ export default memo(function LoginForm({ onClose }: LoginFormProps) {
                                 color: 'var(--ed-ink-3)',
                             }}
                         >
-                            僅供阿凱老師與授權管理員使用。
+                            僅供主持人與授權管理員使用。
                         </p>
                     </form>
                 </div>

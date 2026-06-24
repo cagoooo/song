@@ -26,7 +26,7 @@ if (!existsSync(FONT_PATH)) {
 GlobalFonts.registerFromPath(FONT_PATH, 'NotoSansTC');
 mkdirSync(PUBLIC, { recursive: true });
 
-const SITE_TITLE = '阿凱 Guitar Singalong';
+const SITE_TITLE = '吉他彈唱之夜 · Guitar Singalong';
 const SITE_NAME = '吉他彈唱點歌系統';
 const SITE_DESC = '翻面、按下錄音鍵，把想聽的歌寫進今晚歌單。';
 const SITE_URL = 'cagoooo.github.io/song';
@@ -278,7 +278,7 @@ function generateScreenshot(width, height, formFactor) {
     setFont(ctx, 900, Math.max(20, Math.round(width * 0.035)));
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('阿凱 · Guitar Singalong', 32, Math.round(height * 0.04));
+    ctx.fillText('Guitar Singalong', 32, Math.round(height * 0.04));
 
     const heroY = Math.round(height * 0.13);
     setFont(ctx, 900, Math.max(34, Math.round(width * 0.055)));

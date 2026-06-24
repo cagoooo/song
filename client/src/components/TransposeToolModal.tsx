@@ -1134,11 +1134,11 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                             />
                                             <input
                                                 className="ttm-save-input"
-                                                placeholder="阿凱筆記（選填）"
+                                                placeholder="主理人筆記（選填）"
                                                 value={saveNote}
                                                 onChange={(e) => setSaveNote(e.target.value)}
                                                 maxLength={500}
-                                                aria-label="阿凱筆記"
+                                                aria-label="主理人筆記"
                                             />
                                             <div className="ttm-save-actions">
                                                 <button

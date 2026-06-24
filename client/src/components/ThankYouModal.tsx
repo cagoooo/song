@@ -149,7 +149,7 @@ export function ThankYouModal({
                 下一場 <span className="blue">Nº 13</span>
                 <span className="sep">★</span>
             </span>
-            <span className="small">桃園 SMES · 阿凱彈唱之夜</span>
+            <span className="small">桃園 SMES · 吉他彈唱之夜</span>
             <span>
                 <span className="sep">✦</span>
                 想點歌請早 — 下次活動再公告
@@ -172,7 +172,7 @@ export function ThankYouModal({
                 <span>
                     Nº 12 <span className="dot">·</span> END OF SIDE A
                 </span>
-                <span className="ty-flag-c">阿凱彈唱之夜</span>
+                <span className="ty-flag-c">吉他彈唱之夜</span>
                 <span className="ty-flag-r">{closingTime}</span>
             </div>
 
@@ -256,7 +256,7 @@ export function ThankYouModal({
                         )}
                     </p>
                     <span className="byline">
-                        — 阿凱 · {closingTime} · Side A Closed
+                        — 主持人 · {closingTime} · Side A Closed
                     </span>
                 </blockquote>
 

@@ -17,7 +17,7 @@ import {
 export function ShareButton() {
   const [open, setOpen] = useState(false);
   const currentUrl = window.location.href;
-  const shareTitle = '來參加阿凱彈唱之夜點歌！';
+  const shareTitle = '來參加吉他彈唱之夜點歌！';
 
   useEffect(() => {
     document.body.classList.toggle('share-dialog-open', open);

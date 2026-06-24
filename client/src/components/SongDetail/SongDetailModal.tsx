@@ -144,7 +144,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                     {song.title} · {song.artist} — 歌曲詳情頁
                 </DialogTitle>
                 <DialogDescription className="sr-only">
-                    包含和弦進行、6 個指型圖、歌詞和弦對照、阿凱筆記、相似推薦歌曲。
+                    包含和弦進行、6 個指型圖、歌詞和弦對照、主理人筆記、相似推薦歌曲。
                 </DialogDescription>
 
                 <div className="sd-page flex-1 overflow-y-auto" style={{ padding: '0 32px' }}>
@@ -329,14 +329,14 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                     {/* 5 — Editor note */}
                     <section className="sdp-section">
                         <div className="sdp-section-h">
-                            <span className="chap">No. 03 / 阿凱筆記</span>
+                            <span className="chap">No. 03 / 主理人筆記</span>
                             <span className="ttl">主理人的提醒</span>
                             <span className="meta">EDITOR&apos;S NOTE</span>
                         </div>
 
                         <div className="sdp-note">
                             <p className="sdp-note-q">{detail.note}</p>
-                            <div className="sdp-note-by">— 阿凱老師 · 主理人</div>
+                            <div className="sdp-note-by">— 主持人</div>
                         </div>
                     </section>
 

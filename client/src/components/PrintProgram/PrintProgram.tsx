@@ -24,13 +24,13 @@ interface PrintProgramProps {
     topVoters: VoterStat[];
     /** 雜誌期數，預設 12 */
     issueNumber?: number;
-    /** 期刊標題，預設「阿凱彈唱之夜」 */
+    /** 期刊標題，預設「吉他彈唱之夜」 */
     issueTitle?: string;
     /** Side A / B */
     sideLabel?: 'A' | 'B';
     /** 顯示前 N 首歌，預設 20 */
     topN?: number;
-    /** 阿凱主理人寄語 */
+    /** 主理人寄語 */
     kaiNote?: string;
     /** 關閉螢幕列印預覽（不影響實際列印；@media print 時自動隱藏按鈕） */
     onClose?: () => void;
@@ -50,7 +50,7 @@ export function PrintProgram({
     totalVoters,
     topVoters,
     issueNumber = 12,
-    issueTitle = '阿凱彈唱之夜',
+    issueTitle = '吉他彈唱之夜',
     sideLabel = 'A',
     topN = 20,
     kaiNote = DEFAULT_KAI_NOTE,
@@ -86,7 +86,7 @@ export function PrintProgram({
                     <div className="pp-flag-side">SIDE {sideLabel}</div>
                 </div>
                 <div className="pp-flag-r">
-                    <div className="pp-flag-brand">阿凱 · Guitar Singalong</div>
+                    <div className="pp-flag-brand">吉他彈唱之夜 · Guitar Singalong</div>
                     <div className="pp-flag-date">{today}</div>
                 </div>
             </header>
@@ -170,7 +170,7 @@ export function PrintProgram({
 
             <hr className="pp-rule" />
 
-            {/* 阿凱主理人 */}
+            {/* 主理人 */}
             <section className="pp-note">
                 <div className="pp-section-h">
                     <span className="pp-section-no">№ 04</span>
@@ -185,9 +185,9 @@ export function PrintProgram({
 
             <hr className="pp-rule" />
 
-            {/* Footer — 阿凱老師署名 + 學校 */}
+            {/* Footer — 主持人署名 + 學校 */}
             <footer className="pp-foot">
-                <div className="pp-foot-l">Made with ❤️ by 阿凱老師</div>
+                <div className="pp-foot-l">Made with ❤️ by 主持人</div>
                 <div className="pp-foot-c">桃園市龍潭區石門國民小學</div>
                 <div className="pp-foot-r">{today} 印</div>
             </footer>

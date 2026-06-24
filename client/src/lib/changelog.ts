@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.0',
+        date: '2026-06-24',
+        items: [
+            '站名更新為「吉他彈唱之夜」，讓更多場合都能使用這套點歌系統。',
+        ],
+    },
+    {
         version: '4.18.1',
         date: '2026-06-24',
         items: [

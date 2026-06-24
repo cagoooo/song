@@ -212,7 +212,7 @@ export function ShareCardModal({ isOpen, onClose, songs }: ShareCardModalProps) 
                                 {/* 1. 雜誌頂條 */}
                                 <div className="share-flag">
                                     <span>Nº 12</span>
-                                    <span className="center">SIDE A · 阿凱彈唱之夜</span>
+                                    <span className="center">SIDE A · 吉他彈唱之夜</span>
                                     <span className="right">{dateStr}</span>
                                 </div>
 
@@ -337,7 +337,7 @@ export function ShareCardModal({ isOpen, onClose, songs }: ShareCardModalProps) 
                                         <span className="sub">song.smes.tyc.edu.tw</span>
                                     </div>
                                     <div className="share-foot-by">
-                                        阿凱老師
+                                        主持人
                                         <span className="sub">Made with ♥</span>
                                     </div>
                                 </div>

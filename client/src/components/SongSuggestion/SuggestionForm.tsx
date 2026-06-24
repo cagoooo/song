@@ -398,7 +398,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                                 lineHeight: 1.5,
                             }}
                         >
-                            您的建議會交給阿凱老師審核，通過後就會出現在可點播清單中。
+                            您的建議會交給主持人審核，通過後就會出現在可點播清單中。
                         </DialogDescription>
                     </DialogHeader>
 
@@ -622,7 +622,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                                             lineHeight: 1.15,
                                         }}
                                     >
-                                        推薦已送達<span style={{ color: '#2b4dff' }}>阿凱老師</span>
+                                        推薦已送達<span style={{ color: '#2b4dff' }}>主持人</span>
                                     </div>
                                 </div>
                                 <p
@@ -721,7 +721,7 @@ export function SuggestionForm({ isOpen, onOpenChange, songs = [], onNavigateToS
                                     </div>
                                 )}
                                 <p className="text-sm text-slate-500">
-                                    您可以直接前往點播這首歌，或繼續送出建議讓阿凱老師審核。
+                                    您可以直接前往點播這首歌，或繼續送出建議讓主持人審核。
                                 </p>
                             </div>
                         </AlertDialogDescription>

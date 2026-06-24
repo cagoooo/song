@@ -49,7 +49,7 @@ export function usePendingSuggestionFlush(): void {
                 if (!cancelled && ok > 0) {
                     toast({
                         title: `已自動補送 ${ok} 首推薦`,
-                        description: '剛剛網路不穩暫存的推薦已成功送達阿凱老師。',
+                        description: '剛剛網路不穩暫存的推薦已成功送達主持人。',
                         variant: 'success',
                     });
                 }

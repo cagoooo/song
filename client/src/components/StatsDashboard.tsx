@@ -317,7 +317,7 @@ export function StatsDashboard({ isOpen, onClose, songs }: StatsDashboardProps) 
                         )}
                     </div>
 
-                    {/* Pull quote — 阿凱主理人 */}
+                    {/* Pull quote — 主理人 */}
                     <div className="editorial-pullquote">
                         <div className="editorial-pullquote-mark">“</div>
                         <div>
@@ -326,7 +326,7 @@ export function StatsDashboard({ isOpen, onClose, songs }: StatsDashboardProps) 
                                     ? `今晚衝到 ${stats.totalVotes} 票，全場真的有在用耳朵投票。`
                                     : '每一票都是一次催歌，現場互動會帶動下半場的氣氛。'}
                             </p>
-                            <div className="editorial-pullquote-by">— 阿凱老師 · 主理人</div>
+                            <div className="editorial-pullquote-by">— 主持人</div>
                         </div>
                     </div>
                 </ScrollArea>

@@ -40,7 +40,7 @@ export function MySuggestions({ suggestions }: MySuggestionsProps) {
                     description:
                         live.status === 'added_to_playlist'
                             ? `「${m.title}」已加入可點播清單，快去點播吧！`
-                            : `「${m.title}」阿凱老師採納了，很快會加入歌單`,
+                            : `「${m.title}」主持人採納了，很快會加入歌單`,
                     variant: 'success',
                 });
                 markSeenStatus(m.id, live.status);

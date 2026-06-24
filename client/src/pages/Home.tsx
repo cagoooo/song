@@ -587,11 +587,11 @@ export default function Home() {
       )}
 
       <div className="container mx-auto py-3 sm:py-6 md:py-8 px-2 sm:px-4">
-        {/* Editorial topbar — 雜誌品牌列：黑膠圓圈 + 阿凱 · Guitar Singalong + ISSUE №12 mono divider */}
+        {/* Editorial topbar — 雜誌品牌列：黑膠圓圈 + 吉他彈唱之夜 · Guitar Singalong + ISSUE №12 mono divider */}
         <div className="editorial-topbar">
           <div className="editorial-topbar-brand">
             <span className="editorial-brand-mark" aria-hidden="true" />
-            <span>阿凱 · Guitar Singalong</span>
+            <span>吉他彈唱之夜 · Guitar Singalong</span>
             <span className="editorial-topbar-issue">ISSUE №12 · {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()}</span>
           </div>
         </div>
@@ -606,7 +606,7 @@ export default function Home() {
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-4 sm:mb-5">
               <span className="live-dot" aria-hidden="true" />
-              <span className="eyebrow">ISSUE №12 · SIDE A · 阿凱彈唱之夜</span>
+              <span className="eyebrow">ISSUE №12 · SIDE A · 吉他彈唱之夜</span>
             </div>
 
             <h1 className="editorial-hero-title">
@@ -647,7 +647,7 @@ export default function Home() {
             <div className="editorial-cassette-toplabel">
               <div>
                 <div className="side">SIDE A · 90 MIN</div>
-                <div className="name">阿凱彈唱之夜</div>
+                <div className="name">吉他彈唱之夜</div>
               </div>
               <div className="issue">N°12</div>
             </div>
@@ -724,7 +724,7 @@ export default function Home() {
                 </div>
                 <h3 className="editorial-suggest-title">推薦一首，下一場可能就會排進歌單</h3>
                 <p className="editorial-suggest-sub">
-                  把你心中的曲目寄給阿凱老師，他會挑出最適合現場彈唱的版本納入。
+                  把你心中的曲目寄給主持人，他會挑出最適合現場彈唱的版本納入。
                 </p>
                 <div className="mt-5 relative z-10">
                   <Suspense fallback={<SectionSkeleton />}>
@@ -918,7 +918,7 @@ export default function Home() {
 
         {/* Editorial footer — 雜誌風版權帶 + 旋轉刻度標記 */}
         <footer className="editorial-footer">
-          <div>© {new Date().getFullYear()} 阿凱彈唱之夜 · 桃園 SMES · v2.0 hi-fi</div>
+          <div>© {new Date().getFullYear()} 吉他彈唱之夜 · 桃園 SMES · v2.0 hi-fi</div>
           <div className="editorial-flag-rule">
             <span>Side A</span>
             <span aria-hidden="true" />

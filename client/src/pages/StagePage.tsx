@@ -102,7 +102,7 @@ export default function StagePage() {
     const showControls = useIdleHide(4000);
     const nowPlaying = useNowPlaying();
     const clock = useClock();
-    // D1 雜誌期數設定 — 取代硬編的「ISSUE #12 / 阿凱彈唱之夜」（admin 改期數即時反映）
+    // D1 雜誌期數設定 — 取代硬編的「ISSUE #12 / 吉他彈唱之夜」（admin 改期數即時反映）
     const { settings } = useMagazine();
 
     const tickerItems = useMemo(
@@ -304,7 +304,7 @@ export default function StagePage() {
                                                 letterSpacing: '-0.01em',
                                             }}
                                         >
-                                            阿凱老師
+                                            主持人
                                         </div>
                                     </div>
                                     <div>
@@ -373,7 +373,7 @@ export default function StagePage() {
                                 marginTop: 24,
                             }}
                         >
-                            還沒有正在彈奏的歌曲 — 等阿凱老師按下「開始彈奏」
+                            還沒有正在彈奏的歌曲 — 等主持人按下「開始彈奏」
                         </div>
                     )}
                 </section>
