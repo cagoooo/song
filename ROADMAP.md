@@ -22,18 +22,18 @@
 
 ### P0：把已修好的「送出」做到滴水不漏（低成本、直接接現有碼）
 
-1. ~~**送出失敗的「重試 / 已暫存」回饋**🟢~~ ✅ **已完成（6/23, PR #76）**：新增 [pendingSuggestions.ts](client/src/lib/pendingSuggestions.ts) localStorage 佇列，離線/寫入失敗即 enqueue（沿用同 doc id 冪等重送），啟動 + `online` 事件自動補送並 toast；送出當下離線提示「已暫存」。後續 🔴 可再接 Service Worker Background Sync 做到關閉分頁也能背景補送。
+1. ~~**送出失敗的「重試 / 已暫存」回饋**🟢~~ ✅ **已完成（6/23, PR #76；6/24 跨平台強化 PR #85）**：新增 [pendingSuggestions.ts](client/src/lib/pendingSuggestions.ts) localStorage 佇列，離線/寫入失敗即 enqueue（沿用同 doc id 冪等重送），啟動 + `online` 事件自動補送並 toast；送出當下離線提示「已暫存」。**PR #85 再補齊跨平台補送觸發**（[usePendingSuggestionFlush.ts](client/src/hooks/usePendingSuggestionFlush.ts)：`focus` / `visibilitychange` / `pagehide` / 60s 輪詢）＋ **Background Sync bonus**（支援的瀏覽器登記 `flush-suggestions`，SW 連線恢復時喚醒並 `postMessage` 通知前端補送，不在 SW 內寫 Firestore）。完整「關閉分頁也背景補送」見下方 F #27。
 2. **送出節流 / 防連點重複建議**🟢：同一裝置短時間（如 30s）內擋掉相同 title 的重複送出，配合既有 `mySuggestions` 本地紀錄比對，減少重覆審核負擔。
-3. **重複偵測門檻可調 + 灰階提示**🟢：`duplicateSong` 已支援 `threshold` 參數。可加「中相似度（0.6–0.8）」的**柔性提示**（不擋送出，只在標題下方小字「歌單裡有點像的：X」），高相似才跳確認框；現場再依誤判率微調門檻。
-4. **建議表單欄位記憶「稱呼」**🟢：`suggestedBy`（你的稱呼）用 localStorage 記住，回訪自動帶入，省去每次重打——沿用既有 `draftStorage` 模式。
-5. **送出成功後的「+1 我也想聽」即時引導**🟢：投遞成功儀式結束後，直接把剛送出的建議卡片捲到視野並高亮「揪人 +1」，銜接既有 `suggestionUpvotes`，把單次推薦變成擴散。
+3. ~~**重複偵測門檻可調 + 灰階提示**🟢~~ ✅ **已完成（6/24, PR #80）**：`duplicateSong` 中相似度（0.6–0.8）改為**柔性提示**（不擋送出，標題下方小字列出「歌單裡有點像的」），高相似才跳確認框。
+4. ~~**建議表單欄位記憶「稱呼」**🟢~~ ✅ **已完成（6/24, PR #80）**：`suggestedBy`（你的稱呼）以 localStorage 記住，回訪自動帶入，省去每次重打。
+5. ~~**送出成功後的「+1 我也想聽」即時引導**🟢~~ ✅ **已完成（6/24, PR #81）**：投遞成功儀式結束後，自動展開社群推薦、把剛送出的建議卡片捲到視野並高亮「揪人 +1」，銜接既有 `suggestionUpvotes`，把單次推薦變成擴散。
 
 ### P1：點歌建議漏斗的可視化與營運（已有埋點，缺儀表板）
 
 6. ~~**漏斗儀表板（admin）**🟡~~ ✅ **已完成（6/23, PR #77）**：新增 [FunnelDashboard.tsx](client/src/components/FunnelDashboard.tsx)，admin 工具列「漏斗」鈕開啟，顯示主漏斗比例條、打字/送出/放棄轉換率、重複提示成效、近期事件流與清除本機數據。
-7. **跨裝置漏斗彙整**🟡：目前是單機 localStorage。可在 `trackEvent` 加一個輕量 server sink（Firestore 計數 doc 或既有 interactions 集合），把多位訪客的漏斗聚合，才看得到真實現場數據。
-8. **建議狀態通知強化**🟢：`useSuggestionNotification` 已能追「待審核→已採納」。補上「你推薦的《X》今晚被彈了！」的回饋（接 `playedSongs`），形成「推薦→被採納→被演出」的完整正向迴圈。
-9. **admin 批次審核效率**🟡：`batchSuggestions` 已有批次採納/拒絕/刪除。可補「相似建議自動分組」（複用 `duplicateSong` 相似度），把同一首的多筆推薦聚合成一張卡一次處理 + 合併票數。
+7. ~~**跨裝置漏斗彙整**🟡~~ ✅ **已完成（6/24, PR #84）**：`trackEvent` 加上輕量 Firestore server sink，多位訪客的漏斗事件聚合到伺服器；admin 漏斗儀表板新增「全場視圖」切換看真實現場數據。⚠️ 需另外部署 `firestore.rules`（`firebase deploy --only firestore:rules`）寫入才會生效。
+8. ~~**建議狀態通知強化**🟢~~ ✅ **已完成（6/24, PR #82）**：補上「你推薦的《X》今晚被彈了！」回饋（接 `playedSongs`），被彈出時跳慶祝，形成「推薦→被採納→被演出」的完整正向迴圈。
+9. ~~**admin 批次審核效率**🟡~~ ✅ **已完成（6/24, PR #83）**：「相似建議自動分組」（複用 `duplicateSong` 相似度），把同一首的多筆推薦聚合成一張卡一次批次處理。
 
 ### P1：分享與成長（分享卡片已修好，下一步是「值得被分享」）
 
@@ -66,7 +66,7 @@
 
 25. **點歌建議「願望牆」**🔴：把待審核建議做成一面公開可瀏覽、可 +1、可留言的願望牆（接 `suggestionUpvotes`），讓現場觀眾彼此看到、互相加碼，形成社群感與即時熱度。
 26. **建議 → 自動補歌曲資料**🔴：送出建議時用既有搜尋/AI 能力預抓歌手、年代、曲風、YouTube 連結，admin 審核時一鍵帶入歌庫，縮短「推薦→可點播」的生產線（銜接 v4.10.0 轉調工具→歌庫線與 AI 譜圖辨識）。
-27. **離線送出佇列（PWA 強化）**🔴：用 Background Sync / IndexedDB 佇列，讓訪客在完全離線時送出的建議，於恢復連線後可靠補送並回報結果，把「現場網路差」這個根本痛點徹底解掉。
+27. **離線送出佇列（PWA 強化）**🔴 — 🟡 **部分完成（6/24, PR #85）**：分頁開著時的補送已做到滴水不漏（P0 #1：跨平台觸發 + Background Sync 喚醒通知前端）。**剩餘的 🔴 大工**＝「分頁全關也由 SW 直接補送」：需把佇列搬到 IndexedDB（localStorage 在 SW 讀不到）+ 在 SW 內以 Firestore REST 編碼寫入（含 App Check／憑證），且 CI 無法驗證 SW 背景行為 → 風險高，暫不納入。
 
 ---
 
