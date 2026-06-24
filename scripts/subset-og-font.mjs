@@ -21,7 +21,7 @@ if (!existsSync(FONT_IN)) {
 }
 
 const USED_TEXT = `
-阿凱 Guitar Singalong 吉他彈唱點歌系統
+吉他彈唱之夜 · Guitar Singalong 吉他彈唱點歌系統
 像一卷 90 分鐘卡帶 翻面 按下錄音鍵 把你想聽的歌寫進今晚的歌單
 現場即時投票 排行 點歌 分享 LINE Facebook 社群分享卡片
 ISSUE N°12 SIDE A SIDE B HI-FI SETLIST VOTES TONIGHT ACTIVE LIVE

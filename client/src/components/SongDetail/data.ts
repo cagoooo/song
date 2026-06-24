@@ -35,7 +35,7 @@ export interface SongDetail {
     progression: string[];
     fingerings: ChordFingering[];
     lyrics: LyricBlock[];
-    /** 阿凱筆記，主理人引文 */
+    /** 主理人筆記，主理人引文 */
     note: string;
     /** 推薦相似的歌（最多 3 首） */
     similar: { title: string; artist: string; year: number; pill: string }[];
@@ -53,7 +53,7 @@ const COMMON_FINGERINGS: ChordFingering[] = [
     { name: 'Dm', label: 'D Minor', dots: { 1: 1, 2: 3, 3: 2, 4: 0, 5: 'x', 6: 'x' } },
 ];
 
-// 阿凱常用語錄（每首隨機抽一句作為 fallback）
+// 主持人常用語錄（每首隨機抽一句作為 fallback）
 const KAI_NOTES = [
     '主歌可以放低吟唱、副歌再扛起來。讓全場有跟著起伏的空間。',
     '和弦進行很標準，重點放在 strum pattern 與情緒收放。',
@@ -132,7 +132,7 @@ const FALLBACK_LYRICS: LyricBlock[] = [
     { sec: 'INTRO', rows: [{ chord: 'C  G  Am  Em', line: '' }] },
     { sec: 'VERSE 1', rows: [
         { chord: 'C       G       Am       Em', line: '（這首歌的歌詞還沒被收錄）' },
-        { chord: 'F       G       C', line: '請阿凱老師補上 — 編輯歌曲時可加入歌詞' },
+        { chord: 'F       G       C', line: '請主持人補上 — 編輯歌曲時可加入歌詞' },
     ] },
     { sec: 'CHORUS', chorus: true, rows: [
         { chord: 'C       G       F       C', line: '副歌段，加上歌詞會自動高亮' },

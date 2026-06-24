@@ -134,7 +134,7 @@ describe('OpeningCurtain', () => {
         it('渲染頂條 OPENING + LIVE + 主標 + 跑馬燈', () => {
             render(<OpeningCurtain isOpen={true} onClose={() => {}} />);
             expect(screen.getByText(/Nº 12 · OPENING/)).toBeInTheDocument();
-            expect(screen.getByText('阿凱彈唱之夜')).toBeInTheDocument();
+            expect(screen.getByText('吉他彈唱之夜')).toBeInTheDocument();
             expect(screen.getByText(/今晚開始/)).toBeInTheDocument();
             // 跑馬燈內容
             expect(screen.getAllByText(/SIDE A/).length).toBeGreaterThan(0);

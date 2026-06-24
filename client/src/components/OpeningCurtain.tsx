@@ -55,7 +55,7 @@ export function OpeningCurtain({ isOpen, onClose, songCount }: OpeningCurtainPro
             {/* 頂條 OPENING · LIVE */}
             <div className="oc-topbar" aria-hidden="true">
                 <span className="oc-topbar-l">Nº 12 · OPENING</span>
-                <span className="oc-topbar-c">阿凱彈唱之夜</span>
+                <span className="oc-topbar-c">吉他彈唱之夜</span>
                 <span className="oc-topbar-r">
                     LIVE <span className="oc-live-dot" />
                 </span>
@@ -93,7 +93,7 @@ export function OpeningCurtain({ isOpen, onClose, songCount }: OpeningCurtainPro
             <div className="oc-ticker" aria-hidden="true">
                 <div className="oc-ticker-track">
                     {Array.from({ length: 2 }).flatMap((_, dup) => [
-                        '★ 阿凱彈唱之夜 · SIDE A',
+                        '★ 吉他彈唱之夜 · SIDE A',
                         '★ 33⅓ RPM · LIVE',
                         '★ 點歌不停 · 投票即催歌',
                         '★ Nº 12 · 桃園 SMES',

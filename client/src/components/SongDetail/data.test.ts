@@ -96,13 +96,13 @@ describe('getSongDetail', () => {
             expect(detail.lyrics[0].rows[0].line?.length).toBeLessThanOrEqual(60);
         });
 
-        it('完全沒歌詞 → fallback 3 block 提示「請阿凱補上」', () => {
+        it('完全沒歌詞 → fallback 3 block 提示「請主持人補上」', () => {
             const song = makeSong({ id: 's', title: 'T' });
             const detail = getSongDetail(song);
             expect(detail.lyrics.length).toBeGreaterThan(0);
-            // fallback 內含「請阿凱老師補上」提示
+            // fallback 內含「請主持人補上」提示
             const text = detail.lyrics.map((b) => b.rows.map((r) => r.line || '').join(' ')).join(' ');
-            expect(text).toContain('請阿凱老師補上');
+            expect(text).toContain('請主持人補上');
         });
     });
 

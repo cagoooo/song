@@ -59,12 +59,12 @@ export interface Song {
     lyricBlocks?: LyricBlock[];
     /** YouTube ID（給 SongDetail thumbnail / 預覽） */
     youtubeId?: string;
-    /** 阿凱主理人筆記（單行短句） */
+    /** 主理人筆記（單行短句） */
     kaiNote?: string;
 
     // ===== 🆕 D5 結構化標記欄位 =====
 
-    /** 版本：原曲 / 不插電 / remix / 阿凱改編 */
+    /** 版本：原曲 / 不插電 / remix / 特別改編 */
     version?: SongVersion;
     /** 情緒：熱血 / 抒情 / 療癒 / 懷舊 / 嗨歌 / 慢歌 */
     mood?: SongMood;
@@ -112,7 +112,7 @@ export const VERSION_META: Readonly<Record<SongVersion, DimensionMeta<SongVersio
     'original':  { key: 'original',  label: '原曲',     emoji: '🎵' },
     'acoustic':  { key: 'acoustic',  label: '不插電',   emoji: '🪕' },
     'remix':     { key: 'remix',     label: 'Remix',   emoji: '🎛️' },
-    'kai-cover': { key: 'kai-cover', label: '阿凱改編', emoji: '🎸' },
+    'kai-cover': { key: 'kai-cover', label: '特別改編', emoji: '🎸' },
 });
 
 export const ERA_META: Readonly<Record<SongEra, DimensionMeta<SongEra>>> = Object.freeze({
@@ -157,7 +157,7 @@ export interface SongSuggestion {
     status: 'pending' | 'approved' | 'rejected' | 'added_to_playlist';
     createdAt: Date;
     processedAt?: Date;
-    /** A2「+1 我也想聽」附議數（群眾訊號，供阿凱排歌參考） */
+    /** A2「+1 我也想聽」附議數（群眾訊號，供主持人排歌參考） */
     upvotes?: number;
 }
 
@@ -189,7 +189,7 @@ export interface RatingStats {
 // ============================================================================
 // 設計文件：docs/design/D1-issue-system.md
 //
-// 把散落在 5 件套 ritual modal 的 `ISSUE №12 · MAY 2026 · 阿凱彈唱之夜`
+// 把散落在 5 件套 ritual modal 的 `ISSUE №12 · MAY 2026 · 吉他彈唱之夜`
 // 等 hardcode 字串，集中到 `settings/magazine` 單一 doc。
 // 「結束今晚」時自動把當前期數凍結成 `issues/{issueId}` 並 +1 期數。
 
@@ -206,7 +206,7 @@ export type MagazineTheme = 'blue' | 'red' | 'green';
 export interface MagazineSettings {
     /** 期數，例 12 */
     currentIssueNumber: number;
-    /** 期刊標題，例「阿凱彈唱之夜」 */
+    /** 期刊標題，例「吉他彈唱之夜」 */
     currentIssueTitle: string;
     /** 副標題，例「MAY 2026 · SIDE A」（選填，沒填則由 sideLabel 自動帶） */
     currentIssueSubtitle?: string;
@@ -257,12 +257,12 @@ export interface IssueArchive {
  *
  * 對應原本散落在程式碼裡的 hardcode：
  *   - Nº 12 → currentIssueNumber: 12
- *   - 阿凱彈唱之夜 → currentIssueTitle
+ *   - 吉他彈唱之夜 → currentIssueTitle
  *   - Side A → currentSideLabel
  */
 export const MAGAZINE_DEFAULTS: Readonly<MagazineSettings> = Object.freeze({
     currentIssueNumber: 12,
-    currentIssueTitle: '阿凱彈唱之夜',
+    currentIssueTitle: '吉他彈唱之夜',
     currentSideLabel: 'A' as const,
     currentStartedAt: new Date('2026-05-01T00:00:00+08:00'),
     currentTheme: 'blue' as const,

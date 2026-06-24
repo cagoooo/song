@@ -63,7 +63,7 @@ describe('PrintProgram', () => {
     });
 
     describe('期刊資訊', () => {
-        it('預設期數 Nº 12 + SIDE A + 阿凱彈唱之夜', () => {
+        it('預設期數 Nº 12 + SIDE A + 吉他彈唱之夜', () => {
             render(
                 <PrintProgram
                     songs={[]}
@@ -74,7 +74,8 @@ describe('PrintProgram', () => {
             );
             expect(screen.getByText('Nº 12')).toBeInTheDocument();
             expect(screen.getByText('SIDE A')).toBeInTheDocument();
-            expect(screen.getByText(/阿凱彈唱之夜/)).toBeInTheDocument();
+            // 期刊標題（鎖定 pp-sub「… · 共 N 首歌」，避免與品牌列「… · Guitar Singalong」重複命中）
+            expect(screen.getByText(/吉他彈唱之夜 · 共/)).toBeInTheDocument();
         });
 
         it('可覆寫 issueNumber / issueTitle / sideLabel', () => {
@@ -263,7 +264,7 @@ describe('PrintProgram', () => {
     });
 
     describe('Footer 署名', () => {
-        it('包含「阿凱老師」+「桃園市龍潭區石門國民小學」', () => {
+        it('包含「主持人」+「桃園市龍潭區石門國民小學」', () => {
             render(
                 <PrintProgram
                     songs={[]}
@@ -272,7 +273,7 @@ describe('PrintProgram', () => {
                     topVoters={[]}
                 />,
             );
-            expect(screen.getByText(/阿凱老師/)).toBeInTheDocument();
+            expect(screen.getByText(/主持人/)).toBeInTheDocument();
             expect(screen.getByText('桃園市龍潭區石門國民小學')).toBeInTheDocument();
         });
     });

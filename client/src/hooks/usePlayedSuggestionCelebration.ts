@@ -50,7 +50,7 @@ export function usePlayedSuggestionCelebration(songs: Song[]): void {
                 saveCelebrated(celebratedRef.current);
                 toast({
                     title: '🎸 你推薦的歌被彈出來了！',
-                    description: `《${m.title}》今晚被阿凱彈了，謝謝你的好品味！`,
+                    description: `《${m.title}》今晚被彈出來了，謝謝你的好品味！`,
                     variant: 'success',
                 });
             }

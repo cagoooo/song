@@ -128,9 +128,9 @@ describe('useMagazine', () => {
     });
 
     describe('MAGAZINE_DEFAULTS 不可變', () => {
-        it('預設值符合既有 5 件套 hardcode（Nº 12 / 阿凱彈唱之夜 / Side A）', () => {
+        it('預設值符合既有 5 件套 hardcode（Nº 12 / 吉他彈唱之夜 / Side A）', () => {
             expect(MAGAZINE_DEFAULTS.currentIssueNumber).toBe(12);
-            expect(MAGAZINE_DEFAULTS.currentIssueTitle).toBe('阿凱彈唱之夜');
+            expect(MAGAZINE_DEFAULTS.currentIssueTitle).toBe('吉他彈唱之夜');
             expect(MAGAZINE_DEFAULTS.currentSideLabel).toBe('A');
         });
 

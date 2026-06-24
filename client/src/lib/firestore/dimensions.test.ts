@@ -48,8 +48,8 @@ describe('VERSION_META', () => {
         expect(VERSION_KEYS).toEqual(['original', 'acoustic', 'remix', 'kai-cover']);
     });
 
-    it('阿凱改編對應 kai-cover', () => {
-        expect(VERSION_META['kai-cover'].label).toBe('阿凱改編');
+    it('特別改編對應 kai-cover', () => {
+        expect(VERSION_META['kai-cover'].label).toBe('特別改編');
     });
 
     it('frozen', () => {
