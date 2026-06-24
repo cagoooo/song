@@ -124,7 +124,6 @@ export default function Home() {
   const [transposeToolLoaded, setTransposeToolLoaded] = useState(false);
   const [printMode, setPrintMode] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
-  const curtainCheckedRef = useRef(false);
   const printCleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 全站任一文字輸入框聚焦時自動進入「專注輸入」模式（涵蓋搜尋、登入、編輯、匯入等所有輸入框）
   useComposingWhileTyping();
@@ -391,22 +390,8 @@ export default function Home() {
     setDisplayedSongs(sortedSongs.slice(0, displayLimit));
   }, [sortedSongs, displayLimit]);
 
-  // 首次到訪 sessionStorage 沒記號 → 自動播放開場儀式（每瀏覽器 session 一次）
-  useEffect(() => {
-    if (curtainCheckedRef.current) return;
-    if (songs.length === 0) return;          // 等歌單載入再決定要不要播
-    curtainCheckedRef.current = true;
-    try {
-      if (sessionStorage.getItem('opening-curtain-shown-v1')) return;
-      // 若帶 ?intro=skip 或從演出模式跳轉 → 不播
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('intro') === 'skip' || params.get('mode') === 'stage') return;
-      sessionStorage.setItem('opening-curtain-shown-v1', '1');
-      setCurtainOpen(true);
-    } catch {
-      // sessionStorage 不可用就放棄，不影響主流程
-    }
-  }, [songs.length]);
+  // 開場儀式不再對訪客自動播放（每次更新 SW / 重新整理都跳出很干擾）。
+  // 改為「純管理員手動觸發」：上方工具列「🎭 開場」按鈕按下才播放（setCurtainOpen(true)）。
 
   // 載入更多歌曲
   const loadMore = useCallback(() => {
