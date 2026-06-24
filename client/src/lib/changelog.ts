@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.1',
+        date: '2026-06-24',
+        items: [
+            '全新吉他撥片圖示（favicon / App 圖示），更貼近「吉他彈唱」主題。',
+        ],
+    },
+    {
         version: '4.19.0',
         date: '2026-06-24',
         items: [
