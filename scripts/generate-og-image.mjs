@@ -150,34 +150,41 @@ function drawIconMark(ctx, size, maskable = false) {
     ctx.fillStyle = maskable ? THEME.blue : THEME.ink;
     ctx.fillRect(0, 0, size, size);
 
-    const pad = maskable ? size * 0.22 : size * 0.13;
-    const x = pad;
-    const y = size * 0.24;
-    const w = size - pad * 2;
-    const h = size * 0.52;
+    // 吉他撥片（pick）+ 三條琴弦 — 對應品牌「吉他彈唱」。
+    // 全程用向量繪製，不依賴音符字型字符（OG 子集字型未含 ♪/♫，會缺字）。
+    const cx = size / 2;
+    const reach = maskable ? 0.6 : 0.78;        // maskable 需留安全邊距
+    const top = size * (0.5 - 0.31 * reach);
+    const bottom = size * (0.5 + 0.33 * reach);
+    const halfW = size * 0.3 * reach;
+    const h = bottom - top;
 
-    fillRoundRect(ctx, x, y, w, h, size * 0.035, THEME.paper);
-    strokeRoundRect(ctx, x, y, w, h, size * 0.035, maskable ? '#ffffff' : THEME.blue, size * 0.018);
-    fillRoundRect(ctx, x + w * 0.11, y + h * 0.18, w * 0.78, h * 0.22, size * 0.018, THEME.blue);
+    // 撥片外形：上寬下尖的圓角三角
+    ctx.beginPath();
+    ctx.moveTo(cx, bottom);
+    ctx.quadraticCurveTo(cx - halfW * 1.55, top + h * 0.26, cx - halfW, top);
+    ctx.quadraticCurveTo(cx, top - h * 0.14, cx + halfW, top);
+    ctx.quadraticCurveTo(cx + halfW * 1.55, top + h * 0.26, cx, bottom);
+    ctx.closePath();
+    ctx.fillStyle = THEME.paper;
+    ctx.fill();
+    ctx.lineWidth = size * 0.028;
+    ctx.strokeStyle = maskable ? '#ffffff' : THEME.blue;
+    ctx.stroke();
 
-    ctx.fillStyle = THEME.ink;
-    const cy = y + h * 0.66;
-    [x + w * 0.3, x + w * 0.7].forEach((cx) => {
+    // 三條琴弦（藍）
+    ctx.strokeStyle = THEME.blue;
+    ctx.lineWidth = size * 0.028;
+    ctx.lineCap = 'round';
+    const sTop = top + h * 0.2;
+    const sBot = bottom - h * 0.16;
+    [-1, 0, 1].forEach((i) => {
+        const sx = cx + i * halfW * 0.46;
         ctx.beginPath();
-        ctx.arc(cx, cy, w * 0.13, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = THEME.paper;
-        ctx.beginPath();
-        ctx.arc(cx, cy, w * 0.045, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = THEME.ink;
+        ctx.moveTo(sx, sTop);
+        ctx.lineTo(sx, sBot);
+        ctx.stroke();
     });
-
-    ctx.fillStyle = '#ffffff';
-    setFont(ctx, 900, size * 0.13);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('♫', x + w * 0.5, y + h * 0.29);
 }
 
 function generateOgImage() {
