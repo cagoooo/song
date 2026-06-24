@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.18.1',
+        date: '2026-06-24',
+        items: [
+            '開場儀式不再每次重新整理就自動跳出，改由主理人需要時手動開場。',
+        ],
+    },
+    {
         version: '4.18.0',
         date: '2026-06-23',
         items: [
