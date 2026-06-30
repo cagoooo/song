@@ -844,9 +844,17 @@
   display: none;
 }
 .ttm-fullscreen {
-  position: absolute;
+  /* 直接釘住視窗（fixed），不依賴 DialogContent 的高度解析 —
+     iPad Safari 在 scroll-lock + 動態工具列下，fixed 父層的 height:100%
+     有時不會解析成整個視窗，導致 absolute inset:0 的全螢幕層塌成左上角
+     一小塊、且自訂觸控縮放失效（看起來卡死）。改用 fixed 從根本避開。 */
+  position: fixed;
   inset: 0;
-  z-index: 1;
+  /* 100% 高度退路（部分舊版 iOS inset:0 在 fixed 上偶爾不撐滿），dvh 優先 */
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: var(--z-queue-modal, 80);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: clamp(10px, 2vw, 18px);
