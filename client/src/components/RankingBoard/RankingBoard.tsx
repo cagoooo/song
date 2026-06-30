@@ -66,7 +66,7 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
     const [isResettingVotes, setIsResettingVotes] = useState(false);
     const [showResetVotesDialog, setShowResetVotesDialog] = useState(false);
     const isLoading = propSongs.length === 0;
-    const displayLimit = isExpanded ? 30 : 10;
+    const displayLimit = isExpanded ? 50 : 10;
     const containerRef = useRef<HTMLOListElement>(null);
     const loadMoreRef = useRef<HTMLDivElement>(null);
 
