@@ -1,7 +1,10 @@
 // Firebase 前端配置
 import { initializeApp } from 'firebase/app';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-import { initializeFirestore, memoryLocalCache } from 'firebase/firestore';
+import {
+    initializeFirestore, memoryLocalCache,
+    collection, doc, type CollectionReference, type DocumentReference,
+} from 'firebase/firestore';
 import type { Auth } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -57,6 +60,40 @@ export function getAuthLazy(): Promise<Auth> {
         authPromise = import('firebase/auth').then((m) => m.getAuth(app));
     }
     return authPromise;
+}
+
+// ==================== 租戶空間（U1 多使用者） ====================
+// 設計文件：docs/design/U1-multi-tenant.md
+// 訪客與 root admin（阿凱）走根集合（歷史資料零遷移）；
+// 審核通過的一般使用者走 tenants/{uid}/{collection} 子集合 — 整套系統
+// 在自己的空白空間運作，歌單與阿凱的完全隔離。
+// 切換時機：auth.ts 的 onAuthChange 在通知 UI 前先呼叫 setActiveTenant，
+// App.tsx 以 spaceKey remount 整棵樹讓所有 onSnapshot 換到新空間。
+let activeTenant: string | null = null;
+
+/** null = 根集合（訪客 / root admin）；uid = 該使用者的獨立空間 */
+export function setActiveTenant(uid: string | null): void {
+    activeTenant = uid;
+}
+
+export function getActiveTenant(): string | null {
+    return activeTenant;
+}
+
+export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];
+
+/** 取集合參照 — 依 activeTenant 決定根集合或租戶子集合 */
+export function col(name: CollectionName): CollectionReference {
+    return activeTenant
+        ? collection(db, 'tenants', activeTenant, name)
+        : collection(db, name);
+}
+
+/** 取文件參照 — 同 col()，給 doc(db, COLLECTIONS.x, id) 的既有呼叫改用 */
+export function docRef(name: CollectionName, id: string): DocumentReference {
+    return activeTenant
+        ? doc(db, 'tenants', activeTenant, name, id)
+        : doc(db, name, id);
 }
 
 // Collection 名稱常數

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, onSnapshot, type Timestamp } from 'firebase/firestore';
-import { db, COLLECTIONS } from '@/lib/firebase';
+import { db, COLLECTIONS, col, docRef } from '@/lib/firebase';
 import type { Song } from '@/lib/firestore';
 
 interface VoteRecord {
@@ -99,7 +99,7 @@ export function useStatsData({
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const ref = collection(db, COLLECTIONS.votes);
+        const ref = col(COLLECTIONS.votes);
         const unsub = onSnapshot(ref, (snap) => {
             const list: VoteRecord[] = [];
             snap.forEach((d) => {

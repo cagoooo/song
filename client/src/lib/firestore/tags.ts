@@ -2,11 +2,11 @@ import {
     collection, doc, getDocs, addDoc, deleteDoc, query, where, Timestamp,
     onSnapshot, type Unsubscribe,
 } from 'firebase/firestore';
-import { db, COLLECTIONS } from '../firebase';
+import { db, COLLECTIONS, col, docRef } from '../firebase';
 import type { Tag } from './types';
 
 export async function getTags(): Promise<Tag[]> {
-    const tagsRef = collection(db, COLLECTIONS.tags);
+    const tagsRef = col(COLLECTIONS.tags);
     const snapshot = await getDocs(tagsRef);
     const tags: Tag[] = [];
     snapshot.forEach((doc) => tags.push({ id: doc.id, name: doc.data().name }));
@@ -14,7 +14,7 @@ export async function getTags(): Promise<Tag[]> {
 }
 
 export async function getSongTags(songId: string): Promise<Tag[]> {
-    const songTagsRef = collection(db, COLLECTIONS.songTags);
+    const songTagsRef = col(COLLECTIONS.songTags);
     const songTagsQuery = query(songTagsRef, where('songId', '==', songId));
     const snapshot = await getDocs(songTagsQuery);
     const tagIds: string[] = [];
@@ -25,7 +25,7 @@ export async function getSongTags(songId: string): Promise<Tag[]> {
 }
 
 export async function addTag(name: string): Promise<string> {
-    const tagsRef = collection(db, COLLECTIONS.tags);
+    const tagsRef = col(COLLECTIONS.tags);
     const existingQuery = query(tagsRef, where('name', '==', name.trim()));
     const existingSnapshot = await getDocs(existingQuery);
     if (!existingSnapshot.empty) throw new Error('標籤已存在');
@@ -34,7 +34,7 @@ export async function addTag(name: string): Promise<string> {
 }
 
 export async function addSongTag(songId: string, tagId: string): Promise<void> {
-    const songTagsRef = collection(db, COLLECTIONS.songTags);
+    const songTagsRef = col(COLLECTIONS.songTags);
     const existingQuery = query(
         songTagsRef,
         where('songId', '==', songId),
@@ -46,7 +46,7 @@ export async function addSongTag(songId: string, tagId: string): Promise<void> {
 }
 
 export async function removeSongTag(songId: string, tagId: string): Promise<void> {
-    const songTagsRef = collection(db, COLLECTIONS.songTags);
+    const songTagsRef = col(COLLECTIONS.songTags);
     const deleteQuery = query(
         songTagsRef,
         where('songId', '==', songId),
@@ -71,13 +71,13 @@ export function subscribeAllTagData(callback: (data: {
 
     const emit = () => callback({ allTags, songTagsMap });
 
-    const unsubTags = onSnapshot(collection(db, COLLECTIONS.tags), (snap) => {
+    const unsubTags = onSnapshot(col(COLLECTIONS.tags), (snap) => {
         allTags = [];
         snap.forEach((d) => allTags.push({ id: d.id, name: d.data().name }));
         emit();
     });
 
-    const unsubSongTags = onSnapshot(collection(db, COLLECTIONS.songTags), (snap) => {
+    const unsubSongTags = onSnapshot(col(COLLECTIONS.songTags), (snap) => {
         songTagsMap = new Map();
         snap.forEach((d) => {
             const { songId, tagId } = d.data();
@@ -95,12 +95,12 @@ export function subscribeAllTagData(callback: (data: {
 }
 
 export async function deleteTag(tagId: string): Promise<void> {
-    const songTagsRef = collection(db, COLLECTIONS.songTags);
+    const songTagsRef = col(COLLECTIONS.songTags);
     const songTagsQuery = query(songTagsRef, where('tagId', '==', tagId));
     const songTagsSnapshot = await getDocs(songTagsQuery);
     const deletePromises: Promise<void>[] = [];
     songTagsSnapshot.forEach((d) => deletePromises.push(deleteDoc(d.ref)));
     await Promise.all(deletePromises);
-    const tagRef = doc(db, COLLECTIONS.tags, tagId);
+    const tagRef = docRef(COLLECTIONS.tags, tagId);
     await deleteDoc(tagRef);
 }

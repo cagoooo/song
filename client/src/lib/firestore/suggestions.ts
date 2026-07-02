@@ -2,7 +2,7 @@ import {
     collection, doc, getDocs, setDoc, updateDoc, deleteDoc,
     onSnapshot, Timestamp, increment, type Unsubscribe,
 } from 'firebase/firestore';
-import { db, COLLECTIONS } from '../firebase';
+import { db, COLLECTIONS, col, docRef } from '../firebase';
 import type { SongSuggestion } from './types';
 import { addSong } from './songs';
 import {
@@ -13,7 +13,7 @@ import {
 } from '../pendingSuggestions';
 
 export async function getSuggestions(): Promise<SongSuggestion[]> {
-    const suggestionsRef = collection(db, COLLECTIONS.songSuggestions);
+    const suggestionsRef = col(COLLECTIONS.songSuggestions);
     const snapshot = await getDocs(suggestionsRef);
     const suggestions: SongSuggestion[] = [];
     snapshot.forEach((doc) => {
@@ -34,7 +34,7 @@ export async function getSuggestions(): Promise<SongSuggestion[]> {
 }
 
 export function subscribeSuggestions(callback: (suggestions: SongSuggestion[]) => void): Unsubscribe {
-    const suggestionsRef = collection(db, COLLECTIONS.songSuggestions);
+    const suggestionsRef = col(COLLECTIONS.songSuggestions);
     return onSnapshot(suggestionsRef, (snapshot) => {
         const suggestions: SongSuggestion[] = [];
         snapshot.forEach((doc) => {
@@ -76,7 +76,7 @@ export interface AddSuggestionResult {
 export async function addSuggestion(
     title: string, artist: string, suggestedBy?: string, notes?: string
 ): Promise<AddSuggestionResult> {
-    const suggestionsRef = collection(db, COLLECTIONS.songSuggestions);
+    const suggestionsRef = col(COLLECTIONS.songSuggestions);
     // 先在本地產生 doc id（同步、不需連線），重送時沿用同一 id → 冪等不重複。
     const ref = doc(suggestionsRef);
     const fields: Omit<PendingSuggestion, 'id'> = {
@@ -125,7 +125,7 @@ export async function flushPendingSuggestions(): Promise<{ ok: number; fail: num
     await Promise.all(
         pending.map(async ({ id, ...fields }) => {
             try {
-                await setDoc(doc(db, COLLECTIONS.songSuggestions, id), buildSuggestionDoc(fields));
+                await setDoc(docRef(COLLECTIONS.songSuggestions, id), buildSuggestionDoc(fields));
                 removePendingSuggestion(id);
                 ok += 1;
             } catch (err) {
@@ -140,18 +140,18 @@ export async function flushPendingSuggestions(): Promise<{ ok: number; fail: num
 export async function updateSuggestionStatus(
     suggestionId: string, status: SongSuggestion['status']
 ): Promise<void> {
-    const ref = doc(db, COLLECTIONS.songSuggestions, suggestionId);
+    const ref = docRef(COLLECTIONS.songSuggestions, suggestionId);
     await updateDoc(ref, { status });
 }
 
 /** A2「+1 我也想聽」附議 — 對待審核建議的 upvotes +1（rules 只允許 upvotes 欄位 +1）。 */
 export async function upvoteSuggestion(suggestionId: string): Promise<void> {
-    const ref = doc(db, COLLECTIONS.songSuggestions, suggestionId);
+    const ref = docRef(COLLECTIONS.songSuggestions, suggestionId);
     await updateDoc(ref, { upvotes: increment(1) });
 }
 
 export async function deleteSuggestion(suggestionId: string): Promise<void> {
-    const ref = doc(db, COLLECTIONS.songSuggestions, suggestionId);
+    const ref = docRef(COLLECTIONS.songSuggestions, suggestionId);
     await deleteDoc(ref);
 }
 
@@ -159,7 +159,7 @@ export async function addSuggestionToPlaylist(
     suggestionId: string, title: string, artist: string
 ): Promise<string> {
     const songId = await addSong(title, artist);
-    const ref = doc(db, COLLECTIONS.songSuggestions, suggestionId);
+    const ref = docRef(COLLECTIONS.songSuggestions, suggestionId);
     await updateDoc(ref, {
         status: 'added_to_playlist',
         processedAt: Timestamp.now(),

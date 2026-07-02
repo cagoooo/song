@@ -11,7 +11,7 @@ import {
     onSnapshot, query, orderBy, limit, getDocs, Timestamp,
     type Unsubscribe,
 } from 'firebase/firestore';
-import { db, COLLECTIONS } from '../firebase';
+import { db, COLLECTIONS, col, docRef } from '../firebase';
 import type { MagazineSettings, IssueArchive } from './types';
 import { MAGAZINE_DEFAULTS } from './types';
 
@@ -91,7 +91,7 @@ function deserializeIssue(id: string, data: Record<string, unknown>): IssueArchi
  * 若 doc 不存在回傳 `MAGAZINE_DEFAULTS`（不報錯）。
  */
 export async function getMagazineSettings(): Promise<MagazineSettings> {
-    const ref = doc(db, COLLECTIONS.settings, MAGAZINE_DOC_ID);
+    const ref = docRef(COLLECTIONS.settings, MAGAZINE_DOC_ID);
     const snap = await getDoc(ref);
     if (!snap.exists()) return { ...MAGAZINE_DEFAULTS };
     return deserializeMagazine(snap.data());
@@ -104,7 +104,7 @@ export async function getMagazineSettings(): Promise<MagazineSettings> {
 export function subscribeMagazineSettings(
     callback: (settings: MagazineSettings) => void,
 ): Unsubscribe {
-    const ref = doc(db, COLLECTIONS.settings, MAGAZINE_DOC_ID);
+    const ref = docRef(COLLECTIONS.settings, MAGAZINE_DOC_ID);
     return onSnapshot(
         ref,
         (snap) => {
@@ -131,7 +131,7 @@ export function subscribeMagazineSettings(
 export async function updateMagazineSettings(
     patch: Partial<Omit<MagazineSettings, 'updatedAt'>>,
 ): Promise<void> {
-    const ref = doc(db, COLLECTIONS.settings, MAGAZINE_DOC_ID);
+    const ref = docRef(COLLECTIONS.settings, MAGAZINE_DOC_ID);
     const payload: Record<string, unknown> = {
         ...patch,
         updatedAt: Timestamp.now(),
@@ -153,7 +153,7 @@ export async function updateMagazineSettings(
  *   3. updateMagazineSettings({ currentStartedAt: new Date() })
  */
 export async function incrementIssueNumber(): Promise<number> {
-    const ref = doc(db, COLLECTIONS.settings, MAGAZINE_DOC_ID);
+    const ref = docRef(COLLECTIONS.settings, MAGAZINE_DOC_ID);
     const snap = await getDoc(ref);
     const current = snap.exists()
         ? deserializeMagazine(snap.data()).currentIssueNumber
@@ -175,8 +175,8 @@ export async function incrementIssueNumber(): Promise<number> {
 export async function archiveCurrentIssue(
     data: Omit<IssueArchive, 'id' | 'archived'>,
 ): Promise<string> {
-    const col = collection(db, COLLECTIONS.issues);
-    const docRef = await addDoc(col, {
+    const issuesCol = col(COLLECTIONS.issues);
+    const created = await addDoc(issuesCol, {
         issueNumber: data.issueNumber,
         title: data.title,
         subtitle: data.subtitle ?? null,
@@ -187,15 +187,15 @@ export async function archiveCurrentIssue(
         coverImageUrl: data.coverImageUrl ?? null,
         archived: true,
     });
-    return docRef.id;
+    return created.id;
 }
 
 /**
  * 列出已歸檔的歷史期數（最近 N 期）。
  */
 export async function listIssues(opts?: { limit?: number }): Promise<IssueArchive[]> {
-    const col = collection(db, COLLECTIONS.issues);
-    const q = query(col, orderBy('issueNumber', 'desc'), limit(opts?.limit ?? 20));
+    const issuesCol = col(COLLECTIONS.issues);
+    const q = query(issuesCol, orderBy('issueNumber', 'desc'), limit(opts?.limit ?? 20));
     const snap = await getDocs(q);
     return snap.docs.map((d) => deserializeIssue(d.id, d.data()));
 }
@@ -204,7 +204,7 @@ export async function listIssues(opts?: { limit?: number }): Promise<IssueArchiv
  * 取得單一期數（用 /archive/:issueId 頁面）。
  */
 export async function getIssue(issueId: string): Promise<IssueArchive | null> {
-    const ref = doc(db, COLLECTIONS.issues, issueId);
+    const ref = docRef(COLLECTIONS.issues, issueId);
     const snap = await getDoc(ref);
     if (!snap.exists()) return null;
     return deserializeIssue(snap.id, snap.data());

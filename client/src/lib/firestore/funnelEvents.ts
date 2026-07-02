@@ -4,7 +4,7 @@
 // 取捨：只上傳「開啟表單 / 開始打字 / 送出成功」三個關鍵事件控制寫入量；
 // best-effort（fire-and-forget），失敗靜默，絕不影響主流程；rules 嚴格驗證欄位。
 import { collection, addDoc, getDocs, Timestamp } from 'firebase/firestore';
-import { db, COLLECTIONS } from '../firebase';
+import { db, COLLECTIONS, col, docRef } from '../firebase';
 import { getSessionId } from './session';
 
 export type CoreFunnelEvent =
@@ -22,7 +22,7 @@ const CORE_EVENTS = new Set<string>([
 export function sinkFunnelEvent(name: string): void {
     if (!CORE_EVENTS.has(name)) return;
     try {
-        void addDoc(collection(db, COLLECTIONS.funnelEvents), {
+        void addDoc(col(COLLECTIONS.funnelEvents), {
             event: name,
             sessionId: getSessionId(),
             createdAt: Timestamp.now(),
@@ -43,7 +43,7 @@ export interface FunnelServerSummary {
 
 /** 讀取並彙整 server 端漏斗事件（admin 用；單純 getDocs 計數）。 */
 export async function getFunnelServerSummary(): Promise<FunnelServerSummary> {
-    const snap = await getDocs(collection(db, COLLECTIONS.funnelEvents));
+    const snap = await getDocs(col(COLLECTIONS.funnelEvents));
     let opens = 0;
     let typed = 0;
     let submits = 0;

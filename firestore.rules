@@ -77,12 +77,31 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
-    // 使用者集合 - 僅本人或管理員可讀寫
+    // 使用者集合（U1 註冊審核 — docs/design/U1-multi-tenant.md）
+    // ⚠️ 舊規則允許本人任意 write，等於可以自封 isAdmin — 已補洞：
+    //   - create：只能建自己的 doc，且強制 status=pending、isAdmin=false
+    //   - update：本人只能改 profile 欄位；status / isAdmin 只有管理員能動
     match /users/{userId} {
       allow read: if request.auth != null &&
         (request.auth.uid == userId || isAdmin());
-      allow write: if request.auth != null &&
-        (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth != null &&
+        request.auth.uid == userId &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.isAdmin == false &&
+        (!('email' in request.resource.data.keys()) || request.resource.data.email == request.auth.token.email);
+      allow update: if isAdmin() ||
+        (request.auth != null && request.auth.uid == userId &&
+          !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['status', 'isAdmin']));
+      allow delete: if isAdmin();
+    }
+
+    // U1 租戶空間 — 審核通過（approved）的使用者擁有 tenants/{uid}/** 全權，
+    // 與根集合（阿凱的公開系統）完全隔離。root admin 可讀（照看用）。
+    // 租戶公開分享（訪客投票）是 Phase 2，屆時再細分子集合權限。
+    match /tenants/{tenantId}/{document=**} {
+      allow read: if isTenantOwner(tenantId) || isAdmin();
+      allow write: if isTenantOwner(tenantId);
     }
 
     // D1 雜誌期數設定 - 所有人可讀，僅管理員可寫
@@ -184,6 +203,14 @@ service cloud.firestore {
         // genre: 9 種曲風
         && (!('genre' in keys) || data.genre == null
             || data.genre in ['pop', 'rock', 'folk', 'rnb', 'indie', 'classic', 'mandopop', 'jpop', 'kpop']);
+    }
+
+    // U1：檢查是否為「已審核通過」的租戶空間擁有者
+    function isTenantOwner(tenantId) {
+      return request.auth != null &&
+        request.auth.uid == tenantId &&
+        exists(/databases/$(database)/documents/users/$(tenantId)) &&
+        get(/databases/$(database)/documents/users/$(tenantId)).data.status == 'approved';
     }
 
     // 檢查是否為管理員

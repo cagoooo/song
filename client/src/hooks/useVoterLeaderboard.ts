@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { db, COLLECTIONS } from '@/lib/firebase';
+import { db, COLLECTIONS, col, docRef } from '@/lib/firebase';
 import { getSessionId } from '@/lib/firestore';
 
 export interface VoterStat {
@@ -42,7 +42,7 @@ export function useVoterLeaderboard(topN = 10) {
     const mySessionId = useMemo(() => getSessionId(), []);
 
     useEffect(() => {
-        const ref = collection(db, COLLECTIONS.votes);
+        const ref = col(COLLECTIONS.votes);
         const unsub = onSnapshot(ref, (snap) => {
             const map = new Map<string, number>();
             snap.forEach((d) => {

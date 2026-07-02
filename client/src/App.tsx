@@ -1,10 +1,11 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Switch, Route, Router } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
 import { AppLoading } from "@/components/AppLoading";
+import { useUser } from "@/hooks/use-user";
 
 // GitHub Pages base path
 const base = import.meta.env.BASE_URL || "/";
@@ -39,13 +40,27 @@ function StageLoading() {
   );
 }
 
+/**
+ * U1 租戶空間邊界（docs/design/U1-multi-tenant.md）：
+ * approved 一般使用者登入後，auth.ts 已把 activeTenant 切到他的 uid；
+ * 這裡用 key 讓整棵樹 remount，所有 onSnapshot 訂閱自動重建到新空間。
+ * 訪客首屏不等 auth（key 初始即 'root'），不影響載入速度。
+ */
+function SpaceScope({ children }: { children: ReactNode }) {
+  const { user } = useUser();
+  const spaceKey = user && !user.isRootAdmin && user.status === 'approved' ? user.id : 'root';
+  return <div key={spaceKey} style={{ display: 'contents' }}>{children}</div>;
+}
+
 function App() {
   // ?mode=stage 進入演出模式 — 畫面全黑乾淨，無 Toaster / Banner / 管理 UI
   if (isStageMode()) {
     return (
-      <Suspense fallback={<StageLoading />}>
-        <StagePage />
-      </Suspense>
+      <SpaceScope>
+        <Suspense fallback={<StageLoading />}>
+          <StagePage />
+        </Suspense>
+      </SpaceScope>
     );
   }
 
@@ -55,7 +70,11 @@ function App() {
       <main>
         <Suspense fallback={<AppLoading kind="app" />}>
           <Switch>
-            <Route path="/" component={Home} />
+            <Route path="/">
+              <SpaceScope>
+                <Home />
+              </SpaceScope>
+            </Route>
             <Route component={NotFound} />
           </Switch>
         </Suspense>

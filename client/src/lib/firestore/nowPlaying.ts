@@ -1,11 +1,11 @@
 import {
     doc, getDoc, setDoc, deleteDoc, onSnapshot, Timestamp, type Unsubscribe,
 } from 'firebase/firestore';
-import { db, COLLECTIONS } from '../firebase';
+import { db, COLLECTIONS, col, docRef } from '../firebase';
 import type { Song, NowPlayingInfo } from './types';
 
 export async function setNowPlaying(songId: string, adminUid: string): Promise<void> {
-    const ref = doc(db, COLLECTIONS.nowPlaying, 'current');
+    const ref = docRef(COLLECTIONS.nowPlaying, 'current');
     await setDoc(ref, {
         songId,
         startedBy: adminUid,
@@ -14,12 +14,12 @@ export async function setNowPlaying(songId: string, adminUid: string): Promise<v
 }
 
 export async function clearNowPlaying(): Promise<void> {
-    const ref = doc(db, COLLECTIONS.nowPlaying, 'current');
+    const ref = docRef(COLLECTIONS.nowPlaying, 'current');
     await deleteDoc(ref);
 }
 
 export function subscribeNowPlaying(callback: (info: NowPlayingInfo | null) => void): Unsubscribe {
-    const ref = doc(db, COLLECTIONS.nowPlaying, 'current');
+    const ref = docRef(COLLECTIONS.nowPlaying, 'current');
 
     return onSnapshot(ref, async (docSnapshot) => {
         if (!docSnapshot.exists()) {
@@ -30,7 +30,7 @@ export function subscribeNowPlaying(callback: (info: NowPlayingInfo | null) => v
         const songId = data.songId;
         let song: Song | null = null;
         try {
-            const songRef = doc(db, COLLECTIONS.songs, songId);
+            const songRef = docRef(COLLECTIONS.songs, songId);
             const songSnapshot = await getDoc(songRef);
             if (songSnapshot.exists()) {
                 const songData = songSnapshot.data();

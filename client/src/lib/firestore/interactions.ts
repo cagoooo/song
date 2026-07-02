@@ -2,13 +2,13 @@ import {
     collection, getDocs, addDoc, updateDoc, query, where, orderBy,
     onSnapshot, Timestamp, type Unsubscribe,
 } from 'firebase/firestore';
-import { db, COLLECTIONS } from '../firebase';
+import { db, COLLECTIONS, col, docRef } from '../firebase';
 import type { TipType, Interaction, RatingStats } from './types';
 
 export async function sendTip(
     songId: string, tipType: TipType, sessionId: string
 ): Promise<string> {
-    const ref = collection(db, COLLECTIONS.interactions);
+    const ref = col(COLLECTIONS.interactions);
     const newDoc = await addDoc(ref, {
         songId, type: 'tip', tipType, sessionId, createdAt: Timestamp.now(),
     });
@@ -18,7 +18,7 @@ export async function sendTip(
 export async function sendRating(
     songId: string, rating: 1 | 2 | 3 | 4 | 5, sessionId: string
 ): Promise<string> {
-    const ref = collection(db, COLLECTIONS.interactions);
+    const ref = col(COLLECTIONS.interactions);
     const existingQuery = query(
         ref,
         where('songId', '==', songId),
@@ -43,7 +43,7 @@ export function subscribeInteractions(
     songId: string,
     callback: (interaction: Interaction) => void
 ): Unsubscribe {
-    const ref = collection(db, COLLECTIONS.interactions);
+    const ref = col(COLLECTIONS.interactions);
     const songQuery = query(
         ref,
         where('songId', '==', songId),
@@ -93,7 +93,7 @@ export function subscribeInteractions(
 }
 
 export async function getSongRatingStats(songId: string): Promise<RatingStats> {
-    const ref = collection(db, COLLECTIONS.interactions);
+    const ref = col(COLLECTIONS.interactions);
     const ratingQuery = query(
         ref,
         where('songId', '==', songId),
@@ -117,7 +117,7 @@ export function subscribeRatingStats(
     songId: string,
     callback: (stats: RatingStats) => void
 ): Unsubscribe {
-    const ref = collection(db, COLLECTIONS.interactions);
+    const ref = col(COLLECTIONS.interactions);
     const ratingQuery = query(
         ref,
         where('songId', '==', songId),

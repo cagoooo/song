@@ -6,7 +6,7 @@ import {
     where,
     onSnapshot,
 } from 'firebase/firestore';
-import { db, COLLECTIONS } from '@/lib/firebase';
+import { db, COLLECTIONS, col, docRef } from '@/lib/firebase';
 
 interface SuggestionData {
     title: string;
@@ -70,7 +70,7 @@ export function useSuggestionNotification({
 
         console.log('[SuggestionNotification] 開始監聽歌曲建議...');
 
-        const suggestionsRef = collection(db, COLLECTIONS.songSuggestions);
+        const suggestionsRef = col(COLLECTIONS.songSuggestions);
 
         // 簡化查詢 - 只監聽 pending 狀態的建議
         const q = query(

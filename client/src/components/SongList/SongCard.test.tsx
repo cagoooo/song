@@ -21,6 +21,8 @@ const createMockUser = (isAdmin = false): AppUser => ({
     id: 'user-1',
     email: 'test@example.com',
     isAdmin,
+    isRootAdmin: isAdmin,
+    status: 'approved',
 });
 
 describe('SongCard', () => {

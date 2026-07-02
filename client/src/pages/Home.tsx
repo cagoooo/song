@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Trophy, Tv, Share2, Award, Printer } from "lucide-react";
+import { LogIn, LogOut, Trophy, Tv, Share2, Award, Printer, Users } from "lucide-react";
 import SongList from "../components/SongList";
 import { useVoteHistory, type VoteHistoryEntry } from "@/hooks/useVoteHistory";
 import { VoteHistoryButton } from "../components/VoteHistoryButton";
@@ -64,6 +64,10 @@ const VoteHistoryModal = lazy(() =>
 );
 const SongImport = lazy(() => import("../components/SongImport"));
 const LoginForm = lazy(() => import("../components/LoginForm"));
+// U1 使用者審核後台（root admin 專用）
+const UserManagementModal = lazy(() =>
+  import("../components/UserManagementModal").then((m) => ({ default: m.UserManagementModal }))
+);
 const SongDetailModal = lazy(() =>
   import("../components/SongDetail").then((m) => ({ default: m.SongDetailModal }))
 );
@@ -116,6 +120,8 @@ export default function Home() {
   const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [funnelOpen, setFunnelOpen] = useState(false);
+  // U1 使用者審核後台（root admin 專用）
+  const [userMgmtOpen, setUserMgmtOpen] = useState(false);
   const [shareCardOpen, setShareCardOpen] = useState(false);
   const [thankYouOpen, setThankYouOpen] = useState(false);
   const [passportOpen, setPassportOpen] = useState(false);
@@ -572,6 +578,19 @@ export default function Home() {
             <Tv className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">演出模式</span>
           </Button>
+          {user?.isRootAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setUserMgmtOpen(true)}
+              aria-label="使用者審核"
+              className="bg-white/90 hover:bg-white border-2 border-emerald-300 hover:border-emerald-400 text-emerald-700 hover:text-emerald-800 shadow-lg hover:shadow-xl transition-all duration-300 h-9 px-2.5 sm:px-3"
+              title="審核 Google 註冊的新使用者（核准後獲得獨立歌單空間）"
+            >
+              <Users className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">審核</span>
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -584,6 +603,26 @@ export default function Home() {
             <span className="hidden sm:inline">登出</span>
           </Button>
         </motion.div>
+      )}
+
+      {/* U1：待審核 / 已停權使用者的狀態橫幅（登入了但還不能用系統） */}
+      {user && !user.isAdmin && (
+        <div className="u1-pending-banner" role="status">
+          <span className="u1-pending-dot" aria-hidden="true" />
+          <div className="u1-pending-text">
+            {user.status === 'rejected' ? (
+              <>此帳號目前已停權，如有疑問請聯絡管理員。</>
+            ) : (
+              <>
+                <strong>{user.displayName || user.email}</strong>，你的帳號已註冊成功，
+                正在等待管理員審核 — 通過後就能擁有自己的獨立歌單空間。
+              </>
+            )}
+          </div>
+          <button onClick={handleLogout} className="u1-pending-logout" aria-label="登出">
+            登出
+          </button>
+        </div>
       )}
 
       <div className="container mx-auto py-3 sm:py-6 md:py-8 px-2 sm:px-4">
@@ -943,7 +982,7 @@ export default function Home() {
               className="bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 backdrop-blur-sm border-2 border-amber-200/30 hover:border-amber-300/40 transition-all duration-300"
             >
               <LogIn className="w-4 h-4 mr-2" />
-              管理員登入
+              登入 / 註冊
             </Button>
           </motion.div>
         )}
@@ -1158,6 +1197,16 @@ export default function Home() {
           <FunnelDashboard
             isOpen={funnelOpen}
             onClose={() => setFunnelOpen(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* U1 使用者審核後台（root admin） */}
+      {userMgmtOpen && (
+        <Suspense fallback={null}>
+          <UserManagementModal
+            isOpen={userMgmtOpen}
+            onClose={() => setUserMgmtOpen(false)}
           />
         </Suspense>
       )}

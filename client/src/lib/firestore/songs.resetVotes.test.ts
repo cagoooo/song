@@ -35,6 +35,9 @@ vi.mock('../firebase', () => ({
         playedSongs: 'playedSongs',
         nowPlaying: 'nowPlaying',
     },
+    // U1 租戶空間 helper — 測試裡不切租戶，直接回根集合參照
+    col: vi.fn((name: string) => ({ name })),
+    docRef: vi.fn((name: string, id: string) => ({ name, id })),
 }));
 
 describe('resetAllVotes', () => {

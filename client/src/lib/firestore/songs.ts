@@ -2,7 +2,7 @@ import {
     collection, doc, getDocs, addDoc, updateDoc, query, where,
     onSnapshot, Timestamp, writeBatch, type Unsubscribe,
 } from 'firebase/firestore';
-import { db, COLLECTIONS } from '../firebase';
+import { db, COLLECTIONS, col, docRef } from '../firebase';
 import type { Song, LyricBlock } from './types';
 
 /**
@@ -46,7 +46,7 @@ function mapSongDoc(
 }
 
 async function getVoteCounts(): Promise<Map<string, number>> {
-    const votesRef = collection(db, COLLECTIONS.votes);
+    const votesRef = col(COLLECTIONS.votes);
     const votesSnapshot = await getDocs(votesRef);
     const voteMap = new Map<string, number>();
     votesSnapshot.forEach((doc) => {
@@ -57,7 +57,7 @@ async function getVoteCounts(): Promise<Map<string, number>> {
 }
 
 export async function getSongs(): Promise<Song[]> {
-    const songsRef = collection(db, COLLECTIONS.songs);
+    const songsRef = col(COLLECTIONS.songs);
     const songsQuery = query(songsRef, where('isActive', '==', true));
     const songsSnapshot = await getDocs(songsQuery);
     const voteMap = await getVoteCounts();
@@ -70,7 +70,7 @@ export async function getSongs(): Promise<Song[]> {
 }
 
 export function subscribeSongs(callback: (songs: Song[]) => void): Unsubscribe {
-    const songsRef = collection(db, COLLECTIONS.songs);
+    const songsRef = col(COLLECTIONS.songs);
     const songsQuery = query(songsRef, where('isActive', '==', true));
 
     let songs: Map<string, any> = new Map();
@@ -96,7 +96,7 @@ export function subscribeSongs(callback: (songs: Song[]) => void): Unsubscribe {
         updateCallback();
     });
 
-    const votesRef = collection(db, COLLECTIONS.votes);
+    const votesRef = col(COLLECTIONS.votes);
     const unsubVotes = onSnapshot(votesRef, (snapshot) => {
         votes.clear();
         snapshot.forEach((doc) => {
@@ -106,14 +106,14 @@ export function subscribeSongs(callback: (songs: Song[]) => void): Unsubscribe {
         updateCallback();
     });
 
-    const playedRef = collection(db, COLLECTIONS.playedSongs);
+    const playedRef = col(COLLECTIONS.playedSongs);
     const unsubPlayed = onSnapshot(playedRef, (snapshot) => {
         playedSongs.clear();
         snapshot.forEach((doc) => playedSongs.add(doc.data().songId));
         updateCallback();
     });
 
-    const nowPlayingRef = doc(db, COLLECTIONS.nowPlaying, 'current');
+    const nowPlayingRef = docRef(COLLECTIONS.nowPlaying, 'current');
     const unsubNowPlaying = onSnapshot(nowPlayingRef, (docSnapshot) => {
         nowPlayingSongId = docSnapshot.exists() ? docSnapshot.data().songId : null;
         updateCallback();
@@ -128,12 +128,12 @@ export function subscribeSongs(callback: (songs: Song[]) => void): Unsubscribe {
 }
 
 export async function voteSong(songId: string, sessionId: string): Promise<void> {
-    const votesRef = collection(db, COLLECTIONS.votes);
+    const votesRef = col(COLLECTIONS.votes);
     await addDoc(votesRef, { songId, sessionId, createdAt: Timestamp.now() });
 }
 
 export async function addSong(title: string, artist: string, notes?: string): Promise<string> {
-    const songsRef = collection(db, COLLECTIONS.songs);
+    const songsRef = col(COLLECTIONS.songs);
     const existingQuery = query(songsRef, where('isActive', '==', true));
     const existingSnapshot = await getDocs(existingQuery);
 
@@ -172,7 +172,7 @@ export interface SongChartInput {
  * 重複（同名同歌手）會丟錯。需 admin 權限（rules 限制 songs create 為 admin）。
  */
 export async function addSongWithChart(input: SongChartInput): Promise<string> {
-    const songsRef = collection(db, COLLECTIONS.songs);
+    const songsRef = col(COLLECTIONS.songs);
     const existingSnapshot = await getDocs(query(songsRef, where('isActive', '==', true)));
 
     const title = input.title.trim();
@@ -208,7 +208,7 @@ export async function updateSong(
     artist: string,
     extra?: { difficulty?: 1 | 2 | 3 | null }
 ): Promise<void> {
-    const songRef = doc(db, COLLECTIONS.songs, songId);
+    const songRef = docRef(COLLECTIONS.songs, songId);
     const payload: Record<string, string | number | null> = { title, artist };
     // null 表示「清除」, undefined 表示「不更動」
     if (extra && 'difficulty' in extra) {
@@ -218,12 +218,12 @@ export async function updateSong(
 }
 
 export async function deleteSong(songId: string): Promise<void> {
-    const songRef = doc(db, COLLECTIONS.songs, songId);
+    const songRef = docRef(COLLECTIONS.songs, songId);
     await updateDoc(songRef, { isActive: false });
 }
 
 export async function resetAllVotes(): Promise<number> {
-    const votesRef = collection(db, COLLECTIONS.votes);
+    const votesRef = col(COLLECTIONS.votes);
     const votesSnapshot = await getDocs(votesRef);
     if (votesSnapshot.empty) return 0;
 
@@ -254,7 +254,7 @@ export async function resetAllVotes(): Promise<number> {
 export async function batchImportSongs(
     songsList: { title: string; artist: string }[]
 ): Promise<{ added: number; skipped: number }> {
-    const songsRef = collection(db, COLLECTIONS.songs);
+    const songsRef = col(COLLECTIONS.songs);
     const existingSnapshot = await getDocs(songsRef);
     const existingSongs = new Set<string>();
     existingSnapshot.forEach((doc) => {

@@ -1,9 +1,9 @@
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { db, COLLECTIONS } from '../firebase';
+import { db, COLLECTIONS, col, docRef } from '../firebase';
 import { getSessionId } from './session';
 
 export async function recordQRScan(songId: string): Promise<void> {
-    const scansRef = collection(db, COLLECTIONS.qrCodeScans);
+    const scansRef = col(COLLECTIONS.qrCodeScans);
     await addDoc(scansRef, {
         songId,
         sessionId: getSessionId(),
