@@ -64,8 +64,23 @@ Google 登入（signInWithPopup）
 - `firestore.rules` — users 補洞 + tenants 子樹
 - Firebase Console：啟用 Google 登入提供者
 
-## 🔮 Phase 2（未排程）
+## ✅ Phase 2 — 租戶公開投票頁（2026-07-02 完成）
 
-- 租戶公開投票頁 URL（`?space={uid}` 或 `/u/{slug}`）＋訪客投票 rules
+- **公開網址**：`{站台}?space={uid}` — 訪客打開直接落在該租戶空間，
+  可投票 / 點歌建議 / 打賞評分；`firebase.ts` 開機同步解析（任何訂閱建立前）。
+- **空間解析優先序**：URL `?space` > approved 使用者自己的空間 > 根空間。
+  在別人的公開頁上，任何登入者（含 root admin）一律訪客視角 —
+  管理權只屬於「該空間擁有者本人」。
+- **分享整合**（[spaceUrl.ts](../../client/src/lib/spaceUrl.ts)）：
+  分享按鈕的 QR / 社群連結 / 新增的「一鍵複製網址」列都自動帶 `?space`；
+  演出模式開新分頁也帶 `?space`（投影裝置未登入也落在正確空間）。
+- **rules**：tenants/{uid} 逐集合鏡像根集合權限 — 公開讀 +
+  votes/suggestions/interactions/funnelEvents/qrScans 訪客可寫（沿用同一套
+  驗證函式），owner 全權管理，root admin 唯讀照看。已部署。
+- **已知小限制**：訪客的投票護照（localStorage）跨空間共用同一份紀錄。
+
+## 🔮 Phase 3（未排程）
+
 - 租戶自訂品牌（標題、期數、主題色 — settings 已隨空間隔離，只差 UI）
 - AI 辨識額度 per-tenant 治理（目前全站共用 200/日）
+- 短網址 / 自訂 slug（`?space=長uid` → `/u/kai` 之類的好記入口）

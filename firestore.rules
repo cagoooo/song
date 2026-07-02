@@ -96,12 +96,72 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // U1 租戶空間 — 審核通過（approved）的使用者擁有 tenants/{uid}/** 全權，
-    // 與根集合（阿凱的公開系統）完全隔離。root admin 可讀（照看用）。
-    // 租戶公開分享（訪客投票）是 Phase 2，屆時再細分子集合權限。
-    match /tenants/{tenantId}/{document=**} {
-      allow read: if isTenantOwner(tenantId) || isAdmin();
-      allow write: if isTenantOwner(tenantId);
+    // U1 租戶空間（Phase 2 已開放訪客投票）—
+    // 每個 approved 使用者擁有 tenants/{uid}/**，公開網址 ?space={uid} 讓
+    // 觀眾進場投票。逐集合鏡像根集合的權限模型：公開讀 + owner 管理 +
+    // 訪客可寫的集合（votes / suggestions / interactions…）沿用同一套驗證函式。
+    match /tenants/{tenantId} {
+      match /songs/{songId} {
+        allow read: if true;
+        allow create, update: if isTenantOwner(tenantId) && isValidSongPayload();
+        allow delete: if isTenantOwner(tenantId);
+      }
+      match /votes/{voteId} {
+        allow read: if true;
+        allow create: if isValidVote();
+        allow delete: if isTenantOwner(tenantId);
+      }
+      match /songSuggestions/{suggestionId} {
+        allow read: if true;
+        allow create: if isValidSuggestion();
+        allow update: if isTenantOwner(tenantId) || isValidUpvote();
+        allow delete: if isTenantOwner(tenantId);
+      }
+      match /funnelEvents/{eventId} {
+        allow read: if isTenantOwner(tenantId);
+        allow create: if isValidFunnelEvent();
+        allow update, delete: if isTenantOwner(tenantId);
+      }
+      match /tags/{tagId} {
+        allow read: if true;
+        allow write: if isTenantOwner(tenantId);
+      }
+      match /songTags/{songTagId} {
+        allow read: if true;
+        allow write: if isTenantOwner(tenantId);
+      }
+      match /playedSongs/{playedId} {
+        allow read: if true;
+        allow write: if isTenantOwner(tenantId);
+      }
+      match /nowPlaying/{docId} {
+        allow read: if true;
+        allow write: if isTenantOwner(tenantId);
+      }
+      match /qrCodeScans/{scanId} {
+        allow read: if true;
+        allow create: if true;
+        allow update, delete: if isTenantOwner(tenantId);
+      }
+      match /interactions/{interactionId} {
+        allow read: if true;
+        allow create: if isValidInteraction();
+        allow update: if isValidRatingUpdate();
+        allow delete: if isTenantOwner(tenantId);
+      }
+      match /settings/{settingId} {
+        allow read: if true;
+        allow write: if isTenantOwner(tenantId) && isValidMagazinePayload();
+      }
+      match /issues/{issueId} {
+        allow read: if true;
+        allow create, update: if isTenantOwner(tenantId) && isValidIssuePayload();
+        allow delete: if false; // 期數歷史不可刪（與根集合同規）
+      }
+      // root admin 照看：整棵租戶子樹可讀（不可寫）
+      match /{document=**} {
+        allow read: if isAdmin();
+      }
     }
 
     // D1 雜誌期數設定 - 所有人可讀，僅管理員可寫

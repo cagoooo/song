@@ -7,7 +7,7 @@
 //     → 管理員核准（approved）後獲得 tenants/{uid}/** 獨立空間
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuthLazy, db, COLLECTIONS, setActiveTenant } from './firebase';
+import { getAuthLazy, db, COLLECTIONS, setActiveTenant, getUrlSpace } from './firebase';
 
 /** 使用者審核狀態：pending 待審核 / approved 已開通 / rejected 已停權 */
 export type UserStatus = 'pending' | 'approved' | 'rejected';
@@ -30,8 +30,12 @@ export interface AppUser {
 
 /**
  * users/{uid} doc + Firebase user → AppUser，並同步切換租戶空間。
- * 空間規則：root admin 與訪客走根集合；approved 一般使用者走自己的
- * tenants/{uid} 空間；pending / rejected 以訪客身分看根集合（唯讀）。
+ * 空間解析優先序（Phase 2）：
+ *   1. 網址列 ?space={uid}（租戶公開網址）— 誰打開都看那個空間；
+ *      只有該空間擁有者本人（approved）拿到管理權，其他人（含 root admin）
+ *      一律訪客視角，避免在別人空間亮出按不動的管理 UI。
+ *   2. 無 ?space：root admin 與訪客走根集合；approved 使用者走自己的空間；
+ *      pending / rejected 以訪客身分看根集合（唯讀）。
  */
 function resolveUser(firebaseUser: FirebaseUser, userData: Record<string, unknown> | undefined): AppUser {
     const isRootAdmin = userData?.isAdmin === true;
@@ -41,12 +45,17 @@ function resolveUser(firebaseUser: FirebaseUser, userData: Record<string, unknow
             ? userData.status as UserStatus
             : 'pending');
     const ownsTenantSpace = !isRootAdmin && status === 'approved';
-    setActiveTenant(ownsTenantSpace ? firebaseUser.uid : null);
+    const urlSpace = getUrlSpace();
+    const space = urlSpace ?? (ownsTenantSpace ? firebaseUser.uid : null);
+    setActiveTenant(space);
+    // 「目前空間」的管理權：根空間看 isAdmin 旗標；租戶空間看是否為擁有者本人
+    const isSpaceAdmin = space === null
+        ? isRootAdmin
+        : (ownsTenantSpace && space === firebaseUser.uid);
     return {
         id: firebaseUser.uid,
         email: firebaseUser.email,
-        // root admin 管根空間；approved 使用者管自己的租戶空間
-        isAdmin: isRootAdmin || ownsTenantSpace,
+        isAdmin: isSpaceAdmin,
         isRootAdmin,
         status,
         displayName: firebaseUser.displayName ?? (userData?.displayName as string | null | undefined) ?? null,
@@ -103,7 +112,8 @@ export async function signOut(): Promise<void> {
         getAuthLazy(),
         import('firebase/auth'),
     ]);
-    setActiveTenant(null);
+    // 登出後回到「這個網址本來的空間」：租戶公開頁留在租戶空間，否則回根
+    setActiveTenant(getUrlSpace());
     await firebaseSignOut(auth);
 }
 
@@ -134,7 +144,7 @@ export function onAuthChange(callback: (user: AppUser | null) => void): () => vo
                     const userDoc = await getDoc(doc(db, COLLECTIONS.users, firebaseUser.uid));
                     callback(resolveUser(firebaseUser, userDoc.data()));
                 } catch {
-                    setActiveTenant(null);
+                    setActiveTenant(getUrlSpace());
                     callback({
                         id: firebaseUser.uid,
                         email: firebaseUser.email,
@@ -146,7 +156,7 @@ export function onAuthChange(callback: (user: AppUser | null) => void): () => vo
                     });
                 }
             } else {
-                setActiveTenant(null);
+                setActiveTenant(getUrlSpace());
                 callback(null);
             }
         });

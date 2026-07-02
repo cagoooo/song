@@ -6,6 +6,7 @@ import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
 import { AppLoading } from "@/components/AppLoading";
 import { useUser } from "@/hooks/use-user";
+import { getUrlSpace } from "@/lib/firebase";
 
 // GitHub Pages base path
 const base = import.meta.env.BASE_URL || "/";
@@ -48,7 +49,9 @@ function StageLoading() {
  */
 function SpaceScope({ children }: { children: ReactNode }) {
   const { user } = useUser();
-  const spaceKey = user && !user.isRootAdmin && user.status === 'approved' ? user.id : 'root';
+  // Phase 2：?space={uid} 公開網址優先 — 訪客與任何登入者都看該租戶空間
+  const spaceKey = getUrlSpace()
+    ?? (user && !user.isRootAdmin && user.status === 'approved' ? user.id : 'root');
   return <div key={spaceKey} style={{ display: 'contents' }}>{children}</div>;
 }
 

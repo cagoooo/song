@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from './ui/dialog';
 import { QRCodeSVG } from 'qrcode.react';
-import { Share2, QrCode, X } from 'lucide-react';
+import { Share2, QrCode, X, Copy, Check } from 'lucide-react';
+import { getCurrentSpacePublicUrl } from '@/lib/spaceUrl';
 import {
   FacebookShareButton,
   TwitterShareButton,
@@ -16,8 +17,18 @@ import {
 
 export function ShareButton() {
   const [open, setOpen] = useState(false);
-  const currentUrl = window.location.href;
+  // U1 Phase 2：分享「目前空間」的公開網址 — 租戶空間自動帶 ?space={uid}，
+  // 觀眾掃 QR / 點連結直接進到該租戶的點歌系統投票
+  const currentUrl = getCurrentSpacePublicUrl();
   const shareTitle = '來參加吉他彈唱之夜點歌！';
+  const [copied, setCopied] = useState(false);
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(currentUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* 剪貼簿不可用時忽略 */ }
+  };
 
   useEffect(() => {
     document.body.classList.toggle('share-dialog-open', open);
@@ -102,6 +113,18 @@ export function ShareButton() {
               </WhatsappShareButton>
             </div>
           </div>
+
+          {/* U1 Phase 2：公開網址一鍵複製（租戶空間會帶 ?space=uid） */}
+          <button
+            type="button"
+            onClick={handleCopyUrl}
+            className="share-cassette-url"
+            aria-label="複製公開網址"
+            title={currentUrl}
+          >
+            {copied ? <Check className="h-3.5 w-3.5 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0" />}
+            <span>{copied ? '已複製公開網址！' : currentUrl}</span>
+          </button>
 
           <p className="share-cassette-note">
             像傳一捲卡帶給朋友：翻面、按下點播，今晚一起把歌排進歌單。

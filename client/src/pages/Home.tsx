@@ -76,6 +76,8 @@ import { ShareButton } from "../components/ShareButton";
 import { AppLoading } from "@/components/AppLoading";
 import { subscribeSongs, type Song } from "@/lib/firestore";
 import { saveStageSongsCache } from "@/lib/stageCache";
+import { getActiveTenant } from "@/lib/firebase";
+import { buildSpaceStageUrl } from "@/lib/spaceUrl";
 import { MobileTabView } from "../components/MobileTabView";
 import { ScrollToTop } from "../components/ScrollToTop";
 import { FloatingStack } from "../components/FloatingStack";
@@ -237,7 +239,8 @@ export default function Home() {
   const openStageMode = useCallback(() => {
     preloadStagePage();
     saveStageSongsCache(songs);
-    window.open('?mode=stage', '_blank', 'noopener');
+    // U1 Phase 2：租戶空間帶 ?space=uid — 投影裝置未登入也落在正確空間
+    window.open(buildSpaceStageUrl(getActiveTenant()), '_blank', 'noopener');
   }, [songs]);
 
   useEffect(() => {

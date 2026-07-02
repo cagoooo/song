@@ -2647,6 +2647,33 @@
   color: var(--ed-ink-2);
 }
 
+/* U1 Phase 2：公開網址複製列（租戶空間帶 ?space=uid） */
+.share-cassette-url {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 12px;
+  border: 1.5px dashed var(--ed-ink-3, #8a8a80);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ed-ink-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.share-cassette-url span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.share-cassette-url:hover {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+}
+
 @media (max-width: 520px) {
   .share-cassette-trigger {
     min-height: 36px;

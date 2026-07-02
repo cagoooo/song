@@ -69,7 +69,26 @@ export function getAuthLazy(): Promise<Auth> {
 // 在自己的空白空間運作，歌單與阿凱的完全隔離。
 // 切換時機：auth.ts 的 onAuthChange 在通知 UI 前先呼叫 setActiveTenant，
 // App.tsx 以 spaceKey remount 整棵樹讓所有 onSnapshot 換到新空間。
-let activeTenant: string | null = null;
+
+// Phase 2：租戶公開網址 ?space={uid} — 訪客打開這種連結，整套系統
+// （歌單 / 投票 / 排行 / 正在彈奏）直接落在該租戶空間，可投票互動。
+// 開機時同步解析（在任何 onSnapshot 訂閱建立之前），未登入訪客立即生效。
+const SPACE_ID_RE = /^[A-Za-z0-9_-]{6,128}$/;
+const URL_SPACE: string | null = (() => {
+    try {
+        const raw = new URLSearchParams(window.location.search).get('space');
+        return raw && SPACE_ID_RE.test(raw) ? raw : null;
+    } catch {
+        return null;
+    }
+})();
+
+/** 網址列指定的租戶空間（?space=uid）；無或格式不合法回 null */
+export function getUrlSpace(): string | null {
+    return URL_SPACE;
+}
+
+let activeTenant: string | null = URL_SPACE;
 
 /** null = 根集合（訪客 / root admin）；uid = 該使用者的獨立空間 */
 export function setActiveTenant(uid: string | null): void {
