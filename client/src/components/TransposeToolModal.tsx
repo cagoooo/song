@@ -1193,6 +1193,29 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                         : '轉調結果'}
                             </em>
                         </div>
+                        {detected && (
+                            <div className="ttm-fullscreen-transpose ttm-fullscreen-mode" role="group" aria-label="全螢幕顯示模式">
+                                <span>顯示</span>
+                                <button
+                                    type="button"
+                                    className={!showDegrees ? 'active' : ''}
+                                    onClick={() => setShowDegrees(false)}
+                                    aria-pressed={!showDegrees}
+                                    title="顯示和弦名稱"
+                                >
+                                    ♪ 和弦
+                                </button>
+                                <button
+                                    type="button"
+                                    className={showDegrees ? 'active' : ''}
+                                    onClick={() => setShowDegrees(true)}
+                                    aria-pressed={showDegrees}
+                                    title={`用數字級數表示（以 ${detected.key} 調為 1），吉他手移調思考超直覺`}
+                                >
+                                    🔢 級數
+                                </button>
+                            </div>
+                        )}
                         {detected && !showDegrees && (
                             <div className="ttm-fullscreen-transpose" role="group" aria-label="全螢幕目標調">
                                 <span>轉調</span>

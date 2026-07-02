@@ -19,6 +19,10 @@ export default defineConfig({
     },
   },
   root: path.resolve(__dirname, "client"),
+  // dev server 埠號：吃 PORT 環境變數（Claude preview 動態指派），沒有就用預設 5173
+  server: {
+    port: process.env.PORT ? Number(process.env.PORT) : 5173,
+  },
   build: {
     outDir: path.resolve(__dirname, "dist"),
     emptyOutDir: true,
