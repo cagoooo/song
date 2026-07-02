@@ -1,12 +1,11 @@
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, useSyncExternalStore, type ReactNode } from "react";
 import { Switch, Route, Router } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
 import { AppLoading } from "@/components/AppLoading";
-import { useUser } from "@/hooks/use-user";
-import { getUrlSpace } from "@/lib/firebase";
+import { subscribeActiveTenant, getActiveTenant } from "@/lib/firebase";
 
 // GitHub Pages base path
 const base = import.meta.env.BASE_URL || "/";
@@ -43,15 +42,15 @@ function StageLoading() {
 
 /**
  * U1 租戶空間邊界（docs/design/U1-multi-tenant.md）：
- * approved 一般使用者登入後，auth.ts 已把 activeTenant 切到他的 uid；
- * 這裡用 key 讓整棵樹 remount，所有 onSnapshot 訂閱自動重建到新空間。
- * 訪客首屏不等 auth（key 初始即 'root'），不影響載入速度。
+ * firebase.ts 的 activeTenant 是空間判定的唯一真相來源 —
+ * auth.ts 登入/登出時、Phase 3a slug 解析完成時都會呼叫 setActiveTenant()。
+ * 這裡訂閱它的變化，用 key 讓整棵樹 remount，所有 onSnapshot 訂閱自動
+ * 重建到新空間。訪客首屏不等 auth（key 初始即目前的 activeTenant），
+ * 不影響載入速度。
  */
 function SpaceScope({ children }: { children: ReactNode }) {
-  const { user } = useUser();
-  // Phase 2：?space={uid} 公開網址優先 — 訪客與任何登入者都看該租戶空間
-  const spaceKey = getUrlSpace()
-    ?? (user && !user.isRootAdmin && user.status === 'approved' ? user.id : 'root');
+  const tenant = useSyncExternalStore(subscribeActiveTenant, getActiveTenant, () => null);
+  const spaceKey = tenant ?? 'root';
   return <div key={spaceKey} style={{ display: 'contents' }}>{children}</div>;
 }
 

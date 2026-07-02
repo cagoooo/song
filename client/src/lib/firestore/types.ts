@@ -268,3 +268,20 @@ export const MAGAZINE_DEFAULTS: Readonly<MagazineSettings> = Object.freeze({
     currentTheme: 'blue' as const,
     updatedAt: new Date('2026-05-01T00:00:00+08:00'),
 });
+
+/**
+ * U1 Phase 3b — 空間品牌設定，Firestore 路徑 `settings/branding`
+ * （根空間 = 阿凱自己的品牌；租戶空間各自獨立，互不影響）。
+ * 刻意跟 D1 期刊系統（`settings/magazine`）分開存放：兩者概念不同
+ * （期數 vs. 品牌名稱），不想耦合成同一份文件互相牽動。
+ */
+export interface SpaceBranding {
+    /** 自訂空間名稱（例「小明的音樂夜」）；null = 使用預設「吉他彈唱之夜」 */
+    spaceName: string | null;
+    updatedAt: Date;
+}
+
+export const SPACE_BRANDING_DEFAULT: Readonly<SpaceBranding> = Object.freeze({
+    spaceName: null,
+    updatedAt: new Date('2026-05-01T00:00:00+08:00'),
+});

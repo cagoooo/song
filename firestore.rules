@@ -96,6 +96,20 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // U1 Phase 3a — 好記短網址對照表（spaceSlugs/{slug} → { uid }）。
+    // 公開讀（?space=slug 連結要先查到真正 uid 才能載入租戶空間）；
+    // 只有本人能佔用 / 釋放自己的 slug，且一個 slug 只能對應一個 uid。
+    match /spaceSlugs/{slug} {
+      allow read: if true;
+      allow create: if request.auth != null &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['uid']) &&
+        slug.matches('^[a-z0-9]+(-[a-z0-9]+)*$') &&
+        slug.size() >= 3 && slug.size() <= 32;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow update: if false; // 換 slug 一律「刪舊建新」，不允許原地改
+    }
+
     // U1 租戶空間（Phase 2 已開放訪客投票）—
     // 每個 approved 使用者擁有 tenants/{uid}/**，公開網址 ?space={uid} 讓
     // 觀眾進場投票。逐集合鏡像根集合的權限模型：公開讀 + owner 管理 +
@@ -151,7 +165,7 @@ service cloud.firestore {
       }
       match /settings/{settingId} {
         allow read: if true;
-        allow write: if isTenantOwner(tenantId) && isValidMagazinePayload();
+        allow write: if isTenantOwner(tenantId) && isValidSettingsPayload(settingId);
       }
       match /issues/{issueId} {
         allow read: if true;
@@ -168,7 +182,7 @@ service cloud.firestore {
     // 設計文件：docs/design/D1-issue-system.md
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidMagazinePayload();
+      allow write: if isAdmin() && isValidSettingsPayload(settingId);
     }
 
     // D1 歷史期數歸檔 - 所有人可讀，僅管理員可寫，永遠不可刪
@@ -189,6 +203,22 @@ service cloud.firestore {
     }
 
     // 檢查雜誌設定 payload — 所有欄位都選填（admin patch 部分更新時也可過）
+    // U1 Phase 3b：settings/{settingId} 依 doc id 分流到不同驗證函式 —
+    // 'branding' 走品牌設定驗證，其餘（如 'magazine'）沿用 D1 期刊驗證。
+    function isValidSettingsPayload(settingId) {
+      return settingId == 'branding' ? isValidBrandingPayload() : isValidMagazinePayload();
+    }
+
+    // 檢查空間品牌設定 payload — spaceName 選填字串（1-60 字）或 null
+    function isValidBrandingPayload() {
+      let data = request.resource.data;
+      let keys = data.keys();
+      return keys.hasOnly(['spaceName', 'updatedAt'])
+        && (!('spaceName' in keys) || data.spaceName == null
+            || (data.spaceName is string && data.spaceName.size() >= 1 && data.spaceName.size() <= 60))
+        && (!('updatedAt' in keys) || data.updatedAt is timestamp);
+    }
+
     function isValidMagazinePayload() {
       let data = request.resource.data;
       let keys = data.keys();

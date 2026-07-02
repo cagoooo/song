@@ -23,6 +23,7 @@ import { useVoterLeaderboard } from "@/hooks/useVoterLeaderboard";
 import { GlobalHypeOverlay } from "../components/GlobalHypeOverlay";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { BarChart3, Filter } from "lucide-react";
+import { useSpaceBranding } from "@/hooks/useSpaceBranding";
 
 const VoterLeaderboardModal = lazy(() =>
   import("../components/VoterLeaderboardModal").then((m) => ({ default: m.VoterLeaderboardModal }))
@@ -108,6 +109,13 @@ const preloadStagePage = () => {
 };
 
 export default function Home() {
+  // U1 Phase 3b：目前空間的自訂品牌名稱（沒設定則用預設「吉他彈唱之夜」）
+  const branding = useSpaceBranding();
+  const brandName = branding.spaceName || '吉他彈唱之夜';
+  useEffect(() => {
+    document.title = `${brandName} · Guitar Singalong｜吉他彈唱點歌系統`;
+  }, [brandName]);
+
   const [songs, setSongs] = useState<Song[]>([]);
   const [displayedSongs, setDisplayedSongs] = useState<Song[]>([]);
   const [showLoginForm, setShowLoginForm] = useState(false);
@@ -633,7 +641,7 @@ export default function Home() {
         <div className="editorial-topbar">
           <div className="editorial-topbar-brand">
             <span className="editorial-brand-mark" aria-hidden="true" />
-            <span>吉他彈唱之夜 · Guitar Singalong</span>
+            <span>{brandName} · Guitar Singalong</span>
             <span className="editorial-topbar-issue">ISSUE №12 · {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()}</span>
           </div>
         </div>
@@ -648,7 +656,7 @@ export default function Home() {
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-4 sm:mb-5">
               <span className="live-dot" aria-hidden="true" />
-              <span className="eyebrow">ISSUE №12 · SIDE A · 吉他彈唱之夜</span>
+              <span className="eyebrow">ISSUE №12 · SIDE A · {brandName}</span>
             </div>
 
             <h1 className="editorial-hero-title">
@@ -689,7 +697,7 @@ export default function Home() {
             <div className="editorial-cassette-toplabel">
               <div>
                 <div className="side">SIDE A · 90 MIN</div>
-                <div className="name">吉他彈唱之夜</div>
+                <div className="name">{brandName}</div>
               </div>
               <div className="issue">N°12</div>
             </div>
@@ -960,7 +968,7 @@ export default function Home() {
 
         {/* Editorial footer — 雜誌風版權帶 + 旋轉刻度標記 */}
         <footer className="editorial-footer">
-          <div>© {new Date().getFullYear()} 吉他彈唱之夜 · 桃園 SMES · v2.0 hi-fi</div>
+          <div>© {new Date().getFullYear()} {brandName} · 桃園 SMES · v2.0 hi-fi</div>
           <div className="editorial-flag-rule">
             <span>Side A</span>
             <span aria-hidden="true" />

@@ -2647,6 +2647,70 @@
   color: var(--ed-ink-2);
 }
 
+/* U1 Phase 3a：好記短網址編輯區 */
+.share-cassette-slug {
+  margin-top: 14px;
+  width: 100%;
+  max-width: 320px;
+  text-align: left;
+}
+.share-cassette-slug label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ed-ink-3);
+  margin-bottom: 4px;
+}
+.share-cassette-slug-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.share-cassette-slug-row span {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ed-ink-3);
+}
+.share-cassette-slug-row input {
+  flex: 1 1 100px;
+  min-width: 80px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1.5px solid var(--ed-ink-1, #1a1a1a);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.share-cassette-slug-row input:disabled { opacity: 0.6; }
+.share-cassette-slug-row button {
+  height: 34px;
+  padding: 0 12px;
+  border: 1.5px solid var(--ed-accent);
+  border-radius: 4px;
+  background: var(--ed-accent);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.share-cassette-slug-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+.share-cassette-slug-clear {
+  background: transparent !important;
+  color: var(--ed-ink-3) !important;
+  border-color: var(--ed-ink-3, #8a8a80) !important;
+}
+.share-cassette-slug-error {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #c40026;
+}
+
 /* U1 Phase 2：公開網址複製列（租戶空間帶 ?space=uid） */
 .share-cassette-url {
   margin-top: 14px;

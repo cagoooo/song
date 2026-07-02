@@ -67,6 +67,12 @@
 - **前端**（[aiSheetOcr.ts](../../client/src/lib/aiSheetOcr.ts) + TransposeToolModal）：圖片模式「✨ AI 辨識」按鈕（紫色強調）→ POST 圖片到 edge function → 結果進 input；與 Tesseract 混合（免費即時當預設，不滿意按 AI）
 - **實測**：合成譜圖（含反白 `[前奏]` 標籤）→ Gemini 完整正確辨識（`[前奏] |C |G |Am |F` + 中文歌詞），瀏覽器端 CORS + 後端 + Gemini 全通，5 秒回應 — **OCR 搞不定的反白標籤一次解掉**
 
+### G3b-3 額度分租戶治理（2026-07-02，U1 Phase 3c）
+
+- 每個租戶空間各自享有每日 50 次 AI 辨識額度（`space:{uid}` scope），
+  避免多租戶上線後單一空間用光全站共用的 200 次配額。
+  詳見 [U1-multi-tenant.md](./U1-multi-tenant.md#ai-辨識額度分租戶治理phase-3c)。
+
 ### G3b-2 prompt v4 — 和弦對齊強化（2026-07-02）
 
 - **問題**：AI 辨識常把同一行和弦全擠在行首，彈唱者不知道下一句換哪個和弦（使用者實測回饋）

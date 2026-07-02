@@ -7,7 +7,7 @@
 //     → 管理員核准（approved）後獲得 tenants/{uid}/** 獨立空間
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuthLazy, db, COLLECTIONS, setActiveTenant, getUrlSpace } from './firebase';
+import { getAuthLazy, db, COLLECTIONS, setActiveTenant, getResolvedUrlSpace } from './firebase';
 
 /** 使用者審核狀態：pending 待審核 / approved 已開通 / rejected 已停權 */
 export type UserStatus = 'pending' | 'approved' | 'rejected';
@@ -45,7 +45,8 @@ function resolveUser(firebaseUser: FirebaseUser, userData: Record<string, unknow
             ? userData.status as UserStatus
             : 'pending');
     const ownsTenantSpace = !isRootAdmin && status === 'approved';
-    const urlSpace = getUrlSpace();
+    // Phase 3a：網址可能是 slug，getResolvedUrlSpace() 拿到解析後的真正 uid
+    const urlSpace = getResolvedUrlSpace();
     const space = urlSpace ?? (ownsTenantSpace ? firebaseUser.uid : null);
     setActiveTenant(space);
     // 「目前空間」的管理權：根空間看 isAdmin 旗標；租戶空間看是否為擁有者本人
@@ -113,7 +114,7 @@ export async function signOut(): Promise<void> {
         import('firebase/auth'),
     ]);
     // 登出後回到「這個網址本來的空間」：租戶公開頁留在租戶空間，否則回根
-    setActiveTenant(getUrlSpace());
+    setActiveTenant(getResolvedUrlSpace());
     await firebaseSignOut(auth);
 }
 
@@ -144,7 +145,7 @@ export function onAuthChange(callback: (user: AppUser | null) => void): () => vo
                     const userDoc = await getDoc(doc(db, COLLECTIONS.users, firebaseUser.uid));
                     callback(resolveUser(firebaseUser, userDoc.data()));
                 } catch {
-                    setActiveTenant(getUrlSpace());
+                    setActiveTenant(getResolvedUrlSpace());
                     callback({
                         id: firebaseUser.uid,
                         email: firebaseUser.email,
@@ -156,7 +157,7 @@ export function onAuthChange(callback: (user: AppUser | null) => void): () => vo
                     });
                 }
             } else {
-                setActiveTenant(getUrlSpace());
+                setActiveTenant(getResolvedUrlSpace());
                 callback(null);
             }
         });

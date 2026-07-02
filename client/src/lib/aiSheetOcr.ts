@@ -1,6 +1,8 @@
 // AI sheet image recognition (Gemini Vision) through Supabase Edge Function.
 // This is now the only image recognition path used by the transpose tool.
 // The legacy browser-side OCR flow was removed because AI recognition is materially more accurate for chord sheets and screenshots.
+import { getActiveTenant } from './firebase';
+
 const ENDPOINT = 'https://xcnmmaayrtiklntvhdhc.supabase.co/functions/v1/guitar-ai-sheet';
 const ANON_KEY = 'sb_publishable_nDPdupsm5wZI20iddtf12w_iV82XILn';
 
@@ -82,7 +84,9 @@ export async function aiRecognizeSheet(image: File | Blob | string): Promise<str
                 apikey: ANON_KEY,
                 Authorization: `Bearer ${ANON_KEY}`,
             },
-            body: JSON.stringify({ image: dataUrl, mime, client: getClientId() }),
+            // U1 Phase 3c：帶目前空間（租戶 uid，根空間為 null）— 後端依此套用
+            // per-space 每日額度，避免單一租戶用光全站共用配額
+            body: JSON.stringify({ image: dataUrl, mime, client: getClientId(), space: getActiveTenant() }),
             signal: controller.signal,
         });
         const data = await resp.json().catch(() => ({} as { sheet?: string; error?: string }));
