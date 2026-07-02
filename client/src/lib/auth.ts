@@ -102,8 +102,23 @@ export async function signInWithGoogle(): Promise<AppUser> {
             status: 'pending',
             createdAt: serverTimestamp(),
         });
+    } else {
+        // 文件已存在（例如同 email 的舊帳號被 Google 登入自動連結）→
+        // 補齊缺漏的 profile 欄位，審核後台才看得到名稱 / 頭像 / 註冊時間。
+        // 只碰 profile 欄位（rules 禁止本人動 status / isAdmin）。
+        const existing = snapshot.data() as Record<string, unknown>;
+        const patch: Record<string, unknown> = {};
+        if (!existing.displayName && firebaseUser.displayName) patch.displayName = firebaseUser.displayName;
+        if (!existing.photoURL && firebaseUser.photoURL) patch.photoURL = firebaseUser.photoURL;
+        if (!existing.createdAt) patch.createdAt = serverTimestamp();
+        // 歷史髒資料曾出現帶 tab 的 email — 順手洗乾淨
+        const cleanEmail = firebaseUser.email ?? null;
+        if (cleanEmail && (existing.email as string | undefined)?.trim() !== cleanEmail) patch.email = cleanEmail;
+        if (Object.keys(patch).length > 0) {
+            await setDoc(userRef, patch, { merge: true }).catch(() => { /* 補欄位失敗不擋登入 */ });
+        }
     }
-    const userDoc = snapshot.exists() ? snapshot : await getDoc(userRef);
+    const userDoc = await getDoc(userRef);
     return resolveUser(firebaseUser, userDoc.data());
 }
 

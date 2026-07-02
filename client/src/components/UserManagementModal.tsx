@@ -10,7 +10,7 @@
 //     不給核准鈕（核准了也沒人能登入），非管理員的可刪除清理
 import { useEffect, useMemo, useState } from 'react';
 import {
-    collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy,
+    collection, onSnapshot, doc, updateDoc, deleteDoc,
 } from 'firebase/firestore';
 import {
     Dialog, DialogContent, DialogTitle, DialogDescription,
@@ -59,9 +59,11 @@ export function UserManagementModal({ isOpen, onClose }: UserManagementModalProp
     useEffect(() => {
         if (!isOpen) return;
         setLoading(true);
-        // users 是全域集合（不走租戶空間）；rules 限 root admin 可列讀
-        const usersQuery = query(collection(db, COLLECTIONS.users), orderBy('createdAt', 'desc'));
-        const unsub = onSnapshot(usersQuery, (snap) => {
+        // users 是全域集合（不走租戶空間）；rules 限 root admin 可列讀。
+        // ⚠️ 不能用 orderBy('createdAt')：Firestore 會把「缺排序欄位的文件」
+        // 整個排除 — 歷史資料有缺 createdAt 的帳號會從審核清單消失
+        // （2026-07-03 實戰：黃凱揚註冊成功卻不在清單上）。改抓全集合前端排序。
+        const unsub = onSnapshot(collection(db, COLLECTIONS.users), (snap) => {
             const list: ManagedUser[] = [];
             snap.forEach((d) => {
                 const data = d.data();
@@ -132,13 +134,16 @@ export function UserManagementModal({ isOpen, onClose }: UserManagementModalProp
         }
     };
 
-    // 待審核排最前，其次開通、停權、舊資料；管理員固定最後（不可操作）
+    // 待審核排最前，其次開通、停權、舊資料；管理員固定最後（不可操作）；
+    // 同組內新註冊的排前面（缺 createdAt 的墊底）
     const sorted = useMemo(() => {
         const rank: Record<string, number> = { pending: 0, approved: 1, rejected: 2 };
         return [...users].sort((a, b) => {
             if (a.isAdmin !== b.isAdmin) return a.isAdmin ? 1 : -1;
             if (a.isLegacy !== b.isLegacy) return a.isLegacy ? 1 : -1;
-            return (rank[a.status] ?? 9) - (rank[b.status] ?? 9);
+            const byStatus = (rank[a.status] ?? 9) - (rank[b.status] ?? 9);
+            if (byStatus !== 0) return byStatus;
+            return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
         });
     }, [users]);
 

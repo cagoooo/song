@@ -92,6 +92,22 @@ describe('UserManagementModal', () => {
         expect(screen.getByText('cagooo@gmail.com')).toBeInTheDocument();
     });
 
+    it('缺 createdAt 的帳號仍要出現在清單（不能用 orderBy 排除 — 2026-07-03 黃凱揚事件）', () => {
+        firestoreMock.docs = [{
+            id: 'wnozzUrl2CaM9Lw2x5PziQraQXs2',
+            data: {
+                email: 'cagooo@gmail.com',
+                isAdmin: false,
+                // 舊帳號沒有 createdAt / status / displayName
+            },
+        }];
+        render(<UserManagementModal isOpen onClose={vi.fn()} />);
+
+        expect(screen.getByText('cagooo@gmail.com')).toBeInTheDocument();
+        expect(screen.getByText('待審核')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /核准/ })).toBeInTheDocument();
+    });
+
     it('管理員帳號顯示管理員標籤，不出現核准/停權操作', () => {
         firestoreMock.docs = [{
             id: 'admin-uid',
