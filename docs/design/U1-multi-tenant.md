@@ -131,6 +131,18 @@ Google 登入（signInWithPopup）
   edge function（guitar-ai-sheet v5）驗證格式後傳給 RPC。
   根空間（阿凱自己）`space` 為 null，不套用租戶維度限制，維持原行為。
 
+## ✅ 註冊申請 Google Chat 即時通知（2026-07-03）
+
+- 有人 Google 註冊（或舊帳號首次進待審核佇列）→ 管理員的 Google Chat 空間
+  立即收到 cardsV2 卡片（大頭貼 + 名稱 + Email + 申請時間 + 「前往審核」按鈕）。
+- 架構（依 skill `gas-google-chat-notify` proxy 模式）：webhook 網址存
+  Supabase `guitar_config` 表（key=`chat_webhook`，RLS 鎖死不進公開 repo），
+  edge function **guitar-notify** 用 service_role 讀出代發。
+- 防濫用：同 uid 每日只通知 1 次（pending 重複登入不洗版）+ 全站每日 50 則，
+  沿用 `guitar_ai_usage` 表（scope=`notify:{uid}` / `notify-global`）。
+- 前端 `auth.ts` fire-and-forget，通知失敗絕不擋註冊流程。
+- 換 webhook：直接 update `guitar_config` 該列即可，前端零改動。
+
 ## 🔮 Phase 4（未排程）
 
 - 租戶公開分享頁的訪客投票護照（localStorage）目前跨空間共用同一份紀錄，

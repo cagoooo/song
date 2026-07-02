@@ -12,6 +12,26 @@ import { getAuthLazy, db, COLLECTIONS, setActiveTenant, getResolvedUrlSpace } fr
 /** 使用者審核狀態：pending 待審核 / approved 已開通 / rejected 已停權 */
 export type UserStatus = 'pending' | 'approved' | 'rejected';
 
+// 註冊申請通知（Google Chat）— webhook 藏在 Supabase edge function 後面
+// （guitar_config 表，不進公開 repo）。同 uid 每日去重、全站每日上限由後端管。
+const NOTIFY_ENDPOINT = 'https://xcnmmaayrtiklntvhdhc.supabase.co/functions/v1/guitar-notify';
+
+/** fire-and-forget：通知失敗絕不擋註冊流程 */
+function notifyRegistration(user: FirebaseUser): void {
+    try {
+        void fetch(NOTIFY_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                uid: user.uid,
+                name: user.displayName ?? '',
+                email: user.email ?? '',
+                photoURL: user.photoURL ?? '',
+            }),
+        }).catch(() => { /* best-effort */ });
+    } catch { /* best-effort */ }
+}
+
 export interface AppUser {
     id: string;
     email: string | null;
@@ -102,6 +122,8 @@ export async function signInWithGoogle(): Promise<AppUser> {
             status: 'pending',
             createdAt: serverTimestamp(),
         });
+        // 通知管理員有新的註冊申請（Google Chat；後端有同 uid 每日去重）
+        notifyRegistration(firebaseUser);
     } else {
         // 文件已存在（例如同 email 的舊帳號被 Google 登入自動連結）→
         // 補齊缺漏的 profile 欄位，審核後台才看得到名稱 / 頭像 / 註冊時間。
@@ -116,6 +138,11 @@ export async function signInWithGoogle(): Promise<AppUser> {
         if (cleanEmail && (existing.email as string | undefined)?.trim() !== cleanEmail) patch.email = cleanEmail;
         if (Object.keys(patch).length > 0) {
             await setDoc(userRef, patch, { merge: true }).catch(() => { /* 補欄位失敗不擋登入 */ });
+        }
+        // 舊帳號被 Google 連結後首次進入待審核佇列（無 status 且非管理員）→ 也通知；
+        // 已 pending 的重複登入靠後端同 uid 每日去重，不會洗版
+        if (!existing.status && existing.isAdmin !== true) {
+            notifyRegistration(firebaseUser);
         }
     }
     const userDoc = await getDoc(userRef);
