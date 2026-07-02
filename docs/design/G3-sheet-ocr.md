@@ -67,6 +67,14 @@
 - **前端**（[aiSheetOcr.ts](../../client/src/lib/aiSheetOcr.ts) + TransposeToolModal）：圖片模式「✨ AI 辨識」按鈕（紫色強調）→ POST 圖片到 edge function → 結果進 input；與 Tesseract 混合（免費即時當預設，不滿意按 AI）
 - **實測**：合成譜圖（含反白 `[前奏]` 標籤）→ Gemini 完整正確辨識（`[前奏] |C |G |Am |F` + 中文歌詞），瀏覽器端 CORS + 後端 + Gemini 全通，5 秒回應 — **OCR 搞不定的反白標籤一次解掉**
 
+### G3b-2 prompt v4 — 和弦對齊強化（2026-07-02）
+
+- **問題**：AI 辨識常把同一行和弦全擠在行首，彈唱者不知道下一句換哪個和弦（使用者實測回饋）
+- **修法**：edge function prompt 升 v4 — 明確要求「一個中文字 = 2 個半形欄位」的欄位計算規則、
+  給具體對齊範例（C 對「故」G 對「從」要補 13 個空白）、輸出前逐行自我檢查和弦起始欄位
+- **實測**（合成譜圖端對端）：C/G/Am 分別落在「故」「從」「就」上方，誤差 1-3 個半形欄位（原本全擠行首）
+- **注意**：edge function 原始碼只存在 Supabase（smes-inventory 專案），改 prompt 要用 MCP `get_edge_function` 取回再 deploy
+
 ### G3b-1 同梯次落地（2026-06-13，第二輪使用者實測回饋）
 
 - **CJK 逐字黏回**：Tesseract 把中文逐字切框（「有 時 候」），重建時依像素間距黏回連續歌詞；對齊用的大空隙（≥4 半形寬）保留

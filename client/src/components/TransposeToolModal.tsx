@@ -776,6 +776,14 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                 >
                     YouTube Music
                 </a>
+                <a
+                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${query} 歌詞`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ttm-music-link youtube"
+                >
+                    YouTube
+                </a>
             </div>
         );
     };
