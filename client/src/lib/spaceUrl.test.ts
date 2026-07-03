@@ -7,6 +7,7 @@ const firebaseMock = vi.hoisted(() => ({
 vi.mock('./firebase', () => firebaseMock);
 
 import { buildSpacePublicUrl, buildSpaceStageUrl, getCurrentSpacePublicUrl, isValidSlug, normalizeSlug } from './spaceUrl';
+import { isFirebaseUid, isValidSpaceParam } from './spaceIds';
 
 describe('buildSpacePublicUrl', () => {
     it('根空間回傳乾淨站台網址（不帶參數）', () => {
@@ -71,6 +72,33 @@ describe('isValidSlug', () => {
 
     it('拒絕超過 32 碼', () => {
         expect(isValidSlug('a'.repeat(33))).toBe(false);
+    });
+});
+
+describe('spaceIds — 網址解析與 slug 規則必須一致', () => {
+    it('任何合法 slug 都必須通過 ?space= 網址解析（2026-07-03 bobby 事件：5 碼 slug 曾被網址解析丟棄）', () => {
+        for (const slug of ['bob', 'bobby', 'my-band-2026', 'a1b2c3', 'x'.repeat(32)]) {
+            expect(isValidSlug(slug), `slug: ${slug}`).toBe(true);
+            expect(isValidSpaceParam(slug), `spaceParam: ${slug}`).toBe(true);
+        }
+    });
+
+    it('Firebase uid（28 碼）通過網址解析且被辨識為 uid（不查對照表直連）', () => {
+        const uid = 'wnozzUrl2CaM9Lw2x5PziQraQXs2';
+        expect(uid).toHaveLength(28);
+        expect(isValidSpaceParam(uid)).toBe(true);
+        expect(isFirebaseUid(uid)).toBe(true);
+    });
+
+    it('slug 不會被誤認成 uid（含 dash 或非 28 碼）', () => {
+        expect(isFirebaseUid('bobby')).toBe(false);
+        expect(isFirebaseUid('my-band-2026')).toBe(false);
+    });
+
+    it('太短或含非法字元的參數擋掉', () => {
+        expect(isValidSpaceParam('ab')).toBe(false);
+        expect(isValidSpaceParam('a b')).toBe(false);
+        expect(isValidSpaceParam('<script>')).toBe(false);
     });
 });
 

@@ -6,6 +6,7 @@ import {
     collection, doc, getDoc, type CollectionReference, type DocumentReference,
 } from 'firebase/firestore';
 import type { Auth } from 'firebase/auth';
+import { isFirebaseUid, isValidSpaceParam } from './spaceIds';
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -73,11 +74,12 @@ export function getAuthLazy(): Promise<Auth> {
 // Phase 2：租戶公開網址 ?space={uid} — 訪客打開這種連結，整套系統
 // （歌單 / 投票 / 排行 / 正在彈奏）直接落在該租戶空間，可投票互動。
 // 開機時同步解析（在任何 onSnapshot 訂閱建立之前），未登入訪客立即生效。
-const SPACE_ID_RE = /^[A-Za-z0-9_-]{6,128}$/;
+// 格式規則統一由 spaceIds.ts 定義（勿在此另寫 regex — 曾因兩處規則不同步
+// 導致 5 碼 slug 被丟棄、整頁 fallback 根空間）。
 const URL_SPACE: string | null = (() => {
     try {
         const raw = new URLSearchParams(window.location.search).get('space');
-        return raw && SPACE_ID_RE.test(raw) ? raw : null;
+        return raw && isValidSpaceParam(raw) ? raw : null;
     } catch {
         return null;
     }
@@ -120,8 +122,7 @@ export function getActiveTenant(): string | null {
 // 換成真正的 uid。Firebase Auth uid 固定 28 碼英數字；slug 允許 3-32 碼
 // 小寫英數字/dash，兩種格式不重疊，可以不查詢就分辨（uid 連結零延遲直連，
 // 只有 slug 連結才需要多一次 Firestore 讀取）。
-const FIREBASE_UID_RE = /^[A-Za-z0-9]{28}$/;
-if (URL_SPACE && !FIREBASE_UID_RE.test(URL_SPACE)) {
+if (URL_SPACE && !isFirebaseUid(URL_SPACE)) {
     void (async () => {
         try {
             const snap = await getDoc(doc(db, 'spaceSlugs', URL_SPACE));
