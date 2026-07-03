@@ -616,8 +616,11 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* U1：待審核 / 已停權使用者的狀態橫幅（登入了但還不能用系統） */}
-      {user && !user.isAdmin && (
+      {/* U1：待審核 / 已停權使用者的狀態橫幅（登入了但還不能用系統）。
+          ⚠️ 必須排除 status === 'approved'：管理員或已核准使用者「逛別人的
+          公開空間」時 isAdmin 也是 false（訪客視角），不能誤貼待審核標籤
+          （2026-07-03 實戰：Admin 在 ?space=… 網址登入被顯示等待審核） */}
+      {user && !user.isAdmin && user.status !== 'approved' && (
         <div className="u1-pending-banner" role="status">
           <span className="u1-pending-dot" aria-hidden="true" />
           <div className="u1-pending-text">
