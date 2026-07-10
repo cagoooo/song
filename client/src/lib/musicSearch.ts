@@ -99,9 +99,9 @@ export function extractMusicSearchQueryFromAiText(text: string): string {
         /(?:^|\s)(?:歌手|演唱|原唱)\s+(.+)$/i,
     ]);
 
-    // Fallback: 如果找不到明確的歌名欄位，我們從前 3 行中尋找最可能是歌名的一行
+    // Fallback: 如果找不到明確的歌名欄位，我們從前 5 行中尋找最可能是歌名的一行
     if (!title) {
-        for (let i = 0; i < Math.min(lines.length, 3); i++) {
+        for (let i = 0; i < Math.min(lines.length, 5); i++) {
             const line = lines[i].trim();
             if (!line) continue;
             // 排除含有冒號的行（代表是欄位，如 歌手：萬芳、編配者：xxx）
@@ -118,8 +118,8 @@ export function extractMusicSearchQueryFromAiText(text: string): string {
             if (hasChordLetters && !hasCjk) continue;
             // 排除內聯和弦行：如果一行裡包含中括號且括號內有 A-G
             if (/\[[A-G][#b♯♭]?[^\]]*\]/.test(line)) continue;
-            // 排除長度過長的行
-            if (line.length > 20) continue;
+            // 放寬長度限制至 25（部分歌名含英文副標如「STAY feat. The Kid」）
+            if (line.length > 25) continue;
             // 排除只含符號的行
             const cleaned = cleanMusicSearchText(line);
             if (!cleaned) continue;
@@ -129,7 +129,18 @@ export function extractMusicSearchQueryFromAiText(text: string): string {
         }
     }
 
-    if (title || artist) return [title, artist].filter(Boolean).join(' ');
+    if (title || artist) {
+        // 只有歌手名、沒有歌名時，補充歌詞短句讓搜尋更精準。
+        // 例如：只有「鄭潤澤」→ 加上歌詞片段 → 「有一種愛 鄭潤澤」命中率更高。
+        if (!title && artist) {
+            const lyricPhrase = pickLyricSearchPhrase(text);
+            if (lyricPhrase) {
+                const shortPhrase = lyricPhrase.slice(0, 10).trim();
+                return [shortPhrase, artist].filter(Boolean).join(' ');
+            }
+        }
+        return [title, artist].filter(Boolean).join(' ');
+    }
 
     return pickLyricSearchPhrase(text);
 }

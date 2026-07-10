@@ -87,6 +87,22 @@ describe('extractMusicSearchQueryFromAiText — 結構化欄位優先', () => {
         const ai = `[前奏] D X2 等2拍\n明明是春天我卻感到絕望`;
         expect(extractMusicSearchQueryFromAiText(ai)).toContain('明明是春天');
     });
+
+    it('只有演唱欄位無歌名且有歌詞行時，應組合歌詞短句 + 歌手', () => {
+        // 模擬「瞬」這首歌的 AI 辨識結果（截圖沒有標題行，只有演唱欄位）
+        const ai = `演唱：鄭潤澤\n詞：鄭潤澤 曲：鄭潤澤\n[前奏]|C |Cm |\n不知道是否有一種愛 可以讓我留下來`;
+        const q = extractMusicSearchQueryFromAiText(ai);
+        // 結果應含歌手名
+        expect(q).toContain('鄭潤澤');
+        // 結果不應只是歌手名（應有歌詞輔助關鍵字）
+        expect(q.length).toBeGreaterThan('鄭潤澤'.length + 1);
+    });
+
+    it('只有演唱欄位且整份是純和弦譜（無歌詞）時，至少輸出歌手名', () => {
+        const ai = `演唱：萬芳\n[前奏]|C |Am |F |G |\n[主歌]|C |Am |F |G |`;
+        const q = extractMusicSearchQueryFromAiText(ai);
+        expect(q).toContain('萬芳');
+    });
 });
 
 describe('buildMusicSearchQuery — 優先序', () => {
