@@ -206,7 +206,7 @@ export const SuggestionCard = memo(function SuggestionCard({
                 ${batchMode
                     ? `cursor-pointer ${selected ? 'ring-2 ring-[#2b4dff] ring-offset-1' : 'hover:ring-1 hover:ring-[#2b4dff]/40'}`
                     : 'hover:-translate-y-0.5 hover:shadow-md'}
-                ${highlight ? 'ring-2 ring-[#2b4dff] ring-offset-2 animate-pulse' : ''}`}
+                ${highlight ? 'ring-2 ring-[#2b4dff] ring-offset-2' : ''}`}
             style={{
                 background: color.cardBg,
                 borderColor: color.cardBorder,
