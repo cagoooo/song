@@ -13,6 +13,7 @@ import {
     transposeChordSheet, transposeChordSymbol, isChordLine,
     extractChords, detectKey, preferFlatForKey, capoSuggestions,
     noteToSemitone, KEY_OPTIONS, nashvilleSheet, classifyToken,
+    hasInlineChords,
 } from '@/lib/transpose';
 import { getRememberedSteps, rememberSteps, sheetMemoryKey } from '@/lib/transposeMemory';
 import { buildChartFromSheet } from '@/lib/songChart';
@@ -296,9 +297,40 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const renderOutputLines = () => {
         const outLines = output.split('\n');
         const refLines = showDegrees ? input.split('\n') : outLines;
+
+        const renderInlineChordLine = (lineStr: string, keyVal: number) => {
+            if (!lineStr) return <div key={keyVal} className="ttm-line-lyric"> </div>;
+            const INLINE_CHORD_RE = /(\[[^\]]+\])/g;
+            const parts = lineStr.split(INLINE_CHORD_RE);
+            const NASHVILLE_RE = /^[b#♯♭]?[1-7](?:[A-Za-z0-9()+-]*)$/;
+            
+            return (
+                <div key={keyVal} className="ttm-line-lyric">
+                    {parts.map((part, idx) => {
+                        if (part.startsWith('[') && part.endsWith(']')) {
+                            const inside = part.slice(1, -1);
+                            const isChord = classifyToken(inside) === 'chord' || NASHVILLE_RE.test(inside);
+                            if (isChord) {
+                                return (
+                                    <span key={idx} className="ttm-inline-chord-badge">
+                                        {part}
+                                    </span>
+                                );
+                            }
+                        }
+                        return part;
+                    })}
+                </div>
+            );
+        };
+
         return outLines.map((line, i) => {
             const isChord = isChordLine(refLines[i] ?? line);
+            const hasInline = hasInlineChords(refLines[i] ?? line);
             if (showDegrees || !isChord) {
+                if (hasInline) {
+                    return renderInlineChordLine(line, i);
+                }
                 return <div key={i} className={isChord ? 'ttm-line-chord' : 'ttm-line-lyric'}>{line || ' '}</div>;
             }
             let nonSpace = -1;

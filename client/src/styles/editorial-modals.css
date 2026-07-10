@@ -704,6 +704,7 @@
 .ttm-input:focus { outline: 2px solid var(--ed-accent); outline-offset: 1px; }
 .ttm-output { margin: 0; }
 .ttm-line-chord { color: var(--ed-accent); font-weight: 600; }
+.ttm-inline-chord-badge { color: var(--ed-accent); font-weight: 600; }
 .ttm-line-lyric { color: var(--ed-ink-1); }
 .ttm-empty { color: var(--ed-ink-3); font-size: 12px; }
 /* 可疑辨識字 — 和弦行內辨識不出的 token 標黃底，點一下就地修正 */
