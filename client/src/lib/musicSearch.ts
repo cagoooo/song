@@ -90,7 +90,7 @@ export function extractMusicSearchQueryFromAiText(text: string): string {
         }
         return '';
     };
-    const title = readField([
+    let title = readField([
         /(?:歌名|歌曲名稱|曲名|title)\s*[：:]\s*(.+)$/i,
         /(?:^|\s)(?:歌名|曲名)\s+(.+)$/i,
     ]);
@@ -98,6 +98,37 @@ export function extractMusicSearchQueryFromAiText(text: string): string {
         /(?:歌手|演唱|原唱|artist|singer)\s*[：:]\s*(.+)$/i,
         /(?:^|\s)(?:歌手|演唱|原唱)\s+(.+)$/i,
     ]);
+
+    // Fallback: 如果找不到明確的歌名欄位，我們從前 3 行中尋找最可能是歌名的一行
+    if (!title) {
+        for (let i = 0; i < Math.min(lines.length, 3); i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+            // 排除含有冒號的行（代表是欄位，如 歌手：萬芳、編配者：xxx）
+            if (line.includes(':') || line.includes('：')) continue;
+            // 排除段落標記與包含段落指示的行
+            if (SECTION_LABEL_RE.test(line)) continue;
+            if (/(?:前奏|間奏|尾奏|主歌|副歌|過門|口白|intro|outro|solo|bridge|verse|chorus)/i.test(line)) continue;
+            // 排除包含演奏標記的行（如 X2 等2拍）
+            if (PERFORMANCE_NOISE_RE.test(line)) continue;
+            
+            // 排除和弦行：如果一行裡含有多個 A-G 字母，且沒有任何中文字
+            const hasCjk = /[一-鿿぀-ヿ가-힯]/.test(line);
+            const hasChordLetters = /[A-G]/.test(line);
+            if (hasChordLetters && !hasCjk) continue;
+            // 排除內聯和弦行：如果一行裡包含中括號且括號內有 A-G
+            if (/\[[A-G][#b♯♭]?[^\]]*\]/.test(line)) continue;
+            // 排除長度過長的行
+            if (line.length > 20) continue;
+            // 排除只含符號的行
+            const cleaned = cleanMusicSearchText(line);
+            if (!cleaned) continue;
+
+            title = cleaned;
+            break;
+        }
+    }
+
     if (title || artist) return [title, artist].filter(Boolean).join(' ');
 
     return pickLyricSearchPhrase(text);
