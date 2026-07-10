@@ -37,11 +37,26 @@ function replaceNonSpaceToken(line: string, idx: number, newTok: string): string
 
 // extractMusicSearchQueryFromAiText / cleanMusicSearchText 已抽到 @/lib/musicSearch
 
-/** 自動將底線分數和弦（如 Gsus4 _G、C_D）正規化為斜線標準分數和弦（如 Gsus4/G、C/D） */
+/** 自動將底線分數和弦正規化，並清除和弦前後黏寫的橫線（如 ---E7 變空格 + E7 以保留對齊與正確辨識） */
 function normalizeSheetText(text: string): string {
     if (!text) return text;
+    // 1. 底線分數和弦（如 Gsus4 _G、C_D -> Gsus4/G、C/D）
     const NORMALIZE_RE = /([A-G][#b♯♭]?[^/\s_]*)\s*_\s*([A-G][#b♯♭]?(?:maj|min|dim|aug|sus|add|alt|no|omit|M|m|b|#|♭|♯|\+|-|°|ø|Δ|\(|\)|\d|6\/9|[A-G])*)(?:\b|(?![a-zA-Z]))/g;
-    return text.replace(NORMALIZE_RE, '$1/$2');
+    let res = text.replace(NORMALIZE_RE, '$1/$2');
+
+    // 2. 清除黏寫在和弦前後的中線/長線（如 ---E7 變三格空格 + E7，保持對齊）
+    // 支援各種常見中線符號：- (半形), – (en-dash), — (em-dash), ─ (box drawing), ━ (heavy box drawing)
+    const DASH_CHARS = '-–—─━';
+    const LEADING_DASH_RE = new RegExp(`([${DASH_CHARS}]+)([A-G][#b♯♭]?(?:[a-zA-Z0-9()+-]*))`, 'g');
+    res = res.replace(LEADING_DASH_RE, (match, dashes, chord) => {
+        return ' '.repeat(dashes.length) + chord;
+    });
+    const TRAILING_DASH_RE = new RegExp(`([A-G][#b♯♭]?(?:[a-zA-Z0-9()+-]*))([${DASH_CHARS}]+)`, 'g');
+    res = res.replace(TRAILING_DASH_RE, (match, chord, dashes) => {
+        return chord + ' '.repeat(dashes.length);
+    });
+
+    return res;
 }
 
 interface TransposeToolModalProps {
