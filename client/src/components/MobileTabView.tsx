@@ -29,6 +29,29 @@ export function MobileTabView({
     activeTab: controlledActiveTab,
     onTabChange,
 }: MobileTabViewProps) {
+    const [showSwipeHint, setShowSwipeHint] = useState(() => {
+        try {
+            return !sessionStorage.getItem('song-swipe-hint-seen');
+        } catch {
+            return true;
+        }
+    });
+
+    const markHintSeen = useCallback(() => {
+        setShowSwipeHint(false);
+        try {
+            sessionStorage.setItem('song-swipe-hint-seen', 'true');
+        } catch {}
+    }, []);
+
+    useEffect(() => {
+        if (!showSwipeHint) return;
+        const timer = setTimeout(() => {
+            markHintSeen();
+        }, 5000);
+        return () => clearTimeout(timer);
+    }, [showSwipeHint, markHintSeen]);
+
     const [internalActiveTab, setInternalActiveTab] = useState<TabType>(isAdmin ? 'ranking' : 'songs');
 
     const activeTab = controlledActiveTab ?? internalActiveTab;
@@ -52,20 +75,22 @@ export function MobileTabView({
     }, [isAdmin, controlledActiveTab, setActiveTab]);
 
     const goToNextTab = useCallback(() => {
+        markHintSeen();
         const currentIndex = TABS.indexOf(activeTab);
         if (currentIndex < TABS.length - 1) {
             setSwipeDirection('left');
             setActiveTab(TABS[currentIndex + 1]);
         }
-    }, [activeTab, setActiveTab]);
+    }, [activeTab, setActiveTab, markHintSeen]);
 
     const goToPrevTab = useCallback(() => {
+        markHintSeen();
         const currentIndex = TABS.indexOf(activeTab);
         if (currentIndex > 0) {
             setSwipeDirection('right');
             setActiveTab(TABS[currentIndex - 1]);
         }
-    }, [activeTab, setActiveTab]);
+    }, [activeTab, setActiveTab, markHintSeen]);
 
     const swipeHandlers = useSwipeable({
         onSwipedLeft: goToNextTab,
@@ -78,6 +103,7 @@ export function MobileTabView({
     });
 
     const handleTabChange = (value: string) => {
+        markHintSeen();
         const newTab = value as TabType;
         setSwipeDirection(TABS.indexOf(newTab) > TABS.indexOf(activeTab) ? 'left' : 'right');
         setActiveTab(newTab);
@@ -159,6 +185,33 @@ export function MobileTabView({
                         })}
                     </TabsList>
                 </div>
+
+                {/* 動態滑動引導提示 */}
+                <AnimatePresence>
+                    {showSwipeHint && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 28, opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden bg-[#2b4dff]/5 text-[#2b4dff] text-[10px] font-medium tracking-wider flex items-center justify-center gap-1.5 border-b border-[#2b4dff]/10"
+                        >
+                            <motion.span
+                                animate={{ x: [-3, 3, -3] }}
+                                transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                            >
+                                ⟵
+                            </motion.span>
+                            <span>左右滑動可切換歌單、排行、催歌王</span>
+                            <motion.span
+                                animate={{ x: [3, -3, 3] }}
+                                transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                            >
+                                ⟶
+                            </motion.span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Tab 內容區 — 滑動動畫 */}
                 <div className="overflow-hidden">
