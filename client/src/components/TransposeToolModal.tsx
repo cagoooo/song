@@ -946,22 +946,21 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                         📷 上傳譜圖
                                     </button>
                                     {srcImageUrl && (
-                                        <>
-                                            
-                                            <button
-                                                className="ttm-pane-btn"
-                                                onClick={() => setShowOcrText((v) => !v)}
-                                            >
-                                                {showOcrText ? '🖼️ 看原圖' : '✏️ 修正文字'}
-                                            </button>
-                                            <button
-                                                className="ttm-pane-btn danger"
-                                                onClick={clearAll}
-                                                aria-label="清除全部，清空輸入框與圖片"
-                                            >
-                                                ✕ 清除
-                                            </button>
-                                        </>
+                                        <button
+                                            className="ttm-pane-btn"
+                                            onClick={() => setShowOcrText((v) => !v)}
+                                        >
+                                            {showOcrText ? '🖼️ 看原圖' : '✏️ 修正文字'}
+                                        </button>
+                                    )}
+                                    {(srcImageUrl || input) && (
+                                        <button
+                                            className="ttm-pane-btn danger"
+                                            onClick={clearAll}
+                                            aria-label="清除全部，清空輸入框與圖片"
+                                        >
+                                            ✕ 清除
+                                        </button>
                                     )}
                                     {!srcImageUrl && !input && !ocrMsg && (
                                         <button className="ttm-pane-btn ghost" onClick={() => { setAiRecognizedText(''); setInput(EXAMPLE_SHEET); }}>
