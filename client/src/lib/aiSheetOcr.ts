@@ -93,7 +93,14 @@ export async function aiRecognizeSheet(image: File | Blob | string): Promise<str
         if (!resp.ok) {
             throw new Error(data?.error || `AI 辨識失敗（${resp.status}）`);
         }
-        return (data?.sheet || '').toString();
+        const sheet = (data?.sheet || '').toString();
+        try {
+            const { optimizeAiLayout } = await import('./aiLayoutOptimizer');
+            return optimizeAiLayout(sheet);
+        } catch (e) {
+            console.error('Failed to optimize layout:', e);
+            return sheet;
+        }
     } catch (e) {
         if (e instanceof DOMException && e.name === 'AbortError') {
             throw new Error('AI 辨識超時，請換解析度低一點的圖、或稍後再試');
