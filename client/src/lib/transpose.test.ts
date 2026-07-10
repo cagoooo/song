@@ -20,6 +20,9 @@ import {
     chordLineToNashville,
     nashvilleSheet,
     classifyToken,
+    hasInlineChords,
+    transposeInlineChords,
+    nashvilleInlineChords,
 } from './transpose';
 import type { LyricBlock } from '@/lib/firestore';
 
@@ -437,5 +440,36 @@ describe('classifyToken（給 UI 可疑字高亮）', () => {
         expect(classifyToken('|Am7')).toBe('chord');
         expect(classifyToken('ERREMTFERE')).toBe('word'); // OCR 雜訊 → 可疑
         expect(classifyToken('CID')).toBe('word');
+    });
+});
+
+describe('內聯和弦 (ChordPro) 格式的解析與移調', () => {
+    it('偵測內聯和弦行', () => {
+        expect(hasInlineChords('[INTRO]')).toBe(false);
+        expect(hasInlineChords('[前奏]')).toBe(false);
+        expect(hasInlineChords('[C]慢火車 [G]火車慢')).toBe(true);
+        expect(hasInlineChords('我要 [Dm]爬過愛情這座 [C]山')).toBe(true);
+    });
+
+    it('內聯和弦移調', () => {
+        const line = '[C]慢火車 [G]火車慢';
+        expect(transposeInlineChords(line, 2)).toBe('[D]慢火車 [A]火車慢');
+        expect(transposeInlineChords('我要 [Dm]爬過愛情這座 [C]山', 2)).toBe('我要 [Em]爬過愛情這座 [D]山');
+    });
+
+    it('內聯和弦級數轉換', () => {
+        expect(nashvilleInlineChords('[C]慢火車 [G]火車慢', 'C')).toBe('[1]慢火車 [5]火車慢');
+        expect(nashvilleInlineChords('我要 [Dm]爬過愛情這座 [C]山', 'C')).toBe('我要 [2m]爬過愛情這座 [1]山');
+    });
+
+    it('從內聯和弦譜中提取和弦名', () => {
+        const sheet = '[INTRO]\n[C]慢火車 [G]火車慢\n我要 [Dm]爬過愛情這座 [C]山';
+        expect(extractChords(sheet)).toEqual(['C', 'G', 'Dm', 'C']);
+    });
+
+    it('整份內聯和弦譜轉調與級數轉換', () => {
+        const sheet = '[C]慢火車 [G]火車慢\n我要 [Dm]爬過 [C]山';
+        expect(transposeChordSheet(sheet, 2)).toBe('[D]慢火車 [A]火車慢\n我要 [Em]爬過 [D]山');
+        expect(nashvilleSheet(sheet, 'C')).toBe('[1]慢火車 [5]火車慢\n我要 [2m]爬過 [1]山');
     });
 });

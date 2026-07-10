@@ -342,11 +342,24 @@ export function isChordLine(line: string): boolean {
 export function extractChords(text: string): string[] {
     const chords: string[] = [];
     for (const line of text.split('\n')) {
-        if (!isChordLine(line)) continue;
-        for (const t of line.trim().split(/\s+/)) {
-            const tok = parseChordToken(t);
-            if (!tok) continue;
-            tok.parts.forEach((p, i) => { if (i % 2 === 0) chords.push(p); });
+        if (hasInlineChords(line)) {
+            const INLINE_CHORD_RE = /\[([^\]]+)\]/g;
+            let match;
+            INLINE_CHORD_RE.lastIndex = 0;
+            while ((match = INLINE_CHORD_RE.exec(line)) !== null) {
+                const tok = parseChordToken(match[1]);
+                if (tok) {
+                    tok.parts.forEach((p, i) => {
+                        if (i % 2 === 0) chords.push(p);
+                    });
+                }
+            }
+        } else if (isChordLine(line)) {
+            for (const t of line.trim().split(/\s+/)) {
+                const tok = parseChordToken(t);
+                if (!tok) continue;
+                tok.parts.forEach((p, i) => { if (i % 2 === 0) chords.push(p); });
+            }
         }
     }
     return chords;
@@ -465,12 +478,63 @@ export function capoSuggestions(soundingKey: string, maxCapo = 7): CapoSuggestio
 
 import type { LyricBlock } from '@/lib/firestore';
 
-/** 移調整段純文字譜：逐行判斷，是和弦行才動，歌詞行原樣保留 */
+export function hasInlineChords(line: string): boolean {
+    if (!line.includes('[') || !line.includes(']')) return false;
+    const INLINE_CHORD_RE = /\[([^\]]+)\]/g;
+    let found = false;
+    let match;
+    INLINE_CHORD_RE.lastIndex = 0;
+    while ((match = INLINE_CHORD_RE.exec(line)) !== null) {
+        if (parseChordToken(match[1])) {
+            found = true;
+            break;
+        }
+    }
+    return found;
+}
+
+export function transposeInlineChords(line: string, semitones: number, options?: TransposeOptions): string {
+    const INLINE_CHORD_RE = /\[([^\]]+)\]/g;
+    return line.replace(INLINE_CHORD_RE, (match, p1) => {
+        const tok = parseChordToken(p1);
+        if (tok) {
+            const mapped = tok.prefix
+                + tok.parts.map((p, i) => (i % 2 === 0 ? transposeChordSymbol(p, semitones, options) : p)).join('')
+                + tok.suffix;
+            return `[${mapped}]`;
+        }
+        return match;
+    });
+}
+
+export function nashvilleInlineChords(line: string, keyRoot: string): string {
+    const INLINE_CHORD_RE = /\[([^\]]+)\]/g;
+    return line.replace(INLINE_CHORD_RE, (match, p1) => {
+        const tok = parseChordToken(p1);
+        if (tok) {
+            const mapped = tok.prefix
+                + tok.parts.map((p, i) => (i % 2 === 0 ? chordToNashville(p, keyRoot) : p)).join('')
+                + tok.suffix;
+            return `[${mapped}]`;
+        }
+        return match;
+    });
+}
+
+/** 移調整段純文字譜：逐行判斷，內聯和弦與和弦行都移調，其餘保留 */
 export function transposeChordSheet(text: string, semitones: number, options?: TransposeOptions): string {
     if (!text) return text;
     return text
         .split('\n')
-        .map((line) => (isChordLine(line) ? transposeChordLine(line, semitones, options) : line))
+        .map((line) => {
+            if (hasInlineChords(line)) {
+                return transposeInlineChords(line, semitones, options);
+            }
+            if (isChordLine(line)) {
+                return transposeChordLine(line, semitones, options);
+            }
+            return line;
+        })
         .join('\n');
 }
 
@@ -530,11 +594,19 @@ export function chordLineToNashville(line: string, keyRoot: string): string {
     return mapChordLine(line, (c) => chordToNashville(c, keyRoot));
 }
 
-/** 整份譜 → 級數（逐行：和弦行轉級數，歌詞行原樣保留） */
+/** 整份譜 → 級數（逐行：和弦行與內聯和弦轉級數，其餘保留） */
 export function nashvilleSheet(text: string, keyRoot: string): string {
     if (!text) return text;
     return text
         .split('\n')
-        .map((line) => (isChordLine(line) ? chordLineToNashville(line, keyRoot) : line))
+        .map((line) => {
+            if (hasInlineChords(line)) {
+                return nashvilleInlineChords(line, keyRoot);
+            }
+            if (isChordLine(line)) {
+                return chordLineToNashville(line, keyRoot);
+            }
+            return line;
+        })
         .join('\n');
 }
