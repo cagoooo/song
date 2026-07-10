@@ -51,7 +51,7 @@ function normalizeSheetText(text: string): string {
     res = res.replace(LEADING_DASH_RE, (match, dashes, chord) => {
         return ' '.repeat(dashes.length) + chord;
     });
-    const TRAILING_DASH_RE = new RegExp(`([A-G][#b♯♭]?(?:[a-zA-Z0-9()+-]*))([${DASH_CHARS}]+)`, 'g');
+    const TRAILING_DASH_RE = new RegExp(`([A-G][#b♯♭]?(?:[a-zA-Z0-9()+-]*))([${DASH_CHARS}]+)(?![0-9a-zA-Z#b♯♭])`, 'g');
     res = res.replace(TRAILING_DASH_RE, (match, chord, dashes) => {
         return chord + ' '.repeat(dashes.length);
     });

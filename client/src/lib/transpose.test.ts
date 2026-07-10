@@ -183,8 +183,9 @@ describe('91 譜黏寫格式 — |Cmaj7 / (C) / Em7-Dm7 / [A]', () => {
         expect(transposeChordLine('|Em7-Dm7 G |', 2, { preferFlat: false })).toBe('|F#m7-Em7 A |');
     });
 
-    it('連寫不誤拆 Cm7-5（先整顆解析）', () => {
+    it('連寫不誤拆 Cm7-5（先整顆解析）與帶有箭頭符號的 Cmaj7↑ 移調', () => {
         expect(transposeChordLine('Cm7-5', 2)).toBe('Dm7-5');
+        expect(transposeChordLine('|Cmaj7↑ |', 2)).toBe('|Dmaj7↑ |');
     });
 
     it('支援前置段落標記與和弦黏寫（例如 [前奏]|G 轉調）', () => {
@@ -438,6 +439,9 @@ describe('classifyToken（給 UI 可疑字高亮）', () => {
         expect(classifyToken('[INTRO]')).toBe('neutral');
         expect(classifyToken('Cmaj7')).toBe('chord');
         expect(classifyToken('|Am7')).toBe('chord');
+        expect(classifyToken('Cmaj7↑')).toBe('chord');
+        expect(classifyToken('───')).toBe('neutral');
+        expect(classifyToken('|───')).toBe('neutral');
         expect(classifyToken('ERREMTFERE')).toBe('word'); // OCR 雜訊 → 可疑
         expect(classifyToken('CID')).toBe('word');
     });
