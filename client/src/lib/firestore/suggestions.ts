@@ -160,9 +160,6 @@ export async function addSuggestionToPlaylist(
 ): Promise<string> {
     const songId = await addSong(title, artist);
     const ref = docRef(COLLECTIONS.songSuggestions, suggestionId);
-    await updateDoc(ref, {
-        status: 'added_to_playlist',
-        processedAt: Timestamp.now(),
-    });
+    await deleteDoc(ref); // 成功加入主要歌單後，自動從推薦清單中刪除這筆建議
     return songId;
 }

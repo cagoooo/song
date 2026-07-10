@@ -16,7 +16,7 @@ import { ResponsiveScrollList } from '@/components/ui/ResponsiveScrollList';
 import { useToast } from '@/hooks/use-toast';
 import { usePendingSuggestionFlush } from '@/hooks/usePendingSuggestionFlush';
 import { usePlayedSuggestionCelebration } from '@/hooks/usePlayedSuggestionCelebration';
-import { approveSuggestion, rejectSuggestion, removeSuggestion, useSuggestions } from '@/hooks/use-suggestions';
+import { approveSuggestion, rejectSuggestion, removeSuggestion, useSuggestions, addToPlaylist } from '@/hooks/use-suggestions';
 import type { Song } from '@/lib/firestore';
 import { MySuggestions } from './MySuggestions';
 import { SuggestionCard } from './SuggestionCard';
@@ -108,8 +108,21 @@ export default function SongSuggestion({
     const batchMutation = useMutation({
         mutationFn: async (action: BatchAction) => {
             const targets = resolveBatchTargets(action, selectedIds, statusById);
-            const fn = action === 'approve' ? approveSuggestion : action === 'reject' ? rejectSuggestion : removeSuggestion;
-            const results = await Promise.allSettled(targets.map((id) => fn(id)));
+            
+            let results;
+            if (action === 'approve') {
+                results = await Promise.allSettled(
+                    targets.map((id) => {
+                        const s = suggestions.find((x) => x.id === id);
+                        const title = s?.title || '';
+                        const artist = s?.artist || '不確定';
+                        return addToPlaylist(id, title, artist);
+                    })
+                );
+            } else {
+                const fn = action === 'reject' ? rejectSuggestion : removeSuggestion;
+                results = await Promise.allSettled(targets.map((id) => fn(id)));
+            }
             const failedIds = targets.filter((_, index) => results[index]?.status === 'rejected');
 
             return {
@@ -154,7 +167,7 @@ export default function SongSuggestion({
                 onSubmitted={handleSubmitted}
             />
 
-            <MySuggestions suggestions={suggestions} />
+            <MySuggestions suggestions={suggestions} songs={songs} />
 
             {suggestions.length > 0 && (
                 <Collapsible open={isListExpanded} onOpenChange={setIsListExpanded}>

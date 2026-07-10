@@ -3,7 +3,8 @@ import { useEffect, useMemo } from 'react';
 import { Sparkles, Check, Clock, Music2, X, HeartPulse, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMySuggestions, markSeenStatus, removeMySuggestion } from '@/lib/mySuggestions';
-import type { SongSuggestion } from '@/lib/firestore';
+import type { SongSuggestion, Song } from '@/lib/firestore';
+import { normalizeTitle } from '@/lib/duplicateSong';
 
 const GOOD_STATUSES = new Set(['approved', 'added_to_playlist']);
 
@@ -18,9 +19,10 @@ const STATUS_VIEW: Record<string, { label: string; icon: typeof Check; cls: stri
 
 interface MySuggestionsProps {
     suggestions: SongSuggestion[];
+    songs?: Song[];
 }
 
-export function MySuggestions({ suggestions }: MySuggestionsProps) {
+export function MySuggestions({ suggestions, songs = [] }: MySuggestionsProps) {
     const mine = useMySuggestions();
     const { toast } = useToast();
 
@@ -30,31 +32,44 @@ export function MySuggestions({ suggestions }: MySuggestionsProps) {
         return m;
     }, [suggestions]);
 
+    const songsTitles = useMemo(() => {
+        return new Set(songs.map((s) => normalizeTitle(s.title)));
+    }, [songs]);
+
     // 狀態變好（被採納 / 加入歌單）時慶祝一次
     useEffect(() => {
         mine.forEach((m) => {
             const live = byId.get(m.id);
-            if (live && GOOD_STATUSES.has(live.status) && m.seenStatus !== live.status) {
+            const isAddedInPlaylist = !live && songsTitles.has(normalizeTitle(m.title));
+            const currentStatus = live ? live.status : isAddedInPlaylist ? 'added_to_playlist' : 'removed';
+
+            if (GOOD_STATUSES.has(currentStatus) && m.seenStatus !== currentStatus) {
                 toast({
-                    title: live.status === 'added_to_playlist' ? '🎉 你推薦的歌進歌單了！' : '🎉 你的推薦被採納了！',
+                    title: currentStatus === 'added_to_playlist' ? '🎉 你推薦的歌進歌單了！' : '🎉 你的推薦被採納了！',
                     description:
-                        live.status === 'added_to_playlist'
+                        currentStatus === 'added_to_playlist'
                             ? `「${m.title}」已加入可點播清單，快去點播吧！`
                             : `「${m.title}」主持人採納了，很快會加入歌單`,
                     variant: 'success',
                 });
-                markSeenStatus(m.id, live.status);
+                markSeenStatus(m.id, currentStatus);
             }
         });
-    }, [mine, byId, toast]);
+    }, [mine, byId, songsTitles, toast]);
 
     const rows = useMemo(
         () =>
             mine.map((m) => {
                 const live = byId.get(m.id);
-                return { entry: m, status: live ? live.status : 'removed' };
+                if (live) {
+                    return { entry: m, status: live.status };
+                }
+                if (songsTitles.has(normalizeTitle(m.title))) {
+                    return { entry: m, status: 'added_to_playlist' };
+                }
+                return { entry: m, status: 'removed' };
             }),
-        [mine, byId]
+        [mine, byId, songsTitles]
     );
 
     if (rows.length === 0) return null;

@@ -424,11 +424,13 @@ export const SuggestionCard = memo(function SuggestionCard({
                         {suggestion.status === 'pending' && (
                             <>
                                 <Button
-                                    onClick={() => updateStatusMutation.mutate({ id: suggestion.id, status: 'approved' })}
+                                    onClick={() => addToPlaylistMutation.mutate()}
+                                    disabled={addToPlaylistMutation.isPending}
                                     size="sm"
                                     className="flex-1 bg-[#2b4dff] hover:bg-[#1d3bd8] text-white text-xs py-2 rounded-md transition-colors"
                                 >
-                                    <Check className="w-3.5 h-3.5 mr-1.5" />採納
+                                    <Check className="w-3.5 h-3.5 mr-1.5" />
+                                    {addToPlaylistMutation.isPending ? '採納中…' : '採納'}
                                 </Button>
                                 <Button
                                     onClick={() => updateStatusMutation.mutate({ id: suggestion.id, status: 'rejected' })}
