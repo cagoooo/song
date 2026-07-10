@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music2, FileText, X, ExternalLink, Star, Check } from 'lucide-react';
+import { Music2, FileText, X, ExternalLink, Star, Check, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNowPlaying } from '@/hooks/useNowPlaying';
 import { useInteractions } from '@/hooks/useInteractions';
@@ -31,6 +31,12 @@ const generateGuitarTabsUrl = (title: string, artist: string) => {
 const generateLyricsUrl = (title: string, artist: string) => {
     const searchQuery = encodeURIComponent(`${title} ${artist} 歌詞`);
     return `https://www.google.com/search?q=${searchQuery}`;
+};
+
+// 產生 Chordify 搜尋 URL
+const generateChordifyUrl = (title: string, artist: string) => {
+    const searchQuery = encodeURIComponent(`${title} ${artist}`);
+    return `https://chordify.net/search/${searchQuery}`;
 };
 
 // 星星評分元件
@@ -225,7 +231,7 @@ export function NowPlayingNotification({ onOpenTransposeTool }: NowPlayingNotifi
                         </div>
 
                         {/* 快捷按鈕 */}
-                        <div className="now-playing-card-actions mb-3 grid grid-cols-2 gap-2">
+                        <div className="now-playing-card-actions mb-3 grid grid-cols-3 gap-2">
                             <Button
                                 asChild
                                 size="sm"
@@ -256,6 +262,22 @@ export function NowPlayingNotification({ onOpenTransposeTool }: NowPlayingNotifi
                                 >
                                     <FileText className="w-4 h-4" />
                                     <span>歌詞</span>
+                                    <ExternalLink className="w-3 h-3 opacity-70" />
+                                </a>
+                            </Button>
+                            <Button
+                                asChild
+                                size="sm"
+                                className="now-playing-card-action h-10 rounded-md border-2 border-[#111] bg-white text-[#111] shadow-none transition-transform hover:-translate-y-0.5 hover:bg-[#fff3d0]"
+                            >
+                                <a
+                                    href={generateChordifyUrl(song.title, song.artist)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-1.5"
+                                >
+                                    <Search className="w-4 h-4 text-[#ff5c00]" />
+                                    <span>Chordify</span>
                                     <ExternalLink className="w-3 h-3 opacity-70" />
                                 </a>
                             </Button>
