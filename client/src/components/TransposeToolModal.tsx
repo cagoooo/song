@@ -36,6 +36,13 @@ function replaceNonSpaceToken(line: string, idx: number, newTok: string): string
 
 // extractMusicSearchQueryFromAiText / cleanMusicSearchText 已抽到 @/lib/musicSearch
 
+/** 自動將底線分數和弦（如 Gsus4 _G、C_D）正規化為斜線標準分數和弦（如 Gsus4/G、C/D） */
+function normalizeSheetText(text: string): string {
+    if (!text) return text;
+    const NORMALIZE_RE = /([A-G][#b♯♭]?[^/\s_]*)\s*_\s*([A-G][#b♯♭]?(?:maj|min|dim|aug|sus|add|alt|no|omit|M|m|b|#|♭|♯|\+|-|°|ø|Δ|\(|\)|\d|6\/9|[A-G])*)(?:\b|(?![a-zA-Z]))/g;
+    return text.replace(NORMALIZE_RE, '$1/$2');
+}
+
 interface TransposeToolModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -60,6 +67,9 @@ F              G                C
 
 export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: TransposeToolModalProps) {
     const [input, setInput] = useState('');
+    const updateInput = useCallback((val: string) => {
+        setInput(normalizeSheetText(val));
+    }, []);
     const [steps, setSteps] = useState(0);
     const [copied, setCopied] = useState(false);
     /** OCR 進行中的進度訊息（null = 沒在跑） */
@@ -136,7 +146,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
             if (sheet.trim()) {
                 setAiProgress(100);
                 setAiRecognizedText(sheet);
-                setInput(sheet);
+                updateInput(sheet);
                 setOcrDone(true);
                 setShowOcrText(false);
                 scrollToResult();
@@ -963,7 +973,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                         </button>
                                     )}
                                     {!srcImageUrl && !input && !ocrMsg && (
-                                        <button className="ttm-pane-btn ghost" onClick={() => { setAiRecognizedText(''); setInput(EXAMPLE_SHEET); }}>
+                                        <button className="ttm-pane-btn ghost" onClick={() => { setAiRecognizedText(''); updateInput(EXAMPLE_SHEET); }}>
                                             ＋ 載入範例
                                         </button>
                                     )}
@@ -1019,7 +1029,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                 <textarea
                                     className="ttm-input"
                                     value={input}
-                                    onChange={(e) => { setAiRecognizedText(''); setInput(e.target.value); setOcrDone(false); }}
+                                    onChange={(e) => { setAiRecognizedText(''); updateInput(e.target.value); setOcrDone(false); }}
                                     onDrop={handleDrop}
                                     onDragOver={(e) => e.preventDefault()}
                                     placeholder={'三種餵譜方式：\n\n1. 文字 — 把譜整段貼進來\n2. 截圖 — 直接 Ctrl+V 貼上，會自動啟動 AI 辨識\n3. 圖檔 — 點「📷 上傳譜圖」或拖放到這裡，會自動啟動 AI 辨識\n\nAI 辨識結果會落在這裡，可直接修正錯字'}
