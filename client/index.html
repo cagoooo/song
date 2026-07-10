@@ -4,6 +4,47 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <script>
+      // 🛡️ App 內建瀏覽器防護：Google OAuth 禁止在 WebView 登入（403 disallowed_useragent）
+      // LINE → 自動帶 openExternalBrowser=1 跳系統預設瀏覽器；FB/IG/Messenger/微信/Kakao → 顯示引導提示
+      (function () {
+        var ua = navigator.userAgent || "";
+        var isLine = /\bLine\//i.test(ua);
+        var isOtherInApp = /FBAN|FBAV|FB_IAB|Instagram|Messenger|MicroMessenger|KAKAOTALK/i.test(ua);
+
+        if (isLine && location.search.indexOf("openExternalBrowser=1") === -1) {
+          // LINE 官方參數：自動改用外部瀏覽器重開本頁（保留原有 query 與 hash）
+          var sep = location.search ? "&" : "?";
+          location.replace(location.href.split("#")[0] + sep + "openExternalBrowser=1" + location.hash);
+          return;
+        }
+        if (isOtherInApp || isLine) {
+          // 如果是 Android，嘗試以 intent scheme 強制用外部 Chrome 開啟
+          var isAndroid = /Android/i.test(ua);
+          if (isAndroid) {
+            try {
+              var u = new URL(location.href);
+              var intentUrl = "intent://" + u.host + u.pathname + u.search + u.hash
+                + "#Intent;scheme=" + u.protocol.replace(":", "") + ";package=com.android.chrome;end";
+              location.href = intentUrl;
+            } catch (e) {}
+          }
+
+          // 顯示全版引導，避免使用者白撞 Google 封鎖
+          document.addEventListener("DOMContentLoaded", function () {
+            var d = document.createElement("div");
+            d.style.cssText = "position:fixed;inset:0;z-index:99999;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,'Microsoft JhengHei',sans-serif;";
+            d.innerHTML = '<div style="max-width:420px;text-align:center;background:#1e293b;border-radius:16px;padding:32px 26px;box-shadow:0 20px 50px rgba(0,0,0,0.5);">'
+              + '<div style="font-size:52px;margin-bottom:8px;">🌐</div>'
+              + '<h4 style="font-weight:800;font-size:20px;margin:14px 0 10px;color:#fff;">請改用瀏覽器開啟</h4>'
+              + '<p style="font-size:15px;line-height:1.8;color:#cbd5e1;margin:0;">您目前在 <b style="color:#fbbf24;">App 內建瀏覽器</b>（LINE／FB Messenger 等）中開啟本網頁，Google 基於防安全釣魚政策<b>禁止在此環境進行登入</b>。<br><br>請點擊右上／右下角「<b>⋯</b>」或分享圖示，選擇「<b>用預設瀏覽器開啟</b>」即可正常登入！</p>'
+              + '</div>';
+            document.body.appendChild(d);
+          });
+        }
+      })();
+    </script>
+
     <!-- Performance: warm up Firestore connections used after first interaction. -->
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://firebaseinstallations.googleapis.com" crossorigin />
