@@ -86,7 +86,7 @@ export interface ParsedChord {
 const CHORD_RE = /^([A-G][#b♯♭]?)((?:6\/9|[^/\s])*)(?:\/([A-G][#b♯♭]?))?$/;
 
 // 後綴只能由這些 token 組成 — 防止把 'Bridge' / 'Am.' / 'Do' 之類誤判成和弦
-const SUFFIX_TOKEN_RE = /^(?:maj|min|dim|aug|sus|add|alt|no|omit|M|m|b|#|♭|♯|\+|-|°|ø|Δ|\(|\)|\d|6\/9)*$/;
+const SUFFIX_TOKEN_RE = /^(?:maj|min|dim|aug|sus|add|alt|no|omit|M|m|b|#|♭|♯|\+|-|°|ø|Δ|\(|\)|\d|6\/9|[A-G])*$/;
 
 /**
  * 解析單一和弦符號。不是合法和弦 → null。
@@ -176,7 +176,7 @@ const NEUTRAL_TOKEN_RE = /^(?:\||-|–|—|→|%|\.|,|x\d+|X\d+|N\.?C\.?|\(|\)|\
 // [A]、[前奏] 這種「全括號」是段落記號 — 整顆中性，永不移調。
 
 const BRACKETED_TOKEN_RE = /^\[.+\]$/;
-const DECOR_TOKEN_RE = /^([|([\]]*)(.*?)([|()\[\],.]*)$/;
+const DECOR_TOKEN_RE = /^([|([\]:*#~*\d()]*)(.*?)([|()\[\],.:*]*)$/;
 
 interface ChordToken {
     prefix: string;
@@ -201,10 +201,29 @@ function parseChordToken(token: string): ChordToken | null {
     
     const m = restToken.match(DECOR_TOKEN_RE);
     if (!m) return null;
-    const [, prefix, core, suffix] = m;
+    
+    let prefix = m[1] || '';
+    let core = m[2] || '';
+    let suffix = m[3] || '';
+    
     if (!core) return null;
-    if (isChordSymbol(core)) return { prefix: outerPrefix + prefix, parts: [core], suffix };
-    // 連寫和弦 Em7-Dm7 / C-G — 先整顆試過才拆，避免誤拆 Cm7-5
+    
+    // 解決後置裝飾搶走括號的問題：
+    // 若 core 不是和弦且有未閉合的括號，且 suffix 以 ) 開頭，把 ) 移回 core
+    if (!isChordSymbol(core) && suffix.startsWith(')')) {
+        const openCount = (core.match(/\(/g) || []).length;
+        const closeCount = (core.match(/\)/g) || []).length;
+        if (openCount > closeCount) {
+            const tempCore = core + ')';
+            const tempSuffix = suffix.slice(1);
+            if (isChordSymbol(tempCore)) {
+                core = tempCore;
+                suffix = tempSuffix;
+            }
+        }
+    }
+    
+    // 優先：連寫和弦 Em7-Dm7 / C-G — 先拆分驗證，若每部均為和弦則採用
     if (core.includes('-')) {
         const segs = core.split(/(-)/);
         const chords = segs.filter((_, i) => i % 2 === 0);
@@ -212,6 +231,12 @@ function parseChordToken(token: string): ChordToken | null {
             return { prefix: outerPrefix + prefix, parts: segs, suffix };
         }
     }
+    
+    // 次之：整顆解析（避免誤拆 Cm7-5）
+    if (isChordSymbol(core)) {
+        return { prefix: outerPrefix + prefix, parts: [core], suffix };
+    }
+    
     return null;
 }
 
