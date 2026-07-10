@@ -21,7 +21,65 @@ export function getVisualWidth(str: string): number {
 }
 
 /**
- * 自動將 AI 辨識出來、被壓縮在行首的和弦行，均勻分散對齊到下方的歌詞行上方。
+ * 判斷和弦行是否「已格式化」：含有 | 分隔符的和弦行已有正確的小節結構。
+ */
+function isFormattedChordLine(line: string): boolean {
+    return /[|｜]/.test(line);
+}
+
+/**
+ * 規整化含有 | 小節分隔符的和弦行：
+ * - 把多餘空格（3+ 個）壓縮，讓 | 符號之間維持適度間距
+ * - 重新格式化成「|chord |chord2 |」的標準格式
+ * - 這樣在等寬字型下每小節和弦距離適中，不會超寬
+ */
+function normalizeBarChordLine(line: string): string {
+    // 分割成小節（以 | 或 ｜ 分隔）
+    // 例：「|G         |Bm7 Em7 |A7  D  |G |」→ ['', 'G', 'Bm7 Em7', 'A7  D', 'G ', '']
+    const BAR_SEP = /[|｜]/;
+    const parts = line.split(BAR_SEP);
+
+    if (parts.length < 2) {
+        // 沒有實際分隔到多個小節，只壓縮多餘空格
+        return line.replace(/ {3,}/g, ' ').trimEnd();
+    }
+
+    // 每個部分（小節內容）做清理：
+    // 1. 去頭尾空白
+    // 2. 把多個連續空格壓縮成單一空格
+    const cleanedParts = parts.map(p => p.replace(/ {2,}/g, ' ').trim());
+
+    // 重組：|part1 |part2 |part3 ...
+    // 第一個 part 通常是空字串（行首就是 |），或是段落標記（如「[前奏]」）
+    const result: string[] = [];
+    for (let i = 0; i < cleanedParts.length; i++) {
+        const p = cleanedParts[i];
+        if (i === 0) {
+            // 行首：如有內容（如段落標記 [前奏]）則保留
+            if (p) result.push(p + ' ');
+        } else if (i === cleanedParts.length - 1) {
+            // 行尾：如有內容則加上尾部 |
+            if (p) result.push('|' + p + ' |');
+            else result.push('|');
+        } else {
+            // 中間小節
+            if (p) result.push('|' + p + ' ');
+            else result.push('|');
+        }
+    }
+
+    return result.join('').trimEnd();
+}
+
+/**
+ * 自動將 AI 辨識出來的和弦譜做排版優化：
+ *
+ * 策略分兩類：
+ * 1. 含 | 分隔符的和弦行（已有小節結構）→ 「規整化」：
+ *    每個小節重新格式化成「|chord 」的緊湊格式，消除多餘空格帶來的超大間距。
+ * 2. 沒有 | 且被壓縮在一起的和弦行 → 均勻分佈到下方歌詞的寬度（舊邏輯保留）。
+ *
+ * 這樣能避免「|G      |Bm7 Em7」中間出現超大空隙的問題。
  */
 export function optimizeAiLayout(text: string): string {
     if (!text) return text;
@@ -32,81 +90,85 @@ export function optimizeAiLayout(text: string): string {
         const line = lines[l];
         const nextLine = lines[l + 1] || '';
 
-        // 判定當前行是否為和弦行，且下一行是歌詞行（且不為空且不是和弦行）
-        if (isChordLine(line) && nextLine.trim() && !isChordLine(nextLine)) {
-            const nextWidth = getVisualWidth(nextLine);
-            const lineLen = getVisualWidth(line);
-            
-            // 檢查是否被壓縮：沒有連續 3 個或以上的空格，且總長度小於下一行歌詞視覺長度的 80%
-            const isCompressed = !/\s{3,}/.test(line) && lineLen < nextWidth * 0.8;
+        // 判定當前行是否為和弦行
+        if (isChordLine(line)) {
+            if (isFormattedChordLine(line)) {
+                // ── 策略 1：已含 | 的和弦行 ──
+                // 規整化每個小節，消除多餘空格，不做均勻展開
+                optimizedLines.push(normalizeBarChordLine(line));
+                continue;
+            }
 
-            if (isCompressed) {
-                // 1. 提取所有非空格 Token
-                const tokens = line.trim().split(/\s+/).filter(Boolean);
-                if (tokens.length > 0) {
-                    const W = nextWidth;
-                    const grid = Array(W).fill(' ');
-                    const occupied = Array(W).fill(false);
+            // ── 策略 2：無 | 的壓縮和弦行 ──
+            // 與下一行歌詞行配對，把 token 均勻分佈到歌詞行寬度
+            if (nextLine.trim() && !isChordLine(nextLine)) {
+                const nextWidth = getVisualWidth(nextLine);
+                const lineLen = getVisualWidth(line);
 
-                    // 2. 均勻分佈擺放每個 Token
-                    for (let i = 0; i < tokens.length; i++) {
-                        const tok = tokens[i];
-                        const tokLen = getVisualWidth(tok);
-                        
-                        // 計算目標視覺起始位置
-                        let targetPos = 0;
-                        if (tokens.length > 1) {
-                            targetPos = Math.round((W - tokLen) / (tokens.length - 1) * i);
-                        }
-                        
-                        // 防重疊與防越界：尋找可寫入的起始位置
-                        let start = Math.max(0, Math.min(targetPos, W - tokLen));
-                        // 如果該位置已經被佔用，往右尋找空位
-                        while (start < W && occupied.slice(start, start + tokLen).some(x => x)) {
-                            start++;
-                        }
-                        // 如果往右找不到空位，往左尋找空位
-                        if (start + tokLen > W) {
-                            start = Math.max(0, Math.min(targetPos, W - tokLen));
-                            while (start >= 0 && occupied.slice(start, start + tokLen).some(x => x)) {
-                                start--;
+                // 確認確實是被壓縮的（沒有連續 3 個空格，且長度明顯小於下方歌詞）
+                const isCompressed = !/\s{3,}/.test(line) && lineLen < nextWidth * 0.8;
+
+                if (isCompressed) {
+                    const tokens = line.trim().split(/\s+/).filter(Boolean);
+                    if (tokens.length > 1) {
+                        const W = nextWidth;
+                        const grid = Array(W).fill(' ');
+                        const occupied = Array(W).fill(false);
+
+                        for (let i = 0; i < tokens.length; i++) {
+                            const tok = tokens[i];
+                            const tokLen = getVisualWidth(tok);
+
+                            let targetPos = 0;
+                            if (tokens.length > 1) {
+                                targetPos = Math.round((W - tokLen) / (tokens.length - 1) * i);
                             }
-                        }
 
-                        // 如果還是找不到完全空閒的空間，就強行寫入在 targetPos
-                        const finalStart = (start >= 0 && start + tokLen <= W) ? start : Math.max(0, W - tokLen);
-
-                        // 寫入網格
-                        let currentIdx = finalStart;
-                        for (let c = 0; c < tok.length; c++) {
-                            const char = tok[c];
-                            const charCode = char.charCodeAt(0);
-                            const charW = (
-                                (charCode >= 0x4e00 && charCode <= 0x9fff) ||
-                                (charCode >= 0x3000 && charCode <= 0x303f) ||
-                                (charCode >= 0xff00 && charCode <= 0xffef)
-                            ) ? 2 : 1;
-                            
-                            if (currentIdx < W) {
-                                grid[currentIdx] = char;
-                                occupied[currentIdx] = true;
-                                if (charW === 2 && currentIdx + 1 < W) {
-                                    grid[currentIdx + 1] = ''; // CJK 佔用兩格，第二格放空字串
-                                    occupied[currentIdx + 1] = true;
+                            let start = Math.max(0, Math.min(targetPos, W - tokLen));
+                            while (start < W && occupied.slice(start, start + tokLen).some(x => x)) {
+                                start++;
+                            }
+                            if (start + tokLen > W) {
+                                start = Math.max(0, Math.min(targetPos, W - tokLen));
+                                while (start >= 0 && occupied.slice(start, start + tokLen).some(x => x)) {
+                                    start--;
                                 }
                             }
-                            currentIdx += charW;
-                        }
-                    }
 
-                    // 3. 重組該行
-                    optimizedLines.push(grid.join('').trimEnd());
-                    continue;
+                            const finalStart = (start >= 0 && start + tokLen <= W)
+                                ? start
+                                : Math.max(0, W - tokLen);
+
+                            let currentIdx = finalStart;
+                            for (let c = 0; c < tok.length; c++) {
+                                const char = tok[c];
+                                const charCode = char.charCodeAt(0);
+                                const charW = (
+                                    (charCode >= 0x4e00 && charCode <= 0x9fff) ||
+                                    (charCode >= 0x3000 && charCode <= 0x303f) ||
+                                    (charCode >= 0xff00 && charCode <= 0xffef)
+                                ) ? 2 : 1;
+
+                                if (currentIdx < W) {
+                                    grid[currentIdx] = char;
+                                    occupied[currentIdx] = true;
+                                    if (charW === 2 && currentIdx + 1 < W) {
+                                        grid[currentIdx + 1] = '';
+                                        occupied[currentIdx + 1] = true;
+                                    }
+                                }
+                                currentIdx += charW;
+                            }
+                        }
+
+                        optimizedLines.push(grid.join('').trimEnd());
+                        continue;
+                    }
                 }
             }
         }
 
-        // 不需要優化，則原樣輸出
+        // 其他行（歌詞行、空行、標題行）：原樣輸出
         optimizedLines.push(line);
     }
 
