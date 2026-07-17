@@ -34,6 +34,27 @@ const seededShuffle = <T,>(array: T[], seed: number): T[] => {
     return shuffled;
 };
 
+/**
+ * 排行榜先依熱門度排序，再把已彈奏完成的歌曲穩定移到清單底部。
+ * 正在彈奏優先視為進行中，避免 Firestore 狀態同步的短暫交疊讓歌曲突然沉底。
+ */
+export function orderRankingSongs(songs: Song[], shuffleSeed: number): Song[] {
+    const songsWithVotes = songs.filter((song) => (song.voteCount || 0) > 0);
+    const songsWithoutVotes = songs.filter((song) => (song.voteCount || 0) === 0);
+
+    const sortedWithVotes = [...songsWithVotes].sort(
+        (a, b) => (b.voteCount || 0) - (a.voteCount || 0)
+    );
+    const shuffledWithoutVotes = seededShuffle(songsWithoutVotes, shuffleSeed);
+    const popularityOrder = [...sortedWithVotes, ...shuffledWithoutVotes];
+    const hasFinishedPlaying = (song: Song) => song.isPlayed && !song.isNowPlaying;
+
+    return [
+        ...popularityOrder.filter((song) => !hasFinishedPlaying(song)),
+        ...popularityOrder.filter(hasFinishedPlaying),
+    ];
+}
+
 export function useRankingData({
     songs: propSongs,
     displayLimit,
@@ -43,22 +64,9 @@ export function useRankingData({
     // 頁面載入時產生新種子（使用 useState 確保在同一次渲染週期內保持一致）
     const [shuffleSeed] = useState(() => Math.random());
 
-    // 從 props 傳入的 songs 依投票數排序，0 票歌曲隨機穿插
+    // 未彈奏優先；各區段內依票數排序，0 票歌曲維持頁面載入時的隨機順序
     const sortedSongs = useMemo(() => {
-        // 分離有票和無票的歌曲
-        const songsWithVotes = propSongs.filter(s => (s.voteCount || 0) > 0);
-        const songsWithoutVotes = propSongs.filter(s => (s.voteCount || 0) === 0);
-
-        // 有票的按票數降序排列
-        const sortedWithVotes = [...songsWithVotes].sort(
-            (a, b) => (b.voteCount || 0) - (a.voteCount || 0)
-        );
-
-        // 無票的使用頁面載入種子隨機排序
-        const shuffledWithoutVotes = seededShuffle(songsWithoutVotes, shuffleSeed);
-
-        // 合併：有票的在前，無票的隨機排列在後
-        return [...sortedWithVotes, ...shuffledWithoutVotes].slice(0, displayLimit);
+        return orderRankingSongs(propSongs, shuffleSeed).slice(0, displayLimit);
     }, [propSongs, displayLimit, shuffleSeed]);
 
     const [showRankChange, setShowRankChange] = useState<RankChange>({});
