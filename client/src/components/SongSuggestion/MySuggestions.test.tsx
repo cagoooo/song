@@ -1,5 +1,5 @@
 // MySuggestions 測試 —「我的推薦」狀態比對 + 慶祝
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 const toastSpy = vi.fn();
@@ -62,5 +62,19 @@ describe('MySuggestions', () => {
         render(<MySuggestions suggestions={[sug('other', 'pending')]} />);
         expect(screen.getByText('已下架')).toBeInTheDocument();
         expect(screen.getByText('消失的歌')).toBeInTheDocument();
+    });
+
+    it('向左滑超過門檻會移除本機推薦追蹤', () => {
+        addMySuggestion({ id: 'swipe', title: '滑掉這首', artist: '歌手', ts: 1, seenStatus: 'pending' });
+        render(<MySuggestions suggestions={[sug('swipe', 'pending', '滑掉這首')]} />);
+
+        const row = screen.getByText('滑掉這首').closest('li');
+        expect(row).not.toBeNull();
+        fireEvent.touchStart(row!, { touches: [{ clientX: 180, clientY: 20 }] });
+        fireEvent.touchMove(row!, { touches: [{ clientX: 80, clientY: 22 }] });
+        fireEvent.touchEnd(row!, { changedTouches: [{ clientX: 80, clientY: 22 }] });
+
+        expect(screen.queryByText('滑掉這首')).not.toBeInTheDocument();
+        expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ title: '已移除「滑掉這首」' }));
     });
 });
