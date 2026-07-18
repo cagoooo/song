@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.2',
+        date: '2026-07-18',
+        items: [
+            '修正 iPhone 更新卡片持續旋轉，現在會可靠啟用新版並在失敗時自動復原。',
+        ],
+    },
+    {
         version: '4.19.1',
         date: '2026-06-24',
         items: [

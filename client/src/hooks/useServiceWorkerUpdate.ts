@@ -6,16 +6,18 @@ interface SwState {
 }
 
 type SwWithRegistration = ServiceWorker & { __registration?: ServiceWorkerRegistration };
+const RELOAD_FALLBACK_MS = 5000;
 
 function isSupported() {
     return typeof navigator !== 'undefined' && 'serviceWorker' in navigator;
 }
 
-export function useServiceWorkerUpdate(): SwState & { applyUpdate: () => void; dismissUpdate: () => void } {
+export function useServiceWorkerUpdate(): SwState & { applyUpdate: () => Promise<void>; dismissUpdate: () => void } {
     const [updateAvailable, setUpdateAvailable] = useState(false);
     const [currentVersion, setCurrentVersion] = useState<string | null>(null);
     const [dismissed, setDismissed] = useState(false);
     const waitingWorkerRef = useRef<SwWithRegistration | null>(null);
+    const reloadFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (!isSupported()) return;
@@ -98,6 +100,10 @@ export function useServiceWorkerUpdate(): SwState & { applyUpdate: () => void; d
         const onControllerChange = () => {
             if (refreshing) return;
             refreshing = true;
+            if (reloadFallbackRef.current) {
+                clearTimeout(reloadFallbackRef.current);
+                reloadFallbackRef.current = null;
+            }
             window.location.reload();
         };
         const onMessage = (event: MessageEvent) => {
@@ -123,25 +129,45 @@ export function useServiceWorkerUpdate(): SwState & { applyUpdate: () => void; d
             window.removeEventListener('online', onOnline);
             navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
             navigator.serviceWorker.removeEventListener('message', onMessage);
+            if (reloadFallbackRef.current) {
+                clearTimeout(reloadFallbackRef.current);
+                reloadFallbackRef.current = null;
+            }
         };
     }, []);
 
-    const applyUpdate = useCallback(() => {
-        const waitingWorker = waitingWorkerRef.current;
-        if (waitingWorker) {
-            waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+    const applyUpdate = useCallback(async () => {
+        if (!isSupported()) {
+            window.location.reload();
             return;
         }
 
-        navigator.serviceWorker?.getRegistration()
-            .then((registration) => {
-                if (registration?.waiting) {
-                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-                } else {
-                    window.location.reload();
-                }
-            })
-            .catch(() => window.location.reload());
+        if (reloadFallbackRef.current) clearTimeout(reloadFallbackRef.current);
+        // iOS Safari 偶爾不送 controllerchange；不能讓更新 UI 永久等待。
+        reloadFallbackRef.current = setTimeout(() => {
+            reloadFallbackRef.current = null;
+            window.location.reload();
+        }, RELOAD_FALLBACK_MS);
+
+        try {
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) await registration.update().catch(() => registration);
+
+            const referencedWorker = waitingWorkerRef.current;
+            const waitingWorker = registration?.waiting
+                ?? (referencedWorker?.state === 'installed' ? referencedWorker : null);
+
+            if (waitingWorker) {
+                waitingWorkerRef.current = waitingWorker as SwWithRegistration;
+                waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+                return;
+            }
+
+            // waiting worker 已經自行啟用、但 Safari 漏掉事件時，直接重載即可接上新版。
+            window.location.reload();
+        } catch {
+            window.location.reload();
+        }
     }, []);
 
     const dismissUpdate = useCallback(() => {

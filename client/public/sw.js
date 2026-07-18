@@ -55,7 +55,9 @@ self.addEventListener('install', (event) => {
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         console.log('[SW] 收到 SKIP_WAITING, 立刻啟用新版本');
-        self.skipWaiting();
+        // message 是 ExtendableMessageEvent；必須延長事件生命週期，避免 iOS Safari
+        // 在 skipWaiting Promise 完成前回收 Service Worker，讓更新卡永久卡在旋轉狀態。
+        event.waitUntil(self.skipWaiting());
     } else if (event.data && event.data.type === 'GET_VERSION') {
         // 回報目前版本給前端顯示
         event.ports[0]?.postMessage({ version: CACHE_VERSION });

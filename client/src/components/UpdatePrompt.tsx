@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { RefreshCw, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useServiceWorkerUpdate } from '@/hooks/useServiceWorkerUpdate';
 import { CassetteScrews } from './CassetteShell';
 import { Z } from '@/lib/z';
@@ -11,12 +11,29 @@ export function UpdatePrompt() {
     const changelog = getLatestChangelog();
     // 按下「立即更新」後進入更新中狀態：圖示旋轉、按鈕鎖定，直到新版啟用後自動 reload
     const [isUpdating, setIsUpdating] = useState(false);
+    const [updateTimedOut, setUpdateTimedOut] = useState(false);
+    const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleUpdate = () => {
         if (isUpdating) return;
         setIsUpdating(true);
-        applyUpdate();
+        setUpdateTimedOut(false);
+        if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = setTimeout(() => {
+            setIsUpdating(false);
+            setUpdateTimedOut(true);
+        }, 8000);
+        void applyUpdate().catch(() => {
+            if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
+            updateTimeoutRef.current = null;
+            setIsUpdating(false);
+            setUpdateTimedOut(true);
+        });
     };
+
+    useEffect(() => () => {
+        if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
+    }, []);
 
     useEffect(() => {
         document.body.classList.toggle('sw-update-prompt-visible', updateAvailable);
@@ -81,6 +98,11 @@ export function UpdatePrompt() {
                                         已偵測到最新功能與修正，點一下即可重新載入並套用新版。
                                     </div>
                                 )}
+                                {updateTimedOut && (
+                                    <div className="swu-sub" role="status">
+                                        更新尚未完成，請再試一次；按鈕不會再被永久鎖住。
+                                    </div>
+                                )}
                             </div>
 
                             {/* 立即更新 */}
@@ -92,7 +114,7 @@ export function UpdatePrompt() {
                                 className="swu-action"
                             >
                                 <RefreshCw aria-hidden="true" className={isUpdating ? 'swu-spin' : undefined} />
-                                {isUpdating ? '更新中…' : '立即更新'}
+                                {isUpdating ? '更新中…' : updateTimedOut ? '再試一次' : '立即更新'}
                             </button>
                         </div>
                     </motion.div>
