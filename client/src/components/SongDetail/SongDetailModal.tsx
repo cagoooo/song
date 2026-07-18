@@ -155,7 +155,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
     return (
         <Dialog open={!!song} onOpenChange={(open) => { if (!open) onClose(); }}>
             <DialogContent
-                className="z-[100] max-w-[1280px] w-[96vw] h-[92vh] p-0 overflow-hidden bg-white border-[rgba(17,17,17,0.18)] flex flex-col"
+                className="sdp-dialog z-[100] max-w-[1280px] w-[96vw] h-[92vh] p-0 overflow-hidden bg-white border-[rgba(17,17,17,0.18)] flex flex-col"
             >
                 <DialogTitle className="sr-only">
                     {song.title} · {song.artist} — 歌曲詳情頁
@@ -164,7 +164,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                     包含和弦進行、6 個指型圖、歌詞和弦對照、主理人筆記、相似推薦歌曲。
                 </DialogDescription>
 
-                <div className="sd-page flex-1 overflow-y-auto" style={{ padding: '0 32px' }}>
+                <div className="sd-page flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
                     {/* 1 — Top nav */}
                     <nav className="sdp-nav">
                         <div className="sdp-nav-l">

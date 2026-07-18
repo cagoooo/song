@@ -160,6 +160,8 @@
    Song Detail Modal (.sdp-*) — Editorial 雜誌規格
    ========================================================================== */
 .sd-page {
+  width: 100%;
+  min-width: 0;
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 32px 120px;
@@ -1973,22 +1975,78 @@
 
 /* ---------- Mobile ---------- */
 @media (max-width: 880px) {
-  .sd-page { padding: 0 18px 140px; }
-  .sdp-nav { grid-template-columns: auto 1fr auto; gap: 10px; }
+  .sdp-dialog {
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    transform: none !important;
+    border-width: 0 !important;
+    border-radius: 0 !important;
+  }
+  .sd-page {
+    max-width: 100%;
+    padding: 0 16px calc(140px + env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sdp-nav {
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    padding: 14px 0;
+    margin-bottom: 20px;
+  }
   .sdp-nav-c { display: none; }
-  .sdp-hero { grid-template-columns: 1fr; gap: 28px; }
-  .sdp-vinyl { width: 220px; height: 220px; margin: 0 auto; }
+  .sdp-nav-r { display: none; }
+  .sdp-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding-bottom: 24px;
+    margin-bottom: 30px;
+  }
+  .sdp-vinyl-wrap { display: none; }
+  .sdp-eyebrow {
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: 12px;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+  }
+  .sdp-title {
+    max-width: 100%;
+    margin-bottom: 10px;
+    font-size: clamp(44px, 14vw, 68px);
+    line-height: 0.95;
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+  }
+  .sdp-artist {
+    margin-bottom: 20px;
+    font-size: 20px;
+  }
   .sdp-meta { grid-template-columns: 1fr 1fr; }
   .sdp-meta-cell:nth-child(2) { border-right: 0; }
   .sdp-meta-cell:nth-child(1), .sdp-meta-cell:nth-child(2) { border-bottom: 1px solid var(--ed-line); }
-  .sdp-meta-v { font-size: 28px; }
+  .sdp-meta-cell { padding: 12px 10px; }
+  .sdp-meta-v { font-size: 26px; }
   .sdp-chord-grid { grid-template-columns: repeat(3, 1fr); }
   .sdp-similar { grid-template-columns: 1fr; }
   .sdp-prog-pill { font-size: 17px; height: 38px; min-width: 48px; }
   .sdp-transpose { gap: 8px; padding: 10px 12px; }
   .sdp-trans-capo { margin-left: 0; flex-basis: 100%; text-align: center; }
   .sdp-meta-orig { display: block; margin-left: 0; vertical-align: baseline; margin-top: 4px; }
-  .sdp-cta { padding: 12px 18px; grid-template-columns: 1fr; gap: 10px; margin: 0 -18px; }
+  .sdp-cta {
+    bottom: 0;
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin: 0;
+  }
   .sdp-cta-info { text-align: left; font-size: 11px; }
   .sdp-cta-btn { width: 100%; justify-content: center; }
   .sdp-section { margin-bottom: 40px; }

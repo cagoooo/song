@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.6',
+        date: '2026-07-18',
+        items: [
+            '修正手機歌曲詳情跑版，改用動態滿版高度、緊湊 Hero 與安全底部點播列。',
+        ],
+    },
+    {
         version: '4.19.5',
         date: '2026-07-18',
         items: [

@@ -28,6 +28,17 @@ describe('SongDetailModal', () => {
             // sr-only DialogTitle 內含歌曲標題
             expect(screen.getByText('晴天 · 周杰倫 — 歌曲詳情頁')).toBeInTheDocument();
         });
+
+        it('詳情頁使用手機安全的獨立捲動容器，不再被行內 padding 覆蓋', () => {
+            const song = makeSong({ title: '手機版測試' });
+            render(<SongDetailModal song={song} onClose={() => {}} />);
+
+            expect(screen.getByRole('dialog')).toHaveClass('sdp-dialog');
+            const page = document.querySelector<HTMLElement>('.sd-page');
+            expect(page).not.toBeNull();
+            expect(page?.style.padding).toBe('');
+            expect(page).toHaveClass('min-h-0', 'overflow-x-hidden');
+        });
     });
 
     describe('Firestore 樂譜欄位優先顯示（T3 schema）', () => {
