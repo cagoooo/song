@@ -27,6 +27,9 @@ describe('TransposeToolModal 全螢幕看譜', () => {
         const fullscreenDialog = await screen.findByRole('dialog', { name: '全螢幕看譜' });
         expect(originalDialog).not.toContainElement(fullscreenDialog);
         expect(fullscreenDialog).toHaveClass('ttm-fullscreen-dialog');
+        expect(screen.getByLabelText('全螢幕看譜功能列')).toBeInTheDocument();
+        expect(screen.getByText('字級')).toBeInTheDocument();
+        expect(screen.getByText('畫面')).toBeInTheDocument();
 
         const scrollArea = fullscreenDialog.querySelector<HTMLElement>('.ttm-fullscreen-scroll');
         expect(scrollArea).not.toBeNull();

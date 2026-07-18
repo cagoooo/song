@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.8',
+        date: '2026-07-18',
+        items: [
+            '重新整理電腦版全螢幕看譜功能列，依顯示、轉調、字級、畫面與常用操作分層對齊。',
+        ],
+    },
+    {
         version: '4.19.7',
         date: '2026-07-18',
         items: [

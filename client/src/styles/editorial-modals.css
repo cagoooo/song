@@ -1033,6 +1033,15 @@
   background: rgba(255, 255, 255, 0.72);
   touch-action: manipulation;
 }
+.ttm-fullscreen-control-label {
+  padding: 0 5px;
+  color: var(--ed-ink-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
 .ttm-fullscreen-btn {
   min-height: 40px;
   padding: 0 16px;
@@ -1069,6 +1078,72 @@
   border-color: var(--ed-accent);
   background: var(--ed-accent);
   color: #fff;
+}
+/* 桌機把功能依用途收進同一張兩層面板，避免寬螢幕自動換行後散落。 */
+@media (min-width: 769px) {
+  .ttm-fullscreen-bar {
+    grid-template-columns: minmax(210px, auto) auto minmax(0, 1fr);
+    grid-template-areas:
+      "title mode transpose"
+      "actions actions actions";
+    gap: 10px 14px;
+    padding: 12px 14px;
+    border: 1px solid rgba(17, 17, 17, 0.14);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 10px 30px rgba(17, 17, 17, 0.07);
+    backdrop-filter: blur(10px);
+  }
+  .ttm-fullscreen-title {
+    grid-area: title;
+    align-self: center;
+    padding-right: 12px;
+    border-right: 1px solid rgba(17, 17, 17, 0.12);
+  }
+  .ttm-fullscreen-mode {
+    grid-area: mode;
+  }
+  .ttm-fullscreen-bar > .ttm-fullscreen-transpose:not(.ttm-fullscreen-mode) {
+    grid-area: transpose;
+    justify-self: stretch;
+    max-width: none;
+  }
+  .ttm-fullscreen-actions {
+    grid-area: actions;
+    display: grid;
+    grid-template-columns: minmax(300px, 1fr) auto auto auto auto;
+    align-items: center;
+    justify-content: stretch;
+    gap: 8px;
+    width: 100%;
+    padding-top: 10px;
+    border-top: 1px solid rgba(17, 17, 17, 0.1);
+  }
+  .ttm-music-search-fullscreen {
+    justify-self: start;
+    justify-content: flex-start;
+  }
+}
+@media (min-width: 769px) and (max-width: 1180px) {
+  .ttm-fullscreen-bar {
+    grid-template-columns: minmax(190px, auto) minmax(0, 1fr);
+    grid-template-areas:
+      "title mode"
+      "transpose transpose"
+      "actions actions";
+  }
+  .ttm-fullscreen-actions {
+    grid-template-columns: minmax(260px, 1fr) auto auto;
+  }
+  .ttm-fullscreen-actions > .ttm-fullscreen-btn {
+    grid-row: 2;
+  }
+  .ttm-fullscreen-actions > .ttm-fullscreen-btn:not(.primary) {
+    grid-column: 2;
+  }
+  .ttm-fullscreen-actions > .ttm-fullscreen-btn.primary {
+    grid-column: 3;
+  }
 }
 .ttm-fullscreen-scroll {
   width: min(1440px, 100%);
@@ -1486,6 +1561,9 @@
     width: 100%;
     gap: 4px;
     padding: 2px;
+  }
+  .ttm-fullscreen-control-label {
+    display: none;
   }
   .ttm-fullscreen-font .ttm-fullscreen-btn,
   .ttm-fullscreen-zoom .ttm-fullscreen-btn {

@@ -1270,6 +1270,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                     <div
                         className="ttm-fullscreen-bar"
                         onPointerDown={revealToolbar}
+                        aria-label="全螢幕看譜功能列"
                     >
                         <div className="ttm-fullscreen-title">
                             <span>全螢幕看譜</span>
@@ -1323,6 +1324,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                         <div className="ttm-fullscreen-actions">
                             {renderMusicSearchButtons('fullscreen')}
                             <div className="ttm-fullscreen-font" aria-label="全螢幕看譜字級控制">
+                                <span className="ttm-fullscreen-control-label">字級</span>
                                 <button
                                     type="button"
                                     className="ttm-fullscreen-btn compact"
@@ -1351,6 +1353,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                 </button>
                             </div>
                             <div className="ttm-fullscreen-zoom" aria-label="全螢幕看譜縮放控制">
+                                <span className="ttm-fullscreen-control-label">畫面</span>
                                 <button
                                     type="button"
                                     className="ttm-fullscreen-btn compact"
