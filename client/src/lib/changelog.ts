@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.4',
+        date: '2026-07-18',
+        items: [
+            '收藏吉他譜功能列整合自由轉調，可直接升降半音、查看目前 Key 並一鍵恢復原調。',
+        ],
+    },
+    {
         version: '4.19.3',
         date: '2026-07-18',
         items: [

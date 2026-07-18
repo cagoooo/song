@@ -115,12 +115,6 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
         return cards.length > 0 ? cards : detail.fingerings;
     }, [detail, view]);
 
-    // Capo 等效提示：升 n 半音（1-7）= 夾 Capo n 彈原調指型
-    const capoHint = useMemo(() => {
-        const n = ((transposeSteps % 12) + 12) % 12;
-        return n >= 1 && n <= 7 ? n : null;
-    }, [transposeSteps]);
-
     const similar = useMemo(() => {
         if (!song) return [];
         if (detail && detail.similar.length > 0) return detail.similar;
@@ -249,47 +243,6 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                             <span className="meta">{view.progression.length} STEPS</span>
                         </div>
 
-                        {/* 自動轉調控制列 — 91 譜式即時轉調 */}
-                        <div className="sdp-transpose" role="group" aria-label="自動轉調">
-                            <span className="sdp-trans-label">轉調 TRANSPOSE</span>
-                            <button
-                                className="sdp-trans-btn"
-                                onClick={() => changeTranspose((s) => s - 1)}
-                                disabled={transposeSteps <= -11}
-                                aria-label="降半音"
-                            >
-                                −
-                            </button>
-                            <span className="sdp-trans-key" aria-live="polite">
-                                {view.key}
-                                <span className="sdp-trans-steps">
-                                    {transposeSteps === 0 ? '原調' : (transposeSteps > 0 ? `+${transposeSteps}` : `${transposeSteps}`)}
-                                </span>
-                            </span>
-                            <button
-                                className="sdp-trans-btn"
-                                onClick={() => changeTranspose((s) => s + 1)}
-                                disabled={transposeSteps >= 11}
-                                aria-label="升半音"
-                            >
-                                ＋
-                            </button>
-                            {transposeSteps !== 0 && (
-                                <button
-                                    className="sdp-trans-reset"
-                                    onClick={() => changeTranspose(0)}
-                                    aria-label={`回到原調 ${detail.key}`}
-                                >
-                                    ↺ 回原調 {detail.key}
-                                </button>
-                            )}
-                            {capoHint !== null && (
-                                <span className="sdp-trans-capo">
-                                    或夾 CAPO {capoHint} 彈 {detail.key} 指型
-                                </span>
-                            )}
-                        </div>
-
                         <div className="sdp-prog">
                             {sheetView.progression.map((c, i) => (
                                 <div key={`prog-${i}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -354,6 +307,42 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                                 >
                                     級數
                                 </button>
+                            </div>
+                            <div className="sdp-sheet-transpose" role="group" aria-label="收藏吉他譜自由轉調">
+                                <button
+                                    type="button"
+                                    className="sdp-sheet-transpose-btn"
+                                    aria-label="收藏譜降低半音"
+                                    disabled={transposeSteps <= -11}
+                                    onClick={() => changeTranspose((steps) => steps - 1)}
+                                >
+                                    −
+                                </button>
+                                <span className="sdp-sheet-key" aria-label="收藏譜目前調性" aria-live="polite">
+                                    <strong>{view.key}</strong>
+                                    <small>
+                                        {transposeSteps === 0 ? '原調' : (transposeSteps > 0 ? `+${transposeSteps}` : `${transposeSteps}`)}
+                                    </small>
+                                </span>
+                                <button
+                                    type="button"
+                                    className="sdp-sheet-transpose-btn"
+                                    aria-label="收藏譜升高半音"
+                                    disabled={transposeSteps >= 11}
+                                    onClick={() => changeTranspose((steps) => steps + 1)}
+                                >
+                                    ＋
+                                </button>
+                                {transposeSteps !== 0 && (
+                                    <button
+                                        type="button"
+                                        className="sdp-sheet-reset"
+                                        aria-label={`收藏譜回到原調 ${detail.key}`}
+                                        onClick={() => changeTranspose(0)}
+                                    >
+                                        ↺ {detail.key}
+                                    </button>
+                                )}
                             </div>
                             <div className="sdp-sheet-size" role="group" aria-label="吉他譜字級控制">
                                 <button

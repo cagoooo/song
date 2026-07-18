@@ -35,4 +35,16 @@ describe('收藏 AI 吉他譜顯示控制', () => {
         fireEvent.click(screen.getByRole('button', { name: '重設吉他譜字級' }));
         expect(lyrics?.style.getPropertyValue('--sdp-sheet-font-scale')).toBe('1');
     });
+
+    it('可在看譜功能列自由升降半音並恢復原調', () => {
+        render(<SongDetailModal song={aiSong} onClose={() => {}} />);
+
+        fireEvent.click(screen.getByRole('button', { name: '收藏譜升高半音' }));
+        expect(screen.getByLabelText('收藏譜目前調性')).toHaveTextContent('Db+1');
+        expect(document.querySelector('.sdp-lyrics .sdp-lyr-chord')).toHaveTextContent('Db Ab Bbm Gb');
+
+        fireEvent.click(screen.getByRole('button', { name: '收藏譜回到原調 C' }));
+        expect(screen.getByLabelText('收藏譜目前調性')).toHaveTextContent('C原調');
+        expect(document.querySelector('.sdp-lyrics .sdp-lyr-chord')).toHaveTextContent('C G Am F');
+    });
 });
