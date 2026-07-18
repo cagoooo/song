@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.10',
+        date: '2026-07-18',
+        items: [
+            '優化手機歌曲詳情章節標題，改為資訊列加完整橫向主標，修正中文字被擠成直排。',
+        ],
+    },
+    {
         version: '4.19.9',
         date: '2026-07-18',
         items: [

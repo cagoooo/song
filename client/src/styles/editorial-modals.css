@@ -2137,9 +2137,43 @@
   }
   .sdp-cta-info { text-align: left; font-size: 11px; }
   .sdp-cta-btn { width: 100%; justify-content: center; }
-  .sdp-section { margin-bottom: 40px; }
-  .sdp-section-h { flex-wrap: wrap; }
-  .sdp-section-h .ttl { font-size: 22px; margin-left: 8px; }
+  .sdp-section { margin-bottom: 36px; }
+  .sdp-section-h {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "chap meta"
+      "title title";
+    align-items: end;
+    gap: 7px 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+  .sdp-section-h .chap {
+    grid-area: chap;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-overflow: ellipsis;
+  }
+  .sdp-section-h .ttl {
+    grid-area: title;
+    width: 100%;
+    margin-left: 0;
+    font-size: clamp(23px, 7vw, 28px);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  .sdp-section-h .meta {
+    grid-area: meta;
+    align-self: center;
+    font-size: 9px;
+    letter-spacing: 0.13em;
+    line-height: 1.2;
+    text-align: right;
+    white-space: nowrap;
+  }
   .sdp-note { padding: 28px 24px 24px; }
   .sdp-note-q { font-size: 19px; }
   .sdp-sheet-controls {
