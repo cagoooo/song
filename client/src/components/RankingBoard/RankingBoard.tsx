@@ -43,6 +43,8 @@ interface RankingBoardProps {
     user?: AppUser | null;
     /** 有歌庫譜時，直接開啟站內歌曲詳情看譜。 */
     onOpenDetail?: (song: Song) => void;
+    /** 管理員搜尋外部吉他譜時，同步在原頁開啟快速轉調工具。 */
+    onOpenTransposeTool?: () => void;
 }
 
 const RESET_OPERATION_TIMEOUT_MS = 15000;
@@ -59,7 +61,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 }
 
 // 使用 memo 避免不必要的重渲染
-export default memo(function RankingBoard({ songs: propSongs, user, onOpenDetail }: RankingBoardProps) {
+export default memo(function RankingBoard({
+    songs: propSongs,
+    user,
+    onOpenDetail,
+    onOpenTransposeTool,
+}: RankingBoardProps) {
     // 使用全局 Hook 檢測是否應減少動畫
     const reduceMotion = useReduceMotion();
     const { toast } = useToast();
@@ -526,6 +533,7 @@ export default memo(function RankingBoard({ songs: propSongs, user, onOpenDetail
                                         href={generateGuitarTabsUrl(song)}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        onClick={() => onOpenTransposeTool?.()}
                                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-[rgba(17,17,17,0.18)] text-slate-600 hover:border-[#2b4dff] hover:bg-[#2b4dff]/5 hover:text-[#2b4dff] transition-colors"
                                         style={{
                                             fontFamily: 'var(--font-mono)',
