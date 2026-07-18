@@ -10,6 +10,7 @@
 //   • 完全沒填樂譜的歌 → 依 song.id 推導穩定 fallback（同一首歌每次相同）
 
 import type { Song, LyricBlock, LyricRow } from '@/lib/firestore';
+import { repairMisclassifiedChordRows } from '@/lib/lyrics-dsl';
 
 export interface ChordFingering {
     name: string;
@@ -193,7 +194,7 @@ export function getSongDetail(song: Song): SongDetail {
             : pickFromArray(PROGRESSIONS, seed),
         fingerings: COMMON_FINGERINGS,
         lyrics: hasRealLyrics
-            ? song.lyricBlocks!
+            ? repairMisclassifiedChordRows(song.lyricBlocks!)
             : hasLegacyLyrics
                 ? convertLegacyLyricsString(song.lyrics!)
                 : FALLBACK_LYRICS,

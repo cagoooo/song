@@ -47,4 +47,24 @@ describe('收藏 AI 吉他譜顯示控制', () => {
         expect(screen.getByLabelText('收藏譜目前調性')).toHaveTextContent('C原調');
         expect(document.querySelector('.sdp-lyrics .sdp-lyr-chord')).toHaveTextContent('C G Am F');
     });
+
+    it('舊資料誤存為歌詞的間奏和弦會自動修復並跟著轉調', () => {
+        const legacyInterludeSong = makeSong({
+            id: 'legacy-interlude',
+            songKey: 'C',
+            lyricBlocks: [{
+                sec: 'VERSE 1',
+                rows: [{ line: '|間奏| ||Cmaj7 |Fm |Fm |G ||x2 |' }],
+            }],
+        });
+        render(<SongDetailModal song={legacyInterludeSong} onClose={() => {}} />);
+
+        const chordRow = document.querySelector('.sdp-lyrics .sdp-lyr-chord');
+        expect(chordRow).toHaveTextContent('|間奏| ||Cmaj7 |Fm |Fm |G ||x2 |');
+
+        fireEvent.click(screen.getByRole('button', { name: '收藏譜升高半音' }));
+        expect(chordRow).toHaveTextContent('Dbmaj7');
+        expect(chordRow).toHaveTextContent('Gbm');
+        expect(chordRow).toHaveTextContent('Ab');
+    });
 });

@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     parseLyricsDSL,
+    repairMisclassifiedChordRows,
     sanitizeLyricBlocks,
     serializeLyricsToDSL,
     lintLyricBlocks,
@@ -167,6 +168,37 @@ Em`;
             expect(result[0].rows.every((r) => !r.line)).toBe(true);
             expect(result[0].rows.map((r) => r.chord)).toEqual(['C', 'G', 'Am', 'Em']);
         });
+
+        it('間奏或回拍中文標記與和弦同列時仍辨識成和弦行', () => {
+            const dsl = `[VERSE 1]
+|間奏| ||Cmaj7 |Fm |Fm |G ||x2 |
+|間奏2| |Cmaj7 |Cmaj7 |
+|Cmaj7 |E7 |(回▲) |`;
+            const result = parseLyricsDSL(dsl);
+
+            expect(result[0].rows).toEqual([
+                { chord: '|間奏| ||Cmaj7 |Fm |Fm |G ||x2 |', line: '' },
+                { chord: '|間奏2| |Cmaj7 |Cmaj7 |', line: '' },
+                { chord: '|Cmaj7 |E7 |(回▲) |', line: '' },
+            ]);
+        });
+    });
+});
+
+describe('repairMisclassifiedChordRows', () => {
+    it('自動修復舊資料中被存成 line 的間奏和弦，保留一般歌詞', () => {
+        const repaired = repairMisclassifiedChordRows([{
+            sec: 'VERSE 1',
+            rows: [
+                { line: '|間奏| ||Cmaj7 |Fm |Fm |G ||x2 |' },
+                { line: '我把我的靈魂送給你' },
+            ],
+        }]);
+
+        expect(repaired[0].rows).toEqual([
+            { chord: '|間奏| ||Cmaj7 |Fm |Fm |G ||x2 |', line: '' },
+            { line: '我把我的靈魂送給你' },
+        ]);
     });
 });
 

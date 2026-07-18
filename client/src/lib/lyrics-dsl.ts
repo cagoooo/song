@@ -26,6 +26,7 @@
 //   • 空白行分隔，不影響語意
 
 import type { LyricBlock, LyricRow, LyricSection } from '@/lib/firestore';
+import { isChordLine } from '@/lib/transpose';
 
 const VALID_SECTIONS: readonly LyricSection[] = [
     'INTRO', 'VERSE 1', 'VERSE 2', 'VERSE 3', 'CHORUS', 'BRIDGE', 'OUTRO',
@@ -102,8 +103,9 @@ export function parseLyricsDSL(text: string): LyricBlock[] {
             blocks.push(current);
         }
 
-        // 歌詞行（含中文）
-        if (isLyricLine(line)) {
+        // 歌詞行（含中文、且不是「間奏／回拍標記 + 和弦」的混合行）
+        // AI 譜常見：|間奏| ||Cmaj7 |Fm...、|Cmaj7 |E7 |(回▲) |
+        if (isLyricLine(line) && !isChordLine(line)) {
             current.rows.push(pendingChord === null
                 ? { line }
                 : { chord: pendingChord, line });
@@ -124,6 +126,22 @@ export function parseLyricsDSL(text: string): LyricBlock[] {
 
     // 過濾完全空的 block
     return blocks.filter((b) => b.rows.length > 0);
+}
+
+/**
+ * 修復舊版已入庫、被「含中文即歌詞」規則誤判的和弦行。
+ * 只轉換沒有 chord 且整行符合和弦行判定的 row，一般中文歌詞不受影響。
+ */
+export function repairMisclassifiedChordRows(blocks: LyricBlock[]): LyricBlock[] {
+    return blocks.map((block) => ({
+        ...block,
+        rows: block.rows.map((row) => {
+            if (!row.chord && row.line && isChordLine(row.line)) {
+                return { ...row, chord: row.line, line: '' };
+            }
+            return row;
+        }),
+    }));
 }
 
 /**

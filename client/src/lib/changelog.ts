@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.5',
+        date: '2026-07-18',
+        items: [
+            '改良 AI 譜間奏辨識，含「間奏／回拍」中文標記的和弦行也能正確顯示並跟著轉調。',
+        ],
+    },
+    {
         version: '4.19.4',
         date: '2026-07-18',
         items: [
