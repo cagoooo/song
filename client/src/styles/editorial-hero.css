@@ -351,8 +351,21 @@ body.sw-update-prompt-visible {
   pointer-events: auto !important;
 }
 
-.has-admin-floating-actions .editorial-admin-toolbar {
-  padding-right: min(320px, 38vw);
+/* 桌機：常用工具參與管理員工具列排版，空間不足時整組自然換行，不再彼此覆蓋。 */
+@media (min-width: 641px) {
+  .has-admin-floating-actions .editorial-admin-toolbar {
+    padding-right: 4px;
+  }
+  .editorial-admin-toolbar .editorial-floating-actions {
+    position: static;
+    inset: auto;
+    z-index: auto;
+    flex: 0 0 auto;
+    max-width: none;
+    margin-left: 4px;
+    padding: 3px;
+    box-shadow: 0 6px 18px rgba(17, 17, 17, 0.1);
+  }
 }
 
 .editorial-topbar {

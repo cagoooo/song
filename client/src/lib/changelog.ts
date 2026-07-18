@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.11',
+        date: '2026-07-18',
+        items: [
+            '整理桌機管理員後台工具列，轉調與分享工具改為同列自適應排列，修正右上角重疊。',
+        ],
+    },
+    {
         version: '4.19.10',
         date: '2026-07-18',
         items: [

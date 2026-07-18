@@ -489,25 +489,17 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-b from-background to-primary/5 has-floating-actions ${user?.isAdmin ? 'has-admin-floating-actions' : ''}`}>
-      <div className="editorial-floating-actions" aria-label="常用工具">
-        {canUseTransposeTool && (
-          <button
-            className="ttm-entry ttm-floating-action"
-            onClick={() => openTransposeTool()}
-            aria-label="快速轉調工具"
-            title="管理員快速轉調工具"
-          >
-            <span aria-hidden="true">🎸</span>
-            <span className="hidden sm:inline">轉調工具</span>
-          </button>
-        )}
-        <ShareButton />
-      </div>
+      {!user?.isAdmin && (
+        <div className="editorial-floating-actions" aria-label="常用工具">
+          <ShareButton />
+        </div>
+      )}
 
       {/* Admin: 登出 + 演出模式入口 */}
       {user?.isAdmin && (
         <motion.div
           className="editorial-admin-toolbar"
+          aria-label="管理員工具列"
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
@@ -615,6 +607,20 @@ export default function Home() {
             <LogOut className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">登出</span>
           </Button>
+          <div className="editorial-floating-actions" aria-label="管理員常用工具">
+            {canUseTransposeTool && (
+              <button
+                className="ttm-entry ttm-floating-action"
+                onClick={() => openTransposeTool()}
+                aria-label="快速轉調工具"
+                title="管理員快速轉調工具"
+              >
+                <span aria-hidden="true">🎸</span>
+                <span className="hidden sm:inline">轉調工具</span>
+              </button>
+            )}
+            <ShareButton />
+          </div>
         </motion.div>
       )}
 
