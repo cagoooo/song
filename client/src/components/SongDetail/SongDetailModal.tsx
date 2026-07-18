@@ -9,7 +9,7 @@ import { ChordSvg } from './ChordSvg';
 import { getSongDetail, findSimilarSongs } from './data';
 import {
     transposeChordSymbol, transposeProgression, transposeLyricBlocks,
-    preferFlatForKey, isChordSymbol,
+    preferFlatForKey, isChordSymbol, chordToNashville, chordLineToNashville,
 } from '@/lib/transpose';
 import { getRememberedSteps, rememberSteps } from '@/lib/transposeMemory';
 import { getFingerings } from './chordShapes';
@@ -31,6 +31,8 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
     const [toast, setToast] = useState<string | null>(null);
     /** 轉調位移（半音）：0 = 原調，每按一次 −/＋ 移 1 半音 */
     const [transposeSteps, setTransposeSteps] = useState(0);
+    const [showDegrees, setShowDegrees] = useState(false);
+    const [sheetFontScale, setSheetFontScale] = useState(1);
     const btnRef = useRef<HTMLButtonElement>(null);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -39,6 +41,8 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
         setVoted(false);
         setVoteBump(false);
         setTransposeSteps(song ? (getRememberedSteps('song:' + song.id) ?? 0) : 0);
+        setShowDegrees(false);
+        setSheetFontScale(1);
     }, [song?.id]);
 
     // 使用者實際操作轉調時才存記憶（切歌的自動設定不經過這裡，避免誤存）。
@@ -81,6 +85,25 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
             lyrics: transposeLyricBlocks(detail.lyrics, transposeSteps, opts),
         };
     }, [detail, transposeSteps]);
+
+    const sheetView = useMemo(() => {
+        if (!view || !showDegrees) return view;
+        return {
+            ...view,
+            progression: view.progression.map((chord) => chordToNashville(chord, view.key)),
+            lyrics: view.lyrics.map((block) => ({
+                ...block,
+                rows: block.rows.map((row) => ({
+                    ...row,
+                    chord: row.chord ? chordLineToNashville(row.chord, view.key) : row.chord,
+                })),
+            })),
+        };
+    }, [showDegrees, view]);
+
+    const changeSheetFontScale = useCallback((delta: number) => {
+        setSheetFontScale((scale) => Math.max(0.75, Math.min(1.5, Number((scale + delta).toFixed(2)))));
+    }, []);
 
     // 指型卡改從「目前顯示的調」推導：進行 + 歌詞和弦行的所有和弦，查不到才退回預設 6 卡
     const fingerings = useMemo(() => {
@@ -133,7 +156,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
         showToast('✓ 已點播 + 1，下一首可能就是你選的');
     };
 
-    if (!song || !detail || !view) return null;
+    if (!song || !detail || !view || !sheetView) return null;
 
     return (
         <Dialog open={!!song} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -268,7 +291,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                         </div>
 
                         <div className="sdp-prog">
-                            {view.progression.map((c, i) => (
+                            {sheetView.progression.map((c, i) => (
                                 <div key={`prog-${i}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
                                     <button
                                         className="sdp-prog-pill"
@@ -277,7 +300,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                                     >
                                         {c}
                                     </button>
-                                    {i < view.progression.length - 1 && (
+                                    {i < sheetView.progression.length - 1 && (
                                         <span className="sdp-prog-arrow" aria-hidden="true">→</span>
                                     )}
                                 </div>
@@ -308,11 +331,63 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                         <div className="sdp-section-h">
                             <span className="chap">No. 02 / 歌詞</span>
                             <span className="ttl">跟著彈，跟著唱</span>
-                            <span className="meta">{view.lyrics.length} SECTIONS</span>
+                            <span className="meta">{sheetView.lyrics.length} SECTIONS</span>
                         </div>
 
-                        <div className="sdp-lyrics">
-                            {view.lyrics.map((b, i) => (
+                        <div className="sdp-sheet-controls" aria-label="收藏吉他譜顯示控制">
+                            <div className="sdp-sheet-mode" role="group" aria-label="和弦顯示模式">
+                                <button
+                                    type="button"
+                                    className={!showDegrees ? 'active' : ''}
+                                    aria-pressed={!showDegrees}
+                                    aria-label="切換為和弦顯示"
+                                    onClick={() => setShowDegrees(false)}
+                                >
+                                    和弦
+                                </button>
+                                <button
+                                    type="button"
+                                    className={showDegrees ? 'active' : ''}
+                                    aria-pressed={showDegrees}
+                                    aria-label="切換為級數顯示"
+                                    onClick={() => setShowDegrees(true)}
+                                >
+                                    級數
+                                </button>
+                            </div>
+                            <div className="sdp-sheet-size" role="group" aria-label="吉他譜字級控制">
+                                <button
+                                    type="button"
+                                    aria-label="縮小吉他譜字級"
+                                    disabled={sheetFontScale <= 0.75}
+                                    onClick={() => changeSheetFontScale(-0.1)}
+                                >
+                                    A−
+                                </button>
+                                <button
+                                    type="button"
+                                    className="sdp-sheet-scale"
+                                    aria-label="重設吉他譜字級"
+                                    onClick={() => setSheetFontScale(1)}
+                                >
+                                    {Math.round(sheetFontScale * 100)}%
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-label="放大吉他譜字級"
+                                    disabled={sheetFontScale >= 1.5}
+                                    onClick={() => changeSheetFontScale(0.1)}
+                                >
+                                    A＋
+                                </button>
+                            </div>
+                        </div>
+
+                        <div
+                            className="sdp-lyrics"
+                            style={{ '--sdp-sheet-font-scale': sheetFontScale } as React.CSSProperties}
+                        >
+                            {sheetView.lyrics.map((b, i) => (
                                 <div key={i} className={'sdp-lyr-block' + (b.chorus ? ' chorus' : '')}>
                                     <div className="sdp-lyr-sec">[{b.sec}]</div>
                                     {b.rows.map((r, j) => (

@@ -1608,11 +1608,56 @@
 }
 
 /* ---------- 4. Lyrics ---------- */
+.sdp-sheet-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px;
+  border: 1px solid var(--ed-line);
+  border-radius: 8px;
+  background: #fff;
+}
+.sdp-sheet-mode,
+.sdp-sheet-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.sdp-sheet-controls button {
+  min-width: 42px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--ed-line);
+  border-radius: 6px;
+  background: var(--ed-paper);
+  color: var(--ed-ink-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sdp-sheet-controls button.active {
+  border-color: var(--ed-accent);
+  background: var(--ed-accent);
+  color: #fff;
+}
+.sdp-sheet-controls button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.sdp-sheet-controls .sdp-sheet-scale {
+  min-width: 58px;
+  color: var(--ed-accent);
+}
 .sdp-lyrics {
+  --sdp-sheet-font-scale: 1;
   background: var(--ed-paper);
   border: 1px solid var(--ed-line);
   border-radius: 6px;
   padding: 32px 36px;
+  overflow-x: auto;
 }
 .sdp-lyr-block { margin-bottom: 22px; }
 .sdp-lyr-block:last-child { margin-bottom: 0; }
@@ -1628,7 +1673,7 @@
 .sdp-lyr-row { margin-bottom: 6px; }
 .sdp-lyr-chord {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: calc(13px * var(--sdp-sheet-font-scale));
   color: var(--ed-accent);
   letter-spacing: 0.04em;
   margin-bottom: 2px;
@@ -1639,7 +1684,7 @@
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
-  font-size: 18px;
+  font-size: calc(18px * var(--sdp-sheet-font-scale));
   letter-spacing: -0.005em;
   color: var(--ed-ink-1);
   line-height: 1.4;
@@ -1916,9 +1961,11 @@
   .sdp-section-h .ttl { font-size: 22px; margin-left: 8px; }
   .sdp-note { padding: 28px 24px 24px; }
   .sdp-note-q { font-size: 19px; }
+  .sdp-sheet-controls { align-items: stretch; }
+  .sdp-sheet-controls button { min-width: 38px; height: 40px; padding: 0 10px; }
   .sdp-lyrics { padding: 24px 20px; }
-  .sdp-lyr-chord, .sdp-lyr-line { font-size: 14px; white-space: normal; }
-  .sdp-lyr-line { font-size: 17px; }
+  .sdp-lyr-chord { font-size: calc(14px * var(--sdp-sheet-font-scale)); white-space: pre; }
+  .sdp-lyr-line { font-size: calc(17px * var(--sdp-sheet-font-scale)); white-space: normal; }
 }
 
 /* ==========================================================================

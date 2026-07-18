@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.3',
+        date: '2026-07-18',
+        items: [
+            '收藏的 AI 吉他譜新增字級縮放與和弦／級數切換，看譜方式與 AI 辨識結果一致。',
+        ],
+    },
+    {
         version: '4.19.2',
         date: '2026-07-18',
         items: [
