@@ -39,6 +39,18 @@ describe('SongDetailModal', () => {
             expect(page?.style.padding).toBe('');
             expect(page).toHaveClass('min-h-0', 'overflow-x-hidden');
         });
+
+        it('點播 Bar 是捲動容器的外層兄弟，固定在 Dialog 最下方', () => {
+            const song = makeSong({ title: '底部列測試' });
+            render(<SongDetailModal song={song} onClose={() => {}} />);
+
+            const page = document.querySelector('.sd-page');
+            const cta = document.querySelector('.sdp-cta');
+            expect(page).not.toBeNull();
+            expect(cta).not.toBeNull();
+            expect(page?.contains(cta)).toBe(false);
+            expect(page?.nextElementSibling).toBe(cta);
+        });
     });
 
     describe('Firestore 樂譜欄位優先顯示（T3 schema）', () => {

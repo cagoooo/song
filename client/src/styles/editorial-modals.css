@@ -164,7 +164,7 @@
   min-width: 0;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 32px 120px;
+  padding: 0 32px 32px;
   color: var(--ed-ink-1);
   background: var(--ed-bg);
   font-family: var(--font-body);
@@ -1855,10 +1855,11 @@
   font-weight: 600;
 }
 
-/* ---------- 7. Sticky CTA bar ---------- */
+/* ---------- 7. Dialog bottom CTA bar ---------- */
 .sdp-cta {
-  position: sticky;
-  bottom: 0;
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
   z-index: 10;
   background: var(--ed-bg);
   border-top: 1px solid var(--ed-line);
@@ -1869,7 +1870,7 @@
   align-items: center;
   backdrop-filter: blur(8px);
   background-color: color-mix(in oklab, var(--ed-bg) 92%, transparent);
-  margin: 0 -32px;
+  margin: 0;
 }
 .sdp-cta-l {
   display: flex;
@@ -1990,7 +1991,7 @@
   }
   .sd-page {
     max-width: 100%;
-    padding: 0 16px calc(140px + env(safe-area-inset-bottom));
+    padding: 0 16px 24px;
     overflow-x: hidden;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
@@ -2041,8 +2042,7 @@
   .sdp-trans-capo { margin-left: 0; flex-basis: 100%; text-align: center; }
   .sdp-meta-orig { display: block; margin-left: 0; vertical-align: baseline; margin-top: 4px; }
   .sdp-cta {
-    bottom: 0;
-    padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
     grid-template-columns: 1fr;
     gap: 8px;
     margin: 0;

@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.7',
+        date: '2026-07-18',
+        items: [
+            '修正 iPhone 歌曲詳情底部點播 Bar 上飄，改為視窗固定底欄並與譜面捲動完全分離。',
+        ],
+    },
+    {
         version: '4.19.6',
         date: '2026-07-18',
         items: [

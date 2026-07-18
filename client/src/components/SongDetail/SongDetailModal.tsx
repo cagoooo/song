@@ -446,23 +446,24 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                         </section>
                     )}
 
-                    {/* 7 — Sticky CTA */}
-                    <div className="sdp-cta">
-                        <div className="sdp-cta-l">
-                            <button
-                                ref={btnRef}
-                                className={'sdp-cta-btn' + (voted ? ' voted' : '')}
-                                onClick={handleVote}
-                                disabled={voted}
-                                aria-label={voted ? '已點播' : '點播這首歌'}
-                            >
-                                {voted ? '✓ 已點播這首' : '+ 我要點這首'}
-                                <span className={'v sdp-bump-num' + (voteBump ? ' go' : '')}>{voteCount}</span>
-                            </button>
-                        </div>
-                        <div className="sdp-cta-info">
-                            <b>{voteCount} 票</b> · 今晚已被點 <b>{detail.playedTimes}</b> 次
-                        </div>
+                </div>
+
+                {/* 固定於 Dialog flex 底部，不放進捲動容器，避免 iOS sticky 基準漂移 */}
+                <div className="sdp-cta">
+                    <div className="sdp-cta-l">
+                        <button
+                            ref={btnRef}
+                            className={'sdp-cta-btn' + (voted ? ' voted' : '')}
+                            onClick={handleVote}
+                            disabled={voted}
+                            aria-label={voted ? '已點播' : '點播這首歌'}
+                        >
+                            {voted ? '✓ 已點播這首' : '+ 我要點這首'}
+                            <span className={'v sdp-bump-num' + (voteBump ? ' go' : '')}>{voteCount}</span>
+                        </button>
+                    </div>
+                    <div className="sdp-cta-info">
+                        <b>{voteCount} 票</b> · 今晚已被點 <b>{detail.playedTimes}</b> 次
                     </div>
                 </div>
 
