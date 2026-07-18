@@ -448,9 +448,15 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const changeFullscreenZoom = useCallback((delta: number) => {
         setFullscreenZoom((zoom) => clampFullscreenZoom(Number((zoom + delta).toFixed(2))));
     }, [clampFullscreenZoom]);
+    const resetFullscreenScroll = useCallback(() => {
+        const reset = () => fullscreenScrollRef.current?.scrollTo({ left: 0, top: 0, behavior: 'auto' });
+        reset();
+        window.requestAnimationFrame(reset);
+    }, []);
     const resetFullscreenZoom = useCallback(() => {
         setFullscreenZoom(1);
-    }, []);
+        resetFullscreenScroll();
+    }, [resetFullscreenScroll]);
 
     // ===== 字級控制（與 zoom 解耦）=====
     const clampFontScale = useCallback((s: number) => Math.max(0.7, Math.min(2.4, s)), []);
@@ -554,6 +560,15 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const handleFullscreenTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
         if (e.touches.length === 0) {
             singleTouchStartRef.current = null;
+        } else if (e.touches.length === 1 && fullscreenScrollRef.current) {
+            // 雙指縮放放開一指後，直接接續單指拖移，不必整組手指離開再重碰。
+            const touch = e.touches[0];
+            singleTouchStartRef.current = {
+                x: touch.clientX,
+                y: touch.clientY,
+                scrollLeft: fullscreenScrollRef.current.scrollLeft,
+                scrollTop: fullscreenScrollRef.current.scrollTop,
+            };
         }
         if (e.touches.length < 2) {
             pinchStartDistanceRef.current = null;
@@ -638,6 +653,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
         setFullscreenZoom(1);
         setFullscreenFontScale(1);
         setToolbarHidden(false);
+        resetFullscreenScroll();
         scheduleHideToolbar();
         const onKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setIsFullScreenOpen(false);
@@ -647,7 +663,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
             document.removeEventListener('keydown', onKeyDown);
             clearHideToolbarTimer();
         };
-    }, [isFullScreenOpen, scheduleHideToolbar, clearHideToolbarTimer]);
+    }, [isFullScreenOpen, scheduleHideToolbar, clearHideToolbarTimer, resetFullscreenScroll]);
 
     // 全螢幕看譜時請求螢幕常亮（Wake Lock），避免彈唱中手機自動鎖屏；不支援則靜默降級
     useEffect(() => {
@@ -887,8 +903,9 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     };
 
     return (
+        <>
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-            <DialogContent className={`max-w-[1100px] w-[96vw] h-[90vh] p-0 overflow-hidden bg-white border-[rgba(17,17,17,0.18)] flex flex-col${isFullScreenOpen && output ? ' ttm-dialog-fullscreen-shell' : ''}`}>
+            <DialogContent className="max-w-[1100px] w-[96vw] h-[90vh] p-0 overflow-hidden bg-white border-[rgba(17,17,17,0.18)] flex flex-col">
                 <DialogTitle className="sr-only">快速轉調工具</DialogTitle>
                 <DialogDescription className="sr-only">
                     貼上吉他譜文字，自動偵測調性並即時轉調，完成後可一鍵複製。
@@ -1228,13 +1245,20 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                         </div>
                     </div>
                 </div>
-            {isFullScreenOpen && output && (
-                <div
-                    className={`ttm-fullscreen${toolbarHidden ? ' is-immersive' : ''}`}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="全螢幕轉調結果"
-                >
+            </DialogContent>
+        </Dialog>
+
+        <Dialog
+            open={isFullScreenOpen && Boolean(output)}
+            onOpenChange={(open) => { if (!open) setIsFullScreenOpen(false); }}
+        >
+            <DialogContent className="ttm-fullscreen-dialog">
+                <DialogTitle className="sr-only">全螢幕看譜</DialogTitle>
+                <DialogDescription className="sr-only">
+                    可上下左右滑移、調整字級，並使用雙指或按鈕縮放吉他譜。
+                </DialogDescription>
+                {isFullScreenOpen && output && (
+                    <div className={`ttm-fullscreen${toolbarHidden ? ' is-immersive' : ''}`}>
                     <button
                         type="button"
                         className="ttm-fullscreen-grip"
@@ -1381,6 +1405,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                         onTouchStart={handleFullscreenTouchStart}
                         onTouchMove={handleFullscreenTouchMove}
                         onTouchEnd={handleFullscreenTouchEnd}
+                        onTouchCancel={handleFullscreenTouchEnd}
                         onPointerDown={handleSheetPointerDown}
                         onPointerMove={handleSheetPointerMove}
                         onPointerUp={handleSheetPointerUp}
@@ -1395,10 +1420,11 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                             </pre>
                         </div>
                     </div>
-                </div>
-            )}
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
+        </>
     );
 }
 
