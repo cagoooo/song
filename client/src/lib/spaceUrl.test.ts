@@ -6,7 +6,14 @@ const firebaseMock = vi.hoisted(() => ({
 }));
 vi.mock('./firebase', () => firebaseMock);
 
-import { buildSpacePublicUrl, buildSpaceStageUrl, getCurrentSpacePublicUrl, isValidSlug, normalizeSlug } from './spaceUrl';
+import {
+    buildSpacePublicUrl,
+    buildSpaceStageUrl,
+    getCurrentSpacePublicUrl,
+    getPostLogoutSpaceUrl,
+    isValidSlug,
+    normalizeSlug,
+} from './spaceUrl';
 import { isFirebaseUid, isValidSpaceParam } from './spaceIds';
 
 describe('buildSpacePublicUrl', () => {
@@ -33,6 +40,45 @@ describe('buildSpaceStageUrl', () => {
 
     it('租戶空間帶 space 參數 — 投影裝置未登入也落在正確空間', () => {
         expect(buildSpaceStageUrl('uid_42')).toBe('?mode=stage&space=uid_42');
+    });
+});
+
+describe('getPostLogoutSpaceUrl', () => {
+    const approvedTenant = {
+        id: 'tenant-owner-uid',
+        isRootAdmin: false,
+        status: 'approved',
+    };
+
+    it('已核准管理者從根網址登入，登出後回到自己的 uid 公開空間', () => {
+        expect(getPostLogoutSpaceUrl(
+            'https://cagoooo.github.io',
+            '/song/',
+            approvedTenant,
+            null,
+            approvedTenant.id,
+        )).toBe('https://cagoooo.github.io/song/?space=tenant-owner-uid');
+    });
+
+    it('目前是本人空間的短網址時，登出後保留短網址', () => {
+        expect(getPostLogoutSpaceUrl(
+            'https://cagoooo.github.io',
+            '/song/',
+            approvedTenant,
+            'akai-live',
+            approvedTenant.id,
+        )).toBe('https://cagoooo.github.io/song/?space=akai-live');
+    });
+
+    it('root admin 與尚未核准帳號不改變登出網址', () => {
+        expect(getPostLogoutSpaceUrl(
+            'https://cagoooo.github.io', '/song/',
+            { ...approvedTenant, isRootAdmin: true }, null, null,
+        )).toBeNull();
+        expect(getPostLogoutSpaceUrl(
+            'https://cagoooo.github.io', '/song/',
+            { ...approvedTenant, status: 'pending' }, null, null,
+        )).toBeNull();
     });
 });
 

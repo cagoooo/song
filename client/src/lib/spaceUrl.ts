@@ -4,6 +4,7 @@
 // 則是乾淨的站台網址。分享按鈕 / QR / 演出模式都用這裡組網址，
 // 避免直接分享 window.location.href 把 ?mode=stage 之類的參數帶出去。
 import { getActiveTenant } from './firebase';
+import { isValidSpaceParam } from './spaceIds';
 
 /** 組出指定空間的公開網址（純函式，方便測試）。spaceId 可以是 uid 或 Phase 3a 短網址 slug */
 export function buildSpacePublicUrl(
@@ -49,5 +50,28 @@ export function getCurrentSpacePublicUrl(): string {
         window.location.origin,
         window.location.pathname,
         getActiveTenant(),
+    );
+}
+
+/**
+ * 已核准的租戶管理者登出後，仍停留在自己的公開彈奏空間。
+ * 若目前網址是本人空間的 slug，優先保留好記短網址；否則使用 uid。
+ * root admin / pending / rejected 不切換網址。
+ */
+export function getPostLogoutSpaceUrl(
+    origin: string,
+    pathname: string,
+    user: { id: string; isRootAdmin: boolean; status: string } | null,
+    currentSpaceParam: string | null,
+    activeTenant: string | null,
+): string | null {
+    if (!user || user.isRootAdmin || user.status !== 'approved') return null;
+    const canKeepCurrentParam = activeTenant === user.id
+        && Boolean(currentSpaceParam)
+        && isValidSpaceParam(currentSpaceParam!);
+    return buildSpacePublicUrl(
+        origin,
+        pathname,
+        canKeepCurrentParam ? currentSpaceParam : user.id,
     );
 }

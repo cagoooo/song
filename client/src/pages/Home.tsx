@@ -78,7 +78,7 @@ import { AppLoading } from "@/components/AppLoading";
 import { subscribeSongs, type Song } from "@/lib/firestore";
 import { saveStageSongsCache } from "@/lib/stageCache";
 import { getActiveTenant } from "@/lib/firebase";
-import { buildSpaceStageUrl } from "@/lib/spaceUrl";
+import { buildSpaceStageUrl, getPostLogoutSpaceUrl } from "@/lib/spaceUrl";
 import { MobileTabView } from "../components/MobileTabView";
 import { ScrollToTop } from "../components/ScrollToTop";
 import { FloatingStack } from "../components/FloatingStack";
@@ -461,6 +461,13 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
+      const postLogoutSpaceUrl = getPostLogoutSpaceUrl(
+        window.location.origin,
+        window.location.pathname,
+        user,
+        new URLSearchParams(window.location.search).get('space'),
+        getActiveTenant(),
+      );
       const result = await logout();
       if (!result.ok) {
         toast({
@@ -474,6 +481,10 @@ export default function Home() {
         title: "成功",
         description: "已登出",
       });
+      if (postLogoutSpaceUrl) {
+        // 重新載入讓 Firebase 在任何訂閱建立前，直接以公開租戶網址初始化。
+        window.location.replace(postLogoutSpaceUrl);
+      }
     } catch (error) {
       toast({
         title: "錯誤",

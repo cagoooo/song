@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.12',
+        date: '2026-07-18',
+        items: [
+            '已核准的空間管理者登出後會留在自己的吉他彈奏公開連結，並保留既有短網址。',
+        ],
+    },
+    {
         version: '4.19.11',
         date: '2026-07-18',
         items: [
