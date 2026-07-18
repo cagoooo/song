@@ -878,7 +878,7 @@ export default function Home() {
                     <Card className="shadow-lg editorial-paper-cream">
                       <CardContent className="p-3 pt-3">
                         <Suspense fallback={<SectionSkeleton />}>
-                          <RankingBoard songs={songs} user={user} />
+                          <RankingBoard songs={songs} user={user} onOpenDetail={setDetailSong} />
                         </Suspense>
                       </CardContent>
                     </Card>
@@ -959,7 +959,7 @@ export default function Home() {
                   <Card className="shadow-lg editorial-paper-cream">
                     <CardContent className="p-3 sm:p-6 pt-3 sm:pt-6">
                       <Suspense fallback={<SectionSkeleton />}>
-                        <RankingBoard songs={songs} user={user} />
+                        <RankingBoard songs={songs} user={user} onOpenDetail={setDetailSong} />
                       </Suspense>
                     </CardContent>
                   </Card>
@@ -1003,8 +1003,8 @@ export default function Home() {
         <ScrollToTop threshold={400} />
       </FloatingStack>
 
-      {/* 正在彈奏中通知（訪客即時接收）。管理員按「吉他譜」時自動同時開轉調工具（訪客不傳此 callback） */}
-      <NowPlayingNotification onOpenTransposeTool={canUseTransposeTool ? openTransposeTool : undefined} />
+      {/* 正在彈奏中通知（訪客即時接收）；有歌庫譜時直接開啟站內歌曲詳情。 */}
+      <NowPlayingNotification onOpenSongDetail={setDetailSong} />
 
       {/* Up Next 底部 sticky 隊列條 — 演出中 / 觀眾剛投票 / 待開場三種狀態 */}
       <UpNextBar

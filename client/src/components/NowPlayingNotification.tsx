@@ -10,7 +10,8 @@ import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
 import { markSongAsPlayed, clearNowPlaying } from '@/lib/firestore';
 import { getErrorToast } from '@/lib/error-handler';
-import type { TipType } from '@/lib/firestore';
+import { hasStoredSongChart } from '@/lib/songChart';
+import type { Song, TipType } from '@/lib/firestore';
 
 // 打賞類型列表
 const TIP_TYPES: { type: TipType; label: string }[] = [
@@ -90,11 +91,11 @@ function StarRating({
 }
 
 interface NowPlayingNotificationProps {
-    /** 管理員專用：按「吉他譜」時同時打開轉調工具（訪客不傳，故無此行為） */
-    onOpenTransposeTool?: () => void;
+    /** 有歌庫譜時，按「吉他譜」直接開啟站內歌曲詳情。 */
+    onOpenSongDetail?: (song: Song) => void;
 }
 
-export function NowPlayingNotification({ onOpenTransposeTool }: NowPlayingNotificationProps = {}) {
+export function NowPlayingNotification({ onOpenSongDetail }: NowPlayingNotificationProps = {}) {
     const nowPlaying = useNowPlaying();
     const { user } = useUser();
     const { toast } = useToast();
@@ -232,23 +233,38 @@ export function NowPlayingNotification({ onOpenTransposeTool }: NowPlayingNotifi
 
                         {/* 快捷按鈕 */}
                         <div className="now-playing-card-actions mb-3 grid grid-cols-3 gap-2">
-                            <Button
-                                asChild
-                                size="sm"
-                                className="now-playing-card-action h-10 rounded-md border-2 border-[#111] bg-[#2f55ff] text-white shadow-none transition-transform hover:-translate-y-0.5 hover:bg-[#2446d8]"
-                            >
-                                <a
-                                    href={generateGuitarTabsUrl(song.title, song.artist)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-1.5"
-                                    onClick={() => onOpenTransposeTool?.()}
+                            {hasStoredSongChart(song) && onOpenSongDetail ? (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => {
+                                        setIsDismissed(true);
+                                        onOpenSongDetail(song);
+                                    }}
+                                    className="now-playing-card-action h-10 rounded-md border-2 border-[#111] bg-[#2f55ff] text-white shadow-none transition-transform hover:-translate-y-0.5 hover:bg-[#2446d8]"
+                                    aria-label={`開啟「${song.title}」的歌庫吉他譜`}
                                 >
                                     <Music2 className="w-4 h-4" />
                                     <span>吉他譜</span>
-                                    <ExternalLink className="w-3 h-3 opacity-70" />
-                                </a>
-                            </Button>
+                                </Button>
+                            ) : (
+                                <Button
+                                    asChild
+                                    size="sm"
+                                    className="now-playing-card-action h-10 rounded-md border-2 border-[#111] bg-[#2f55ff] text-white shadow-none transition-transform hover:-translate-y-0.5 hover:bg-[#2446d8]"
+                                >
+                                    <a
+                                        href={generateGuitarTabsUrl(song.title, song.artist)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-center gap-1.5"
+                                    >
+                                        <Music2 className="w-4 h-4" />
+                                        <span>吉他譜</span>
+                                        <ExternalLink className="w-3 h-3 opacity-70" />
+                                    </a>
+                                </Button>
+                            )}
                             <Button
                                 asChild
                                 size="sm"

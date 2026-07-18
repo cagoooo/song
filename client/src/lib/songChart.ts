@@ -7,13 +7,25 @@
 
 import { extractChords } from '@/lib/transpose';
 import { parseLyricsDSL } from '@/lib/lyrics-dsl';
-import type { LyricBlock } from '@/lib/firestore';
+import type { LyricBlock, Song } from '@/lib/firestore';
 
 export interface SheetChart {
     /** 和弦進行（去重、保序，最多 8 顆 — 詳情頁「彈這幾個就夠了」） */
     progression: string[];
     /** 結構化歌詞區塊（和弦行 + 歌詞行配對） */
     lyricBlocks: LyricBlock[];
+}
+
+/**
+ * 判斷歌曲是否真的存有歌庫樂譜。
+ *
+ * 不能只看 songKey / capo，因為一般歌曲也可能只有這些基本資料；
+ * 有和弦進行或結構化歌詞，才把「吉他譜」導向站內看譜頁。
+ */
+export function hasStoredSongChart(
+    song: Pick<Song, 'progression' | 'lyricBlocks'>,
+): boolean {
+    return Boolean(song.progression?.length || song.lyricBlocks?.length);
 }
 
 /**

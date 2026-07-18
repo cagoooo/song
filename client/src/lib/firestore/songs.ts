@@ -11,7 +11,7 @@ import type { Song, LyricBlock } from './types';
  * 補讀 T3 樂譜欄位（songKey / progression / lyricBlocks …）與 D5 標記 —
  * 否則存進去的譜在詳情頁讀不到（getSongDetail 會一直走 fallback）。
  */
-function mapSongDoc(
+export function mapSongDoc(
     id: string,
     data: Record<string, any>,
     extra: { voteCount?: number; isPlayed?: boolean; isNowPlaying?: boolean } = {},

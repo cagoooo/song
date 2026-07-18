@@ -138,7 +138,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
     return (
         <Dialog open={!!song} onOpenChange={(open) => { if (!open) onClose(); }}>
             <DialogContent
-                className="max-w-[1280px] w-[96vw] h-[92vh] p-0 overflow-hidden bg-white border-[rgba(17,17,17,0.18)] flex flex-col"
+                className="z-[100] max-w-[1280px] w-[96vw] h-[92vh] p-0 overflow-hidden bg-white border-[rgba(17,17,17,0.18)] flex flex-col"
             >
                 <DialogTitle className="sr-only">
                     {song.title} · {song.artist} — 歌曲詳情頁

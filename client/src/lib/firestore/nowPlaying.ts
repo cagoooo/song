@@ -3,6 +3,7 @@ import {
 } from 'firebase/firestore';
 import { db, COLLECTIONS, col, docRef } from '../firebase';
 import type { Song, NowPlayingInfo } from './types';
+import { mapSongDoc } from './songs';
 
 export async function setNowPlaying(songId: string, adminUid: string): Promise<void> {
     const ref = docRef(COLLECTIONS.nowPlaying, 'current');
@@ -33,18 +34,9 @@ export function subscribeNowPlaying(callback: (info: NowPlayingInfo | null) => v
             const songRef = docRef(COLLECTIONS.songs, songId);
             const songSnapshot = await getDoc(songRef);
             if (songSnapshot.exists()) {
-                const songData = songSnapshot.data();
-                song = {
-                    id: songSnapshot.id,
-                    title: songData.title,
-                    artist: songData.artist,
-                    notes: songData.notes,
-                    lyrics: songData.lyrics,
-                    audioUrl: songData.audioUrl,
-                    isActive: songData.isActive,
-                    createdAt: songData.createdAt?.toDate?.() || new Date(),
-                    voteCount: 0,
-                };
+                // 與主歌單共用同一套欄位轉換，避免正在彈奏浮窗漏掉
+                // lyricBlocks / progression，導致已入庫的 AI 譜仍被當成外部搜尋。
+                song = mapSongDoc(songSnapshot.id, songSnapshot.data());
             }
         } catch (error) {
             console.error('Failed to fetch song details:', error);

@@ -1,6 +1,6 @@
 // 譜文字 → 歌庫樂譜欄位 — 單元測試
 import { describe, it, expect } from 'vitest';
-import { buildChartFromSheet } from './songChart';
+import { buildChartFromSheet, hasStoredSongChart } from './songChart';
 
 describe('buildChartFromSheet', () => {
     const sheet = [
@@ -46,5 +46,17 @@ describe('buildChartFromSheet', () => {
         expect(r.progression).toEqual([]);
         expect(r.lyricBlocks.length).toBeGreaterThan(0);
         expect(r.lyricBlocks[0].rows[0]).toEqual({ line: '只有歌詞沒有和弦的一行' });
+    });
+});
+
+describe('hasStoredSongChart', () => {
+    it('有 AI 入庫的歌詞和弦區塊時視為歌庫譜', () => {
+        expect(hasStoredSongChart({
+            lyricBlocks: [{ sec: 'VERSE 1', rows: [{ chord: 'C G', line: '測試歌詞' }] }],
+        })).toBe(true);
+    });
+
+    it('只有基本調性資料、不含實際譜面時不視為歌庫譜', () => {
+        expect(hasStoredSongChart({})).toBe(false);
     });
 });

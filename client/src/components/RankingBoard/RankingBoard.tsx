@@ -29,6 +29,7 @@ import type { AppUser } from '@/lib/auth';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorToast } from '@/lib/error-handler';
+import { hasStoredSongChart } from '@/lib/songChart';
 
 // 拆分的子元件
 import { RankingHeader } from './RankingHeader';
@@ -40,6 +41,8 @@ import { SurgeBadge } from '../SurgeBadge';
 interface RankingBoardProps {
     songs: Song[];
     user?: AppUser | null;
+    /** 有歌庫譜時，直接開啟站內歌曲詳情看譜。 */
+    onOpenDetail?: (song: Song) => void;
 }
 
 const RESET_OPERATION_TIMEOUT_MS = 15000;
@@ -56,7 +59,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 }
 
 // 使用 memo 避免不必要的重渲染
-export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoardProps) {
+export default memo(function RankingBoard({ songs: propSongs, user, onOpenDetail }: RankingBoardProps) {
     // 使用全局 Hook 檢測是否應減少動畫
     const reduceMotion = useReduceMotion();
     const { toast } = useToast();
@@ -501,23 +504,41 @@ export default memo(function RankingBoard({ songs: propSongs, user }: RankingBoa
                                     </TooltipProvider>
                                 )}
 
-                                {/* 吉他譜 / 歌詞 — Editorial 中性灰 + hover 藍 */}
-                                <a
-                                    href={generateGuitarTabsUrl(song)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-[rgba(17,17,17,0.18)] text-slate-600 hover:border-[#2b4dff] hover:bg-[#2b4dff]/5 hover:text-[#2b4dff] transition-colors"
-                                    style={{
-                                        fontFamily: 'var(--font-mono)',
-                                        fontSize: 11,
-                                        letterSpacing: '0.08em',
-                                        fontWeight: 600,
-                                    }}
-                                    aria-label={`搜尋「${song.title}」的吉他譜`}
-                                >
-                                    <Music2 className="w-3.5 h-3.5" />
-                                    <span>吉他譜</span>
-                                </a>
+                                {/* 有歌庫譜直接站內開啟；沒有才保留外部搜尋。 */}
+                                {hasStoredSongChart(song) && onOpenDetail ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenDetail(song)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#2b4dff] border border-[#2b4dff] text-white hover:bg-[#2446d8] transition-colors"
+                                        style={{
+                                            fontFamily: 'var(--font-mono)',
+                                            fontSize: 11,
+                                            letterSpacing: '0.08em',
+                                            fontWeight: 600,
+                                        }}
+                                        aria-label={`開啟「${song.title}」的歌庫吉他譜`}
+                                    >
+                                        <Music2 className="w-3.5 h-3.5" />
+                                        <span>吉他譜</span>
+                                    </button>
+                                ) : (
+                                    <a
+                                        href={generateGuitarTabsUrl(song)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-[rgba(17,17,17,0.18)] text-slate-600 hover:border-[#2b4dff] hover:bg-[#2b4dff]/5 hover:text-[#2b4dff] transition-colors"
+                                        style={{
+                                            fontFamily: 'var(--font-mono)',
+                                            fontSize: 11,
+                                            letterSpacing: '0.08em',
+                                            fontWeight: 600,
+                                        }}
+                                        aria-label={`搜尋「${song.title}」的吉他譜`}
+                                    >
+                                        <Music2 className="w-3.5 h-3.5" />
+                                        <span>吉他譜</span>
+                                    </a>
+                                )}
 
                                 <a
                                     href={generateLyricsUrl(song)}
