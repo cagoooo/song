@@ -45,5 +45,6 @@ describe('buildChartFromSheet', () => {
         const r = buildChartFromSheet('只有歌詞沒有和弦的一行');
         expect(r.progression).toEqual([]);
         expect(r.lyricBlocks.length).toBeGreaterThan(0);
+        expect(r.lyricBlocks[0].rows[0]).toEqual({ line: '只有歌詞沒有和弦的一行' });
     });
 });

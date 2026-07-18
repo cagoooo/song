@@ -104,10 +104,9 @@ export function parseLyricsDSL(text: string): LyricBlock[] {
 
         // 歌詞行（含中文）
         if (isLyricLine(line)) {
-            current.rows.push({
-                chord: pendingChord ?? undefined,
-                line,
-            });
+            current.rows.push(pendingChord === null
+                ? { line }
+                : { chord: pendingChord, line });
             pendingChord = null;
             continue;
         }
@@ -125,6 +124,27 @@ export function parseLyricsDSL(text: string): LyricBlock[] {
 
     // 過濾完全空的 block
     return blocks.filter((b) => b.rows.length > 0);
+}
+
+/**
+ * 清理準備寫入 Firestore 的歌詞區塊。
+ * Firestore 不接受任何深度的 undefined；這層防護也能相容舊版解析結果。
+ */
+export function sanitizeLyricBlocks(blocks: LyricBlock[]): LyricBlock[] {
+    return blocks.map((block) => {
+        const cleanBlock: LyricBlock = {
+            sec: block.sec,
+            rows: block.rows.map((row) => {
+                const cleanRow: LyricRow = {};
+                if (typeof row.chord === 'string') cleanRow.chord = row.chord;
+                if (typeof row.line === 'string') cleanRow.line = row.line;
+                if (typeof row.startMs === 'number') cleanRow.startMs = row.startMs;
+                return cleanRow;
+            }),
+        };
+        if (typeof block.chorus === 'boolean') cleanBlock.chorus = block.chorus;
+        return cleanBlock;
+    });
 }
 
 /**

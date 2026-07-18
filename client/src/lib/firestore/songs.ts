@@ -3,6 +3,7 @@ import {
     onSnapshot, Timestamp, writeBatch, type Unsubscribe,
 } from 'firebase/firestore';
 import { db, COLLECTIONS, col, docRef } from '../firebase';
+import { sanitizeLyricBlocks } from '../lyrics-dsl';
 import type { Song, LyricBlock } from './types';
 
 /**
@@ -195,7 +196,7 @@ export async function addSongWithChart(input: SongChartInput): Promise<string> {
     if (input.songKey) payload.songKey = input.songKey.slice(0, 10);
     if (typeof input.capo === 'number') payload.capo = Math.max(0, Math.min(12, input.capo));
     if (input.progression?.length) payload.progression = input.progression;
-    if (input.lyricBlocks?.length) payload.lyricBlocks = input.lyricBlocks;
+    if (input.lyricBlocks?.length) payload.lyricBlocks = sanitizeLyricBlocks(input.lyricBlocks);
     if (input.kaiNote) payload.kaiNote = input.kaiNote.slice(0, 500);
 
     const newDoc = await addDoc(songsRef, payload);

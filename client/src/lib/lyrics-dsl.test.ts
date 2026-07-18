@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     parseLyricsDSL,
+    sanitizeLyricBlocks,
     serializeLyricsToDSL,
     lintLyricBlocks,
     upgradeLegacyLyrics,
@@ -138,8 +139,8 @@ F  C
 純歌詞二行`;
             const result = parseLyricsDSL(dsl);
             expect(result[0].rows).toEqual([
-                { chord: undefined, line: '純歌詞一行' },
-                { chord: undefined, line: '純歌詞二行' },
+                { line: '純歌詞一行' },
+                { line: '純歌詞二行' },
             ]);
         });
 
@@ -166,6 +167,20 @@ Em`;
             expect(result[0].rows.every((r) => !r.line)).toBe(true);
             expect(result[0].rows.map((r) => r.chord)).toEqual(['C', 'G', 'Am', 'Em']);
         });
+    });
+});
+
+describe('sanitizeLyricBlocks', () => {
+    it('遞迴移除舊資料中 Firestore 不接受的 undefined 欄位', () => {
+        const legacy = [{
+            sec: 'VERSE 1',
+            chorus: undefined,
+            rows: [{ chord: undefined, line: '純歌詞', startMs: undefined }],
+        }] as unknown as LyricBlock[];
+
+        expect(sanitizeLyricBlocks(legacy)).toEqual([
+            { sec: 'VERSE 1', rows: [{ line: '純歌詞' }] },
+        ]);
     });
 });
 
