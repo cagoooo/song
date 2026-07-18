@@ -1,6 +1,7 @@
 import {
     collection, doc, getDocs, addDoc, updateDoc, query, where,
-    onSnapshot, Timestamp, writeBatch, type Unsubscribe,
+    onSnapshot, Timestamp, writeBatch,
+    type DocumentData, type Unsubscribe, type UpdateData,
 } from 'firebase/firestore';
 import { db, COLLECTIONS, col, docRef } from '../firebase';
 import { sanitizeLyricBlocks } from '../lyrics-dsl';
@@ -201,6 +202,28 @@ export async function addSongWithChart(input: SongChartInput): Promise<string> {
 
     const newDoc = await addDoc(songsRef, payload);
     return newDoc.id;
+}
+
+/**
+ * 把轉調工具完成的譜覆寫回歌單既有歌曲。
+ * 只更新歌曲基本資料與樂譜欄位，其餘票數、彈奏狀態及結構化標籤均保留。
+ */
+export async function updateSongChart(songId: string, input: SongChartInput): Promise<void> {
+    const songRef = docRef(COLLECTIONS.songs, songId);
+    const title = input.title.trim();
+    const artist = input.artist.trim() || '不確定';
+    const payload: UpdateData<DocumentData> = {
+        title,
+        artist,
+        songKey: input.songKey ? input.songKey.slice(0, 10) : null,
+        progression: input.progression?.length ? input.progression : [],
+        lyricBlocks: input.lyricBlocks?.length ? sanitizeLyricBlocks(input.lyricBlocks) : [],
+        kaiNote: input.kaiNote ? input.kaiNote.slice(0, 500) : null,
+    };
+    if (typeof input.capo === 'number') {
+        payload.capo = Math.max(0, Math.min(12, input.capo));
+    }
+    await updateDoc(songRef, payload);
 }
 
 export async function updateSong(

@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.9',
+        date: '2026-07-18',
+        items: [
+            '從歌單搜尋吉他譜時自動帶入原歌曲資料，調好後可依選定調性直接覆寫同一首歌曲的歌庫譜。',
+        ],
+    },
+    {
         version: '4.19.8',
         date: '2026-07-18',
         items: [

@@ -44,7 +44,7 @@ interface RankingBoardProps {
     /** 有歌庫譜時，直接開啟站內歌曲詳情看譜。 */
     onOpenDetail?: (song: Song) => void;
     /** 管理員搜尋外部吉他譜時，同步在原頁開啟快速轉調工具。 */
-    onOpenTransposeTool?: () => void;
+    onOpenTransposeTool?: (song: Song) => void;
 }
 
 const RESET_OPERATION_TIMEOUT_MS = 15000;
@@ -533,7 +533,7 @@ export default memo(function RankingBoard({
                                         href={generateGuitarTabsUrl(song)}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        onClick={() => onOpenTransposeTool?.()}
+                                        onClick={() => onOpenTransposeTool?.(song)}
                                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-[rgba(17,17,17,0.18)] text-slate-600 hover:border-[#2b4dff] hover:bg-[#2b4dff]/5 hover:text-[#2b4dff] transition-colors"
                                         style={{
                                             fontFamily: 'var(--font-mono)',

@@ -17,7 +17,7 @@ import {
 } from '@/lib/transpose';
 import { getRememberedSteps, rememberSteps, sheetMemoryKey } from '@/lib/transposeMemory';
 import { buildChartFromSheet } from '@/lib/songChart';
-import { addSongWithChart } from '@/lib/firestore';
+import { addSongWithChart, updateSongChart, type Song } from '@/lib/firestore';
 import { extractMusicSearchQueryFromAiText, pickLyricSearchPhrase } from '@/lib/musicSearch';
 
 const HAS_CJK_RE = /[一-鿿぀-ヿ가-힯]/;
@@ -64,6 +64,8 @@ interface TransposeToolModalProps {
     onClose: () => void;
     /** 管理員可把轉好的譜一鍵存進歌庫（rules 限制 songs 寫入為 admin） */
     isAdmin?: boolean;
+    /** 從歌單某首歌開啟時帶入；存檔會覆寫該歌曲的譜，避免新增重複歌曲。 */
+    sourceSong?: Pick<Song, 'id' | 'title' | 'artist' | 'notes' | 'kaiNote'> | null;
 }
 
 const EXAMPLE_SHEET = `[INTRO]
@@ -81,7 +83,7 @@ C              G               Am          Em
 F              G                C
 雨漸漸 大到我看你不見`;
 
-export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: TransposeToolModalProps) {
+export function TransposeToolModal({ isOpen, onClose, isAdmin = false, sourceSong = null }: TransposeToolModalProps) {
     const [input, setInput] = useState('');
     const updateInput = useCallback((val: string) => {
         setInput(normalizeSheetText(val));
@@ -812,6 +814,16 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
     const saveSectionRef = useRef<HTMLDivElement>(null);
     const saveTitleInputRef = useRef<HTMLInputElement>(null);
     const songKeyForSave = targetKey ?? detected?.key ?? null;
+    const isUpdatingExistingSong = Boolean(sourceSong?.id);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        setSaveTitle(sourceSong?.title ?? '');
+        setSaveArtist(sourceSong?.artist ?? '');
+        setSaveNote(sourceSong?.kaiNote ?? sourceSong?.notes ?? '');
+        setSaveOpen(false);
+        setSaveResult(null);
+    }, [isOpen, sourceSong?.artist, sourceSong?.id, sourceSong?.kaiNote, sourceSong?.notes, sourceSong?.title]);
     const musicSearchQuery = useMemo(() => {
         const explicit = [saveTitle.trim(), saveArtist.trim()].filter(Boolean).join(' ');
         if (explicit) return explicit;
@@ -884,17 +896,29 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
             const preferFlat = songKeyForSave ? preferFlatForKey(songKeyForSave) : undefined;
             const chordSheet = transposeChordSheet(input, steps, { preferFlat });
             const { progression, lyricBlocks } = buildChartFromSheet(chordSheet);
-            await addSongWithChart({
+            const chartInput = {
                 title: saveTitle,
                 artist: saveArtist,
                 songKey: songKeyForSave,
                 progression,
                 lyricBlocks,
                 kaiNote: saveNote,
+            };
+            if (sourceSong?.id) {
+                await updateSongChart(sourceSong.id, chartInput);
+            } else {
+                await addSongWithChart(chartInput);
+            }
+            setSaveResult({
+                ok: true,
+                msg: sourceSong?.id
+                    ? `✓ 已更新「${saveTitle.trim()}」的吉他譜（${songKeyForSave ?? '原'}調）`
+                    : `✓ 已存進歌庫（${songKeyForSave ?? '原'}調）— 歌單與詳情頁立即可見`,
             });
-            setSaveResult({ ok: true, msg: `✓ 已存進歌庫（${songKeyForSave ?? '原'}調）— 歌單與詳情頁立即可見` });
             setSaveOpen(false);
-            setSaveTitle(''); setSaveArtist(''); setSaveNote('');
+            if (!sourceSong?.id) {
+                setSaveTitle(''); setSaveArtist(''); setSaveNote('');
+            }
         } catch (e) {
             setSaveResult({ ok: false, msg: e instanceof Error ? e.message : '存入失敗，請重試' });
         } finally {
@@ -1193,9 +1217,14 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                     ) : (
                                         <div className="ttm-save-form">
                                             <div className="ttm-save-h">
-                                                存進歌庫
+                                                {isUpdatingExistingSong ? '更新歌庫歌曲' : '存進歌庫'}
                                                 <em>{songKeyForSave ? `${songKeyForSave} 調` : ''}</em>
                                             </div>
+                                            {sourceSong && (
+                                                <div className="ttm-save-target" role="status">
+                                                    將覆寫「{sourceSong.title}－{sourceSong.artist}」現有吉他譜，不會新增重複歌曲。
+                                                </div>
+                                            )}
                                             <input
                                                 ref={saveTitleInputRef}
                                                 className="ttm-save-input"
@@ -1227,7 +1256,9 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false }: Transpo
                                                     onClick={handleSaveToLibrary}
                                                     disabled={!saveTitle.trim() || saving}
                                                 >
-                                                    {saving ? '存入中…' : '確認存入'}
+                                                    {saving
+                                                        ? (isUpdatingExistingSong ? '更新中…' : '存入中…')
+                                                        : (isUpdatingExistingSong ? '確認更新' : '確認存入')}
                                                 </button>
                                                 <button className="sdp-trans-reset" onClick={() => setSaveOpen(false)}>
                                                     取消

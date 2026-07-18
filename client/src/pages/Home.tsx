@@ -138,6 +138,7 @@ export default function Home() {
   const [curtainOpen, setCurtainOpen] = useState(false);
   const [transposeToolOpen, setTransposeToolOpen] = useState(false);
   const [transposeToolLoaded, setTransposeToolLoaded] = useState(false);
+  const [transposeSourceSong, setTransposeSourceSong] = useState<Song | null>(null);
   const [printMode, setPrintMode] = useState(false);
   const [detailSong, setDetailSong] = useState<Song | null>(null);
   const printCleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -260,7 +261,8 @@ export default function Home() {
     }
   }, [canUseTransposeTool, transposeToolLoaded, transposeToolOpen]);
 
-  const openTransposeTool = useCallback(() => {
+  const openTransposeTool = useCallback((sourceSong?: Song) => {
+    setTransposeSourceSong(sourceSong ?? null);
     setTransposeToolLoaded(true);
     setTransposeToolOpen(true);
   }, []);
@@ -491,7 +493,7 @@ export default function Home() {
         {canUseTransposeTool && (
           <button
             className="ttm-entry ttm-floating-action"
-            onClick={openTransposeTool}
+            onClick={() => openTransposeTool()}
             aria-label="快速轉調工具"
             title="管理員快速轉調工具"
           >
@@ -1138,6 +1140,7 @@ export default function Home() {
             isOpen={transposeToolOpen}
             onClose={() => setTransposeToolOpen(false)}
             isAdmin={!!user?.isAdmin}
+            sourceSong={transposeSourceSong}
           />
         </Suspense>
       )}

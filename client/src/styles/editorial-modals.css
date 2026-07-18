@@ -1295,6 +1295,16 @@
   color: var(--ed-accent);
   font-weight: 600;
 }
+.ttm-save-target {
+  border-left: 3px solid var(--ed-accent);
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--ed-accent) 7%, white);
+  color: var(--ed-ink-2);
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 7px 10px;
+}
 .ttm-save-input {
   border: 1px solid var(--ed-line-strong, var(--ed-ink-3));
   border-radius: 5px;

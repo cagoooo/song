@@ -94,7 +94,7 @@ interface NowPlayingNotificationProps {
     /** 有歌庫譜時，按「吉他譜」直接開啟站內歌曲詳情。 */
     onOpenSongDetail?: (song: Song) => void;
     /** 管理員搜尋外部吉他譜時，同步在原頁開啟快速轉調工具。 */
-    onOpenTransposeTool?: () => void;
+    onOpenTransposeTool?: (song: Song) => void;
 }
 
 export function NowPlayingNotification({
@@ -263,7 +263,7 @@ export function NowPlayingNotification({
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex items-center justify-center gap-1.5"
-                                        onClick={() => onOpenTransposeTool?.()}
+                                        onClick={() => onOpenTransposeTool?.(song)}
                                     >
                                         <Music2 className="w-4 h-4" />
                                         <span>吉他譜</span>
