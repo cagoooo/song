@@ -81,4 +81,25 @@ describe('TransposeToolModal 全螢幕看譜', () => {
             expect(scrollArea!.scrollTop).toBe(0);
         });
     });
+
+    it('全螢幕初次開啟時自動把寬譜縮到可視寬度', async () => {
+        render(<TransposeToolModal isOpen onClose={vi.fn()} isAdmin />);
+
+        fireEvent.click(screen.getByRole('button', { name: '＋ 載入範例' }));
+        fireEvent.click(screen.getByRole('button', { name: '⛶ 放大全螢幕' }));
+
+        const fullscreenDialog = await screen.findByRole('dialog', { name: '全螢幕看譜' });
+        const scrollArea = fullscreenDialog.querySelector<HTMLElement>('.ttm-fullscreen-scroll');
+        const sheet = screen.getByLabelText(/全螢幕轉調結果/);
+        expect(scrollArea).not.toBeNull();
+
+        Object.defineProperty(scrollArea!, 'clientWidth', { configurable: true, value: 360 });
+        Object.defineProperty(sheet, 'scrollWidth', { configurable: true, value: 900 });
+        Object.defineProperty(sheet, 'offsetWidth', { configurable: true, value: 900 });
+        fireEvent(window, new Event('resize'));
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: '重設看譜縮放' })).toHaveTextContent('40%');
+        });
+    });
 });

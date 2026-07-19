@@ -446,7 +446,9 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false, sourceSon
         scrollTop: number;
     } | null>(null);
 
-    const clampFullscreenZoom = useCallback((zoom: number) => Math.max(0.4, Math.min(2.8, zoom)), []);
+    // 寬版／雙欄譜在手機上可能需要低於 40% 才能完整入鏡；先自動 fit，
+    // 使用者仍可再放大閱讀。下限保留 20%，避免超寬 AI 譜被硬截掉。
+    const clampFullscreenZoom = useCallback((zoom: number) => Math.max(0.2, Math.min(2.8, zoom)), []);
     const changeFullscreenZoom = useCallback((delta: number) => {
         setFullscreenZoom((zoom) => clampFullscreenZoom(Number((zoom + delta).toFixed(2))));
     }, [clampFullscreenZoom]);
@@ -613,6 +615,22 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false, sourceSon
         ));
     }, []);
 
+    /**
+     * 手機第一次打開看譜時自動縮到「整行完整入鏡」。
+     * scrollWidth / offsetWidth 不受 CSS transform 影響，所以可取得譜面的原始寬度，
+     * 再以可視區寬度換算 zoom；窄譜維持 100%，不會反向放大。
+     */
+    const fitFullscreenToWidth = useCallback(() => {
+        const viewport = fullscreenScrollRef.current;
+        const sheet = fullscreenOutputRef.current;
+        if (!viewport || !sheet) return;
+
+        const availableWidth = Math.max(1, viewport.clientWidth - 4);
+        const sheetWidth = Math.max(sheet.scrollWidth, sheet.offsetWidth, 1);
+        setFullscreenZoom(clampFullscreenZoom(Math.min(1, availableWidth / sheetWidth)));
+        resetFullscreenScroll();
+    }, [clampFullscreenZoom, resetFullscreenScroll]);
+
     useLayoutEffect(() => {
         if (!isFullScreenOpen || !output) {
             setFullscreenContentSize({ width: 0, height: 0 });
@@ -621,8 +639,15 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false, sourceSon
 
         measureFullscreenOutput();
         const el = fullscreenOutputRef.current;
-        const timer = window.setTimeout(measureFullscreenOutput, 0);
-        window.addEventListener('resize', measureFullscreenOutput);
+        const timer = window.setTimeout(() => {
+            measureFullscreenOutput();
+            fitFullscreenToWidth();
+        }, 0);
+        const handleResize = () => {
+            measureFullscreenOutput();
+            fitFullscreenToWidth();
+        };
+        window.addEventListener('resize', handleResize);
 
         const ResizeObserverCtor = window.ResizeObserver;
         const observer = el && ResizeObserverCtor ? new ResizeObserverCtor(measureFullscreenOutput) : null;
@@ -630,10 +655,10 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false, sourceSon
 
         return () => {
             window.clearTimeout(timer);
-            window.removeEventListener('resize', measureFullscreenOutput);
+            window.removeEventListener('resize', handleResize);
             observer?.disconnect();
         };
-    }, [isFullScreenOpen, measureFullscreenOutput, output]);
+    }, [fitFullscreenToWidth, isFullScreenOpen, measureFullscreenOutput, output]);
 
     const fullscreenCanvasStyle = useMemo(() => {
         const width = fullscreenContentSize.width
@@ -652,6 +677,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false, sourceSon
 
     useEffect(() => {
         if (!isFullScreenOpen) return;
+        // 先回到基準值；上方 layout effect 會在內容完成排版後自動 fit-to-width。
         setFullscreenZoom(1);
         setFullscreenFontScale(1);
         setToolbarHidden(false);
@@ -1390,7 +1416,7 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false, sourceSon
                                     className="ttm-fullscreen-btn compact"
                                     onPointerDown={(e) => handleFullscreenZoomPointer(e, 'out')}
                                     onClick={(e) => handleFullscreenZoomClick(e, 'out')}
-                                    disabled={fullscreenZoom <= 0.4}
+                                    disabled={fullscreenZoom <= 0.2}
                                     aria-label="縮小看譜"
                                 >
                                     －
