@@ -26,7 +26,8 @@
 //   • 空白行分隔，不影響語意
 
 import type { LyricBlock, LyricRow, LyricSection } from '@/lib/firestore';
-import { isChordLine } from '@/lib/transpose';
+import { isChordLine, hasInlineChords } from '@/lib/transpose';
+import { getVisualWidth } from '@/lib/aiLayoutOptimizer';
 
 const VALID_SECTIONS: readonly LyricSection[] = [
     'INTRO', 'VERSE 1', 'VERSE 2', 'VERSE 3', 'CHORUS', 'BRIDGE', 'OUTRO',
@@ -52,6 +53,50 @@ function normalizeSection(name: string): LyricSection | null {
 
 function isLyricLine(line: string): boolean {
     return HAS_CJK_RE.test(line);
+}
+
+const INLINE_CHORD_RE = /\[([^\]]+)\]/g;
+
+/**
+ * 把「內嵌和弦」歌詞行拆成「和弦行 + 純歌詞行」配對。
+ *
+ * AI 辨識常輸出 `我要[C#m]爬過愛情這座[B]山` 這種 inline 格式 —
+ * 直接存庫的話和弦會夾在歌詞字串裡，詳情頁沒辦法把和弦排在歌詞上方。
+ * 這裡把每顆和弦依「它在純歌詞中的視覺欄位」（中文字算 2 格）放到
+ * 和弦行的對應位置，轉成既有的 chord-above-lyric 資料格式。
+ *
+ * 非和弦的中括號內容（如 [前奏] 標記誤夾在行中）原樣留在歌詞。
+ * 回傳 null 表示這行沒有內嵌和弦（呼叫端走原本邏輯）。
+ */
+export function splitInlineChordRow(line: string): LyricRow | null {
+    if (!hasInlineChords(line)) return null;
+
+    let plain = '';
+    let chordLine = '';
+    let last = 0;
+    let match: RegExpExecArray | null;
+    INLINE_CHORD_RE.lastIndex = 0;
+    while ((match = INLINE_CHORD_RE.exec(line)) !== null) {
+        plain += line.slice(last, match.index);
+        last = match.index + match[0].length;
+        // 逐顆確認是和弦才拆出來（重用 hasInlineChords 的單顆判定）
+        if (hasInlineChords(match[0])) {
+            // 目標欄位 = 這顆和弦在純歌詞中的視覺位置；已被前一顆佔住則至少隔 1 格
+            const targetCol = getVisualWidth(plain);
+            const cur = getVisualWidth(chordLine);
+            const pad = Math.max(chordLine ? 1 : 0, targetCol - cur);
+            chordLine += ' '.repeat(pad) + match[1];
+        } else {
+            plain += match[0];
+        }
+    }
+    plain += line.slice(last);
+
+    if (!chordLine) return null;
+    const lyricText = plain.trimEnd();
+    return lyricText
+        ? { chord: chordLine, line: lyricText }
+        : { chord: chordLine, line: '' };
 }
 
 /**
@@ -103,6 +148,15 @@ export function parseLyricsDSL(text: string): LyricBlock[] {
             blocks.push(current);
         }
 
+        // 內嵌和弦行（AI 辨識常見：我要[C#m]爬過愛情這座[B]山）
+        // → 拆成「和弦行 + 純歌詞行」配對，讓詳情頁把和弦排在歌詞上方
+        const inlineRow = splitInlineChordRow(line);
+        if (inlineRow) {
+            flushPendingChord();
+            current.rows.push(inlineRow);
+            continue;
+        }
+
         // 歌詞行（含中文、且不是「間奏／回拍標記 + 和弦」的混合行）
         // AI 譜常見：|間奏| ||Cmaj7 |Fm...、|Cmaj7 |E7 |(回▲) |
         if (isLyricLine(line) && !isChordLine(line)) {
@@ -129,15 +183,23 @@ export function parseLyricsDSL(text: string): LyricBlock[] {
 }
 
 /**
- * 修復舊版已入庫、被「含中文即歌詞」規則誤判的和弦行。
- * 只轉換沒有 chord 且整行符合和弦行判定的 row，一般中文歌詞不受影響。
+ * 修復舊版已入庫、被「含中文即歌詞」規則誤判的和弦行，
+ * 以及「內嵌和弦」直接存進 line 的舊資料（我要[C#m]爬過…[B]山）—
+ * 後者拆成 chord-above-lyric，詳情頁才能把和弦排在歌詞上方。
+ * 只處理沒有 chord 的 row，一般中文歌詞不受影響。
  */
 export function repairMisclassifiedChordRows(blocks: LyricBlock[]): LyricBlock[] {
     return blocks.map((block) => ({
         ...block,
         rows: block.rows.map((row) => {
-            if (!row.chord && row.line && isChordLine(row.line)) {
-                return { ...row, chord: row.line, line: '' };
+            if (!row.chord && row.line) {
+                if (isChordLine(row.line)) {
+                    return { ...row, chord: row.line, line: '' };
+                }
+                const split = splitInlineChordRow(row.line);
+                if (split) {
+                    return { ...row, chord: split.chord, line: split.line ?? '' };
+                }
             }
             return row;
         }),

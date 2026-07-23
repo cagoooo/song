@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     parseLyricsDSL,
+    splitInlineChordRow,
     repairMisclassifiedChordRows,
     sanitizeLyricBlocks,
     serializeLyricsToDSL,
@@ -185,7 +186,56 @@ Em`;
     });
 });
 
+describe('內嵌和弦拆行（splitInlineChordRow / parseLyricsDSL）', () => {
+    it('AI inline 格式拆成「和弦行 + 純歌詞行」，和弦對齊到歌詞視覺欄位', () => {
+        const blocks = parseLyricsDSL([
+            '[VERSE 1]',
+            '[B]慢火車 [F#]火車慢',
+            '我要[C#m]爬過愛情這座[B]山',
+            '（重複一遍）',
+        ].join('\n'));
+
+        expect(blocks[0].rows).toEqual([
+            // B 在「慢」(欄位 0)、F# 在「火車慢」(欄位 7 = 慢火車 6 + 空格 1)
+            { chord: 'B      F#', line: '慢火車 火車慢' },
+            // C#m 在「爬」(欄位 4)、B 在「山」(欄位 16)
+            { chord: '    C#m         B', line: '我要爬過愛情這座山' },
+            // 沒和弦的一般歌詞不動
+            { line: '（重複一遍）' },
+        ]);
+    });
+
+    it('非和弦的中括號內容留在歌詞不拆', () => {
+        const blocks = parseLyricsDSL('唱到[副歌]這裡[C]再進來');
+        // [副歌] 留在歌詞；C 對齊到「再」的視覺欄位
+        // = 唱到(4) + [副歌](6) + 這裡(4) = 14
+        expect(blocks[0].rows).toEqual([
+            { chord: `${' '.repeat(14)}C`, line: '唱到[副歌]這裡再進來' },
+        ]);
+    });
+
+    it('splitInlineChordRow 對無內嵌和弦的行回傳 null', () => {
+        expect(splitInlineChordRow('只是一般歌詞')).toBeNull();
+        expect(splitInlineChordRow('C  G  Am  F')).toBeNull();
+    });
+});
+
 describe('repairMisclassifiedChordRows', () => {
+    it('舊資料中內嵌和弦的 line 自動拆成 chord-above-lyric', () => {
+        const repaired = repairMisclassifiedChordRows([{
+            sec: 'VERSE 1',
+            rows: [
+                { line: '我要[C#m]爬過愛情這座[B]山' },
+                { line: '我把我的靈魂送給你' },
+            ],
+        }]);
+
+        expect(repaired[0].rows).toEqual([
+            { chord: '    C#m         B', line: '我要爬過愛情這座山' },
+            { line: '我把我的靈魂送給你' },
+        ]);
+    });
+
     it('自動修復舊資料中被存成 line 的間奏和弦，保留一般歌詞', () => {
         const repaired = repairMisclassifiedChordRows([{
             sec: 'VERSE 1',

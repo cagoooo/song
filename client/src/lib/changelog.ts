@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.16',
+        date: '2026-07-23',
+        items: [
+            'AI 辨識的內嵌和弦譜（和弦夾在歌詞中）存進歌庫後，會自動拆成獨立和弦行排在歌詞上方，恢復藍色和弦樣式並可自由轉調。',
+            '已存過的舊譜開啟時也會自動修復成同樣格式。',
+        ],
+    },
+    {
         version: '4.19.15',
         date: '2026-07-23',
         items: [
