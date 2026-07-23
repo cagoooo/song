@@ -10,6 +10,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.13',
+        date: '2026-07-23',
+        items: [
+            'AI 辨識吉他譜的和弦會逐段對齊到歌詞正上方，跟原圖一樣好認換和弦的位置。',
+            '管理者按卡帶右上角叉叉會同步結束彈奏；訪客按叉叉維持只關閉通知。',
+            '修正同一首歌結束後再次開始彈奏時，右下角卡帶彈窗不再出現的問題。',
+        ],
+    },
+    {
         version: '4.19.12',
         date: '2026-07-18',
         items: [
