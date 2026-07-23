@@ -130,10 +130,27 @@ export function NowPlayingNotification({
         }
     }, [nowPlaying?.songId, lastSongId]);
 
-    // 關閉通知
-    const handleDismiss = useCallback(() => {
+    /** 是否正在結束彈奏（管理員按叉叉時避免連點重送） */
+    const [closing, setClosing] = useState(false);
+
+    // 關閉通知 — 權限不同行為不同：
+    // - 管理員：按叉叉 = 結束彈奏（同步清除全站「正在彈奏」狀態，排行榜播放鈕一起復原）
+    // - 訪客：只是關掉自己畫面上的通知卡，不動全站狀態
+    const handleDismiss = useCallback(async () => {
+        if (isAdmin) {
+            if (closing) return;
+            setClosing(true);
+            try {
+                await clearNowPlaying();
+            } catch (error) {
+                toast(getErrorToast(error));
+                return; // 失敗就不關卡片，讓管理員知道狀態還沒清掉
+            } finally {
+                setClosing(false);
+            }
+        }
         setIsDismissed(true);
-    }, []);
+    }, [isAdmin, closing, toast]);
 
     // 管理員一鍵「標記已彈奏」：清除正在彈奏 + 標記已彈奏 + 自動關閉彈窗
     // 省去管理員回排行榜茫茫歌海中找這首歌切換的麻煩
@@ -205,8 +222,9 @@ export function NowPlayingNotification({
                             )}
                             <button
                                 onClick={handleDismiss}
-                                className="now-playing-card-close grid h-7 w-7 place-items-center rounded-full border border-white/25 text-white/70 transition-colors hover:bg-white hover:text-[#111]"
-                                aria-label="關閉通知"
+                                disabled={closing}
+                                className="now-playing-card-close grid h-7 w-7 place-items-center rounded-full border border-white/25 text-white/70 transition-colors hover:bg-white hover:text-[#111] disabled:cursor-not-allowed disabled:opacity-60"
+                                aria-label={isAdmin ? '結束彈奏並關閉' : '關閉通知'}
                             >
                                 <X className="w-4 h-4" />
                             </button>
