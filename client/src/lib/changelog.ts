@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.14',
+        date: '2026-07-23',
+        items: [
+            '修正按下「立即更新」後更新提示又重複跳出的問題，現在只有真正的新版本才會提醒。',
+        ],
+    },
+    {
         version: '4.19.13',
         date: '2026-07-23',
         items: [

@@ -12,6 +12,54 @@ function isSupported() {
     return typeof navigator !== 'undefined' && 'serviceWorker' in navigator;
 }
 
+/** 解析 SW 版本字串「4.19.13-c0080e9-ab3x」→ semver 三段 + git hash */
+function parseSwVersion(v: string): { semver: [number, number, number]; hash: string } | null {
+    const m = v.match(/^(\d+)\.(\d+)\.(\d+)-([0-9a-z]+)/i);
+    if (!m) return null;
+    return { semver: [Number(m[1]), Number(m[2]), Number(m[3])], hash: m[4] };
+}
+
+/**
+ * waiting SW 是否為「真的新版本」。
+ *
+ * 為什麼要比對：sw.js 每次 build 都含唯一時間戳，位元組必定不同 —
+ * GitHub Pages CDN 若吐出殘留的舊版 sw.js、或同一 commit 重 build，
+ * 瀏覽器都會當成「更新」裝進 waiting，造成「按了立即更新又跳出來」的無限循環。
+ * 判準：
+ * - 版本字串完全相同 → 不是新版
+ * - semver 較舊 → CDN 殘留舊版 → 不是新版
+ * - semver 相同：git hash 不同才算新版（只差時間戳 = 同 code 重 build）
+ * - 解析不了（格式外）→ 寬鬆放行，保底不擋真更新
+ */
+export function isNewerSwVersion(waitingVer: string, activeVer: string): boolean {
+    if (waitingVer === activeVer) return false;
+    const w = parseSwVersion(waitingVer);
+    const a = parseSwVersion(activeVer);
+    if (!w || !a) return true;
+    for (let i = 0; i < 3; i++) {
+        if (w.semver[i] > a.semver[i]) return true;
+        if (w.semver[i] < a.semver[i]) return false;
+    }
+    return w.hash !== a.hash;
+}
+
+/** 向指定 SW（active 或 waiting 皆可）查詢版本；1.5 秒沒回應回 null（fail-open） */
+function getWorkerVersion(worker: ServiceWorker): Promise<string | null> {
+    return new Promise((resolve) => {
+        try {
+            const channel = new MessageChannel();
+            const timer = setTimeout(() => resolve(null), 1500);
+            channel.port1.onmessage = (e) => {
+                clearTimeout(timer);
+                resolve(typeof e.data?.version === 'string' ? e.data.version : null);
+            };
+            worker.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+        } catch {
+            resolve(null);
+        }
+    });
+}
+
 export function useServiceWorkerUpdate(): SwState & { applyUpdate: () => Promise<void>; dismissUpdate: () => void } {
     const [updateAvailable, setUpdateAvailable] = useState(false);
     const [currentVersion, setCurrentVersion] = useState<string | null>(null);
@@ -27,7 +75,7 @@ export function useServiceWorkerUpdate(): SwState & { applyUpdate: () => Promise
         let intervalId: ReturnType<typeof setInterval> | null = null;
         const unregisterFns: Array<() => void> = [];
 
-        const showUpdate = (worker: ServiceWorker | null, registration?: ServiceWorkerRegistration) => {
+        const reveal = (worker: ServiceWorker | null, registration?: ServiceWorkerRegistration) => {
             if (cancelled) return;
             if (worker) {
                 const taggedWorker = worker as SwWithRegistration;
@@ -36,6 +84,28 @@ export function useServiceWorkerUpdate(): SwState & { applyUpdate: () => Promise
             }
             setDismissed(false);
             setUpdateAvailable(true);
+        };
+
+        const showUpdate = (worker: ServiceWorker | null, registration?: ServiceWorkerRegistration) => {
+            if (cancelled) return;
+            const active = registration?.active || navigator.serviceWorker.controller;
+            if (!worker || !active) {
+                reveal(worker, registration);
+                return;
+            }
+            // 顯示前先比對 waiting vs active 版本 — 擋掉 CDN 殘留舊版 /
+            // 同 code 重 build 造成的「假更新」，避免按了更新又跳出來的循環
+            void Promise.all([getWorkerVersion(worker), getWorkerVersion(active)])
+                .then(([waitingVer, activeVer]) => {
+                    if (cancelled) return;
+                    if (waitingVer && activeVer && !isNewerSwVersion(waitingVer, activeVer)) {
+                        // 假更新：不顯示、也不動它。
+                        // （不能默默 SKIP_WAITING — 會觸發 controllerchange 的自動 reload，
+                        //   使用者頁面會無預警重新整理，比多一顆 waiting worker 更糟。）
+                        return;
+                    }
+                    reveal(worker, registration);
+                });
         };
 
         const watchWorker = (worker: ServiceWorker | null, registration: ServiceWorkerRegistration) => {
