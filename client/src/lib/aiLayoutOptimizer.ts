@@ -72,6 +72,61 @@ function normalizeBarChordLine(line: string): string {
 }
 
 /**
+ * 把已含 | 小節線的和弦行「對齊」到下一行歌詞的段落位置上方。
+ *
+ * 原圖的譜通常是「每個小節的和弦落在對應歌詞片語的正上方」，
+ * 但 AI 辨識/規整化後會全部擠在行首，彈唱者不知道唱到哪換和弦。
+ * 這裡把歌詞行以空白切成片語，算出每個片語的視覺起始欄位：
+ * - 小節數 == 片語數 → 一一對齊（|A 放在第 1 個片語上方、|C#m 放第 2 個…）
+ * - 數量不符 → 均勻分佈到歌詞行寬度（至少視覺上分散、接近原圖）
+ *
+ * 回傳 null 表示不適合對齊（無小節內容 / 歌詞太短），由呼叫端 fallback。
+ */
+function alignBarChordLineToLyric(chordLine: string, lyricLine: string): string | null {
+    const BAR_SEP = /[|｜]/;
+    const parts = chordLine.split(BAR_SEP);
+    if (parts.length < 2) return null;
+
+    // 行首非小節內容（如段落標記 [前奏]）保留為前綴
+    const prefix = parts[0].replace(/\s{2,}/g, ' ').trim();
+
+    const bars: string[] = [];
+    for (let i = 1; i < parts.length; i++) {
+        const p = parts[i].replace(/\s+/g, ' ').trim();
+        if (p) bars.push(p);
+    }
+    if (!bars.length) return null;
+
+    // 歌詞片語起始欄位（視覺寬度：中文字算 2）
+    const anchors: number[] = [];
+    let col = 0;
+    let inGap = true;
+    for (const ch of lyricLine) {
+        const isSpace = /\s/.test(ch);
+        if (!isSpace && inGap) { anchors.push(col); inGap = false; }
+        if (isSpace) inGap = true;
+        col += getVisualWidth(ch);
+    }
+    const lyricWidth = getVisualWidth(lyricLine.trimEnd());
+    if (!anchors.length || lyricWidth < 8) return null;
+
+    // 對齊目標欄位
+    const targets = anchors.length === bars.length
+        ? anchors
+        : bars.map((_, i) => Math.round((i * lyricWidth) / bars.length));
+
+    let out = prefix ? prefix + ' ' : '';
+    for (let i = 0; i < bars.length; i++) {
+        const cur = getVisualWidth(out);
+        // 至少留 1 格空白（第一個小節若落在行首則不用）
+        const minGap = out ? 1 : 0;
+        const pad = Math.max(minGap, targets[i] - cur);
+        out += ' '.repeat(pad) + '|' + bars[i];
+    }
+    return out + ' |';
+}
+
+/**
  * 自動將 AI 辨識出來的和弦譜做排版優化：
  *
  * 策略分兩類：
@@ -94,7 +149,18 @@ export function optimizeAiLayout(text: string): string {
         if (isChordLine(line)) {
             if (isFormattedChordLine(line)) {
                 // ── 策略 1：已含 | 的和弦行 ──
-                // 規整化每個小節，消除多餘空格，不做均勻展開
+                // 下一行是歌詞 → 把每個小節對齊到歌詞片語上方（跟原圖一樣好認）
+                const nextIsLyric = nextLine.trim()
+                    && !isChordLine(nextLine)
+                    && !nextLine.trim().startsWith('[');
+                if (nextIsLyric) {
+                    const aligned = alignBarChordLineToLyric(line, nextLine);
+                    if (aligned) {
+                        optimizedLines.push(aligned);
+                        continue;
+                    }
+                }
+                // 沒歌詞可對齊（如前奏/間奏行）→ 規整化每個小節，消除多餘空格
                 optimizedLines.push(normalizeBarChordLine(line));
                 continue;
             }
