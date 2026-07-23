@@ -127,6 +127,12 @@ export function NowPlayingNotification({
             setIsDismissed(false);
             setLastSongId(nowPlaying.songId);
             setShowTipSent(null);
+        } else if (!nowPlaying?.songId && lastSongId) {
+            // 彈奏狀態被清除（結束彈奏）→ 重置記憶。
+            // 否則同一首歌「關閉 → 再次開始彈奏」時 songId 沒變，
+            // isDismissed 卡在 true，卡帶彈窗永遠不再出現。
+            setLastSongId(null);
+            setIsDismissed(false);
         }
     }, [nowPlaying?.songId, lastSongId]);
 
