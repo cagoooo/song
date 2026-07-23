@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.15',
+        date: '2026-07-23',
+        items: [
+            '首頁大標區塊整塊可點擊，一鍵平滑捲動直達「可選歌單」，手機版會自動切到歌單分頁。',
+        ],
+    },
+    {
         version: '4.19.14',
         date: '2026-07-23',
         items: [

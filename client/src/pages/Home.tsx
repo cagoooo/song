@@ -424,6 +424,17 @@ export default function Home() {
 
   const hasMore = displayLimit < sortedSongs.length;
 
+  // Hero 區塊一鍵直達「可選歌單」— 手機版先切到歌單 Tab 再捲動
+  const scrollToSongList = useCallback(() => {
+    setActiveTabForMobile('songs');
+    // 等 Tab 切換渲染完成再捲，位置才準。
+    // （headless 隱藏分頁 rAF 暫停會讓 smooth 捲動看似不動 — 那是預覽環境
+    //   限制不是 bug，真實可見分頁正常。驗證方式見 claude-preview-headless-verify-traps）
+    requestAnimationFrame(() => {
+      document.getElementById('song-list-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
+
   // 跳轉到指定歌曲 - 透過搜尋歌曲名稱的方式
   const handleNavigateToSong = useCallback((songId: string) => {
     // 統一轉換為字串
@@ -673,7 +684,18 @@ export default function Home() {
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="editorial-hero mb-4 sm:mb-6"
+          className="editorial-hero mb-4 sm:mb-6 cursor-pointer"
+          onClick={scrollToSongList}
+          role="button"
+          tabIndex={0}
+          aria-label="跳到可選歌單區塊"
+          title="點擊直達可選歌單"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              scrollToSongList();
+            }
+          }}
         >
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-4 sm:mb-5">
@@ -706,6 +728,12 @@ export default function Home() {
                 <div className="n">{voteTodayUnique || 0}</div>
                 <div className="l">Active</div>
               </div>
+            </div>
+
+            {/* 一鍵直達可選歌單的視覺提示（整個 Hero 都可點） */}
+            <div className="mt-4 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-[#2f55ff]">
+              <span className="animate-bounce" aria-hidden="true">↓</span>
+              <span>點擊直達可選歌單 · Pick a song</span>
             </div>
           </div>
 
@@ -812,7 +840,8 @@ export default function Home() {
 
             {/* 響應式佈局：手機 Tab / 桌面平板雙欄 */}
             <motion.div
-              className="lg:col-span-3"
+              id="song-list-section"
+              className="lg:col-span-3 scroll-mt-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
