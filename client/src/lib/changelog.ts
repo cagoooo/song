@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.23',
+        date: '2026-07-24',
+        items: [
+            '收藏歌曲的全螢幕看譜上方新增 Spotify／YouTube Music／YouTube 三顆快速搜尋按鈕，一鍵跳去平台播放這首歌。',
+        ],
+    },
+    {
         version: '4.19.22',
         date: '2026-07-24',
         items: [

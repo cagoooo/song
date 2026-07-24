@@ -578,6 +578,18 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                         </div>
                     </div>
                     <div className="sdp-fs-scroll" ref={fsScrollRef}>
+                        {/* 譜上方三顆快速搜尋按鈕 — 一鍵跳去平台播放這首歌 */}
+                        {(() => {
+                            const q = encodeURIComponent(`${song.title} ${song.artist}`.trim());
+                            return (
+                                <div className="sdp-fs-music" aria-label={`搜尋音樂：${song.title} ${song.artist}`}>
+                                    <span className="sdp-fs-music-label">快速找音樂</span>
+                                    <a className="sdp-fs-music-link spotify" href={`https://open.spotify.com/search/${q}`} target="_blank" rel="noreferrer">Spotify</a>
+                                    <a className="sdp-fs-music-link ytmusic" href={`https://music.youtube.com/search?q=${q}`} target="_blank" rel="noreferrer">YouTube Music</a>
+                                    <a className="sdp-fs-music-link youtube" href={`https://www.youtube.com/results?search_query=${q}`} target="_blank" rel="noreferrer">YouTube</a>
+                                </div>
+                            );
+                        })()}
                         <div className="sdp-lyrics sdp-fs-lyrics" style={{ '--sdp-sheet-font-scale': fsZoom } as React.CSSProperties}>
                             {sheetView.lyrics.map((b, i) => (
                                 <div key={i} className={'sdp-lyr-block' + (b.chorus ? ' chorus' : '')}>
