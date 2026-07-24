@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.17',
+        date: '2026-07-24',
+        items: [
+            'AI 辨識的分行和弦譜改為「逐顆和弦」對齊到對應歌詞片語正上方，跟原圖一樣清楚知道每句換哪個和弦。',
+        ],
+    },
+    {
         version: '4.19.16',
         date: '2026-07-23',
         items: [

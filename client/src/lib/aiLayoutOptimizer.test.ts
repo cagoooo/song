@@ -58,15 +58,29 @@ describe('aiLayoutOptimizer — AI 辨識排版優化器', () => {
         expect(lines[0].trimEnd().endsWith('|')).toBe(true);
     });
 
-    it('小節線和弦行 — 小節數 != 片語數 → 均勻分佈到歌詞寬度', () => {
-        const input = '|Cmaj7 A7 |Dm7 G7 |\n窗外雲朵 飄蕩天邊 像是我的心 沒有終點';
+    it('逐顆和弦對齊 — 一小節多顆和弦、行首無 | 也對齊到片語（91 譜格式）', () => {
+        const input = 'C Bm7-5 E |Am Am7/G C |\n數到三 幸福很 簡單 太平凡 也是種 浪漫';
         const output = optimizeAiLayout(input);
         const lines = output.split('\n');
-        expect(lines[0].indexOf('|Cmaj7 A7')).toBe(0);
-        // 第 2 小節約落在歌詞寬度(37)的一半附近
-        const secondBar = lines[0].indexOf('|Dm7 G7');
-        expect(secondBar).toBeGreaterThan(14);
-        expect(secondBar).toBeLessThan(24);
+        // 6 顆和弦 == 6 個片語 → 逐顆對齊
+        // 片語欄位：數到三=0、幸福很=7、簡單=14、太平凡=19、也是種=26、浪漫=33
+        expect(lines[0].indexOf('C')).toBe(0);        // 行首和弦沒有被當成前綴
+        expect(lines[0].indexOf('Bm7-5')).toBe(7);
+        expect(lines[0].indexOf('E ')).toBe(14);
+        expect(lines[0].indexOf('|Am')).toBe(19);
+        expect(lines[0].indexOf('Am7/G')).toBe(26);
+        expect(lines[0].lastIndexOf('C')).toBe(33);
+        expect(lines[0].trimEnd().endsWith('|')).toBe(true);
+    });
+
+    it('逐顆和弦對齊 — 和弦數 != 片語數 → 均勻分佈到歌詞寬度', () => {
+        const input = '|C G Am F Em Dm G7 |\n你的習慣閉著眼 都能清楚';
+        const output = optimizeAiLayout(input);
+        const lines = output.split('\n');
+        // 7 顆和弦、2 個片語 → 均勻分佈，不左擠、也不塞爆
+        expect(lines[0].indexOf('|C')).toBe(0);
+        // 最後一顆 G7 應落在歌詞後半，明顯離行首
+        expect(lines[0].lastIndexOf('G7')).toBeGreaterThan(10);
     });
 
     it('小節線和弦行 — 下一行不是歌詞（前奏）→ 維持緊湊規整化', () => {

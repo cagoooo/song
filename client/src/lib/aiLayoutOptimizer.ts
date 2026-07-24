@@ -71,31 +71,45 @@ function normalizeBarChordLine(line: string): string {
     return result.join('').trimEnd();
 }
 
-/**
- * 把已含 | 小節線的和弦行「對齊」到下一行歌詞的段落位置上方。
- *
- * 原圖的譜通常是「每個小節的和弦落在對應歌詞片語的正上方」，
- * 但 AI 辨識/規整化後會全部擠在行首，彈唱者不知道唱到哪換和弦。
- * 這裡把歌詞行以空白切成片語，算出每個片語的視覺起始欄位：
- * - 小節數 == 片語數 → 一一對齊（|A 放在第 1 個片語上方、|C#m 放第 2 個…）
- * - 數量不符 → 均勻分佈到歌詞行寬度（至少視覺上分散、接近原圖）
- *
- * 回傳 null 表示不適合對齊（無小節內容 / 歌詞太短），由呼叫端 fallback。
- */
-function alignBarChordLineToLyric(chordLine: string, lyricLine: string): string | null {
-    const BAR_SEP = /[|｜]/;
-    const parts = chordLine.split(BAR_SEP);
-    if (parts.length < 2) return null;
+const DASH_ONLY_RE = /^[-–—─━]+$/;
 
-    // 行首非小節內容（如段落標記 [前奏]）保留為前綴
-    const prefix = parts[0].replace(/\s{2,}/g, ' ').trim();
-
-    const bars: string[] = [];
-    for (let i = 1; i < parts.length; i++) {
-        const p = parts[i].replace(/\s+/g, ' ').trim();
-        if (p) bars.push(p);
+/** 和弦行拆成「單顆和弦」清單，保留每顆前面是否有小節線 | */
+interface ChordUnit { bar: boolean; text: string; }
+function tokenizeChordLine(chordLine: string): { units: ChordUnit[]; trailingBar: boolean } {
+    const units: ChordUnit[] = [];
+    let pendingBar = false;
+    for (let tok of chordLine.split(/\s+/).filter(Boolean)) {
+        // 純小節線 / 純破折號（原圖常用來拉開間距）→ 只記錄小節線、不佔和弦
+        if (DASH_ONLY_RE.test(tok)) continue;
+        // 剝掉黏在前面的小節線（|Am、｜C）
+        while (tok.startsWith('|') || tok.startsWith('｜')) { pendingBar = true; tok = tok.slice(1); }
+        // 剝掉黏在後面的小節線（C|）→ 留給下一顆
+        let trailBar = false;
+        while (tok.endsWith('|') || tok.endsWith('｜')) { trailBar = true; tok = tok.slice(0, -1); }
+        if (tok && !DASH_ONLY_RE.test(tok)) {
+            units.push({ bar: pendingBar, text: tok });
+            pendingBar = false;
+        }
+        if (trailBar) pendingBar = true;
     }
-    if (!bars.length) return null;
+    return { units, trailingBar: pendingBar };
+}
+
+/**
+ * 把和弦行「逐顆對齊」到下一行歌詞的片語位置上方（跟原圖一樣）。
+ *
+ * 91 譜等來源的分行譜刻意讓「一顆和弦 = 一個以空白隔開的歌詞片語」，
+ * 例：和弦 `C Bm7-5 E |Am Am7/G C |`、歌詞 `數到三 幸福很 簡單 太平凡 也是種 浪漫`。
+ * 但 AI 辨識/規整化會把和弦全擠到行首，彈唱者對不到唱到哪換和弦。
+ *
+ * - 和弦數 == 片語數 → 每顆和弦對齊到對應片語的視覺起始欄位（中文字算 2 格）
+ * - 數量不符（如一句長歌詞塞多顆和弦）→ 把和弦均勻分佈到整行歌詞寬度
+ *
+ * 回傳 null 表示不適合對齊（無和弦 / 歌詞太短），由呼叫端 fallback。
+ */
+function alignChordLineToLyric(chordLine: string, lyricLine: string): string | null {
+    const { units, trailingBar } = tokenizeChordLine(chordLine);
+    if (!units.length) return null;
 
     // 歌詞片語起始欄位（視覺寬度：中文字算 2）
     const anchors: number[] = [];
@@ -110,20 +124,20 @@ function alignBarChordLineToLyric(chordLine: string, lyricLine: string): string 
     const lyricWidth = getVisualWidth(lyricLine.trimEnd());
     if (!anchors.length || lyricWidth < 8) return null;
 
-    // 對齊目標欄位
-    const targets = anchors.length === bars.length
+    // 對齊目標欄位：數量相同 → 逐片語；否則 → 均勻分佈到歌詞寬度
+    const targets = anchors.length === units.length
         ? anchors
-        : bars.map((_, i) => Math.round((i * lyricWidth) / bars.length));
+        : units.map((_, i) => Math.round((i * lyricWidth) / units.length));
 
-    let out = prefix ? prefix + ' ' : '';
-    for (let i = 0; i < bars.length; i++) {
+    let out = '';
+    for (let i = 0; i < units.length; i++) {
+        const token = (units[i].bar ? '|' : '') + units[i].text;
         const cur = getVisualWidth(out);
-        // 至少留 1 格空白（第一個小節若落在行首則不用）
-        const minGap = out ? 1 : 0;
-        const pad = Math.max(minGap, targets[i] - cur);
-        out += ' '.repeat(pad) + '|' + bars[i];
+        // 小節線 | 直接落在片語起點（chord 緊接其後）；至少留 1 格避免黏連
+        const pad = Math.max(out ? 1 : 0, targets[i] - cur);
+        out += ' '.repeat(pad) + token;
     }
-    return out + ' |';
+    return trailingBar ? out + ' |' : out;
 }
 
 /**
@@ -154,7 +168,7 @@ export function optimizeAiLayout(text: string): string {
                     && !isChordLine(nextLine)
                     && !nextLine.trim().startsWith('[');
                 if (nextIsLyric) {
-                    const aligned = alignBarChordLineToLyric(line, nextLine);
+                    const aligned = alignChordLineToLyric(line, nextLine);
                     if (aligned) {
                         optimizedLines.push(aligned);
                         continue;
