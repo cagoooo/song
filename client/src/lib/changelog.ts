@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.18',
+        date: '2026-07-24',
+        items: [
+            'AI 辨識吉他譜現在會保留原圖的 ▲ ★ ◆ 等「回到段落」記號，不再被當成雜訊丟掉，彈奏時看得到要回哪一段。',
+        ],
+    },
+    {
         version: '4.19.17',
         date: '2026-07-24',
         items: [

@@ -73,6 +73,22 @@
   避免多租戶上線後單一空間用光全站共用的 200 次配額。
   詳見 [U1-multi-tenant.md](./U1-multi-tenant.md#ai-辨識額度分租戶治理phase-3c)。
 
+### G3b-2 prompt v5 — 段落回歸記號保留（2026-07-24）
+
+- **問題**：AI 辨識會把歌詞行開頭的 ▲ ★ ◆ 等「回到某段落」記號當成浮水印雜訊丟掉
+  （使用者實測「我們倆」譜：原圖 `▲你在左邊`、`★太久` 辨識後 ▲★ 都不見了）。
+  這些是彈唱時的段落導引，遺漏會讓彈奏者找不到回歌位置。
+- **根因確認**：先在前端用 `optimizeAiLayout` 探測 → 前端完整保留 ▲★，
+  確定是後端 Gemini 辨識階段丟掉（prompt 只叫它「忽略浮水印」卻沒說要保留段落記號）。
+- **修法**：edge function prompt 升 v5（部署為 function version 6）— 新增規則 7
+  「段落回歸記號務必保留」：明列 ▲▼△▽★☆◆◇●○◎■□ 等實心/空心符號與
+  `(回▲)` `(2)（回★）` 括號註記務必原樣保留在行首；規則 8 補一句「段落記號不屬於浮水印」；
+  規則 10 自我檢查加上「確認 ▲★◆ 沒遺漏」。
+- **部署**：`deploy_edge_function` project=`xcnmmaayrtiklntvhdhc`（endpoint host 即 project ref）
+  → version 6 ACTIVE，即時生效不需前端部署。
+- 前端 [aiLayoutOptimizer.ts](../../client/src/lib/aiLayoutOptimizer.ts) 與 lyrics-DSL
+  對 ▲★ 開頭的歌詞行本就相容（▲ 非 CJK 算 1 欄，isLyricLine 靠 CJK 判定仍成立）。
+
 ### G3b-2 prompt v4 — 和弦對齊強化（2026-07-02）
 
 - **問題**：AI 辨識常把同一行和弦全擠在行首，彈唱者不知道下一句換哪個和弦（使用者實測回饋）
