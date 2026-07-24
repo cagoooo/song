@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.19',
+        date: '2026-07-24',
+        items: [
+            '歌曲詳情頁移除會誤導的假「今晚已被點 N 次」數字，改為顯示真實的「今晚已彈奏／尚未彈奏」狀態。',
+        ],
+    },
+    {
         version: '4.19.18',
         date: '2026-07-24',
         items: [

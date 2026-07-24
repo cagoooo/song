@@ -32,7 +32,6 @@ export interface SongDetail {
     key: string;
     bpm: number;
     length: string;
-    playedTimes: number;
     progression: string[];
     fingerings: ChordFingering[];
     lyrics: LyricBlock[];
@@ -76,7 +75,6 @@ export const EXAMPLE_FULL_DETAIL: SongDetail = {
     key: 'C',
     bpm: 78,
     length: '04:23',
-    playedTimes: 14,
     progression: ['C', 'G', 'Am', 'Em', 'F', 'Dm', 'G', 'C'],
     fingerings: COMMON_FINGERINGS,
     lyrics: [
@@ -188,7 +186,6 @@ export function getSongDetail(song: Song): SongDetail {
         key: song.songKey ?? pickFromArray(KEYS, seed),
         bpm: song.bpm ?? (64 + (seedHash % 64)),                          // 64 ~ 127
         length: song.length ?? `0${3 + (seedHash % 3)}:${String(10 + (seedHash % 50)).padStart(2, '0')}`,
-        playedTimes: seedHash % 25,
         progression: song.progression && song.progression.length > 0
             ? song.progression
             : pickFromArray(PROGRESSIONS, seed),

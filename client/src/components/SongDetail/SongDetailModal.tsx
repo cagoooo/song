@@ -463,7 +463,7 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                         </button>
                     </div>
                     <div className="sdp-cta-info">
-                        <b>{voteCount} 票</b> · 今晚已被點 <b>{detail.playedTimes}</b> 次
+                        <b>{voteCount} 票</b> · {song.isPlayed ? '今晚已彈奏 ✓' : '今晚尚未彈奏'}
                     </div>
                 </div>
 
