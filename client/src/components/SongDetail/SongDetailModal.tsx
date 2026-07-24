@@ -1,6 +1,7 @@
 // 歌曲詳情頁 — Editorial 雜誌風全螢幕 modal
 // 設計來源：Claude Design handoff (jysVMA2ORq0BqZjZyW2p6Q)，sd-page.jsx
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
     Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -33,6 +34,12 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
     const [transposeSteps, setTransposeSteps] = useState(0);
     const [showDegrees, setShowDegrees] = useState(false);
     const [sheetFontScale, setSheetFontScale] = useState(1);
+    /** 全螢幕看譜（整個畫面都是吉他譜，像 AI 辨識工具那樣可放大縮小） */
+    const [sheetFullscreen, setSheetFullscreen] = useState(false);
+    /** 全螢幕看譜的縮放倍率（0.8 ~ 3.0），與行內字級獨立 */
+    const [fsZoom, setFsZoom] = useState(1.3);
+    const fsZoomRef = useRef(fsZoom);
+    const fsScrollRef = useRef<HTMLDivElement>(null);
     const btnRef = useRef<HTMLButtonElement>(null);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -43,7 +50,68 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
         setTransposeSteps(song ? (getRememberedSteps('song:' + song.id) ?? 0) : 0);
         setShowDegrees(false);
         setSheetFontScale(1);
+        setSheetFullscreen(false);
+        setFsZoom(1.3);
     }, [song?.id]);
+
+    useEffect(() => { fsZoomRef.current = fsZoom; }, [fsZoom]);
+
+    const changeFsZoom = useCallback((delta: number) => {
+        setFsZoom((z) => Math.max(0.8, Math.min(3, Number((z + delta).toFixed(2)))));
+    }, []);
+
+    // 全螢幕看譜：Esc 先關全螢幕（不關整個 modal）、鎖背景捲動、螢幕常亮
+    useEffect(() => {
+        if (!sheetFullscreen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                setSheetFullscreen(false);
+            }
+        };
+        window.addEventListener('keydown', onKey, true);
+        document.body.classList.add('sdp-fs-open');
+
+        // Wake Lock：彈唱中避免手機自動鎖屏（不支援則靜默降級）
+        let wakeLock: { release: () => Promise<void> } | null = null;
+        const navAny = navigator as Navigator & { wakeLock?: { request: (t: string) => Promise<{ release: () => Promise<void> }> } };
+        navAny.wakeLock?.request('screen').then((l) => { wakeLock = l; }).catch(() => {});
+
+        return () => {
+            window.removeEventListener('keydown', onKey, true);
+            document.body.classList.remove('sdp-fs-open');
+            wakeLock?.release?.().catch(() => {});
+        };
+    }, [sheetFullscreen]);
+
+    // 全螢幕看譜：雙指 pinch 縮放（native 非被動監聽器才能 preventDefault 擋瀏覽器縮放）
+    useEffect(() => {
+        const el = fsScrollRef.current;
+        if (!sheetFullscreen || !el) return;
+        let startDist = 0;
+        let startZoom = 1;
+        const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+        const onStart = (e: TouchEvent) => {
+            if (e.touches.length === 2) { startDist = dist(e.touches); startZoom = fsZoomRef.current; }
+        };
+        const onMove = (e: TouchEvent) => {
+            if (e.touches.length === 2 && startDist > 0) {
+                e.preventDefault();
+                const ratio = dist(e.touches) / startDist;
+                setFsZoom(Math.max(0.8, Math.min(3, Number((startZoom * ratio).toFixed(2)))));
+            }
+        };
+        const onEnd = (e: TouchEvent) => { if (e.touches.length < 2) startDist = 0; };
+        el.addEventListener('touchstart', onStart, { passive: false });
+        el.addEventListener('touchmove', onMove, { passive: false });
+        el.addEventListener('touchend', onEnd);
+        return () => {
+            el.removeEventListener('touchstart', onStart);
+            el.removeEventListener('touchmove', onMove);
+            el.removeEventListener('touchend', onEnd);
+        };
+    }, [sheetFullscreen]);
 
     // 使用者實際操作轉調時才存記憶（切歌的自動設定不經過這裡，避免誤存）。
     // functional updater 讀最新值，快速連點也不丟。
@@ -370,6 +438,15 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                                     A＋
                                 </button>
                             </div>
+                            <button
+                                type="button"
+                                className="sdp-sheet-fs-btn"
+                                aria-label="全螢幕看譜"
+                                title="全螢幕看譜（整個畫面都是吉他譜，可放大縮小）"
+                                onClick={() => setSheetFullscreen(true)}
+                            >
+                                ⛶ 全螢幕
+                            </button>
                         </div>
 
                         <div
@@ -474,6 +551,50 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                     </div>
                 )}
             </DialogContent>
+
+            {sheetFullscreen && createPortal(
+                <div className="sdp-fs" role="dialog" aria-label="全螢幕看譜">
+                    <div className="sdp-fs-bar">
+                        <div className="sdp-fs-title">
+                            <strong>{song.title}</strong>
+                            <span>{song.artist}</span>
+                        </div>
+                        <div className="sdp-fs-controls">
+                            <div className="sdp-sheet-mode" role="group" aria-label="和弦顯示模式">
+                                <button type="button" className={!showDegrees ? 'active' : ''} aria-pressed={!showDegrees} onClick={() => setShowDegrees(false)}>和弦</button>
+                                <button type="button" className={showDegrees ? 'active' : ''} aria-pressed={showDegrees} onClick={() => setShowDegrees(true)}>級數</button>
+                            </div>
+                            <div className="sdp-sheet-transpose" role="group" aria-label="轉調">
+                                <button type="button" className="sdp-sheet-transpose-btn" aria-label="降低半音" disabled={transposeSteps <= -11} onClick={() => changeTranspose((s) => s - 1)}>−</button>
+                                <span className="sdp-sheet-key" aria-live="polite"><strong>{view.key}</strong><small>{transposeSteps === 0 ? '原調' : (transposeSteps > 0 ? `+${transposeSteps}` : `${transposeSteps}`)}</small></span>
+                                <button type="button" className="sdp-sheet-transpose-btn" aria-label="升高半音" disabled={transposeSteps >= 11} onClick={() => changeTranspose((s) => s + 1)}>＋</button>
+                            </div>
+                            <div className="sdp-sheet-size" role="group" aria-label="縮放">
+                                <button type="button" aria-label="縮小" disabled={fsZoom <= 0.8} onClick={() => changeFsZoom(-0.15)}>A−</button>
+                                <button type="button" className="sdp-sheet-scale" aria-label="重設縮放" onClick={() => setFsZoom(1.3)}>{Math.round(fsZoom * 100)}%</button>
+                                <button type="button" aria-label="放大" disabled={fsZoom >= 3} onClick={() => changeFsZoom(0.15)}>A＋</button>
+                            </div>
+                            <button type="button" className="sdp-fs-close" aria-label="關閉全螢幕看譜" onClick={() => setSheetFullscreen(false)}>✕ 關閉</button>
+                        </div>
+                    </div>
+                    <div className="sdp-fs-scroll" ref={fsScrollRef}>
+                        <div className="sdp-lyrics sdp-fs-lyrics" style={{ '--sdp-sheet-font-scale': fsZoom } as React.CSSProperties}>
+                            {sheetView.lyrics.map((b, i) => (
+                                <div key={i} className={'sdp-lyr-block' + (b.chorus ? ' chorus' : '')}>
+                                    <div className="sdp-lyr-sec">[{b.sec}]</div>
+                                    {b.rows.map((r, j) => (
+                                        <div key={j} className="sdp-lyr-row">
+                                            <div className="sdp-lyr-chord">{r.chord}</div>
+                                            {r.line && <div className="sdp-lyr-line">{r.line}</div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>,
+                document.body,
+            )}
         </Dialog>
     );
 }

@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.21',
+        date: '2026-07-24',
+        items: [
+            '收藏歌曲的看譜頁新增「全螢幕看譜」，整個畫面都是吉他譜，可快速放大縮小（含雙指縮放）、即時轉調與和弦／級數切換，隨時一鍵切回。',
+            '全螢幕看譜時螢幕保持常亮，彈唱中不再自動鎖屏。',
+        ],
+    },
+    {
         version: '4.19.20',
         date: '2026-07-24',
         items: [

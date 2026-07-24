@@ -1722,7 +1722,7 @@
 /* ---------- 4. Lyrics ---------- */
 .sdp-sheet-controls {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
@@ -1731,6 +1731,21 @@
   border-radius: 8px;
   background: #fff;
 }
+.sdp-sheet-fs-btn {
+  min-width: 42px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--ed-accent);
+  border-radius: 6px;
+  background: var(--ed-accent);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sdp-sheet-fs-btn:hover { background: color-mix(in srgb, var(--ed-accent) 85%, #000); }
 .sdp-sheet-mode,
 .sdp-sheet-size,
 .sdp-sheet-transpose {
@@ -1845,6 +1860,98 @@
   border-radius: 0 4px 4px 0;
 }
 .sdp-lyr-block.chorus .sdp-lyr-line { font-weight: 700; }
+
+/* ---------- 4b. 全螢幕看譜（整個畫面都是吉他譜，可放大縮小） ---------- */
+body.sdp-fs-open { overflow: hidden; }
+.sdp-fs {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background: var(--ed-bg, #faf6ee);
+}
+.sdp-fs-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--ed-line);
+  background: #fff;
+}
+.sdp-fs-title { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.sdp-fs-title strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 20px;
+  color: var(--ed-ink-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sdp-fs-title span { font-size: 13px; color: var(--ed-ink-3); white-space: nowrap; }
+.sdp-fs-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* 沿用 sheet 控制列的按鈕外觀 */
+.sdp-fs-controls .sdp-sheet-mode button,
+.sdp-fs-controls .sdp-sheet-size button,
+.sdp-fs-controls .sdp-sheet-transpose button {
+  min-width: 42px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--ed-line);
+  border-radius: 6px;
+  background: var(--ed-paper);
+  color: var(--ed-ink-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sdp-fs-controls button.active {
+  border-color: var(--ed-accent);
+  background: var(--ed-accent);
+  color: #fff;
+}
+.sdp-fs-controls button:disabled { opacity: 0.35; cursor: not-allowed; }
+.sdp-fs-controls .sdp-sheet-scale { min-width: 58px; color: var(--ed-accent); }
+.sdp-fs-controls .sdp-sheet-transpose-btn { min-width: 36px; padding: 0; font-size: 18px; }
+.sdp-fs-close {
+  min-width: 62px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--ed-ink-1);
+  border-radius: 6px;
+  background: var(--ed-ink-1, #111);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sdp-fs-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px 16px 60px;
+  touch-action: pan-x pan-y;
+}
+.sdp-fs-lyrics {
+  max-width: 1100px;
+  margin: 0 auto;
+  border: none;
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  .sdp-sheet-controls { grid-template-columns: 1fr auto; }
+  .sdp-sheet-fs-btn { grid-column: 1 / -1; grid-row: 3; height: 42px; }
+  .sdp-fs-bar { padding: 8px 12px; gap: 8px; }
+  .sdp-fs-title strong { font-size: 17px; }
+  .sdp-fs-controls { gap: 6px; width: 100%; justify-content: space-between; }
+}
 
 /* ---------- 5. Notes pull-quote ---------- */
 .sdp-note {
