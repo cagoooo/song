@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.20',
+        date: '2026-07-24',
+        items: [
+            '修正在歌曲詳情頁按「點播這首」不會真的加票的問題，現在會確實寫入投票、歌單票數即時 +1 並記錄催歌履歷。',
+        ],
+    },
+    {
         version: '4.19.19',
         date: '2026-07-24',
         items: [

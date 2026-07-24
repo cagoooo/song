@@ -10,7 +10,7 @@ import { VoteHistoryButton } from "../components/VoteHistoryButton";
 import { SortSelector } from "../components/SortSelector";
 import { useSortMode } from "@/hooks/useSortMode";
 import { useComposingLevel, useComposingWhileTyping } from "@/lib/composingGuard";
-import { useComboCounter } from "@/hooks/useComboCounter";
+import { useComboCounter, broadcastVote } from "@/hooks/useComboCounter";
 import { ComboOverlay } from "../components/ComboOverlay";
 import { useDarkHorse } from "@/hooks/useDarkHorse";
 import { useMissedHypeReplay } from "@/hooks/useMissedHypeReplay";
@@ -75,7 +75,7 @@ const SongDetailModal = lazy(() =>
 import { motion, AnimatePresence } from "framer-motion";
 import { ShareButton } from "../components/ShareButton";
 import { AppLoading } from "@/components/AppLoading";
-import { subscribeSongs, type Song } from "@/lib/firestore";
+import { subscribeSongs, voteSong, getSessionId, type Song } from "@/lib/firestore";
 import { saveStageSongsCache } from "@/lib/stageCache";
 import { getActiveTenant } from "@/lib/firebase";
 import { buildSpaceStageUrl, getPostLogoutSpaceUrl } from "@/lib/spaceUrl";
@@ -243,7 +243,21 @@ export default function Home() {
     todayCount: voteTodayCount,
     todayUniqueCount: voteTodayUnique,
     clearHistory: clearVoteHistory,
+    addVote,
   } = useVoteHistory();
+
+  // 歌曲詳情頁「點播這首」的實際投票 — 與歌單投票同一條路徑
+  // （voteSong 寫 Firestore + 記錄催歌履歷 + 廣播連段動畫），
+  // 之前沒接 onVote 導致詳情頁點播只跳 toast、歌單票數不會 +1。
+  const handleDetailVote = useCallback(async (song: Song) => {
+    try {
+      await voteSong(song.id, getSessionId());
+      addVote({ songId: song.id, title: song.title, artist: song.artist });
+      broadcastVote(song.id, song.title, song.artist);
+    } catch {
+      toast({ title: '錯誤', description: '投票失敗，請稍後再試', variant: 'destructive' });
+    }
+  }, [addVote, toast]);
 
   const openStageMode = useCallback(() => {
     preloadStagePage();
@@ -1198,6 +1212,7 @@ export default function Home() {
             song={detailSong}
             allSongs={songs}
             onClose={() => setDetailSong(null)}
+            onVote={handleDetailVote}
             onSelectSimilar={(s) => setDetailSong(s)}
           />
         </Suspense>
