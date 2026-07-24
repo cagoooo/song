@@ -1863,8 +1863,10 @@
 
 /* ---------- 4b. 全螢幕看譜（整個畫面都是吉他譜，可放大縮小） ---------- */
 body.sdp-fs-open { overflow: hidden; }
+/* 渲染在 DialogContent 內（Radix content 帶 transform 會讓 position:fixed 相對它，
+   故用 absolute 填滿整個 dialog；dialog 本身已是 96vw×92vh 近滿版） */
 .sdp-fs {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 200;
   display: flex;

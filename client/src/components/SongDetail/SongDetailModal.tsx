@@ -1,7 +1,6 @@
 // 歌曲詳情頁 — Editorial 雜誌風全螢幕 modal
 // 設計來源：Claude Design handoff (jysVMA2ORq0BqZjZyW2p6Q)，sd-page.jsx
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import {
     Dialog, DialogContent, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -550,9 +549,10 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                         {toast}
                     </div>
                 )}
-            </DialogContent>
 
-            {sheetFullscreen && createPortal(
+                {/* 全螢幕看譜 — 必須渲染在 DialogContent 內部：Radix Dialog 用 RemoveScroll
+                    把 content 以外的捲動全鎖住，overlay 若 portal 到 body 會捲不動 */}
+                {sheetFullscreen && (
                 <div className="sdp-fs" role="dialog" aria-label="全螢幕看譜">
                     <div className="sdp-fs-bar">
                         <div className="sdp-fs-title">
@@ -592,9 +592,9 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                             ))}
                         </div>
                     </div>
-                </div>,
-                document.body,
-            )}
+                </div>
+                )}
+            </DialogContent>
         </Dialog>
     );
 }

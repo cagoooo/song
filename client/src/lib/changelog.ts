@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.22',
+        date: '2026-07-24',
+        items: [
+            '修正全螢幕看譜無法上下捲動、且點按鈕會誤關的問題，現在可正常捲動長譜、操作工具列不再跳出。',
+        ],
+    },
+    {
         version: '4.19.21',
         date: '2026-07-24',
         items: [
