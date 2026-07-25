@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.24',
+        date: '2026-07-24',
+        items: [
+            '首頁大標點擊直達的落點上移，會先看到「建議新歌」推薦按鈕再接可選歌單，跳轉更完整。',
+        ],
+    },
+    {
         version: '4.19.23',
         date: '2026-07-24',
         items: [

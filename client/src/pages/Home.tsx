@@ -445,7 +445,10 @@ export default function Home() {
     // （headless 隱藏分頁 rAF 暫停會讓 smooth 捲動看似不動 — 那是預覽環境
     //   限制不是 bug，真實可見分頁正常。驗證方式見 claude-preview-headless-verify-traps）
     requestAnimationFrame(() => {
-      document.getElementById('song-list-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // 落點含「建議新歌」推薦區（№ 01），再往下就是可選歌單
+      const target = document.getElementById('suggest-section')
+        ?? document.getElementById('song-list-section');
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }, []);
 
@@ -820,10 +823,11 @@ export default function Home() {
           >
             {/* Song suggestion section — editorial quote style */}
             <motion.div
+              id="suggest-section"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="lg:col-span-3"
+              className="lg:col-span-3 scroll-mt-4"
             >
               <div className="editorial-section-head">
                 <div className="h-title">
