@@ -195,7 +195,10 @@ const APPLE_MUSIC_STOREFRONT = 'tw';
  *
  * 註：YouTube 額外補「歌詞」是為了優先命中有字幕的演唱影片。
  */
-export function buildMusicServiceLinks(query: string): MusicServiceLink[] {
+export function buildMusicServiceLinks(
+    query: string,
+    opts?: { appleMusicSongUrl?: string | null },
+): MusicServiceLink[] {
     const q = query.trim();
     if (!q) return [];
     const encoded = encodeURIComponent(q);
@@ -204,7 +207,10 @@ export function buildMusicServiceLinks(query: string): MusicServiceLink[] {
         {
             id: 'applemusic',
             label: 'Apple Music',
-            url: `https://music.apple.com/${APPLE_MUSIC_STOREFRONT}/search?term=${encoded}`,
+            // 查得到確切的歌就直接開歌曲頁（iPhone 上 App 才吃得到）；
+            // 查不到就退回搜尋頁，至少還是會開到 Apple Music 的搜尋畫面
+            url: opts?.appleMusicSongUrl
+                || `https://music.apple.com/${APPLE_MUSIC_STOREFRONT}/search?term=${encoded}`,
         },
         { id: 'ytmusic', label: 'YouTube Music', url: `https://music.youtube.com/search?q=${encoded}` },
         {
@@ -213,4 +219,100 @@ export function buildMusicServiceLinks(query: string): MusicServiceLink[] {
             url: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${q} 歌詞`)}`,
         },
     ];
+}
+
+/**
+ * ── 為什麼還要多打一支 API 才能開 Apple Music ──────────────────────────
+ *
+ * iPhone / iPad 上，music.apple.com 的連結會被 Apple Music App 以 universal
+ * link 攔截。但 App 支援的路徑只有 playlist / song / album / station /
+ * profile / music-video —— `search` 不在其中。所以丟搜尋網址給它，App 會打開
+ * 「搜尋」分頁卻把 `?term=` 丟掉，使用者看到的是一個空的搜尋框（實機回報）。
+ * Apple 至今沒有 Spotify `spotify:search:` 那樣的搜尋 deep link。
+ *
+ * 解法：先用 Apple 公開的 iTunes Search API 把「歌名 歌手」換成真正的歌曲
+ * 連結（album/<id>?i=<song-id>，是 App 支援的路徑），按下去就直接到那首歌。
+ * 查不到、查失敗、被 CORS 擋 → 一律回 null，呼叫端自動退回搜尋網址，
+ * 也就是維持現狀，不會比現在更糟。
+ */
+const ITUNES_SEARCH_ENDPOINT = 'https://itunes.apple.com/search';
+
+/** 切掉歌名的版本後綴：「稻香 (Live)」→「稻香」、「借口 - Remastered」→「借口」 */
+function stripTrackNameSuffix(trackName: string): string {
+    const stripped = trackName
+        .replace(/\s*[(（[【][^)）\]】]*[)）\]】]\s*$/g, '')
+        .replace(/\s+-\s+.*$/, '')
+        .trim();
+    return stripped || trackName;
+}
+
+/** 比對用正規化：去大小寫、去空白與標點 */
+function normalizeForMatch(text: string): string {
+    return text
+        .toLowerCase()
+        .replace(/[\s\u3000]/g, '')
+        .replace(/[!-/:-@[-`{-~？！，。、《》「」『』（）·—–…]/g, '');
+}
+
+/**
+ * 這筆 iTunes 結果可信嗎？
+ *
+ * 關鍵字若是明確的「歌名 歌手」（最常見），歌名一定會出現在關鍵字裡 → 直接開歌曲頁。
+ * 但辨識不到歌名時我們會拿歌詞片段去搜，iTunes 仍會硬回一首八竿子打不著的歌；
+ * 那種情況寧可退回搜尋頁讓使用者自己挑，也不要把人直接丟到錯的歌。
+ */
+export function isConfidentAppleMusicMatch(
+    query: string,
+    trackName: string,
+    artistName: string,
+): boolean {
+    const q = normalizeForMatch(query);
+    // iTunes 的歌名常帶版本後綴（「稻香 (Live)」「借口 - Remastered」），
+    // 使用者搜的是乾淨歌名，先把後綴切掉才對得起來
+    const track = normalizeForMatch(stripTrackNameSuffix(trackName || ''));
+    const artist = normalizeForMatch(artistName || '');
+    if (!q || !track) return false;
+    if (!q.includes(track)) return false;
+    // 單字歌名（「瞬」「浪」）太容易誤中，要求歌手也對得上
+    if (track.length < 2) return Boolean(artist) && q.includes(artist);
+    return true;
+}
+
+/**
+ * 用 iTunes Search API 把搜尋關鍵字換成 Apple Music 的歌曲連結。
+ * 查不到 / 不夠有把握 / 網路或 CORS 失敗 → 回 null（呼叫端退回搜尋網址）。
+ */
+export async function lookupAppleMusicSongUrl(
+    query: string,
+    opts?: { signal?: AbortSignal },
+): Promise<string | null> {
+    const q = query.trim();
+    if (!q || typeof fetch !== 'function') return null;
+    const url =
+        `${ITUNES_SEARCH_ENDPOINT}?term=${encodeURIComponent(q)}`
+        + `&country=${APPLE_MUSIC_STOREFRONT}&media=music&entity=song&limit=1`;
+    try {
+        const resp = await fetch(url, { signal: opts?.signal });
+        if (!resp.ok) return null;
+        const data = (await resp.json()) as {
+            results?: { trackViewUrl?: unknown; trackName?: unknown; artistName?: unknown }[];
+        };
+        const track = data?.results?.[0];
+        const raw = typeof track?.trackViewUrl === 'string' ? track.trackViewUrl : '';
+        // 只信任 music.apple.com 的網址 —— 回應是外部資料，不能直接塞進 href
+        if (!raw.startsWith('https://music.apple.com/')) return null;
+        const trackName = typeof track?.trackName === 'string' ? track.trackName : '';
+        const artistName = typeof track?.artistName === 'string' ? track.artistName : '';
+        if (!isConfidentAppleMusicMatch(q, trackName, artistName)) return null;
+        try {
+            // 去掉 Apple 帶的追蹤參數 uo，網址乾淨一點
+            const parsed = new URL(raw);
+            parsed.searchParams.delete('uo');
+            return parsed.toString();
+        } catch {
+            return raw;
+        }
+    } catch {
+        return null;
+    }
 }

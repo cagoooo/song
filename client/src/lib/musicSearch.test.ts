@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
     cleanMusicSearchText,
     countCjk,
@@ -7,6 +7,8 @@ import {
     extractMusicSearchQueryFromAiText,
     buildMusicSearchQuery,
     buildMusicServiceLinks,
+    isConfidentAppleMusicMatch,
+    lookupAppleMusicSongUrl,
 } from './musicSearch';
 
 describe('cleanMusicSearchText', () => {
@@ -188,5 +190,134 @@ describe('buildMusicServiceLinks — 快速找音樂按鈕', () => {
             expect(carriesQuery, `${link.label} 的網址沒帶關鍵字：${link.url}`).toBe(true);
             expect(decodeURIComponent(link.url)).toContain('稻香');
         }
+    });
+});
+
+describe('buildMusicServiceLinks — 帶入查好的 Apple Music 歌曲連結', () => {
+    const SONG_URL = 'https://music.apple.com/tw/album/%E7%A8%BB%E9%A6%99/123?i=456';
+
+    it('有查到歌曲連結時，Apple Music 直接指向那首歌', () => {
+        const apple = buildMusicServiceLinks('稻香 周杰倫', { appleMusicSongUrl: SONG_URL })
+            .find((l) => l.id === 'applemusic');
+        expect(apple?.url).toBe(SONG_URL);
+    });
+
+    it('沒查到（null）時退回搜尋網址，不會比現在更糟', () => {
+        const apple = buildMusicServiceLinks('稻香 周杰倫', { appleMusicSongUrl: null })
+            .find((l) => l.id === 'applemusic');
+        expect(apple?.url).toBe(`https://music.apple.com/tw/search?term=${encodeURIComponent('稻香 周杰倫')}`);
+    });
+
+    it('歌曲連結不影響其他三個平台', () => {
+        const links = buildMusicServiceLinks('稻香 周杰倫', { appleMusicSongUrl: SONG_URL });
+        expect(links.find((l) => l.id === 'spotify')?.url).toContain('open.spotify.com');
+        expect(links.find((l) => l.id === 'ytmusic')?.url).toContain('music.youtube.com');
+        expect(links.find((l) => l.id === 'youtube')?.url).toContain('youtube.com/results');
+    });
+});
+
+describe('isConfidentAppleMusicMatch — 寧可退回搜尋頁也別開到錯的歌', () => {
+    it('明確的「歌名 歌手」→ 有把握', () => {
+        expect(isConfidentAppleMusicMatch('稻香 周杰倫', '稻香', '周杰倫')).toBe(true);
+    });
+
+    it('iTunes 歌名帶版本後綴時，切掉後綴仍對得起來', () => {
+        expect(isConfidentAppleMusicMatch('稻香 周杰倫', '稻香 (Live)', '周杰倫')).toBe(true);
+        expect(isConfidentAppleMusicMatch('借口 周杰倫', '借口 - Remastered', '周杰倫')).toBe(true);
+        expect(isConfidentAppleMusicMatch('稻香 周杰倫', '稻香【純音樂版】', '周杰倫')).toBe(true);
+    });
+
+    it('歌手名用英文譯名不影響判斷（歌名對上就算數）', () => {
+        expect(isConfidentAppleMusicMatch('稻香 周杰倫', '稻香', 'Jay Chou')).toBe(true);
+    });
+
+    it('切完後綴變空字串時不會誤判成對上', () => {
+        expect(isConfidentAppleMusicMatch('稻香 周杰倫', '(Live)', '周杰倫')).toBe(false);
+    });
+
+    it('拿歌詞片段去搜、iTunes 硬回一首不相干的歌 → 沒把握，退回搜尋頁', () => {
+        expect(isConfidentAppleMusicMatch('明明是春天我卻感到絕望', '不是這首', '某某人')).toBe(false);
+    });
+
+    it('單字歌名太容易誤中，要求歌手也對得上', () => {
+        expect(isConfidentAppleMusicMatch('瞬 鄭潤澤', '瞬', '鄭潤澤')).toBe(true);
+        expect(isConfidentAppleMusicMatch('瞬 鄭潤澤', '瞬', '別人')).toBe(false);
+    });
+
+    it('空值一律沒把握', () => {
+        expect(isConfidentAppleMusicMatch('', '稻香', '周杰倫')).toBe(false);
+        expect(isConfidentAppleMusicMatch('稻香 周杰倫', '', '')).toBe(false);
+    });
+});
+
+describe('lookupAppleMusicSongUrl — 失敗時一律回 null 讓呼叫端退回搜尋頁', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    const stubFetch = (impl: () => unknown) => vi.stubGlobal('fetch', vi.fn(impl));
+    const okJson = (body: unknown) => ({ ok: true, json: async () => body });
+
+    it('查到且有把握 → 回歌曲連結，並清掉 Apple 的追蹤參數 uo', async () => {
+        stubFetch(() => okJson({
+            results: [{
+                trackViewUrl: 'https://music.apple.com/tw/album/x/123?i=456&uo=4',
+                trackName: '稻香',
+                artistName: '周杰倫',
+            }],
+        }));
+        const url = await lookupAppleMusicSongUrl('稻香 周杰倫');
+        expect(url).toBe('https://music.apple.com/tw/album/x/123?i=456');
+    });
+
+    it('打去的網址帶了 storefront 與 entity=song', async () => {
+        const spy = vi.fn(() => okJson({ results: [] }));
+        vi.stubGlobal('fetch', spy);
+        await lookupAppleMusicSongUrl('稻香 周杰倫');
+        const called = String(spy.mock.calls[0][0]);
+        expect(called).toContain('itunes.apple.com/search');
+        expect(called).toContain('country=tw');
+        expect(called).toContain('entity=song');
+        expect(called).toContain(encodeURIComponent('稻香 周杰倫'));
+    });
+
+    it('沒有結果 → null', async () => {
+        stubFetch(() => okJson({ results: [] }));
+        expect(await lookupAppleMusicSongUrl('稻香 周杰倫')).toBeNull();
+    });
+
+    it('回傳的網址不是 music.apple.com → 不採信（外部資料不能直接塞進 href）', async () => {
+        stubFetch(() => okJson({
+            results: [{ trackViewUrl: 'javascript:alert(1)', trackName: '稻香', artistName: '周杰倫' }],
+        }));
+        expect(await lookupAppleMusicSongUrl('稻香 周杰倫')).toBeNull();
+    });
+
+    it('比對沒把握 → null', async () => {
+        stubFetch(() => okJson({
+            results: [{
+                trackViewUrl: 'https://music.apple.com/tw/album/x/1?i=2',
+                trackName: '完全不相干的歌',
+                artistName: '路人',
+            }],
+        }));
+        expect(await lookupAppleMusicSongUrl('明明是春天我卻感到絕望')).toBeNull();
+    });
+
+    it('HTTP 非 2xx → null', async () => {
+        stubFetch(() => ({ ok: false, json: async () => ({}) }));
+        expect(await lookupAppleMusicSongUrl('稻香 周杰倫')).toBeNull();
+    });
+
+    it('fetch 直接爆掉（離線 / CORS 被擋）→ null，不會往外丟例外', async () => {
+        stubFetch(() => { throw new TypeError('Failed to fetch'); });
+        await expect(lookupAppleMusicSongUrl('稻香 周杰倫')).resolves.toBeNull();
+    });
+
+    it('關鍵字為空 → 連打都不打', async () => {
+        const spy = vi.fn(() => okJson({ results: [] }));
+        vi.stubGlobal('fetch', spy);
+        expect(await lookupAppleMusicSongUrl('   ')).toBeNull();
+        expect(spy).not.toHaveBeenCalled();
     });
 });
