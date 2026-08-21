@@ -12,6 +12,7 @@ import {
     preferFlatForKey, isChordSymbol, chordToNashville, chordLineToNashville,
 } from '@/lib/transpose';
 import { getRememberedSteps, rememberSteps } from '@/lib/transposeMemory';
+import { buildMusicServiceLinks } from '@/lib/musicSearch';
 import { getFingerings } from './chordShapes';
 
 interface SongDetailModalProps {
@@ -578,15 +579,26 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                         </div>
                     </div>
                     <div className="sdp-fs-scroll" ref={fsScrollRef}>
-                        {/* 譜上方三顆快速搜尋按鈕 — 一鍵跳去平台播放這首歌 */}
+                        {/* 譜上方四顆快速搜尋按鈕 — 一鍵跳去平台播放這首歌。
+                            平台清單與 AI 辨識工具共用 buildMusicServiceLinks()，兩邊才不會走偏 */}
                         {(() => {
-                            const q = encodeURIComponent(`${song.title} ${song.artist}`.trim());
+                            const query = `${song.title} ${song.artist}`.trim();
+                            const links = buildMusicServiceLinks(query);
+                            if (!links.length) return null;
                             return (
-                                <div className="sdp-fs-music" aria-label={`搜尋音樂：${song.title} ${song.artist}`}>
+                                <div className="sdp-fs-music" aria-label={`搜尋音樂：${query}`}>
                                     <span className="sdp-fs-music-label">快速找音樂</span>
-                                    <a className="sdp-fs-music-link spotify" href={`https://open.spotify.com/search/${q}`} target="_blank" rel="noreferrer">Spotify</a>
-                                    <a className="sdp-fs-music-link ytmusic" href={`https://music.youtube.com/search?q=${q}`} target="_blank" rel="noreferrer">YouTube Music</a>
-                                    <a className="sdp-fs-music-link youtube" href={`https://www.youtube.com/results?search_query=${q}`} target="_blank" rel="noreferrer">YouTube</a>
+                                    {links.map((link) => (
+                                        <a
+                                            key={link.id}
+                                            className={`sdp-fs-music-link ${link.id}`}
+                                            href={link.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
+                                            {link.label}
+                                        </a>
+                                    ))}
                                 </div>
                             );
                         })()}

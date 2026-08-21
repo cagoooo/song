@@ -1982,7 +1982,7 @@ body.sdp-fs-open { overflow: hidden; }
   border: none;
   background: transparent;
 }
-/* 譜上方快速搜尋音樂三顆按鈕 */
+/* 譜上方快速搜尋音樂四顆按鈕 */
 .sdp-fs-music {
   max-width: 1100px;
   margin: 0 auto 16px;
@@ -2016,6 +2016,9 @@ body.sdp-fs-open { overflow: hidden; }
 }
 .sdp-fs-music-link.spotify { color: #1db954; }
 .sdp-fs-music-link.spotify:hover { background: #1db954; color: #fff; }
+/* Apple Music 取品牌漸層偏粉的那一端，才不會和兩顆 YouTube 紅撞色 */
+.sdp-fs-music-link.applemusic { color: #fc3c74; }
+.sdp-fs-music-link.applemusic:hover { background: #fc3c74; color: #fff; }
 .sdp-fs-music-link.ytmusic,
 .sdp-fs-music-link.youtube { color: #ff0033; }
 .sdp-fs-music-link.ytmusic:hover,
@@ -2023,7 +2026,14 @@ body.sdp-fs-open { overflow: hidden; }
 
 @media (max-width: 768px) {
   .sdp-fs-music-label { width: 100%; margin-bottom: 2px; }
-  .sdp-fs-music-link { flex: 1; justify-content: center; padding: 0 10px; }
+  /* 四顆按鈕排成整齊 2x2 —— 舊的 flex:1 會把四顆擠在同一列，
+     「YouTube Music」字就會撐破膠囊 */
+  .sdp-fs-music-link {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+    padding: 0 10px;
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 768px) {

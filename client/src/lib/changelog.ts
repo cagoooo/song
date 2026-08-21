@@ -13,7 +13,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         version: '4.19.25',
         date: '2026-08-21',
         items: [
-            'AI 辨識吉他譜後的「快速找音樂」新增 Apple Music 按鈕，Spotify／Apple Music／YouTube Music／YouTube 四大平台一鍵直達。',
+            '「快速找音樂」新增 Apple Music 按鈕，Spotify／Apple Music／YouTube Music／YouTube 四大平台一鍵直達；AI 辨識吉他譜後與收藏歌曲的全螢幕看譜兩邊都有。',
             '四顆平台按鈕的手機、平板版面同步調整：手機排成整齊兩排、平板起整排一次看完，不再需要左右滑。',
         ],
     },
