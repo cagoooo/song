@@ -9,6 +9,8 @@ import {
     buildMusicServiceLinks,
     isConfidentAppleMusicMatch,
     lookupAppleMusicSongUrl,
+    getValidArtist,
+    buildSongSearchQuery,
 } from './musicSearch';
 
 describe('cleanMusicSearchText', () => {
@@ -319,5 +321,89 @@ describe('lookupAppleMusicSongUrl — 失敗時一律回 null 讓呼叫端退回
         vi.stubGlobal('fetch', spy);
         expect(await lookupAppleMusicSongUrl('   ')).toBeNull();
         expect(spy).not.toHaveBeenCalled();
+    });
+});
+
+describe('佔位歌手不該進搜尋關鍵字 — 實機回報〈牧羊座的浪漫〉', () => {
+    it('歌手欄位留空時寫進資料庫的「不確定」會被濾掉', () => {
+        expect(buildSongSearchQuery('牧羊座的浪漫', '不確定')).toBe('牧羊座的浪漫');
+    });
+
+    it('其他佔位選項一樣濾掉', () => {
+        for (const placeholder of ['不確定', '多人翻唱', '經典老歌', '未知歌手']) {
+            expect(getValidArtist(placeholder)).toBe('');
+            expect(buildSongSearchQuery('稻香', placeholder)).toBe('稻香');
+        }
+    });
+
+    it('真的歌手名要保留', () => {
+        expect(buildSongSearchQuery('稻香', '周杰倫')).toBe('稻香 周杰倫');
+        expect(getValidArtist(' 周杰倫 ')).toBe('周杰倫');
+    });
+
+    it('空值 / undefined 不會炸，也不會留下多餘空白', () => {
+        expect(buildSongSearchQuery('稻香', undefined)).toBe('稻香');
+        expect(buildSongSearchQuery('稻香', '   ')).toBe('稻香');
+        expect(buildSongSearchQuery('', '周杰倫')).toBe('周杰倫');
+        expect(buildSongSearchQuery(null, null)).toBe('');
+    });
+
+    it('四個平台的網址都不會再被「不確定」污染', () => {
+        const query = buildSongSearchQuery('牧羊座的浪漫', '不確定');
+        for (const link of buildMusicServiceLinks(query)) {
+            expect(decodeURIComponent(link.url)).not.toContain('不確定');
+        }
+    });
+
+    it('buildMusicSearchQuery 的明確欄位路徑也濾掉佔位歌手', () => {
+        expect(buildMusicSearchQuery({ explicitTitle: '牧羊座的浪漫', explicitArtist: '不確定' }))
+            .toBe('牧羊座的浪漫');
+    });
+});
+
+describe('lookupAppleMusicSongUrl — 查不到時只用歌名再試一次', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    const okJson = (body: unknown) => ({ ok: true, json: async () => body });
+    const hit = (name: string) => okJson({
+        results: [{
+            trackViewUrl: 'https://music.apple.com/tw/album/x/1?i=2',
+            trackName: name,
+            artistName: 'Cosmos People',
+        }],
+    });
+
+    it('「歌名 歌手」查無結果 → 改用歌名再查一次就找到', async () => {
+        const spy = vi.fn()
+            .mockImplementationOnce(() => okJson({ results: [] }))
+            .mockImplementationOnce(() => hit('像狗一樣'));
+        vi.stubGlobal('fetch', spy);
+        const url = await lookupAppleMusicSongUrl('像狗一樣 宇宙人', { fallbackQuery: '像狗一樣' });
+        expect(url).toBe('https://music.apple.com/tw/album/x/1?i=2');
+        expect(spy).toHaveBeenCalledTimes(2);
+        expect(String(spy.mock.calls[1][0])).toContain(encodeURIComponent('像狗一樣'));
+    });
+
+    it('第一次就查到就不會多打第二次', async () => {
+        const spy = vi.fn(() => hit('像狗一樣'));
+        vi.stubGlobal('fetch', spy);
+        await lookupAppleMusicSongUrl('像狗一樣 宇宙人', { fallbackQuery: '像狗一樣' });
+        expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it('fallback 和主要關鍵字一樣時不重複打', async () => {
+        const spy = vi.fn(() => okJson({ results: [] }));
+        vi.stubGlobal('fetch', spy);
+        await lookupAppleMusicSongUrl('牧羊座的浪漫', { fallbackQuery: '牧羊座的浪漫' });
+        expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    it('沒給 fallback 時維持只查一次', async () => {
+        const spy = vi.fn(() => okJson({ results: [] }));
+        vi.stubGlobal('fetch', spy);
+        await lookupAppleMusicSongUrl('稻香 周杰倫');
+        expect(spy).toHaveBeenCalledTimes(1);
     });
 });

@@ -10,7 +10,11 @@ import { lookupAppleMusicSongUrl } from '@/lib/musicSearch';
  *
  * 查不到 / 失敗 → 維持 null，呼叫端自然退回搜尋網址，不會比現在更糟。
  */
-export function useAppleMusicSongUrl(query: string, enabled = true): string | null {
+export function useAppleMusicSongUrl(
+    query: string,
+    enabled = true,
+    fallbackQuery = '',
+): string | null {
     const [songUrl, setSongUrl] = useState<string | null>(null);
 
     useEffect(() => {
@@ -22,7 +26,10 @@ export function useAppleMusicSongUrl(query: string, enabled = true): string | nu
         // 關鍵字會隨使用者打字（歌名 / 歌手欄位）一直變，先等他停手再查
         const controller = new AbortController();
         const timer = window.setTimeout(() => {
-            void lookupAppleMusicSongUrl(q, { signal: controller.signal }).then((url) => {
+            void lookupAppleMusicSongUrl(q, {
+                signal: controller.signal,
+                fallbackQuery,
+            }).then((url) => {
                 if (!controller.signal.aborted) setSongUrl(url);
             });
         }, 400);
@@ -30,7 +37,7 @@ export function useAppleMusicSongUrl(query: string, enabled = true): string | nu
             window.clearTimeout(timer);
             controller.abort();
         };
-    }, [enabled, query]);
+    }, [enabled, fallbackQuery, query]);
 
     return songUrl;
 }
