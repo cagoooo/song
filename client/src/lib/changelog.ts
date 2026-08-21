@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.26',
+        date: '2026-08-21',
+        items: [
+            '修正 Apple Music 快速搜尋按鈕按下去只跳到首頁、沒帶關鍵字的問題，現在會直接開啟這首歌的搜尋結果。',
+        ],
+    },
+    {
         version: '4.19.25',
         date: '2026-08-21',
         items: [

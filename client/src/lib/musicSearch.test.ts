@@ -135,11 +135,13 @@ describe('buildMusicServiceLinks — 快速找音樂按鈕', () => {
         expect(links.map((l) => l.label)).toEqual(['Spotify', 'Apple Music', 'YouTube Music', 'YouTube']);
     });
 
-    it('Apple Music 指向不帶國別的搜尋頁，關鍵字有做 URL 編碼', () => {
+    // 回歸：不帶國別的 https://music.apple.com/search?term=… 會被 Apple 302 去補國別，
+    // 而那次轉址把 ?term= 丟掉，使用者只會看到 Apple Music 首頁、沒有搜尋結果（實機回報）
+    it('Apple Music 一定要帶 storefront 國別，關鍵字才不會在轉址時被丟掉', () => {
         const apple = buildMusicServiceLinks('稻香 周杰倫').find((l) => l.id === 'applemusic');
-        expect(apple?.url).toBe(`https://music.apple.com/search?term=${encodeURIComponent('稻香 周杰倫')}`);
-        // 寫死 /tw 會讓海外使用者被導去錯的 storefront
-        expect(apple?.url).not.toContain('/tw/');
+        expect(apple?.url).toBe(`https://music.apple.com/tw/search?term=${encodeURIComponent('稻香 周杰倫')}`);
+        // 路徑上必須有兩碼國別，不能退回 music.apple.com/search
+        expect(apple?.url).toMatch(/^https:\/\/music\.apple\.com\/[a-z]{2}\/search\?term=/);
     });
 
     it('其他三個平台的網址維持原本行為（YouTube 仍補「歌詞」）', () => {
@@ -160,7 +162,7 @@ describe('buildMusicServiceLinks — 快速找音樂按鈕', () => {
 
     it('會先修掉關鍵字頭尾空白再編碼', () => {
         const apple = buildMusicServiceLinks('  應該 王菲  ').find((l) => l.id === 'applemusic');
-        expect(apple?.url).toBe(`https://music.apple.com/search?term=${encodeURIComponent('應該 王菲')}`);
+        expect(apple?.url).toBe(`https://music.apple.com/tw/search?term=${encodeURIComponent('應該 王菲')}`);
     });
 
     it('特殊字元（&、#）不會破壞網址', () => {
@@ -175,5 +177,16 @@ describe('buildMusicServiceLinks — 快速找音樂按鈕', () => {
         const query = buildMusicSearchQuery({ aiText: '歌名：應該\n歌手：王菲' });
         const apple = buildMusicServiceLinks(query).find((l) => l.id === 'applemusic');
         expect(apple?.url).toContain(encodeURIComponent('應該 王菲'));
+    });
+
+    it('每個平台的網址都真的把關鍵字帶進 query，不會只剩首頁', () => {
+        const links = buildMusicServiceLinks('稻香 周杰倫');
+        for (const link of links) {
+            const url = new URL(link.url);
+            const carriesQuery =
+                url.search.length > 1 || url.pathname.replace(/^\/+|\/+$/g, '').split('/').length > 1;
+            expect(carriesQuery, `${link.label} 的網址沒帶關鍵字：${link.url}`).toBe(true);
+            expect(decodeURIComponent(link.url)).toContain('稻香');
+        }
     });
 });
