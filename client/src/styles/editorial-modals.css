@@ -784,9 +784,24 @@
   justify-content: flex-end;
   margin-top: 8px;
 }
+/* 全螢幕工具列的那一組：維持單列，放不下就水平捲動 —
+   四顆平台按鈕若換行會把工具列撐高、吃掉譜面高度（平板最明顯）。 */
 .ttm-music-search-fullscreen {
   flex: 0 1 auto;
+  flex-wrap: nowrap;
   justify-content: flex-end;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.ttm-music-search-fullscreen::-webkit-scrollbar {
+  display: none;
+}
+.ttm-music-search-fullscreen > * {
+  flex: 0 0 auto;
 }
 .ttm-music-search span {
   font-weight: 700;
@@ -813,6 +828,13 @@
   border-color: #1db954;
   color: #0f7a38;
 }
+/* Apple Music 取品牌漸層偏粉的那一端 —— 若用純紅會和下面兩顆 YouTube
+   紅撞色，四顆並排時掃視不出差別 */
+.ttm-music-link.applemusic {
+  border-color: #fc3c74;
+  color: #c01356;
+}
+.ttm-music-link.ytmusic,
 .ttm-music-link.youtube {
   border-color: #ff0033;
   color: #c40026;
@@ -1143,6 +1165,18 @@
   }
   .ttm-fullscreen-actions > .ttm-fullscreen-btn.primary {
     grid-column: 3;
+  }
+  /* 平板：把「字級 / 畫面」文字標籤讓出來（按鈕本身 A－ A＋ － ＋ 已自明），
+     並收緊平台按鈕內距 —— 讓四顆快速找音樂按鈕在 820px 起就能整排看到，
+     不必左右滑。與 ≤768px 手機端的處理一致。 */
+  .ttm-fullscreen-control-label {
+    display: none;
+  }
+  .ttm-music-search-fullscreen {
+    letter-spacing: 0.04em;
+  }
+  .ttm-music-search-fullscreen .ttm-music-link {
+    padding: 0 8px;
   }
 }
 .ttm-fullscreen-scroll {
@@ -1582,8 +1616,10 @@
   .ttm-music-search-fullscreen .ttm-music-link {
     flex: 0 0 auto;
     min-height: 34px;
-    padding: 0 8px;
-    font-size: 11px;
+    /* 收緊到 6px / 10px：四顆平台按鈕在 375px 以上的手機都能整排看到，
+       不必左右滑就找得到 Apple Music 與 YouTube（觸控高度維持 34px 不變） */
+    padding: 0 6px;
+    font-size: 10px;
   }
   /* 字級與縮放各佔半列、並排一行，不額外增加工具列高度 */
   .ttm-fullscreen-font,
@@ -1946,7 +1982,7 @@ body.sdp-fs-open { overflow: hidden; }
   border: none;
   background: transparent;
 }
-/* 譜上方快速搜尋音樂三顆按鈕 */
+/* 譜上方快速搜尋音樂四顆按鈕 */
 .sdp-fs-music {
   max-width: 1100px;
   margin: 0 auto 16px;
@@ -1980,6 +2016,9 @@ body.sdp-fs-open { overflow: hidden; }
 }
 .sdp-fs-music-link.spotify { color: #1db954; }
 .sdp-fs-music-link.spotify:hover { background: #1db954; color: #fff; }
+/* Apple Music 取品牌漸層偏粉的那一端，才不會和兩顆 YouTube 紅撞色 */
+.sdp-fs-music-link.applemusic { color: #fc3c74; }
+.sdp-fs-music-link.applemusic:hover { background: #fc3c74; color: #fff; }
 .sdp-fs-music-link.ytmusic,
 .sdp-fs-music-link.youtube { color: #ff0033; }
 .sdp-fs-music-link.ytmusic:hover,
@@ -1987,7 +2026,14 @@ body.sdp-fs-open { overflow: hidden; }
 
 @media (max-width: 768px) {
   .sdp-fs-music-label { width: 100%; margin-bottom: 2px; }
-  .sdp-fs-music-link { flex: 1; justify-content: center; padding: 0 10px; }
+  /* 四顆按鈕排成整齊 2x2 —— 舊的 flex:1 會把四顆擠在同一列，
+     「YouTube Music」字就會撐破膠囊 */
+  .sdp-fs-music-link {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+    padding: 0 10px;
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 768px) {

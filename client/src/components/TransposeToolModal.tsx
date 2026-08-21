@@ -18,7 +18,7 @@ import {
 import { getRememberedSteps, rememberSteps, sheetMemoryKey } from '@/lib/transposeMemory';
 import { buildChartFromSheet } from '@/lib/songChart';
 import { addSongWithChart, updateSongChart, type Song } from '@/lib/firestore';
-import { extractMusicSearchQueryFromAiText, pickLyricSearchPhrase } from '@/lib/musicSearch';
+import { buildMusicServiceLinks, extractMusicSearchQueryFromAiText, pickLyricSearchPhrase } from '@/lib/musicSearch';
 
 const HAS_CJK_RE = /[一-鿿぀-ヿ가-힯]/;
 
@@ -864,37 +864,24 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false, sourceSon
 
     const renderMusicSearchButtons = (variant: 'result' | 'fullscreen') => {
         const query = musicSearchQueryFromAi.trim() || musicSearchQuery.trim();
-        if (!query) return null;
-        const encoded = encodeURIComponent(query);
+        const links = buildMusicServiceLinks(query);
+        if (!links.length) return null;
         const label = variant === 'fullscreen' ? '搜尋音樂' : '快速找音樂';
 
         return (
             <div className={`ttm-music-search ttm-music-search-${variant}`} aria-label={`${label}：${query}`}>
                 <span>{label}</span>
-                <a
-                    href={`https://open.spotify.com/search/${encoded}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="ttm-music-link spotify"
-                >
-                    Spotify
-                </a>
-                <a
-                    href={`https://music.youtube.com/search?q=${encoded}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="ttm-music-link youtube"
-                >
-                    YouTube Music
-                </a>
-                <a
-                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${query} 歌詞`)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="ttm-music-link youtube"
-                >
-                    YouTube
-                </a>
+                {links.map((link) => (
+                    <a
+                        key={link.id}
+                        href={link.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`ttm-music-link ${link.id}`}
+                    >
+                        {link.label}
+                    </a>
+                ))}
             </div>
         );
     };
