@@ -177,12 +177,23 @@ export interface MusicServiceLink {
 }
 
 /**
+ * Apple Music 的搜尋網址一定要帶 storefront（國別）。
+ *
+ * 踩過的雷：曾經用不帶國別的 `https://music.apple.com/search?term=…`，想說讓
+ * Apple 自己依使用者帳號導到對的商店。結果 Apple 會先 302 去補上國別，
+ * 而那次轉址會把 `?term=` 整個丟掉 —— 使用者按下去只會看到 Apple Music 首頁，
+ * 搜尋關鍵字完全沒帶進去（實機回報）。
+ *
+ * 帶了國別就不會被轉址、關鍵字保得住；已登入其他地區商店的使用者，Apple 會
+ * 自動把他導到自己商店的對應頁面，所以寫死 tw 不會害到海外使用者。
+ */
+const APPLE_MUSIC_STOREFRONT = 'tw';
+
+/**
  * 依搜尋關鍵字組出各平台的搜尋網址。
  * 關鍵字為空 → 回傳空陣列（呼叫端據此整組不渲染）。
  *
- * 註：Apple Music 用不帶國別的 /search，讓 Apple 依使用者帳號自動導到所在
- * 地區的 storefront（寫死 /tw 會讓海外使用者被導去錯的商店）。
- * YouTube 額外補「歌詞」是為了優先命中有字幕的演唱影片。
+ * 註：YouTube 額外補「歌詞」是為了優先命中有字幕的演唱影片。
  */
 export function buildMusicServiceLinks(query: string): MusicServiceLink[] {
     const q = query.trim();
@@ -190,7 +201,11 @@ export function buildMusicServiceLinks(query: string): MusicServiceLink[] {
     const encoded = encodeURIComponent(q);
     return [
         { id: 'spotify', label: 'Spotify', url: `https://open.spotify.com/search/${encoded}` },
-        { id: 'applemusic', label: 'Apple Music', url: `https://music.apple.com/search?term=${encoded}` },
+        {
+            id: 'applemusic',
+            label: 'Apple Music',
+            url: `https://music.apple.com/${APPLE_MUSIC_STOREFRONT}/search?term=${encoded}`,
+        },
         { id: 'ytmusic', label: 'YouTube Music', url: `https://music.youtube.com/search?q=${encoded}` },
         {
             id: 'youtube',
