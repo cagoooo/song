@@ -12,7 +12,7 @@ import {
     preferFlatForKey, isChordSymbol, chordToNashville, chordLineToNashville,
 } from '@/lib/transpose';
 import { getRememberedSteps, rememberSteps } from '@/lib/transposeMemory';
-import { buildMusicServiceLinks } from '@/lib/musicSearch';
+import { buildMusicServiceLinks, buildSongSearchQuery } from '@/lib/musicSearch';
 import { useAppleMusicSongUrl } from '@/hooks/useAppleMusicSongUrl';
 import { getFingerings } from './chordShapes';
 
@@ -40,8 +40,13 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
     /** 全螢幕看譜的縮放倍率（0.8 ~ 3.0），與行內字級獨立 */
     const [fsZoom, setFsZoom] = useState(1.3);
     /** 快速找音樂的關鍵字 + 先查好的 Apple Music 歌曲連結（只有全螢幕看譜會用到） */
-    const musicSearchQuery = song ? `${song.title} ${song.artist}`.trim() : '';
-    const appleMusicSongUrl = useAppleMusicSongUrl(musicSearchQuery, sheetFullscreen);
+    // 歌手可能是「不確定」這種佔位字串，buildSongSearchQuery 會濾掉
+    const musicSearchQuery = song ? buildSongSearchQuery(song.title, song.artist) : '';
+    const appleMusicSongUrl = useAppleMusicSongUrl(
+        musicSearchQuery,
+        sheetFullscreen,
+        song?.title?.trim() || '',
+    );
     const fsZoomRef = useRef(fsZoom);
     const fsScrollRef = useRef<HTMLDivElement>(null);
     const btnRef = useRef<HTMLButtonElement>(null);

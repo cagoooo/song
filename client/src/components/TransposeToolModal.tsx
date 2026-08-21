@@ -18,7 +18,7 @@ import {
 import { getRememberedSteps, rememberSteps, sheetMemoryKey } from '@/lib/transposeMemory';
 import { buildChartFromSheet } from '@/lib/songChart';
 import { addSongWithChart, updateSongChart, type Song } from '@/lib/firestore';
-import { buildMusicServiceLinks, extractMusicSearchQueryFromAiText, pickLyricSearchPhrase } from '@/lib/musicSearch';
+import { buildMusicServiceLinks, buildSongSearchQuery, extractMusicSearchQueryFromAiText, pickLyricSearchPhrase } from '@/lib/musicSearch';
 import { useAppleMusicSongUrl } from '@/hooks/useAppleMusicSongUrl';
 
 const HAS_CJK_RE = /[一-鿿぀-ヿ가-힯]/;
@@ -852,20 +852,25 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false, sourceSon
         setSaveResult(null);
     }, [isOpen, sourceSong?.artist, sourceSong?.id, sourceSong?.kaiNote, sourceSong?.notes, sourceSong?.title]);
     const musicSearchQuery = useMemo(() => {
-        const explicit = [saveTitle.trim(), saveArtist.trim()].filter(Boolean).join(' ');
+        // 歌手欄位可能帶著「不確定」這種佔位字串（從既有歌曲帶入時），要濾掉
+        const explicit = buildSongSearchQuery(saveTitle, saveArtist);
         if (explicit) return explicit;
         return pickLyricSearchPhrase(output || input);
     }, [input, output, saveArtist, saveTitle]);
 
     const musicSearchQueryFromAi = useMemo(() => {
-        const explicit = [saveTitle.trim(), saveArtist.trim()].filter(Boolean).join(' ');
+        const explicit = buildSongSearchQuery(saveTitle, saveArtist);
         if (explicit) return explicit;
         return extractMusicSearchQueryFromAiText(aiRecognizedText || input);
     }, [aiRecognizedText, input, saveArtist, saveTitle]);
 
     // 有結果才需要這排按鈕；沒有就別去打 iTunes API
     const effectiveMusicQuery = musicSearchQueryFromAi.trim() || musicSearchQuery.trim();
-    const appleMusicSongUrl = useAppleMusicSongUrl(effectiveMusicQuery, isOpen && Boolean(output));
+    const appleMusicSongUrl = useAppleMusicSongUrl(
+        effectiveMusicQuery,
+        isOpen && Boolean(output),
+        saveTitle.trim(),
+    );
 
     const renderMusicSearchButtons = (variant: 'result' | 'fullscreen') => {
         const query = effectiveMusicQuery;

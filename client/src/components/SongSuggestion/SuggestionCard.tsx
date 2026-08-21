@@ -3,6 +3,7 @@ import { memo, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { getValidArtist } from '@/lib/musicSearch';
 import {
     Tooltip,
     TooltipContent,
@@ -47,16 +48,7 @@ const formatFirebaseDate = (timestamp: any): string => {
     }
 };
 
-// 不應加入搜尋的歌手選項
-const EXCLUDED_ARTISTS = ['不確定', '多人翻唱', '經典老歌', '未知歌手'];
-
-// 取得有效的歌手名稱（排除預設選項）
-const getValidArtist = (artist: string | undefined): string => {
-    if (!artist || EXCLUDED_ARTISTS.includes(artist)) {
-        return '';
-    }
-    return artist;
-};
+// 「不應加入搜尋的歌手選項」清單已抽到 @/lib/musicSearch（快速找音樂也要用同一份）
 
 const generateGuitarTabsUrl = (song: SongSuggestionType) => {
     const artist = getValidArtist(song.artist);

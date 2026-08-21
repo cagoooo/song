@@ -10,6 +10,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.28',
+        date: '2026-08-21',
+        items: [
+            '修正歌手是「不確定」的歌，快速找音樂會把「不確定」三個字一起拿去搜、四個平台都找不到的問題。',
+            'Apple Music 用「歌名 歌手」查不到時，會自動只用歌名再試一次，命中率更高。',
+        ],
+    },
+    {
         version: '4.19.27',
         date: '2026-08-21',
         items: [

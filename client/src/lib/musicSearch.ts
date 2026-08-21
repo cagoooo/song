@@ -155,15 +155,37 @@ export function buildMusicSearchQuery(opts: {
     aiText?: string;
     sheet?: string;
 }): string {
-    const explicit = [opts.explicitTitle?.trim(), opts.explicitArtist?.trim()]
-        .filter(Boolean)
-        .join(' ');
+    const explicit = buildSongSearchQuery(opts.explicitTitle, opts.explicitArtist);
     if (explicit) return explicit;
 
     const fromAi = extractMusicSearchQueryFromAiText(opts.aiText || '');
     if (fromAi) return fromAi;
 
     return pickLyricSearchPhrase(opts.sheet || '');
+}
+
+/**
+ * 這些不是歌手名，是歌手欄位留空時寫進資料庫的佔位字串
+ * （見 firestore/songs.ts、suggestions.ts 的 `artist.trim() || '不確定'`）。
+ *
+ * 實機回報：〈牧羊座的浪漫〉的歌手是「不確定」，結果四個平台都拿
+ * 「牧羊座的浪漫 不確定」去搜 —— iTunes 查不到、Spotify / YouTube 也被這三個
+ * 字污染。這種佔位字串一律不要進搜尋關鍵字。
+ */
+export const PLACEHOLDER_ARTISTS = ['不確定', '多人翻唱', '經典老歌', '未知歌手'];
+
+/** 取得可用來搜尋的歌手名 — 佔位字串一律當成「沒有歌手」 */
+export function getValidArtist(artist: string | undefined | null): string {
+    const a = (artist || '').trim();
+    return !a || PLACEHOLDER_ARTISTS.includes(a) ? '' : a;
+}
+
+/** 由歌名 + 歌手組出搜尋關鍵字（自動濾掉佔位歌手） */
+export function buildSongSearchQuery(
+    title: string | undefined | null,
+    artist?: string | undefined | null,
+): string {
+    return [(title || '').trim(), getValidArtist(artist)].filter(Boolean).join(' ');
 }
 
 /**
@@ -284,15 +306,25 @@ export function isConfidentAppleMusicMatch(
  */
 export async function lookupAppleMusicSongUrl(
     query: string,
-    opts?: { signal?: AbortSignal },
+    opts?: { signal?: AbortSignal; fallbackQuery?: string },
 ): Promise<string | null> {
+    const primary = await lookupOnce(query, opts?.signal);
+    if (primary) return primary;
+    // 「歌名 歌手」查不到時，用只有歌名再試一次 —— iTunes 收錄的歌手名常和我們
+    // 存的不一樣（英文團名、Feat. 標法），只用歌名反而找得到
+    const fallback = (opts?.fallbackQuery || '').trim();
+    if (fallback && fallback !== query.trim()) return lookupOnce(fallback, opts?.signal);
+    return null;
+}
+
+async function lookupOnce(query: string, signal?: AbortSignal): Promise<string | null> {
     const q = query.trim();
     if (!q || typeof fetch !== 'function') return null;
     const url =
         `${ITUNES_SEARCH_ENDPOINT}?term=${encodeURIComponent(q)}`
         + `&country=${APPLE_MUSIC_STOREFRONT}&media=music&entity=song&limit=1`;
     try {
-        const resp = await fetch(url, { signal: opts?.signal });
+        const resp = await fetch(url, { signal });
         if (!resp.ok) return null;
         const data = (await resp.json()) as {
             results?: { trackViewUrl?: unknown; trackName?: unknown; artistName?: unknown }[];
