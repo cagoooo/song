@@ -19,6 +19,7 @@ import { getRememberedSteps, rememberSteps, sheetMemoryKey } from '@/lib/transpo
 import { buildChartFromSheet } from '@/lib/songChart';
 import { addSongWithChart, updateSongChart, type Song } from '@/lib/firestore';
 import { buildMusicServiceLinks, extractMusicSearchQueryFromAiText, pickLyricSearchPhrase } from '@/lib/musicSearch';
+import { useAppleMusicSongUrl } from '@/hooks/useAppleMusicSongUrl';
 
 const HAS_CJK_RE = /[一-鿿぀-ヿ가-힯]/;
 
@@ -862,9 +863,13 @@ export function TransposeToolModal({ isOpen, onClose, isAdmin = false, sourceSon
         return extractMusicSearchQueryFromAiText(aiRecognizedText || input);
     }, [aiRecognizedText, input, saveArtist, saveTitle]);
 
+    // 有結果才需要這排按鈕；沒有就別去打 iTunes API
+    const effectiveMusicQuery = musicSearchQueryFromAi.trim() || musicSearchQuery.trim();
+    const appleMusicSongUrl = useAppleMusicSongUrl(effectiveMusicQuery, isOpen && Boolean(output));
+
     const renderMusicSearchButtons = (variant: 'result' | 'fullscreen') => {
-        const query = musicSearchQueryFromAi.trim() || musicSearchQuery.trim();
-        const links = buildMusicServiceLinks(query);
+        const query = effectiveMusicQuery;
+        const links = buildMusicServiceLinks(query, { appleMusicSongUrl });
         if (!links.length) return null;
         const label = variant === 'fullscreen' ? '搜尋音樂' : '快速找音樂';
 

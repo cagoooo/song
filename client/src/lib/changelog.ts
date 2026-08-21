@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.27',
+        date: '2026-08-21',
+        items: [
+            'Apple Music 按鈕在 iPhone／iPad 上改成直接跳到那首歌 —— 先查到歌曲再開，不用再自己打關鍵字；查不到才退回搜尋頁。',
+        ],
+    },
+    {
         version: '4.19.26',
         date: '2026-08-21',
         items: [

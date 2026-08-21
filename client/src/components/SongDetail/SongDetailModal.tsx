@@ -13,6 +13,7 @@ import {
 } from '@/lib/transpose';
 import { getRememberedSteps, rememberSteps } from '@/lib/transposeMemory';
 import { buildMusicServiceLinks } from '@/lib/musicSearch';
+import { useAppleMusicSongUrl } from '@/hooks/useAppleMusicSongUrl';
 import { getFingerings } from './chordShapes';
 
 interface SongDetailModalProps {
@@ -38,6 +39,9 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
     const [sheetFullscreen, setSheetFullscreen] = useState(false);
     /** 全螢幕看譜的縮放倍率（0.8 ~ 3.0），與行內字級獨立 */
     const [fsZoom, setFsZoom] = useState(1.3);
+    /** 快速找音樂的關鍵字 + 先查好的 Apple Music 歌曲連結（只有全螢幕看譜會用到） */
+    const musicSearchQuery = song ? `${song.title} ${song.artist}`.trim() : '';
+    const appleMusicSongUrl = useAppleMusicSongUrl(musicSearchQuery, sheetFullscreen);
     const fsZoomRef = useRef(fsZoom);
     const fsScrollRef = useRef<HTMLDivElement>(null);
     const btnRef = useRef<HTMLButtonElement>(null);
@@ -582,8 +586,8 @@ export function SongDetailModal({ song, allSongs = [], onClose, onVote, onSelect
                         {/* 譜上方四顆快速搜尋按鈕 — 一鍵跳去平台播放這首歌。
                             平台清單與 AI 辨識工具共用 buildMusicServiceLinks()，兩邊才不會走偏 */}
                         {(() => {
-                            const query = `${song.title} ${song.artist}`.trim();
-                            const links = buildMusicServiceLinks(query);
+                            const query = musicSearchQuery;
+                            const links = buildMusicServiceLinks(query, { appleMusicSongUrl });
                             if (!links.length) return null;
                             return (
                                 <div className="sdp-fs-music" aria-label={`搜尋音樂：${query}`}>
