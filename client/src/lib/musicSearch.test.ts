@@ -6,6 +6,7 @@ import {
     pickLyricSearchPhrase,
     extractMusicSearchQueryFromAiText,
     buildMusicSearchQuery,
+    buildMusicServiceLinks,
 } from './musicSearch';
 
 describe('cleanMusicSearchText', () => {
@@ -124,5 +125,55 @@ describe('buildMusicSearchQuery — 優先序', () => {
     it('都沒有時退回譜面歌詞句', () => {
         const q = buildMusicSearchQuery({ sheet: '[前奏] X2 等2拍\n明明是春天我卻感到絕望' });
         expect(q).toContain('明明是春天');
+    });
+});
+
+describe('buildMusicServiceLinks — 快速找音樂按鈕', () => {
+    it('四個平台都在，且順序固定（Spotify → Apple Music → YouTube Music → YouTube）', () => {
+        const links = buildMusicServiceLinks('稻香 周杰倫');
+        expect(links.map((l) => l.id)).toEqual(['spotify', 'applemusic', 'ytmusic', 'youtube']);
+        expect(links.map((l) => l.label)).toEqual(['Spotify', 'Apple Music', 'YouTube Music', 'YouTube']);
+    });
+
+    it('Apple Music 指向不帶國別的搜尋頁，關鍵字有做 URL 編碼', () => {
+        const apple = buildMusicServiceLinks('稻香 周杰倫').find((l) => l.id === 'applemusic');
+        expect(apple?.url).toBe(`https://music.apple.com/search?term=${encodeURIComponent('稻香 周杰倫')}`);
+        // 寫死 /tw 會讓海外使用者被導去錯的 storefront
+        expect(apple?.url).not.toContain('/tw/');
+    });
+
+    it('其他三個平台的網址維持原本行為（YouTube 仍補「歌詞」）', () => {
+        const links = buildMusicServiceLinks('稻香 周杰倫');
+        const url = (id: string) => links.find((l) => l.id === id)?.url ?? '';
+        const q = encodeURIComponent('稻香 周杰倫');
+        expect(url('spotify')).toBe(`https://open.spotify.com/search/${q}`);
+        expect(url('ytmusic')).toBe(`https://music.youtube.com/search?q=${q}`);
+        expect(url('youtube')).toBe(
+            `https://www.youtube.com/results?search_query=${encodeURIComponent('稻香 周杰倫 歌詞')}`,
+        );
+    });
+
+    it('關鍵字為空或只有空白時整組不渲染', () => {
+        expect(buildMusicServiceLinks('')).toEqual([]);
+        expect(buildMusicServiceLinks('   ')).toEqual([]);
+    });
+
+    it('會先修掉關鍵字頭尾空白再編碼', () => {
+        const apple = buildMusicServiceLinks('  應該 王菲  ').find((l) => l.id === 'applemusic');
+        expect(apple?.url).toBe(`https://music.apple.com/search?term=${encodeURIComponent('應該 王菲')}`);
+    });
+
+    it('特殊字元（&、#）不會破壞網址', () => {
+        const links = buildMusicServiceLinks('R&B #1');
+        for (const link of links) {
+            expect(link.url).not.toContain('&B');
+            expect(link.url).not.toContain('#1');
+        }
+    });
+
+    it('串接辨識結果：AI 文字 → 關鍵字 → 四個平台網址', () => {
+        const query = buildMusicSearchQuery({ aiText: '歌名：應該\n歌手：王菲' });
+        const apple = buildMusicServiceLinks(query).find((l) => l.id === 'applemusic');
+        expect(apple?.url).toContain(encodeURIComponent('應該 王菲'));
     });
 });

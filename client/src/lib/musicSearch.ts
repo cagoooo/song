@@ -165,3 +165,37 @@ export function buildMusicSearchQuery(opts: {
 
     return pickLyricSearchPhrase(opts.sheet || '');
 }
+
+/**
+ * 「快速找音樂」按鈕資料 — 一鍵跳到串流平台搜尋這首歌。
+ * id 同時當成 CSS class 修飾詞（.ttm-music-link.applemusic …）。
+ */
+export interface MusicServiceLink {
+    id: 'spotify' | 'applemusic' | 'ytmusic' | 'youtube';
+    label: string;
+    url: string;
+}
+
+/**
+ * 依搜尋關鍵字組出各平台的搜尋網址。
+ * 關鍵字為空 → 回傳空陣列（呼叫端據此整組不渲染）。
+ *
+ * 註：Apple Music 用不帶國別的 /search，讓 Apple 依使用者帳號自動導到所在
+ * 地區的 storefront（寫死 /tw 會讓海外使用者被導去錯的商店）。
+ * YouTube 額外補「歌詞」是為了優先命中有字幕的演唱影片。
+ */
+export function buildMusicServiceLinks(query: string): MusicServiceLink[] {
+    const q = query.trim();
+    if (!q) return [];
+    const encoded = encodeURIComponent(q);
+    return [
+        { id: 'spotify', label: 'Spotify', url: `https://open.spotify.com/search/${encoded}` },
+        { id: 'applemusic', label: 'Apple Music', url: `https://music.apple.com/search?term=${encoded}` },
+        { id: 'ytmusic', label: 'YouTube Music', url: `https://music.youtube.com/search?q=${encoded}` },
+        {
+            id: 'youtube',
+            label: 'YouTube',
+            url: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${q} 歌詞`)}`,
+        },
+    ];
+}
