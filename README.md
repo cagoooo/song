@@ -2,6 +2,8 @@
 
 🌐 **線上使用：[吉他彈唱🎸點歌系統🎵](https://cagoooo.github.io/song/)**
 
+> 📌 **目前版本：v4.19.28**（依據 `package.json`）
+
 一個支援即時點播、投票和社交音樂分享的互動式吉他表演社群平台。
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
