@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/check-changelog.mjs && node scripts/stamp-sw-version.mjs && node scripts/generate-og-image.mjs",
+    "prebuild": "node scripts/check-changelog.mjs && node scripts/sync-changelog-md.mjs --check && node scripts/stamp-sw-version.mjs && node scripts/generate-og-image.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "check": "tsc",
@@ -17,6 +17,7 @@
     "subset-og-font": "node scripts/subset-og-font.mjs",
     "gen:og": "node scripts/generate-og-image.mjs",
     "changelog": "node scripts/gen-changelog.mjs",
+    "changelog:md": "node scripts/sync-changelog-md.mjs",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
     "prepare": "husky || true"
