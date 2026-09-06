@@ -1,5 +1,7 @@
 # 🎸 互動式吉他彈唱社交點播平台
 
+🌐 **線上使用：[吉他彈唱🎸點歌系統🎵](https://cagoooo.github.io/song/)**
+
 一個支援即時點播、投票和社交音樂分享的互動式吉他表演社群平台。
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
@@ -304,7 +306,7 @@ song/
 - Repository：`cagoooo/song`
 - 可見性：公開
 - 主要技術：TypeScript、React、Vite、Firebase、Tailwind CSS、Playwright、Docker
-- 線上入口：未在 GitHub repository metadata 設定
+- 線上入口：<https://cagoooo.github.io/song/>
 
 ### 可以怎麼應用
 
