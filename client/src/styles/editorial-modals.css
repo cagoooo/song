@@ -3904,14 +3904,58 @@ body.sdp-fs-open { overflow: hidden; }
   display: block;
 }
 
+/* 作者署名列：頁尾最後一行（不套用上方的大寫與加寬字距） */
+.editorial-credit {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--ed-line);
+  font-family: var(--font-body);
+  font-size: 14px;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ed-ink-2);
+  text-align: center;
+}
+.editorial-credit__heart {
+  display: inline-block;
+  margin: 0 2px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.editorial-credit__author {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--ed-hot);
+  text-decoration: none;
+  border-bottom: 1px dotted currentColor;
+  padding: 2px 0 1px;
+  transition: color 0.2s ease;
+}
+.editorial-credit__author:hover,
+.editorial-credit__author:focus-visible {
+  color: var(--ed-accent);
+}
+@media print {
+  .editorial-credit { display: none; }
+}
+
 @media (max-width: 780px) {
+  .editorial-credit {
+    margin-top: 2px;
+    padding-top: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .editorial-credit__school { display: block; }
+  .editorial-credit__dot { display: none; }
   .editorial-footer {
     margin-top: 14px;
     padding: 8px 10px 6px;
     min-height: 32px;
     border-top-width: 1px;
     gap: 6px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     overflow: hidden;
     font-size: 8px;
     letter-spacing: 0.12em;

@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.29',
+        date: '2026-11-17',
+        items: [
+            '頁尾最後一行加上作者署名「Made with ❤️ by 阿凱老師」・桃園市龍潭區石門國民小學，點「阿凱老師」可前往阿凱老師教育科技創新專區，逛逛更多老師自製的教學工具。',
+        ],
+    },
+    {
         version: '4.19.28',
         date: '2026-08-21',
         items: [

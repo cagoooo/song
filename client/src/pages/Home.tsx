@@ -1053,6 +1053,21 @@ export default function Home() {
             <span aria-hidden="true" />
             <span>33⅓ RPM · LIVE</span>
           </div>
+          <p className="editorial-credit">
+            Made with <span className="editorial-credit__heart" aria-label="愛心">❤️</span> by{' '}
+            <a
+              href="https://cagoooo.github.io/Akai/"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="阿凱老師教育科技創新專區"
+              className="editorial-credit__author"
+            >
+              阿凱老師
+            </a>
+            <span className="editorial-credit__school">
+              <span className="editorial-credit__dot" aria-hidden="true">・</span>桃園市龍潭區石門國民小學
+            </span>
+          </p>
         </footer>
       </div>
 
