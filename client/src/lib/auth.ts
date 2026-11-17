@@ -104,6 +104,13 @@ export async function signIn(email: string, password: string): Promise<AppUser> 
  * rules 強制新 doc 必須 pending + isAdmin:false，無法自封權限。
  */
 export async function signInWithGoogle(): Promise<AppUser> {
+    // App 內建瀏覽器（LINE／FB 等）：Google 禁止在此登入（403 disallowed_useragent）。
+    // 頁首防護會自動跳轉／引導；使用者按「先不登入，繼續瀏覽」後又按登入時，在這裡再提醒一次，不開登入視窗。
+    if (/FBAN|FBAV|FB_IAB|Instagram|Messenger|MicroMessenger|KAKAOTALK|\bLine\//i.test(navigator.userAgent || '')) {
+        try { window.alert('您目前在 App 內建瀏覽器（LINE／FB 等）中，Google 基於安全政策禁止在此登入。\n\n請點右上／右下角「⋯」→ 選「用預設瀏覽器開啟」後再登入。'); } catch { }
+        // 回傳型別是 AppUser，無法回 null；丟出「使用者取消」錯誤碼，呼叫端（use-user.ts）會靜默處理，不顯示錯誤。
+        throw Object.assign(new Error('in-app-browser'), { code: 'auth/cancelled-popup-request' });
+    }
     const [auth, { GoogleAuthProvider, signInWithPopup }] = await Promise.all([
         getAuthLazy(),
         import('firebase/auth'),

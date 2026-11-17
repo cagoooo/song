@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.31',
+        date: '2026-11-18',
+        items: [
+            '老師與管理員按 Google 登入前，若在 LINE、臉書等 App 內建瀏覽器，先提醒改用預設瀏覽器開啟，不再直接撞 Google 403。',
+        ],
+    },
+    {
         version: '4.19.30',
         date: '2026-11-18',
         items: [
