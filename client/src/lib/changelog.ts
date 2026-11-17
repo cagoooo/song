@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
     {
+        version: '4.19.30',
+        date: '2026-11-18',
+        items: [
+            '從 LINE、臉書等 App 內開啟時，登入頁不再被 Google 擋下：LINE 會自動改用瀏覽器，Android 臉書會自動開啟 Chrome。',
+        ],
+    },
+    {
         version: '4.19.29',
         date: '2026-11-17',
         items: [
